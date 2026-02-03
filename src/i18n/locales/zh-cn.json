@@ -71,6 +71,19 @@
         "installation": "装置",
         "science": "科学",
         "student": "学生作品"
+      },
+      "cultural": {
+        "featuredWorks": "精选作品",
+        "artSeries": "作品系列",
+        "all": "全部",
+        "images": "图片",
+        "videos": "视频",
+        "items": "个媒体",
+        "polarization": {
+          "crossed": "正交偏振",
+          "parallel": "平行偏振",
+          "frontView": "正视图"
+        }
       }
     },
     "lab": {
