@@ -5,19 +5,22 @@
 为 PolarCraft 项目创建一个完整的学生作品展示和交流平台。学生可以展示他们的研究成果、实验记录、媒体资源，并进行讨论交流。
 
 **核心功能：**
+
 - 作品展示（列表 + 详情）
 - 实验记录（时间线式记录研究过程）
 - 媒体资源管理（图片、视频、文档）
 - 讨论区（评论和交流）
 
 **技术决策：**
+
 - 前端：React + TypeScript + Tailwind CSS
 - 后端：Node.js + Express + TypeScript
 - 数据库：MySQL
 - 认证：JWT
 - 存储：本地存储 / 云存储（可选）
 
-**实施策略：分阶段开发**
+**实施策略：分阶段开发：**
+
 - 第一阶段：前端基础架构（静态数据）
 - 第二阶段：详情页完整实现
 - 第三阶段：后端 API 开发
@@ -233,7 +236,7 @@ export function getPublicWorks(): GalleryWork[] {
 
 ### 1.2 组件目录结构
 
-```
+```txt
 src/components/gallery/
 ├── index.ts                      # 统一导出
 │
@@ -588,6 +591,7 @@ export function WorkDetailPage() {
 **文件：** `src/pages/GalleryPage.tsx`
 
 主要修改：
+
 1. 导入新的 `WorkCard` 组件和 `GALLERY_WORKS` 数据
 2. 替换原有的 `GalleryCard`
 3. 添加点击事件处理
@@ -654,16 +658,19 @@ export function WorkDetailPage() {
 ### 3.1 技术决策：渐进式架构
 
 **MVP 阶段（推荐起步）：**
+
 - 后端框架: Node.js + Express + TypeScript
 - 数据存储: JSON 文件存储 (server/db/json/)
 - 认证: JWT + bcrypt
 - 文件存储: 本地存储 / Multer
 
 **扩展阶段（数据增长后）：**
+
 - 数据库: PostgreSQL + Prisma ORM
 - 云存储: Vercel Blob / AWS S3
 
 **优势：**
+
 - 快速启动，无需数据库配置
 - 易于调试和数据迁移
 - 成本为零
@@ -684,7 +691,7 @@ pnpm add axios
 
 ### 3.3 后端目录结构
 
-```
+```txt
 server/
 ├── index.ts              # Express 服务器入口
 ├── config/
@@ -724,7 +731,7 @@ public/uploads/           # 上传文件目录
 
 ### 3.4 API 端点总览
 
-```
+```txt
 API 基础路径: /api
 认证方式: Bearer Token (JWT)
 ```
@@ -732,7 +739,7 @@ API 基础路径: /api
 ### 3.5 认证模块 API
 
 | 方法 | 端点 | 描述 | 认证 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | POST | `/auth/register` | 用户注册 | 否 |
 | POST | `/auth/login` | 用户登录 | 否 |
 | POST | `/auth/logout` | 用户登出 | 是 |
@@ -745,7 +752,7 @@ API 基础路径: /api
 
 #### 请求/响应示例
 
-**POST /auth/register - 用户注册**
+**POST /auth/register - 用户注册:**
 
 ```typescript
 // 请求
@@ -775,7 +782,7 @@ interface RegisterResponse {
 }
 ```
 
-**POST /auth/login - 用户登录**
+**POST /auth/login - 用户登录:**
 
 ```typescript
 // 请求
@@ -1238,6 +1245,7 @@ export default defineConfig({
 ```
 
 **开发时需要两个终端**：
+
 - 终端 1: `pnpm dev` - 运行 Vite 前端 (端口 5173)
 - 终端 2: `pnpm dev:api` - 运行 Express 后端 (端口 3001)
 
@@ -1260,7 +1268,7 @@ MAX_FILE_SIZE=104857600
 ### 3.7 作品模块 API
 
 | 方法 | 端点 | 描述 | 认证 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | GET | `/works` | 获取作品列表 | 否 |
 | GET | `/works/:id` | 获取作品详情 | 否 |
 | POST | `/works` | 创建作品 | 是 |
@@ -1272,6 +1280,7 @@ MAX_FILE_SIZE=104857600
 #### GET /works - 获取作品列表
 
 **查询参数：**
+
 ```typescript
 interface WorksQuery {
   page?: number;           // 页码（默认1）
@@ -1284,6 +1293,7 @@ interface WorksQuery {
 ```
 
 **响应：**
+
 ```typescript
 interface WorksResponse {
   success: true;
@@ -1302,6 +1312,7 @@ interface WorksResponse {
 #### POST /works - 创建作品
 
 **请求：**
+
 ```typescript
 interface CreateWorkRequest {
   title: { [lang: string]: string };
@@ -1315,6 +1326,7 @@ interface CreateWorkRequest {
 ```
 
 **响应：**
+
 ```typescript
 interface CreateWorkResponse {
   success: true;
@@ -1328,7 +1340,7 @@ interface CreateWorkResponse {
 ### 3.5 记录模块 API
 
 | 方法 | 端点 | 描述 | 认证 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | GET | `/works/:workId/records` | 获取作品记录列表 | 否 |
 | POST | `/works/:workId/records` | 添加记录 | 是 |
 | PUT | `/works/:workId/records/:recordId` | 更新记录 | 是 |
@@ -1337,6 +1349,7 @@ interface CreateWorkResponse {
 #### POST /works/:workId/records - 添加记录
 
 **请求：**
+
 ```typescript
 interface CreateRecordRequest {
   date: string;            // ISO 日期格式
@@ -1350,7 +1363,7 @@ interface CreateRecordRequest {
 ### 3.6 评论模块 API
 
 | 方法 | 端点 | 描述 | 认证 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | GET | `/works/:workId/comments` | 获取评论列表 | 否 |
 | POST | `/works/:workId/comments` | 添加评论 | 是 |
 | PUT | `/works/:workId/comments/:commentId` | 更新评论 | 是 |
@@ -1361,6 +1374,7 @@ interface CreateRecordRequest {
 #### GET /works/:workId/comments - 获取评论列表
 
 **查询参数：**
+
 ```typescript
 interface CommentsQuery {
   page?: number;
@@ -1370,6 +1384,7 @@ interface CommentsQuery {
 ```
 
 **响应：**
+
 ```typescript
 interface CommentsResponse {
   success: true;
@@ -1383,6 +1398,7 @@ interface CommentsResponse {
 #### POST /works/:workId/comments - 添加评论
 
 **请求：**
+
 ```typescript
 interface CreateCommentRequest {
   content: string;
@@ -1403,6 +1419,7 @@ interface CreateCommentRequest {
 #### POST /upload - 上传文件
 
 **请求：** `multipart/form-data`
+
 ```typescript
 // FormData
 {
@@ -1413,6 +1430,7 @@ interface CreateCommentRequest {
 ```
 
 **响应：**
+
 ```typescript
 interface UploadResponse {
   success: true;

@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { PersistentHeader } from "@/components/shared";
-import { WorksGrid } from "@/components/gallery";
+import { WorksGrid } from "@/feature/gallery";
 import { getPrivateWorks } from "@/data/gallery";
 import { FlaskConical, Lock, MessageSquare, ArrowRight } from "lucide-react";
 

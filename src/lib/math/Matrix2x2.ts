@@ -224,7 +224,16 @@ export class Matrix2x2 {
     if (det.isZero(EPSILON)) {
       return null;
     }
+    // === NUMERICAL STABILITY: Condition Number ===
+    // κ(A) = ||A|| × ||A⁻¹|| measures sensitivity to numerical errors
+    // Large κ(A) means matrix is ill-conditioned:
+    //   - κ < 10: well-conditioned (inverse is stable)
+    //   - 10 < κ < 1000: moderately conditioned
+    //   - κ > 1000: ill-conditioned (inverse may have large errors)
+    // For 2x2: κ ≥ 1 always, with κ = 1 for unitary matrices
+    // Future: Could add conditionNumber() method and threshold check here
     const invDet = Complex.ONE.div(det);
+    // Formula for 2x2 inverse: [[a, b], [c, d]]^(-1) = (1/det) × [[d, -b], [-c, a]]
     return new Matrix2x2(
       this.a11.mul(invDet),
       this.a01.negate().mul(invDet),
@@ -298,6 +307,36 @@ export class Matrix2x2 {
       this.a10.magnitudeSquared +
       this.a11.magnitudeSquared
     );
+  }
+
+  // ========== Numerical Stability Methods ==========
+
+  /**
+   * Calculate condition number: κ(A) = ||A|| × ||A⁻¹||
+   * Measures sensitivity of linear system Ax = b to perturbations
+   *
+   * Interpretation:
+   *   - κ = 1: Perfectly conditioned (e.g., unitary matrices)
+   *   - κ < 10: Well-conditioned (small errors in solution)
+   *   - κ < 1000: Moderately conditioned
+   *   - κ ≥ 1000: Ill-conditioned (large errors possible)
+   *   - κ = ∞: Singular (no inverse exists)
+   *
+   * For Jones matrices: κ affects polarization state reconstruction accuracy
+   */
+  conditionNumber(): number {
+    const inv = this.inverse();
+    if (!inv) return Infinity;
+    return this.frobeniusNorm() * inv.frobeniusNorm();
+  }
+
+  /**
+   * Check if matrix is numerically safe to invert
+   * @param threshold - Maximum acceptable condition number (default: 1000)
+   */
+  isSafeToInvert(threshold: number = 1000): boolean {
+    const cond = this.conditionNumber();
+    return cond < threshold;
   }
 }
 

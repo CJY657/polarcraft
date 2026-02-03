@@ -45,7 +45,7 @@ PolarCraft 是一款由零一学院开发的，基于偏振光物理的教育类
 
 ### 主页面入口
 
-- head: 标题“偏振光下新世界”
+- head: 标题"偏振光下新世界"
 - body: 六个module入口
 - bottom: 随机的**光学发展历史**和**偏振知识点**
 
@@ -53,7 +53,7 @@ PolarCraft 是一款由零一学院开发的，基于偏振光物理的教育类
 
 - 第一部分: **基础知识**--- 按单元分类放课程ppt以及课程大纲
 - 第二部分: (器材设备?-器材分类??)
-- 第三部分: **理论计算**--- 理论是什么，公式和**交互实验演示**
+- 第三部分: **理论模拟**--- 理论是什么，公式和**交互实验演示**
 - 第四部分: (闯关性游戏？MineCraft体素游戏?)
 - 第五部分: **成果展示**--- 已完成的作品， 实验报告，新发现
 - 第六部分: **虚拟课题**--- 未完成的一些小课题（seperated & piverite用户组私有）
@@ -67,6 +67,14 @@ PolarCraft 是一款由零一学院开发的，基于偏振光物理的教育类
 - **路由**：React Router v7
 - **样式**：Tailwind CSS v4
 - **构建工具**：Vite
+- **3D渲染**：Three.js + @react-three/fiber + @react-three/drei
+- **实时协作**：Yjs + y-websocket
+- **数学/物理**：自研数学库（复数、矩阵、向量）+ 光学计算库（Jones矢阵、几何光学、波动光学）
+- **动画**：Framer Motion
+- **公式渲染**：KaTeX
+- **文档**：react-markdown + remark-gfm
+- **国际化**：i18next + react-i18next
+- **后端**：Express + TypeScript + MySQL + WebSocket + JWT
 
 ## 快速命令
 
@@ -83,7 +91,7 @@ npm run test:coverage # 运行测试并生成覆盖率报告
 # 后端（在 /server 目录中）
 cd server
 npm install
-npm run start:dev    # 以监视模式启动 NestJS 服务器
+npm run start:dev    # 以监视模式启动 Express 服务器
 npm run build        # 为生产环境构建
 ```
 
@@ -104,6 +112,155 @@ npm run build        # 为生产环境构建
 
 ## 文件架构
 
-```txt
+### 根目录
 
+```txt
+polarcraft/
+|--public/       # 公共静态资源
+|--server/       # 后端服务器
+|--src/          # 前端源码
+|--docs/         # 项目文档
+|--README.md
+|--components.json
+|--eslint.config.js
+|--index.html
+|--package-lock.json
+|--package.json
+|--pnpm-lock.yaml
+|--pnpm-workspace.yaml
+|--postcss.config.js
+|--tailwind.config.js
+|--tsconfig.json
+|--tsconfig.node.json
+|--tsconfig.app.json
+|--vercel.json
+|--vite.config.ts
+`--vitest.config.ts
+```
+
+### 前端源码目录 (src/)
+
+```txt
+src/
+|--__test__/           # 测试配置
+|--assets/             # 静态资源（字体、图标等）
+|--components/         # 通用可复用组件
+|   |--icons/         # 自定义 SVG 图标
+|   |--shared/        # 跨模块共享的 UI 组件
+|   `--ui/            # 基础 UI 组件
+|--contexts/           # React Context
+|   |--AuthContext.tsx    # 认证状态管理
+|   `--ThemeContext.tsx   # 主题切换
+|--data/               # 静态数据文件
+|   |--courses.ts           # 课程结构数据
+|   |--gallery.ts           # 画廊作品数据
+|   |--chronicles-*.ts      # 历史事件数据
+|   |--timeline-events.ts   # 时间线数据
+|   `--scientist-network.ts # 科学家网络数据
+|--feature/            # 功能模块（按业务模块组织）
+|   |--course/        # 课程学习模块
+|   |   |--chronicles/   # 光学史时间线组件
+|   |   |--CourseViewer.tsx  # 课程查看器
+|   |   `--PdfViewer.tsx     # PDF查看器
+|   |--demos/         # 理论模拟模块
+|   |   |--components/ # 演示控件和UI
+|   |   `--unit0-3/    # 各单元演示实现
+|   |--devices/       # 光学器件模块
+|   |--gallery/       # 成果展示模块
+|   |   |--card/      # 作品卡片
+|   |   |--detail/    # 作品详情页
+|   |   |--media/     # 媒体画廊
+|   |   |--record/    # 成就记录
+|   |   `--WorksGrid.tsx
+|   |--games/         # 游戏挑战模块
+|   |   |--EscapePage.tsx    # 密室逃脱
+|   |   `--MinecraftPage.tsx # 体素游戏
+|   |--lab/           # 虚拟实验室模块
+|   `--research/      # 虚拟课题组模块
+|       |--components/
+|       |   |--canvas/    # 研究画布（React Flow）
+|       |   |--edges/     # 自定义边组件
+|       |   |--nodes/     # 节点类型（6种）
+|       |   |--panels/    # 详情面板
+|       |   |--project/   # 项目管理
+|       |   `--shared/    # Markdown编辑器
+|       |--stores/        # 画布状态管理
+|       `--pages/         # 研究页面
+|--hooks/              # 自定义 React Hooks
+|   |--useHapticAudio.ts
+|   |--useIsMobile.ts
+|   `--usePolarizationSimulation.ts
+|--i18n/               # 国际化配置
+|--lib/                # 核心工具库
+|   |--math/          # 数学库
+|   |   |--Complex.ts      # 复数运算（已测试）
+|   |   |--Matrix2x2.ts    # 2x2矩阵（已测试）
+|   |   `--Vector3.ts      # 3D向量（已测试）
+|   |--physics/       # 物理计算库
+|   |   |--GeoOptics.ts      # 几何光学
+|   |   |--JonesCalculus.ts  # Jones矢阵
+|   |   |--Saccharimetry.ts  # 旋光计算
+|   |   |--WaveOptics.ts     # 波动光学
+|   |   `--unified/          # 统一物理接口
+|   |--api.ts           # API 客户端
+|   |--auth.service.ts  # 认证工具
+|   |--logger.ts        # 日志工具
+|   `--storage.ts       # 本地存储
+|--pages/              # 主页面组件（路由层）
+|   |--HomePage.tsx       # 首页（六个模块入口）
+|   |--CoursesPage.tsx    # 模块一：课程历史
+|   |--DevicesPage.tsx    # 模块二：光学器件
+|   |--DemosPage.tsx      # 模块三：理论模拟
+|   |--GamesPage.tsx      # 模块四：游戏挑战
+|   |--GalleryPage.tsx    # 模块五：成果展示
+|   |--LabPage.tsx        # 模块六：虚拟课题组
+|   |--AboutPage.tsx
+|   |--LoginPage.tsx
+|   `--RegisterPage.tsx
+|--stores/             # Zustand 状态管理
+|   `--game/          # 游戏状态存储
+|--test/               # 测试文件
+|--types/              # TypeScript 类型定义
+|   |--i18n.d.ts
+|   `--research.ts    # 研究画布类型
+|--utils/              # 工具函数
+|--App.tsx             # 应用入口（路由配置）
+|--APP.css
+|--index.css           # 全局样式
+|--main.tsx            # React 入口
+`--vite-env.d.ts
+```
+
+### 后端目录 (server/)
+
+```txt
+server/
+|--src/
+|   |--config/          # 配置文件
+|   |--controllers/     # 路由控制器
+|   |--database/        # 数据库设置和迁移
+|   |--middleware/      # Express 中间件
+|   |--models/          # 数据模型
+|   |--routes/          # API 路由
+|   |--services/        # 业务逻辑
+|   |--types/           # TypeScript 类型
+|   |--utils/           # 工具函数
+|   `--index.ts         # 服务器入口
+|--package.json
+`--tsconfig.json
+```
+
+### 静态资源目录 (public/)
+
+```txt
+public/
+|--courses/            # 课程资源
+|   |--unit0/         # 按单元组织的PPT、PDF、视频
+|   |--unit1/
+|   |--unit2/
+|   |--unit3/
+|   `--unit4/
+|--gallery/            # 学员作品
+|--images/             # 通用图片
+`--videos/             # 视频文件
 ```

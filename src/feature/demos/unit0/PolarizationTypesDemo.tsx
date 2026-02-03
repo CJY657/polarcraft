@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/contexts/ThemeContext";
 import { SliderControl, ControlPanel, ValueDisplay, Formula, InfoCard } from "../DemoControls";
 import MathText from "@/components/shared/MathText";
 
@@ -396,12 +397,13 @@ function PresetButton({
   color: string;
 }) {
   const { i18n } = useTranslation();
+  const { theme } = useTheme();
   return (
     <motion.button
       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
         isActive
           ? `bg-opacity-20 border-opacity-50`
-          : "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-slate-500"
+          : theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-slate-500" : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-gray-400"
       }`}
       style={{
         backgroundColor: isActive ? `${color}20` : undefined,
@@ -420,6 +422,7 @@ function PresetButton({
 // 主演示组件
 export function PolarizationTypesDemo() {
   const { i18n } = useTranslation();
+  const { theme } = useTheme();
   const [phaseDiff, setPhaseDiff] = useState(0);
   const [ampX, setAmpX] = useState(1);
   const [ampY, setAmpY] = useState(1);
@@ -462,7 +465,7 @@ export function PolarizationTypesDemo() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
           偏振态与波合成
         </h2>
-        <p className="text-gray-400 mt-1">探索光的偏振状态：由两个垂直分量的振幅比和相位差决定</p>
+        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>探索光的偏振状态：由两个垂直分量的振幅比和相位差决定</p>
       </div>
 
       {/* 上方：两个可视化面板 */}
@@ -470,8 +473,8 @@ export function PolarizationTypesDemo() {
         {/* 3D 波动传播视图 */}
         <div className="flex-1 bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-cyan-400/10 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">3D 空间传播视图</h3>
-            <div className="text-xs text-gray-500">伪等轴测投影</div>
+            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>3D 空间传播视图</h3>
+            <div className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"}`}>伪等轴测投影</div>
           </div>
           <div className="p-4 flex justify-center">
             <WavePropagation3DCanvas
@@ -486,7 +489,7 @@ export function PolarizationTypesDemo() {
         {/* 2D 偏振态投影 */}
         <div className="lg:w-[360px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-cyan-400/10">
-            <h3 className="text-sm font-semibold text-white">偏振态投影</h3>
+            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>偏振态投影</h3>
           </div>
           <div className="p-4 flex flex-col items-center gap-3">
             <PolarizationStateCanvas
@@ -497,7 +500,7 @@ export function PolarizationTypesDemo() {
             />
             <div className="text-center space-y-1">
               <div>
-                <span className="text-gray-400 text-sm">当前状态: </span>
+                <span className={theme === "dark" ? "text-gray-400 text-sm" : "text-gray-600 text-sm"}>当前状态: </span>
                 <span
                   className="font-semibold"
                   style={{ color: polarizationState.color }}
@@ -505,7 +508,7 @@ export function PolarizationTypesDemo() {
                   {polarizationState.type[i18n.language]}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-700"}`}>
                 {polarizationState.description[i18n.language]}
               </p>
             </div>
@@ -530,7 +533,7 @@ export function PolarizationTypesDemo() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               animate
                 ? "bg-cyan-400/20 text-cyan-400 border border-cyan-400/50"
-                : "bg-slate-700/50 text-gray-400 border border-slate-600"
+                : theme === "dark" ? "bg-slate-700/50 text-gray-400 border border-slate-600" : "bg-gray-100/50 text-gray-600 border border-gray-300"
             }`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -604,7 +607,7 @@ export function PolarizationTypesDemo() {
 
         {/* 物理原理 */}
         <ControlPanel title="物理原理">
-          <div className="text-xs text-gray-400 space-y-2">
+          <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-2`}>
             <p>
               <strong className="text-cyan-400">偏振态</strong>
               由两个互相垂直的电场分量 ({MathText({ text: "$E_x, E_y$" })}) 的振幅比和相位差(
@@ -638,7 +641,7 @@ export function PolarizationTypesDemo() {
           title="🎬 3D电影技术"
           color="cyan"
         >
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             3D电影利用圆偏振光：左右眼分别接收左旋和右旋圆偏振图像，通过偏振眼镜分离产生立体效果。
           </p>
         </InfoCard>
@@ -646,7 +649,7 @@ export function PolarizationTypesDemo() {
           title="📡 卫星通信"
           color="purple"
         >
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             卫星使用圆偏振天线：避免发射和接收天线方向对准问题，提高通信稳定性。
           </p>
         </InfoCard>
@@ -654,7 +657,7 @@ export function PolarizationTypesDemo() {
           title="🔬 生物检测"
           color="orange"
         >
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             椭圆偏振光谱用于检测蛋白质分子结构：不同分子会产生特定的偏振变化，用于医学诊断。
           </p>
         </InfoCard>

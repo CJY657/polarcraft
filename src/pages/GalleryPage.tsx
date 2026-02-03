@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { PersistentHeader } from "@/components/shared";
-import { WorksGrid } from "@/components/gallery";
+import { WorksGrid } from "@/feature/gallery";
 import { getPublicWorks } from "@/data/gallery";
 
 export function ExperimentsPage() {

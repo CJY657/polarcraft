@@ -91,10 +91,17 @@ export class Complex {
   div(other: Complex): Complex {
     const denom = other.magnitudeSquared;
     if (denom < EPSILON) {
-      // Handle division by near-zero: return a safe large value or zero
-      // For physics, this typically means infinite impedance or zero transmission
+      // === MATHEMATICAL NOTE: Zero Division ===
+      // In pure mathematics: division by zero is undefined (should return NaN or throw)
+      // In optical physics context:
+      //   - Infinite impedance (transmission coefficient → 0)
+      //   - Zero transmission through opaque medium
+      // Design choice: Return ZERO for numerical stability
+      // Alternative (strict math): return new Complex(NaN, NaN);
       return Complex.ZERO;
     }
+    // Formula: (a+bi)/(c+di) = [(a+bi)(c-di)] / (c²+d²)
+    //                     = [(ac+bd) + (bc-ad)i] / (c²+d²)
     return new Complex(
       (this.real * other.real + this.imag * other.imag) / denom,
       (this.imag * other.real - this.real * other.imag) / denom
@@ -172,6 +179,12 @@ export class Complex {
       return n > 0 ? Complex.ZERO : new Complex(Infinity, 0);
     }
     const newMag = Math.pow(mag, n);
+    // === PHASE MULTIPLICATION ===
+    // For z^n = |z|^n × e^(i×n×arg(z)), the phase scales linearly
+    // For integer n: phase is well-defined (branch cut doesn't matter)
+    // For fractional n: we use principal branch (-π, π]
+    // Note: n×arg(z) may exceed (-π, π]; cos/sin handle this correctly
+    // Example: (-1)^(1/2) = exp(i×π/2) = i (correct principal value)
     const newPhase = this.phase * n;
     return new Complex(
       newMag * Math.cos(newPhase),
@@ -185,6 +198,16 @@ export class Complex {
    */
   powComplex(exponent: Complex): Complex {
     if (this.isZero()) {
+      // === MATHEMATICAL NOTE: Zero Base Powers ===
+      // 0^z is defined only for Re(z) > 0, returning 0
+      // Special cases:
+      //   - 0^0 : undefined (indeterminate form)
+      //   - 0^positive_real : 0
+      //   - 0^negative_real : undefined (approaches infinity)
+      // Current: Return ZERO for all cases (stable default)
+      // Alternative (strict math): Handle explicitly:
+      //   if (exponent.isZero()) return new Complex(NaN, NaN);      // 0^0
+      //   if (exponent.real < 0) return new Complex(Infinity, 0);  // 0^negative
       return Complex.ZERO;
     }
     const logThis = this.log();
@@ -255,6 +278,26 @@ export class Complex {
   /** Create from array [real, imag] */
   static fromArray(arr: [number, number]): Complex {
     return new Complex(arr[0], arr[1]);
+  }
+
+  // ========== Numerical Stability Methods ==========
+
+  /**
+   * Check if this complex number is finite (no Infinity or NaN components)
+   * Useful for detecting numerical overflow in iterative algorithms
+   * Example: Fresnel coefficients at grazing incidence may approach infinity
+   */
+  isFinite(): boolean {
+    return Number.isFinite(this.real) && Number.isFinite(this.imag);
+  }
+
+  /**
+   * Check if this complex number represents a valid physical quantity
+   * In optics: amplitude must be finite and non-negative magnitude
+   * Returns true if finite and magnitude ≥ 0
+   */
+  isValidPhysicalQuantity(): boolean {
+    return this.isFinite() && this.magnitude >= 0;
   }
 }
 

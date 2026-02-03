@@ -105,6 +105,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   const [showExportMenu, setShowExportMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -202,8 +203,14 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     // Get current viewport center
     const { getViewport } = reactFlowInstance;
     const viewport = getViewport();
-    const centerX = (-viewport.x + window.innerWidth / 2) / viewport.zoom;
-    const centerY = (-viewport.y + window.innerHeight / 2) / viewport.zoom;
+
+    // Get container dimensions for accurate center calculation
+    const containerRect = reactFlowWrapper.current?.getBoundingClientRect();
+    const containerWidth = containerRect?.width || window.innerWidth;
+    const containerHeight = containerRect?.height || window.innerHeight;
+
+    const centerX = (-viewport.x + containerWidth / 2) / viewport.zoom;
+    const centerY = (-viewport.y + containerHeight / 2) / viewport.zoom;
 
     // Add small random offset to avoid stacking
     const pos = {
@@ -292,7 +299,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     // Update both the store and React Flow state
     addNode(newNode);
     setFlowNodes((nds) => [...nds, newNode]);
-  }, [addNode, setFlowNodes]);
+  }, [addNode, setFlowNodes, reactFlowInstance]);
 
   function getNodeDefaultTitle(type: string): string {
     const titles: Record<string, string> = {
@@ -502,7 +509,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       {/* Canvas Area */}
       <div className="flex-1 flex min-h-0">
         {/* Main Canvas Area */}
-        <div className="flex-1 relative bg-slate-900">
+        <div ref={reactFlowWrapper} className="flex-1 relative bg-slate-900">
         <ReactFlow
           nodes={flowNodes}
           edges={edgesWithCallbacks}

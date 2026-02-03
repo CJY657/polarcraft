@@ -29,13 +29,13 @@ const DemosPage = lazy(() => import("@/pages/DemosPage"));
 // Module 4: 游戏挑战
 // 解谜逃脱 × 我的世界
 const GamesPage = lazy(() => import("@/pages/GamesPage"));
-const EscapePage = lazy(() => import("@/pages/EscapePage"));
-const MinecraftPage = lazy(() => import("@/pages/MinecraftPage"));
+const EscapePage = lazy(() => import("@/feature/games/EscapePage"));
+const MinecraftPage = lazy(() => import("@/feature/games/MinecraftPage"));
 
 // Module 5: 成果展示
 // 课程成果 × 文创作品
 const GalleryPage = lazy(() => import("@/pages/GalleryPage"));
-const WorkDetailPage = lazy(() => import("@/components/gallery/detail").then(m => ({ default: m.WorkDetailPage })));
+const WorkDetailPage = lazy(() => import("@/feature/gallery/detail").then(m => ({ default: m.WorkDetailPage })));
 
 // Module 6: 虚拟课题
 // 开放研究 × 课题实践

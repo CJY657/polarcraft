@@ -39,7 +39,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 // Unit 0  Optical Basics demos
 import { PolarizationTypesDemo } from "@/feature/demos/unit0/PolarizationTypesDemo";
 import { ElectromagneticWaveDemo } from "@/feature/demos/unit0/ElectromagneticWaveDemo";
-// import { BriefringenceIcelandSparDemo } from "@/feature/demos/unit0/BirefringenceIcelandSparDemo";
+import { BiRefringenceIcelandSparDemo } from "@/feature/demos/unit0/BiRefringenceIcelandSparDemo";
 import { BrewsterAngleDemo } from "@/feature/demos/unit0/BrewsterAngleDemo";
 import { ColorStateDemo } from "@/feature/demos/unit1/ColorStateDemo";
 
@@ -85,7 +85,16 @@ const DEMOS: DemoItem[] = [
     visualType: "2D",
 
   },
-  // 透射与反射演示
+  {
+    id: "birefringence-iceland-spar",
+    titleKey: "demos.theorySimulation.units.unit0.demos.birefringenceIcelandSpar.title",
+    unit: 0,
+    component: BiRefringenceIcelandSparDemo,
+    descriptionKey: "demos.theorySimulation.units.unit0.demos.birefringenceIcelandSpar.description",
+    visualType: "3D",
+  },
+  // 单元0结束
+
 
   // 单元1 - 各向异性介质中的偏振演化
   //

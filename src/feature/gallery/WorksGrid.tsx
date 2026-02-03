@@ -6,7 +6,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
-import { WorkCard } from "@/components/gallery";
+import { WorkCard } from "./card";
 import type { GalleryWork } from "@/data/gallery";
 import { ImageIcon } from "lucide-react";
 

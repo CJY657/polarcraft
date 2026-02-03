@@ -5,10 +5,12 @@
  * 展示当线偏振光通过糖溶液时，不同波长的光旋转速度不同，
  * 在管内不同位置呈现不同颜色，产生色彩渐变效果。
  */
+
 import { useState, useRef, useEffect, useMemo } from "react";
 // import { useCallback } from "react"; // 预留：用于事件处理优化
 // import { motion } from "framer-motion"; // 预留：用于动画效果
 // import { useTranslation } from "react-i18next"; // 预留：用于国际化
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   SliderControl,
   ControlPanel,
@@ -714,6 +716,7 @@ function RotationTable({
   concentration: number;
   pathLength: number;
 }) {
+  const { theme } = useTheme();
   const rotations = useMemo(
     () => calculateAllRotations(concentration, pathLength),
     [concentration, pathLength]
@@ -721,7 +724,7 @@ function RotationTable({
 
   return (
     <div className="space-y-1">
-      <div className="grid grid-cols-3 gap-2 text-xs text-gray-500 pb-1 border-b border-gray-700">
+      <div className={`grid grid-cols-3 gap-2 text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"} pb-1 border-b ${theme === "dark" ? "border-gray-700" : "border-gray-300"}`}>
         <span className="text-center">波长</span>
         <span className="text-center">颜色</span>
         <span className="text-center">旋转角</span>
@@ -731,13 +734,13 @@ function RotationTable({
           key={data.wavelength}
           className="grid grid-cols-3 gap-2 text-sm items-center py-1"
         >
-          <span className="text-center font-mono text-gray-400">{data.wavelength} nm</span>
+          <span className={`text-center font-mono ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{data.wavelength} nm</span>
           <span className="flex items-center justify-center gap-2">
             <span
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: data.color }}
             />
-            <span className="text-gray-300 text-xs">{data.colorName}</span>
+            <span className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>{data.colorName}</span>
           </span>
           <span
             className="text-center font-mono font-bold"
@@ -755,6 +758,7 @@ function RotationTable({
  * 主演示组件
  */
 export function ColorStateDemo() {
+  const { theme } = useTheme();
   // const { i18n } = useTranslation(); // 预留：用于国际化语言切换
 
   // 状态管理
@@ -779,7 +783,7 @@ export function ColorStateDemo() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-amber-100 to-white bg-clip-text text-transparent">
           量糖计演示 - 旋光色散
         </h2>
-        <p className="text-gray-400 mt-1">
+        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>
           观察管内颜色梯度：不同波长的光旋转速度不同，在糖溶液中逐渐分离
         </p>
       </div>
@@ -866,8 +870,8 @@ export function ColorStateDemo() {
           </div>
 
           {/* 快速预设 */}
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-xs text-gray-500 mb-2">快速预设</p>
+          <div className={`pt-3 border-t ${theme === "dark" ? "border-slate-700" : "border-gray-300"}`}>
+            <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"} mb-2`}>快速预设</p>
             <div className="grid grid-cols-3 gap-2">
               {[0.2, 0.5, 0.8].map((c) => (
                 <button
@@ -876,7 +880,7 @@ export function ColorStateDemo() {
                   className={`px-2 py-1.5 rounded text-xs transition-all ${
                     concentration === c
                       ? "bg-orange-500/30 text-orange-400 border border-orange-500/50"
-                      : "bg-slate-700/50 text-gray-400 border border-slate-600 hover:border-orange-400/30"
+                      : theme === "dark" ? "bg-slate-700/50 text-gray-400 border border-slate-600 hover:border-orange-400/30" : "bg-gray-100/50 text-gray-600 border border-gray-300 hover:border-orange-400/30"
                   }`}
                 >
                   {c} g/mL
@@ -893,14 +897,14 @@ export function ColorStateDemo() {
           <Formula highlight>
             $\Phi = [\alpha]_\lambda \cdot c \cdot L$
           </Formula>
-          <div className="text-xs text-gray-400 mt-2 space-y-1">
+          <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-2 space-y-1`}>
             <p>• <span className="text-cyan-400">α</span> : 旋转角 (度)</p>
             <p>• <span className="text-orange-400">[α]_λ</span> : 比旋光度 (与波长有关)</p>
             <p>• <span className="text-yellow-400">c</span> : 溶液浓度 (g/mL)</p>
             <p>• <span className="text-green-400">L</span> : 管长 (dm)</p>
           </div>
-          <div className="mt-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-            <p className="text-xs text-gray-500 mb-1">蔗糖比旋光度参考 (20°C):</p>
+          <div className={`mt-3 p-3 rounded-lg ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}>
+            <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"} mb-1`}>蔗糖比旋光度参考 (20°C):</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
               <span className="text-purple-400">400nm (紫): ~115°</span>
               <span className="text-blue-400">450nm (蓝): ~96°</span>
@@ -926,7 +930,7 @@ export function ColorStateDemo() {
           title="旋光性原理"
           color="cyan"
         >
-          <ul className="text-xs text-gray-300 space-y-1.5">
+          <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
             <ListItem>• 糖分子具有手性结构，存在对映异构体</ListItem>
             <ListItem>• 线偏振光通过时，偏振面发生旋转</ListItem>
             <ListItem>• 旋转方向和大小取决于物质种类和浓度</ListItem>
@@ -938,7 +942,7 @@ export function ColorStateDemo() {
           title="管内颜色梯度"
           color="purple"
         >
-          <ul className="text-xs text-gray-300 space-y-1.5">
+          <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
             <ListItem>• 短波长(紫)光旋转最快，最先到达最大偏转</ListItem>
             <ListItem>• 长波长(红)光旋转最慢，偏转最小</ListItem>
             <ListItem>• 在管内形成彩虹般的颜色梯度</ListItem>
@@ -950,7 +954,7 @@ export function ColorStateDemo() {
           title="应用场景"
           color="green"
         >
-          <ul className="text-xs text-gray-300 space-y-1.5">
+          <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
             <ListItem>• 食品工业：测定糖含量</ListItem>
             <ListItem>• 制药工业：药品纯度检测</ListItem>
             <ListItem>• 化学研究：分子结构分析</ListItem>

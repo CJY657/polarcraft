@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Target, Sparkles, FlaskConical, Lightbulb } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   SliderControl,
   ControlPanel,
@@ -466,6 +467,7 @@ function drawPolarizationLegend(
 // Main demo component
 export function BrewsterAngleDemo() {
   useTranslation();
+  const { theme } = useTheme();
   const [incidentAngle, setIncidentAngle] = useState(30);
   const [n1, setN1] = useState(1.0);
   const [n2, setN2] = useState(1.5);
@@ -520,7 +522,7 @@ export function BrewsterAngleDemo() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
           布鲁斯特角演示
         </h2>
-        <p className="text-gray-400 mt-1">
+        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>
           当反射光与折射光垂直时，反射光为完全偏振光（只有S分量）
         </p>
       </div>
@@ -530,7 +532,7 @@ export function BrewsterAngleDemo() {
         {/* Canvas */}
         <div className="flex-1 bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-cyan-400/10 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">光路演示</h3>
+            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>光路演示</h3>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSetToBrewsterAngle}
@@ -556,7 +558,7 @@ export function BrewsterAngleDemo() {
         {/* Info panel */}
         <div className="lg:w-[320px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-cyan-400/10">
-            <h3 className="text-sm font-semibold text-white">参数信息</h3>
+            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>参数信息</h3>
           </div>
           <div className="p-4 space-y-4">
             {/* Current status */}
@@ -577,7 +579,7 @@ export function BrewsterAngleDemo() {
                   {isAtBrewsterAngle ? '达到布鲁斯特角!' : '当前状态'}
                 </span>
               </div>
-              <p className="text-xs text-gray-300">
+              <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                 {isAtBrewsterAngle
                   ? '反射光与折射光垂直，反射光为完全线偏振光（只有S偏振分量）'
                   : arePerpendicular
@@ -617,7 +619,7 @@ export function BrewsterAngleDemo() {
               <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h4 className="font-semibold text-amber-400 mb-1">布鲁斯特角特性</h4>
-                <p className="text-sm text-gray-300">
+                <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                   在布鲁斯特角时，反射光与折射光互相垂直（夹角90°）。
                   此时反射光中的<span className="text-yellow-400 font-semibold">P偏振分量（平行分量）完全消失</span>，
                   反射光成为<span className="text-green-400 font-semibold">完全线偏振光</span>，
@@ -647,7 +649,7 @@ export function BrewsterAngleDemo() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => setIncidentAngle(30)}
-              className="flex-1 px-3 py-2 text-xs rounded-lg bg-slate-700/50 text-gray-400 border border-slate-600/50 hover:border-cyan-400/30 hover:text-gray-300 transition-colors"
+              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
             >
               30°
             </button>
@@ -659,7 +661,7 @@ export function BrewsterAngleDemo() {
             </button>
             <button
               onClick={() => setIncidentAngle(60)}
-              className="flex-1 px-3 py-2 text-xs rounded-lg bg-slate-700/50 text-gray-400 border border-slate-600/50 hover:border-cyan-400/30 hover:text-gray-300 transition-colors"
+              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
             >
               60°
             </button>
@@ -686,7 +688,7 @@ export function BrewsterAngleDemo() {
         {/* Display options */}
         <ControlPanel title="显示选项">
           <Toggle label="动画效果" checked={animate} onChange={setAnimate} />
-          <div className="mt-4 text-xs text-gray-400 space-y-1">
+          <div className={`mt-4 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
             <p>• <span className="text-yellow-400">黄色圆点</span>: P偏振（平行分量）</p>
             <p>• <span className="text-green-400">绿色箭头</span>: S偏振（垂直分量）</p>
           </div>
@@ -696,19 +698,19 @@ export function BrewsterAngleDemo() {
       {/* Real-world applications */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InfoCard title="📷 摄影偏振镜" color="cyan">
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             摄影师利用布鲁斯特角原理，通过偏振镜消除水面、玻璃等表面的反射光，
             使照片更加清晰。拍摄天空时也能增强蓝天白云的对比度。
           </p>
         </InfoCard>
         <InfoCard title="🔬 激光器设计" color="purple">
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             许多激光器使用"布鲁斯特窗"——以布鲁斯特角切割的窗口片。
             这样P偏振光几乎无损耗地通过，而S偏振光被反射，从而产生线偏振激光输出。
           </p>
         </InfoCard>
         <InfoCard title="👓 偏光太阳镜" color="orange">
-          <p className="text-xs text-gray-300">
+          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
             水面、路面等水平反射光主要是水平偏振的。
             偏光太阳镜只允许垂直偏振光通过，有效减少眩光，
             让视野更清晰，特别适合驾驶和户外活动。
@@ -717,21 +719,21 @@ export function BrewsterAngleDemo() {
       </div>
 
       {/* Thinking questions */}
-      <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4">
-        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+      <div className={`${theme === "dark" ? "bg-slate-900/50 border-cyan-400/20" : "bg-gray-100/50 border-cyan-600/20"} rounded-xl border p-4`}>
+        <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"} mb-3 flex items-center gap-2`}>
           <FlaskConical className="w-4 h-4 text-cyan-400" />
           思考题
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-gray-300">
-          <div className="p-3 bg-slate-800/50 rounded-lg">
+        <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q1:</span> 如果光从玻璃射向空气，
             布鲁斯特角会变大还是变小？
           </div>
-          <div className="p-3 bg-slate-800/50 rounded-lg">
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q2:</span> 布鲁斯特角时，
             折射光是什么偏振态？
           </div>
-          <div className="p-3 bg-slate-800/50 rounded-lg">
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q3:</span> 为什么日落时的
             阳光更容易产生偏振？
           </div>

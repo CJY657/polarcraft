@@ -12,6 +12,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Waves, BarChart3 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   SliderControl,
   ControlPanel,
@@ -167,6 +168,7 @@ function formatWavelength(meters: number): string {
 
 export function ElectromagneticWaveDemo() {
   const { t, i18n } = useTranslation();
+  const { theme } = useTheme();
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("wave");
@@ -265,7 +267,7 @@ export function ElectromagneticWaveDemo() {
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "wave"
               ? "bg-cyan-500/20 text-cyan-400 shadow-sm"
-              : "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50"
+              : theme === "dark" ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
           }`}
         >
           <Waves className="w-4 h-4" />
@@ -276,7 +278,7 @@ export function ElectromagneticWaveDemo() {
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "spectrum"
               ? "bg-purple-500/20 text-purple-400 shadow-sm"
-              : "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50"
+              : theme === "dark" ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -467,15 +469,15 @@ export function ElectromagneticWaveDemo() {
                       </text>
                     </g>
 
-                    <foreignObject x="580" y="18" width="120" height="24">
+                    <foreignObject x="550" y="18" width="150" height="24">
                       <div {...({ xmlns: "http://www.w3.org/1999/xhtml", style: { fontSize: "11px", color: "#6b7280", display: "flex", alignItems: "center" } } as any)}>
                         {MathText({ text: "$c \\approx 2.998 \\times 10^8 \\text{ m/s}$" })}
                       </div>
                     </foreignObject>
                     <rect
-                      x="600"
-                      y="40"
-                      width="60"
+                      x="580"
+                      y="50"
+                      width="70"
                       height="20"
                       rx="4"
                       fill={waveColor}
@@ -485,8 +487,8 @@ export function ElectromagneticWaveDemo() {
                 </div>
 
                 {/* Visible Spectrum Bar */}
-                <div className="mt-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-2">
+                <div className={`mt-4 p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}>
+                  <h4 className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     {t("demoUi.common.visibleSpectrum")}
                   </h4>
                   <div
@@ -509,7 +511,7 @@ export function ElectromagneticWaveDemo() {
                       layoutId="wavelength-indicator"
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <div className={`flex justify-between text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-1`}>
                     <span>380 nm ({t("demoUi.common.violet")})</span>
                     <span>550 nm ({t("demoUi.common.green")})</span>
                     <span>700 nm ({t("demoUi.common.red")})</span>
@@ -598,7 +600,7 @@ export function ElectromagneticWaveDemo() {
                 title="电磁波特性"
                 color="cyan"
               >
-                <ul className="text-xs text-gray-300 space-y-1.5">
+                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
                   <li>• E场和B场相互垂直</li>
                   <li>• 横波：振动方向垂直于传播方向</li>
                   <li> {MathText({text: "• 真空中速度恒定：$c = 3 \\times 10^8 \\text{ m/s}$"})}</li>
@@ -609,7 +611,7 @@ export function ElectromagneticWaveDemo() {
                 title="与偏振的联系"
                 color="purple"
               >
-                <ul className="text-xs text-gray-300 space-y-1.5">
+                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
                   <li>• 偏振描述电场振动方向</li>
                   <li>• 自然光包含所有偏振方向</li>
                   <li>• 只有横波才能偏振</li>
@@ -997,7 +999,7 @@ export function ElectromagneticWaveDemo() {
                 title="光的本质"
                 color="cyan"
               >
-                <ul className="text-xs text-gray-300 space-y-1.5">
+                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
                   <li>• 光是电磁波，不需要介质</li>
                   <li>• 波长与频率成反比</li>
                   <li>{MathText({ text: "$c = \\lambda f = 3 \\times 10^8 \\text{ m/s}$", className: "font-mono text-cyan-400" })}</li>
@@ -1008,7 +1010,7 @@ export function ElectromagneticWaveDemo() {
                 title="能量与波长"
                 color="purple"
               >
-                <ul className="text-xs text-gray-300 space-y-1.5">
+                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
                   <li>• 波长越短，能量越高</li>
                   <li>• 伽马射线能量最高</li>
                   <li>{MathText({ text: "$E = hf = hc/\\lambda$", className: "font-mono text-purple-400" })}</li>
@@ -1019,7 +1021,7 @@ export function ElectromagneticWaveDemo() {
                 title="人眼视觉"
                 color="green"
               >
-                <ul className="text-xs text-gray-300 space-y-1.5">
+                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
                   <li>• 人眼仅见380-700nm</li>
                   <li>• 对绿光最敏感(~555nm)</li>
                   <li>• 可见光只占极小部分</li>

@@ -29,8 +29,8 @@ import {
   ChapterSelector,
   DEMO_ITEMS,
   StoryModal,
-} from "@/components/chronicles";
-import { CourseViewer } from "@/components/courses/CourseViewer";
+} from "@/feature/course/chronicles";
+import { CourseViewer } from "@/feature/course/CourseViewer";
 
 // Visible tabs - reordered: resources (default), timeline, slides, psrt
 const TABS = [

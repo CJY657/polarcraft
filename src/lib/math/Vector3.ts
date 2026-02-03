@@ -124,12 +124,20 @@ export class Vector3 {
   // ========== Normalization ==========
 
   /**
-   * Returns normalized (unit) vector
+   * Returns normalized (unit) vector: v̂ = v / |v|
    * Returns zero vector if this vector has zero length
    */
   normalize(): Vector3 {
     const len = this.length;
     if (len < EPSILON) {
+      // === MATHEMATICAL NOTE: Zero Vector Normalization ===
+      // In pure mathematics: normalizing a zero vector is undefined
+      //   - ||0|| = 0, so 0/0 is indeterminate
+      // Design choices:
+      //   1. Return ZERO (current): Safe default, propagates as "no direction"
+      //   2. Throw error: Strict mathematical correctness
+      //   3. Return random unit vector: For Monte Carlo/integration
+      // Physics context: Zero vector often means "no quantity", so ZERO is appropriate
       return Vector3.ZERO;
     }
     return new Vector3(this.x / len, this.y / len, this.z / len);
@@ -200,13 +208,20 @@ export class Vector3 {
 
   /**
    * Angle between two vectors (radians)
+   * Uses: cos(θ) = (a·b) / (|a||b|)
    */
   angleTo(other: Vector3): number {
     const lenProduct = this.length * other.length;
     if (lenProduct < EPSILON) {
+      // === MATHEMATICAL NOTE: Zero Vector Angle ===
+      // Using formula: cos(θ) = (a·b) / (|a||b|)
+      // If either vector is zero: denominator = 0, angle is undefined
+      // Current: Return 0 as conventional default
+      // Strict math: Should return NaN (angle is undefined for directionless vectors)
       return 0;
     }
     // Clamp to avoid NaN from floating point errors
+    // Due to numerical precision, cosAngle may slightly exceed [-1, 1]
     const cosAngle = Math.max(-1, Math.min(1, this.dot(other) / lenProduct));
     return Math.acos(cosAngle);
   }
@@ -290,6 +305,32 @@ export class Vector3 {
     const b = Math.sin(t * theta) / sinTheta;
 
     return this.scale(a).add(other.scale(b));
+  }
+
+  // ========== Numerical Stability Methods ==========
+
+  /**
+   * Check if vector is numerically stable for geometric operations
+   * Vectors with very small magnitude may cause division issues
+   * @param threshold - Minimum acceptable magnitude (default: EPSILON)
+   */
+  isStable(threshold: number = EPSILON): boolean {
+    return this.length > threshold;
+  }
+
+  /**
+   * Strict angle calculation with explicit NaN for undefined cases
+   * Use this when you need to distinguish between zero angle and undefined angle
+   * @param other - Vector to calculate angle with
+   * @returns Angle in radians, or NaN if either vector is zero
+   */
+  angleToStrict(other: Vector3): number {
+    const lenProduct = this.length * other.length;
+    if (lenProduct < EPSILON) {
+      return NaN; // Explicitly undefined for zero vectors
+    }
+    const cosAngle = Math.max(-1, Math.min(1, this.dot(other) / lenProduct));
+    return Math.acos(cosAngle);
   }
 }
 
