@@ -21,6 +21,7 @@ import {
   AuthResponse,
   LoginResponse,
   AuthError,
+  UserSaltResponse,
 } from '../types/auth.types.js';
 
 /**
@@ -33,16 +34,10 @@ export class AuthService {
  * 注册新用户
    */
   static async register(input: RegisterInput): Promise<AuthResponse> {
-    // Validate password strength
-    // 验证密码强度
-    const passwordValidation = validatePassword(input.password, config.password);
-    if (!passwordValidation.valid) {
-      throw new AuthError(
-        'WEAK_PASSWORD',
-        passwordValidation.errors.join('; '),
-        400
-      );
-    }
+    // Note: Password validation is now done on the client side before first hash
+    // 注意：密码验证现在在客户端第一次哈希之前完成
+    // The password received is already hashed by client using SHA-256
+    // 接收到的密码已被客户端使用 SHA-256 哈希
 
     // Create user
     // 创建用户
@@ -292,5 +287,13 @@ export class AuthService {
    */
   static verifyCaptcha(id: string, code: string): boolean {
     return CaptchaService.verify(id, code);
+  }
+
+  /**
+   * Get user salt for client-side hashing
+   * 获取用户盐值用于客户端哈希
+   */
+  static async getUserSalt(username: string): Promise<UserSaltResponse | null> {
+    return await UserModel.getUserSalt(username);
   }
 }

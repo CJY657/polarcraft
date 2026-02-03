@@ -4,9 +4,9 @@
  */
 
 import { query, queryOne } from '../database/connection.js';
-import { hashPassword, comparePassword } from '../utils/password.util.js';
+import { hashPassword, comparePassword, generateClientSalt } from '../utils/password.util.js';
 import { generateId } from '../utils/crypto.util.js';
-import { User, UserProfile, RegisterInput, AuthError } from '../types/auth.types.js';
+import { User, UserProfile, RegisterInput, AuthError, UserSaltResponse } from '../types/auth.types.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -55,6 +55,26 @@ export class UserModel {
   }
 
   /**
+   * Get user salt for client-side hashing
+   * 获取用户盐值用于客户端哈希
+   */
+  static async getUserSalt(username: string): Promise<UserSaltResponse | null> {
+    const sql = `
+      SELECT client_salt, client_hash_algorithm
+      FROM users
+      WHERE username = ?
+    `;
+    const result = await queryOne<{ client_salt: string; client_hash_algorithm: string }>(sql, [username]);
+    if (!result) {
+      return null;
+    }
+    return {
+      salt: result.client_salt,
+      algorithm: result.client_hash_algorithm,
+    };
+  }
+
+  /**
    * Create a new user
  * 创建新用户
    */
@@ -66,17 +86,23 @@ export class UserModel {
       throw new AuthError('USER_ALREADY_EXISTS', '用户名已存在', 409);
     }
 
-    // Hash password
-    // 哈希密码
+    // The password received is already hashed by client using SHA-256
+    // We apply bcrypt as the second layer of encryption
+    // 接收到的密码已被客户端使用 SHA-256 哈希
+    // 我们应用 bcrypt 作为第二层加密
     const passwordHash = await hashPassword(input.password);
 
+    // Use client-provided salt
+    // 使用客户端提供的盐值
+    const clientSalt = input.clientSalt;
+
     const sql = `
-      INSERT INTO users (id, username, password_hash, email)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (id, username, password_hash, client_salt, email)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
     const id = generateId();
-    const params = [id, input.username, passwordHash, input.email || null];
+    const params = [id, input.username, passwordHash, clientSalt, input.email || null];
 
     await query(sql, params);
 
