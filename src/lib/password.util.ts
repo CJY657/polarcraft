@@ -14,14 +14,44 @@
  * 第二层（服务器）：bcrypt(哈希) - 防止数据库泄露暴露
  */
 
+import SHA256 from 'crypto-js/sha256';
+import EncHex from 'crypto-js/enc-hex';
+
+/**
+ * Check if Web Crypto API is available
+ * 检查 Web Crypto API 是否可用
+ */
+function isWebCryptoAvailable(): boolean {
+  return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
+}
+
 /**
  * Generate a random salt for client-side hashing
  * 为客户端哈希生成随机盐值
  */
 export function generateSalt(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  // Try using Web Crypto API / 尝试使用 Web Crypto API
+  if (isWebCryptoAvailable() && typeof crypto.getRandomValues === 'function') {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Fallback: use crypto-js / 后备方案：使用 crypto-js
+  const wordArray = randomWords(8); // 8 words = 32 bytes
+  return wordArray.toString(EncHex);
+}
+
+/**
+ * Generate random words using crypto-js
+ * 使用 crypto-js 生成随机字
+ */
+function randomWords(count: number): any {
+  const words: number[] = [];
+  for (let i = 0; i < count; i++) {
+    words.push(Math.random() * 0x100000000 | 0);
+  }
+  return require('crypto-js').lib.WordArray.create(words);
 }
 
 /**
@@ -33,21 +63,24 @@ export function generateSalt(): string {
  * @returns The hashed password (SHA-256) / 哈希后的密码（SHA-256）
  */
 export async function hashPasswordClient(password: string, salt: string): Promise<string> {
-  // Combine password and salt / 组合密码和盐值
   const combined = password + salt;
 
-  // Encode as UTF-8 / 编码为 UTF-8
-  const encoder = new TextEncoder();
-  const data = encoder.encode(combined);
+  // Try using Web Crypto API / 尝试使用 Web Crypto API
+  if (isWebCryptoAvailable()) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(combined);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      // Fall through to crypto-js / 降级到 crypto-js
+      console.warn('Web Crypto API failed, falling back to crypto-js:', e);
+    }
+  }
 
-  // Hash using SHA-256 / 使用 SHA-256 进行哈希
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-
-  // Convert to hex string / 转换为十六进制字符串
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-  return hashHex;
+  // Fallback: use crypto-js / 后备方案：使用 crypto-js
+  return SHA256(combined).toString(EncHex);
 }
 
 /**

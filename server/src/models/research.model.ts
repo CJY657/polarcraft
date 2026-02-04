@@ -3,9 +3,9 @@
  * 虚拟课题组数据模型
  */
 
-import { query, queryOne, queryInsert, queryUpdate } from '../database/connection.js';
-import { generateId } from '../utils/crypto.util.js';
-import { logger } from '../utils/logger.js';
+import { query, queryOne } from "../database/connection.js";
+import { generateId } from "../utils/crypto.util.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Research Model Class
@@ -74,14 +74,14 @@ export class ResearchModel {
       data.description_zh || null,
       data.description_en || null,
       data.thumbnail || null,
-      data.status || 'draft',
+      data.status || "draft",
       data.is_public || false,
       data.allow_guest_comments || false,
       data.enable_task_board !== undefined ? data.enable_task_board : true,
     ]);
 
     // Add owner as member
-    await this.addProjectMember(id, ownerId, 'owner');
+    await this.addProjectMember(id, ownerId, "owner");
 
     logger.info(`Project created: ${id}`);
     return id;
@@ -96,9 +96,16 @@ export class ResearchModel {
     const params: any[] = [];
 
     const updatable = [
-      'name_zh', 'name_en', 'description_zh', 'description_en',
-      'thumbnail', 'status', 'is_public', 'allow_guest_comments',
-      'enable_task_board', 'default_canvas_id'
+      "name_zh",
+      "name_en",
+      "description_zh",
+      "description_en",
+      "thumbnail",
+      "status",
+      "is_public",
+      "allow_guest_comments",
+      "enable_task_board",
+      "default_canvas_id",
     ];
 
     for (const field of updatable) {
@@ -111,7 +118,7 @@ export class ResearchModel {
     if (fields.length === 0) return false;
 
     params.push(projectId);
-    const sql = `UPDATE research_projects SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE research_projects SET ${fields.join(", ")} WHERE id = ?`;
     await query(sql, params);
 
     logger.info(`Project updated: ${projectId}`);
@@ -123,7 +130,7 @@ export class ResearchModel {
    * 删除项目
    */
   static async deleteProject(projectId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_projects WHERE id = ?';
+    const sql = "DELETE FROM research_projects WHERE id = ?";
     await query(sql, [projectId]);
     logger.info(`Project deleted: ${projectId}`);
     return true;
@@ -133,7 +140,11 @@ export class ResearchModel {
    * Add project member
    * 添加项目成员
    */
-  static async addProjectMember(projectId: string, userId: string, role: string = 'viewer'): Promise<boolean> {
+  static async addProjectMember(
+    projectId: string,
+    userId: string,
+    role: string = "viewer",
+  ): Promise<boolean> {
     const id = generateId();
     const sql = `
       INSERT INTO research_project_members (id, project_id, user_id, role)
@@ -150,7 +161,7 @@ export class ResearchModel {
    * 移除项目成员
    */
   static async removeProjectMember(projectId: string, userId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_project_members WHERE project_id = ? AND user_id = ?';
+    const sql = "DELETE FROM research_project_members WHERE project_id = ? AND user_id = ?";
     await query(sql, [projectId, userId]);
     logger.info(`Member removed from project: ${projectId} - ${userId}`);
     return true;
@@ -201,24 +212,15 @@ export class ResearchModel {
    */
   static async getCanvasById(canvasId: string): Promise<any | null> {
     // Get canvas
-    const canvas = await queryOne(
-      'SELECT * FROM research_canvases WHERE id = ?',
-      [canvasId]
-    );
+    const canvas = await queryOne("SELECT * FROM research_canvases WHERE id = ?", [canvasId]);
 
     if (!canvas) return null;
 
     // Get nodes
-    const nodes = await query(
-      'SELECT * FROM research_nodes WHERE canvas_id = ?',
-      [canvasId]
-    );
+    const nodes = await query("SELECT * FROM research_nodes WHERE canvas_id = ?", [canvasId]);
 
     // Get edges
-    const edges = await query(
-      'SELECT * FROM research_edges WHERE canvas_id = ?',
-      [canvasId]
-    );
+    const edges = await query("SELECT * FROM research_edges WHERE canvas_id = ?", [canvasId]);
 
     return {
       ...canvas,
@@ -260,13 +262,11 @@ export class ResearchModel {
     const fields: string[] = [];
     const params: any[] = [];
 
-    const updatable = [
-      'name_zh', 'name_en', 'description_zh', 'description_en', 'viewport_data'
-    ];
+    const updatable = ["name_zh", "name_en", "description_zh", "description_en", "viewport_data"];
 
     for (const field of updatable) {
       if (data[field] !== undefined) {
-        const value = field === 'viewport_data' ? JSON.stringify(data[field]) : data[field];
+        const value = field === "viewport_data" ? JSON.stringify(data[field]) : data[field];
         fields.push(`${field} = ?`);
         params.push(value);
       }
@@ -275,7 +275,7 @@ export class ResearchModel {
     if (fields.length === 0) return false;
 
     params.push(canvasId);
-    const sql = `UPDATE research_canvases SET ${fields.join(', ')}, last_opened_at = NOW() WHERE id = ?`;
+    const sql = `UPDATE research_canvases SET ${fields.join(", ")}, last_opened_at = NOW() WHERE id = ?`;
     await query(sql, params);
 
     logger.info(`Canvas updated: ${canvasId}`);
@@ -287,7 +287,7 @@ export class ResearchModel {
    * 删除画布
    */
   static async deleteCanvas(canvasId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_canvases WHERE id = ?';
+    const sql = "DELETE FROM research_canvases WHERE id = ?";
     await query(sql, [canvasId]);
     logger.info(`Canvas deleted: ${canvasId}`);
     return true;
@@ -302,7 +302,7 @@ export class ResearchModel {
    * 获取节点详情
    */
   static async getNodeById(nodeId: string): Promise<any | null> {
-    return await queryOne('SELECT * FROM research_nodes WHERE id = ?', [nodeId]);
+    return await queryOne("SELECT * FROM research_nodes WHERE id = ?", [nodeId]);
   }
 
   /**
@@ -350,8 +350,13 @@ export class ResearchModel {
 
     // Common fields
     const commonFields = [
-      'title_zh', 'title_en', 'description_zh', 'description_en',
-      'status', 'position_x', 'position_y'
+      "title_zh",
+      "title_en",
+      "description_zh",
+      "description_en",
+      "status",
+      "position_x",
+      "position_y",
     ];
 
     for (const field of commonFields) {
@@ -363,27 +368,34 @@ export class ResearchModel {
 
     // Type-specific fields (JSON)
     const jsonFields = [
-      'hypothesis_zh', 'hypothesis_en', 'tags',
-      'simulation_config', 'result_snapshot',
-      'authors', 'key_findings_zh', 'key_findings_en',
-      'data_values', 'evidence_ids',
-      'statement_zh', 'statement_en',
-      'limitations_zh', 'limitations_en',
-      'future_work_zh', 'future_work_en',
-      'assigned_to'
+      "hypothesis_zh",
+      "hypothesis_en",
+      "tags",
+      "simulation_config",
+      "result_snapshot",
+      "authors",
+      "key_findings_zh",
+      "key_findings_en",
+      "data_values",
+      "evidence_ids",
+      "statement_zh",
+      "statement_en",
+      "limitations_zh",
+      "limitations_en",
+      "future_work_zh",
+      "future_work_en",
+      "assigned_to",
     ];
 
     for (const field of jsonFields) {
       if (data[field] !== undefined) {
         fields.push(`${field} = ?`);
-        params.push(typeof data[field] === 'string' ? data[field] : JSON.stringify(data[field]));
+        params.push(typeof data[field] === "string" ? data[field] : JSON.stringify(data[field]));
       }
     }
 
     // Numeric fields
-    const numericFields = [
-      'priority', 'year', 'confidence', 'uncertainty'
-    ];
+    const numericFields = ["priority", "year", "confidence", "uncertainty"];
 
     for (const field of numericFields) {
       if (data[field] !== undefined) {
@@ -393,9 +405,7 @@ export class ResearchModel {
     }
 
     // String fields
-    const stringFields = [
-      'doi', 'url', 'pdf_url', 'unit', 'linked_demo', 'source_node_id'
-    ];
+    const stringFields = ["doi", "url", "pdf_url", "unit", "linked_demo", "source_node_id"];
 
     for (const field of stringFields) {
       if (data[field] !== undefined) {
@@ -407,7 +417,7 @@ export class ResearchModel {
     if (fields.length === 0) return false;
 
     params.push(nodeId);
-    const sql = `UPDATE research_nodes SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE research_nodes SET ${fields.join(", ")} WHERE id = ?`;
     await query(sql, params);
 
     logger.info(`Node updated: ${nodeId}`);
@@ -419,7 +429,7 @@ export class ResearchModel {
    * 删除节点
    */
   static async deleteNode(nodeId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_nodes WHERE id = ?';
+    const sql = "DELETE FROM research_nodes WHERE id = ?";
     await query(sql, [nodeId]);
     logger.info(`Node deleted: ${nodeId}`);
     return true;
@@ -469,8 +479,12 @@ export class ResearchModel {
     const params: any[] = [];
 
     const updatable = [
-      'type', 'label_zh', 'label_en', 'evidence_strength',
-      'evidence_notes_zh', 'evidence_notes_en'
+      "type",
+      "label_zh",
+      "label_en",
+      "evidence_strength",
+      "evidence_notes_zh",
+      "evidence_notes_en",
     ];
 
     for (const field of updatable) {
@@ -483,7 +497,7 @@ export class ResearchModel {
     if (fields.length === 0) return false;
 
     params.push(edgeId);
-    const sql = `UPDATE research_edges SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE research_edges SET ${fields.join(", ")} WHERE id = ?`;
     await query(sql, params);
 
     logger.info(`Edge updated: ${edgeId}`);
@@ -495,7 +509,7 @@ export class ResearchModel {
    * 删除边
    */
   static async deleteEdge(edgeId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_edges WHERE id = ?';
+    const sql = "DELETE FROM research_edges WHERE id = ?";
     await query(sql, [edgeId]);
     logger.info(`Edge deleted: ${edgeId}`);
     return true;
@@ -555,7 +569,7 @@ export class ResearchModel {
    * 删除评论
    */
   static async deleteComment(commentId: string): Promise<boolean> {
-    const sql = 'DELETE FROM research_node_comments WHERE id = ?';
+    const sql = "DELETE FROM research_node_comments WHERE id = ?";
     await query(sql, [commentId]);
     logger.info(`Comment deleted: ${commentId}`);
     return true;
@@ -575,7 +589,7 @@ export class ResearchModel {
     action: string,
     targetType: string,
     targetId: string,
-    changes?: any
+    changes?: any,
   ): Promise<string> {
     const id = generateId();
     const sql = `
@@ -584,8 +598,13 @@ export class ResearchModel {
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     await query(sql, [
-      id, projectId, userId, action, targetType, targetId,
-      changes ? JSON.stringify(changes) : null
+      id,
+      projectId,
+      userId,
+      action,
+      targetType,
+      targetId,
+      changes ? JSON.stringify(changes) : null,
     ]);
     return id;
   }
@@ -616,10 +635,9 @@ export class ResearchModel {
    */
   static async getTaskBoard(projectId: string): Promise<any> {
     // Get all canvases in project
-    const canvases = await query(
-      'SELECT id FROM research_canvases WHERE project_id = ?',
-      [projectId]
-    );
+    const canvases = await query("SELECT id FROM research_canvases WHERE project_id = ?", [
+      projectId,
+    ]);
 
     const canvasIds = canvases.map((c: any) => c.id);
     if (canvasIds.length === 0) return { columns: [] };
@@ -628,9 +646,9 @@ export class ResearchModel {
     const nodes = await query(
       `SELECT status, id, title_zh, type, assigned_to
        FROM research_nodes
-       WHERE canvas_id IN (${canvasIds.map(() => '?').join(',')})
+       WHERE canvas_id IN (${canvasIds.map(() => "?").join(",")})
        AND status IS NOT NULL`,
-      canvasIds
+      canvasIds,
     );
 
     // Group by status
