@@ -48,10 +48,10 @@
       "application": "应用"
     },
     "demos": {
-      "title": "理论模拟"
+      "title": "计算与模拟"
     },
     "gallery": {
-      "title": "成果展示",
+      "title": "小课题成果",
       "modal": {
         "guide": "实验指南",
         "tools": "数字工具",
@@ -832,7 +832,7 @@
   },
   "demos": {
     "theorySimulation": {
-      "title": "理论模拟",
+      "title": "计算与模拟",
       "description": "光学基础、偏振、旋光与散射的交互演示",
       "comingSoon": "即将推出",
       "selectDemo": "选择一个演示开始探索",

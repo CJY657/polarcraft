@@ -427,7 +427,7 @@ export function DemosPage() {
                 theme === "dark" ? "text-white" : "text-gray-900",
               )}
             >
-              {t("demos.theorySimulation.title", "理论模拟")}
+              {t("demos.theorySimulation.title", "计算与模拟")}
             </h1>
             <p className={cn("text-xl mt-2", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
               {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
@@ -491,7 +491,7 @@ export function DemosPage() {
                   >
                     {currentDemo && UNITS.find((u) => u.num === currentDemo.unit)?.titleKey
                       ? t(UNITS.find((u) => u.num === currentDemo.unit)!.titleKey)
-                      : t("demos.theorySimulation.title", "理论模拟")}
+                      : t("demos.theorySimulation.title", "计算与模拟")}
                   </span>
                   <VisualTypeBadge type={currentDemo?.visualType || "2D"} />
                   <h1
