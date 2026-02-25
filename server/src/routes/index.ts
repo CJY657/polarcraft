@@ -12,6 +12,8 @@ import userRoutes from './user.routes.js';
 import researchRoutes from './research.routes.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
+import { testConnection } from '../database/connection.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -28,13 +30,48 @@ router.use(csrfToken);
 
 // Health check endpoint
 // 健康检查端点
-router.get('/health', (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+router.get('/health', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+
+  const healthStatus = {
+    status: 'healthy' as 'healthy' | 'unhealthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    checks: {
+      database: { status: 'down' as 'up' | 'down', latency: 0 },
+      server: { status: 'up' as 'up' },
+    },
+  };
+
+  // Check database connection
+  // 检查数据库连接
+  try {
+    const dbStart = Date.now();
+    const dbConnected = await testConnection();
+    const dbLatency = Date.now() - dbStart;
+
+    healthStatus.checks.database = {
+      status: dbConnected ? 'up' : 'down',
+      latency: dbLatency,
+    };
+
+    if (!dbConnected) {
+      healthStatus.status = 'unhealthy';
+    }
+  } catch (error) {
+    logger.error('Health check database error:', error);
+    healthStatus.checks.database = { status: 'down', latency: 0 };
+    healthStatus.status = 'unhealthy';
+  }
+
+  const responseTime = Date.now() - startTime;
+  const httpStatus = healthStatus.status === 'healthy' ? 200 : 503;
+
+  res.status(httpStatus).json({
+    success: healthStatus.status === 'healthy',
+    data: healthStatus,
+    meta: {
+      responseTime: `${responseTime}ms`,
     },
   });
 });

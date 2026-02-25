@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react"; // React 组件懒加载和 Suspense
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"; // React Router 组件，删去navigate重定向模块，后续可能使用
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"; // 错误边界组件
 import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
+import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 
@@ -87,8 +88,9 @@ function PageLoader() {
 export function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
+      <SystemProvider>
+        <AuthProvider>
+          <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Home - 首页 */}
@@ -205,6 +207,7 @@ export function App() {
           <Footer />
         </BrowserRouter>
       </AuthProvider>
-    </ErrorBoundary>
+    </SystemProvider>
+  </ErrorBoundary>
   );
 }
