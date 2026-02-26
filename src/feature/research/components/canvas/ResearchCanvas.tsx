@@ -24,7 +24,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { useCanvasStore } from '../../stores/canvasStore';
-import { ProblemNode, ExperimentNode, LiteratureNode, DataNode, ConclusionNode, DiscussionNode, MediaNode } from '../nodes';
+import { ProblemNode, ExperimentNode, ConclusionNode, DiscussionNode, MediaNode } from '../nodes';
 import { CustomEdge } from '../edges/CustomEdge';
 import { NodeDetailsPanel } from '../panels/NodeDetailsPanel';
 import { cn } from '@/utils/classNames';
@@ -36,8 +36,6 @@ import { ArrowLeft } from 'lucide-react';
 const nodeTypes = {
   problem: ProblemNode,
   experiment: ExperimentNode,
-  literature: LiteratureNode,
-  data: DataNode,
   conclusion: ConclusionNode,
   discussion: DiscussionNode,
   media: MediaNode,
@@ -184,8 +182,6 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   const nodeColorMap = useMemo(() => ({
     problem: '#f59e0b',
     experiment: '#3b82f6',
-    literature: '#22c55e',
-    data: '#ef4444',
     conclusion: '#a855f7',
     discussion: '#06b6d4',
     media: '#ec4899',
@@ -248,21 +244,6 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           status: 'pending',
         };
         break;
-      case 'literature':
-        nodeData = {
-          ...nodeData,
-          summary: { 'zh-CN': '', zh: '' },
-          authors: ['作者'],
-          citation: '',
-        };
-        break;
-      case 'data':
-        nodeData = {
-          ...nodeData,
-          dataType: 'observation',
-          values: {},
-        };
-        break;
       case 'conclusion':
         nodeData = {
           ...nodeData,
@@ -305,8 +286,6 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     const titles: Record<string, string> = {
       problem: '新问题',
       experiment: '新实验',
-      literature: '新文献',
-      data: '新数据',
       conclusion: '新结论',
       discussion: '新讨论',
       media: '新媒体',
@@ -568,18 +547,6 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
             onClick={() => createNode('experiment')}
           >
             + 实验
-          </button>
-          <button
-            className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg border border-green-500 transition-colors"
-            onClick={() => createNode('literature')}
-          >
-            + 文献
-          </button>
-          <button
-            className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg border border-red-500 transition-colors"
-            onClick={() => createNode('data')}
-          >
-            + 数据
           </button>
           <button
             className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg border border-purple-500 transition-colors"

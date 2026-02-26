@@ -4031,7 +4031,7 @@
         },
         "step2": {
           "title": "添加节点",
-          "description": "添加问题、实验、文献等节点"
+          "description": "添加问题、实验等节点"
         },
         "step3": {
           "title": "建立联系",
@@ -4046,8 +4046,6 @@
       "toolbar": {
         "addProblem": "+ 问题",
         "addExperiment": "+ 实验",
-        "addLiterature": "+ 文献",
-        "addData": "+ 数据",
         "addConclusion": "+ 结论"
       },
       "nodeDetails": {
@@ -4065,16 +4063,6 @@
         "title": "实验",
         "label": "实验",
         "description": "实验设计和实施"
-      },
-      "literature": {
-        "title": "文献",
-        "label": "文献",
-        "description": "相关文献和参考资料"
-      },
-      "data": {
-        "title": "数据",
-        "label": "数据",
-        "description": "实验数据和观测结果"
       },
       "conclusion": {
         "title": "结论",

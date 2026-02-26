@@ -11,8 +11,6 @@
 export type NodeType =
   | "problem"      // 问题节点
   | "experiment"   // 实验节点
-  | "literature"   // 文献节点
-  | "data"         // 数据节点
   | "conclusion";  // 结论节点
 
 /** Edge/Relationship Types - 边/关系类型 */
@@ -93,32 +91,6 @@ export interface ExperimentNode extends BaseNode {
   linkedDemo?: string; // ID of demo in /feature/demos/
 }
 
-/** Literature Node - 文献节点 */
-export interface LiteratureNode extends BaseNode {
-  type: "literature";
-  title: LabelI18n;
-  authors: string[];
-  year?: number;
-  citation: string; // Full citation text
-  doi?: string;
-  url?: string;
-  pdfUrl?: string;
-  summary?: LabelI18n;
-  keyFindings?: LabelI18n[];
-}
-
-/** Data Node - 数据节点 */
-export interface DataNode extends BaseNode {
-  type: "data";
-  title: LabelI18n;
-  dataType: "observation" | "calculation" | "measurement" | "simulation";
-  values: Record<string, any>;
-  fileId?: string; // Reference to uploaded file
-  unit?: string;
-  uncertainty?: number;
-  sourceNodeId?: string; // Which experiment produced this
-}
-
 /** Conclusion Node - 结论节点 */
 export interface ConclusionNode extends BaseNode {
   type: "conclusion";
@@ -134,8 +106,6 @@ export interface ConclusionNode extends BaseNode {
 export type ResearchNode =
   | ProblemNode
   | ExperimentNode
-  | LiteratureNode
-  | DataNode
   | ConclusionNode;
 
 // ============================================================

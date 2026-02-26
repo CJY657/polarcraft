@@ -9,6 +9,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi, UserProfile } from '@/lib/auth.service';
 import { api } from '@/lib/api';
+import { useSystem } from '@/contexts/SystemContext';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isSystemHealthy } = useSystem();
 
   // Check authentication status on mount
   // 在挂载时检查认证状态
@@ -76,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && isSystemHealthy,
     isLoading,
     login,
     register,

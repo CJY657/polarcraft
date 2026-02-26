@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS research_canvases (
 CREATE TABLE IF NOT EXISTS research_nodes (
     id CHAR(36) PRIMARY KEY COMMENT '节点唯一标识 (UUID)',
     canvas_id CHAR(36) NOT NULL COMMENT '所属画布ID',
-    type ENUM('problem', 'experiment', 'literature', 'data', 'conclusion') NOT NULL COMMENT '节点类型',
+    type ENUM('problem', 'experiment', 'conclusion') NOT NULL COMMENT '节点类型',
     position_x DECIMAL(10, 2) NOT NULL COMMENT 'X坐标',
     position_y DECIMAL(10, 2) NOT NULL COMMENT 'Y坐标',
 
@@ -92,26 +92,6 @@ CREATE TABLE IF NOT EXISTS research_nodes (
     simulation_config JSON COMMENT '仿真配置',
     result_snapshot JSON COMMENT '结果快照',
     linked_demo VARCHAR(100) COMMENT '关联的演示ID',
-
-    -- Literature-specific / 文献节点专用
-    authors JSON COMMENT '作者数组',
-    year INT COMMENT '发表年份',
-    citation TEXT COMMENT '引用文本',
-    doi VARCHAR(255) COMMENT 'DOI',
-    url VARCHAR(512) COMMENT 'URL链接',
-    pdf_url VARCHAR(512) COMMENT 'PDF链接',
-    summary_zh TEXT COMMENT '摘要（中文）',
-    summary_en TEXT COMMENT '摘要（英文）',
-    key_findings_zh JSON COMMENT '关键发现（中文）',
-    key_findings_en JSON COMMENT '关键发现（英文）',
-
-    -- Data-specific / 数据节点专用
-    data_type ENUM('observation', 'calculation', 'measurement', 'simulation') COMMENT '数据类型',
-    data_values JSON COMMENT '数据值',
-    file_id CHAR(36) COMMENT '关联文件ID',
-    unit VARCHAR(50) COMMENT '单位',
-    uncertainty DECIMAL(10, 4) COMMENT '不确定度',
-    source_node_id CHAR(36) COMMENT '来源节点ID',
 
     -- Conclusion-specific / 结论节点专用
     statement_zh TEXT COMMENT '陈述（中文）',

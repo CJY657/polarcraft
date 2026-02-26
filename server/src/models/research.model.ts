@@ -373,10 +373,6 @@ export class ResearchModel {
       "tags",
       "simulation_config",
       "result_snapshot",
-      "authors",
-      "key_findings_zh",
-      "key_findings_en",
-      "data_values",
       "evidence_ids",
       "statement_zh",
       "statement_en",
@@ -395,7 +391,7 @@ export class ResearchModel {
     }
 
     // Numeric fields
-    const numericFields = ["priority", "year", "confidence", "uncertainty"];
+    const numericFields = ["priority", "confidence"];
 
     for (const field of numericFields) {
       if (data[field] !== undefined) {
@@ -405,7 +401,7 @@ export class ResearchModel {
     }
 
     // String fields
-    const stringFields = ["doi", "url", "pdf_url", "unit", "linked_demo", "source_node_id"];
+    const stringFields = ["linked_demo"];
 
     for (const field of stringFields) {
       if (data[field] !== undefined) {
