@@ -53,3 +53,39 @@ src/components/game/
 │  @/stores/gameStore.ts   ← Game state, actions, VisionMode      │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## World.ts 重构计划
+
+### 原来的结构
+
+```
+World.ts (1038 lines)
+├── Core physics engine (lines 87-947)
+├── LevelData interface (lines 964-978)
+└── TUTORIAL_LEVELS[] constant (lines 981-1038)
+
+gameStore.ts
+├── Imports: World, TUTORIAL_LEVELS, LevelData from '@/core/World'
+└── TUTORIAL_HINTS record (lines 66-88)
+
+LevelSelector.tsx
+└── Imports TUTORIAL_LEVELS from '@/core/World'
+```
+
+### 重构后的结构
+
+```
+src/
+├── core/
+│   ├── World.ts           # Pure physics engine (~900 lines)
+│   ├── types.ts           # Core types (BlockType, LightPacket, etc.)
+│   └── LightPhysics.ts    # Physics calculations (unchanged)
+│
+├── levels/
+│   ├── types.ts           # Level-related types
+│   ├── tutorialLevels.ts  # Tutorial level definitions
+│   └── index.ts           # Barrel export
+│
+└── stores/
+    └── gameStore.ts       # Import levels from @/levels
+```
