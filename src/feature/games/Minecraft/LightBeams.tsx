@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import * as THREE from 'three'
 import { Line } from '@react-three/drei'
-import { World } from '@/core/World'
-import { LightState, LightPacket, BlockPosition, POLARIZATION_COLORS, DIRECTION_VECTORS } from '@/core/types'
-import { VisionMode } from '@/stores/gameStore'
+import { World } from '@/lib/World'
+import { LightState, LightPacket, BlockPosition, POLARIZATION_COLORS, DIRECTION_VECTORS } from '@/lib/types'
+import { VisionMode } from '@/stores/game/gameStore'
 
 interface LightBeamsProps {
   world: World

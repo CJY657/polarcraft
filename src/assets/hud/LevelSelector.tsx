@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
-import { useGameStore } from '@/stores/gameStore'
+import { useGameStore } from '@/stores/game/gameStore'
 import { TUTORIAL_LEVELS } from '@/levels'
-import { cn } from '@/lib/utils'
+import { cn } from '@/utils/classNames'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface LevelSelectorProps {

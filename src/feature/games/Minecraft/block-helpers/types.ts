@@ -2,8 +2,8 @@
  * Shared types for block components
  */
 import { ThreeEvent } from '@react-three/fiber'
-import { BlockState, BlockPosition } from '@/core/types'
-import { VisionMode } from '@/stores/gameStore'
+import { BlockState, BlockPosition } from '@/lib/types'
+import { VisionMode } from '@/stores/game/gameStore'
 
 // Shared props for all block components
 export interface BlockComponentProps {

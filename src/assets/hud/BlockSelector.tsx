@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useGameStore } from '@/stores/gameStore'
-import { BlockType } from '@/core/types'
-import { cn } from '@/lib/utils'
+import { useGameStore } from '@/stores/game/gameStore'
+import { BlockType } from '@/lib/types'
+import { cn } from '@/utils/classNames'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 

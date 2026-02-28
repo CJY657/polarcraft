@@ -3,7 +3,7 @@
  */
 import { useMemo } from 'react'
 import { Line } from '@react-three/drei'
-import { POLARIZATION_COLORS, PolarizationAngle } from '@/core/types'
+import { POLARIZATION_COLORS, PolarizationAngle } from '@/lib/types'
 
 interface PolarizationIndicatorProps {
   angle: number

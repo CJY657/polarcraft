@@ -2,11 +2,11 @@ import { useEffect, useCallback, useState, useRef } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, PointerLockControls, Grid } from '@react-three/drei'
 import * as THREE from 'three'
-import { useGameStore } from '@/stores/gameStore'
+import { useGameStore } from '@/stores/game/gameStore'
 import { Blocks } from './Blocks'
 import { LightBeams } from './LightBeams'
 import { SelectionBox } from './SelectionBox'
-import { BlockPosition } from '@/core/types'
+import { BlockPosition } from '@/lib/types'
 
 export function Scene() {
   const {

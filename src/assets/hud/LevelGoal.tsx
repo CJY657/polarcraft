@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useGameStore } from '@/stores/gameStore'
-import { cn } from '@/lib/utils'
+import { useGameStore } from '@/stores/game/gameStore'
+import { cn } from '@/utils/classNames'
 
 interface SensorStatus {
   position: { x: number; y: number; z: number }

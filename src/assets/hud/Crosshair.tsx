@@ -1,4 +1,4 @@
-import { useGameStore } from '@/stores/gameStore'
+import { useGameStore } from '@/stores/game/gameStore'
 
 export function Crosshair() {
   const cameraMode = useGameStore((state) => state.cameraMode)

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useGameStore } from '@/stores/gameStore'
+import { useGameStore } from '@/stores/game/gameStore'
 import {
   Dialog,
   DialogContent,

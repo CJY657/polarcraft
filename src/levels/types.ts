@@ -3,7 +3,7 @@
  * 游戏关卡相关类型定义
  */
 
-import { BlockType, BlockState, BlockPosition } from '@/core/types'
+import { BlockType, BlockState, BlockPosition } from '@/lib/types'
 
 /**
  * Level data interface

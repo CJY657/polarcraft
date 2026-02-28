@@ -7,9 +7,9 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { ThreeEvent, useFrame } from '@react-three/fiber'
 import { Line, Float, Html } from '@react-three/drei'
-import { World } from '@/core/World'
-import { BlockState, BlockPosition, POLARIZATION_COLORS } from '@/core/types'
-import { VisionMode } from '@/stores/gameStore'
+import { World } from '@/lib/World'
+import { BlockState, BlockPosition, POLARIZATION_COLORS } from '@/lib/types'
+import { VisionMode } from '@/stores/game/gameStore'
 import {
   BlockComponentProps,
   PolarizationIndicator,

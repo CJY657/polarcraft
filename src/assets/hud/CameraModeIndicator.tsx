@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useGameStore, CameraMode } from '@/stores/gameStore'
+import { useGameStore, CameraMode } from '@/stores/game/gameStore'
 import { Camera, Gamepad2, Grid3X3 } from 'lucide-react'
 
 const MODE_ICONS: Record<CameraMode, React.ReactNode> = {

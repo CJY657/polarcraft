@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { BlockPosition } from '@/core/types'
+import { BlockPosition } from '@/lib/types'
 
 interface SelectionBoxProps {
   position: BlockPosition

@@ -4,8 +4,8 @@
  */
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useGameStore, CameraMode } from '@/stores/gameStore'
-import { cn } from '@/lib/utils'
+import { useGameStore, CameraMode } from '@/stores/game/gameStore'
+import { cn } from '@/utils/classNames'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface ControlHint {

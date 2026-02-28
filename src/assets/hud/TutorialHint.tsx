@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useGameStore } from '@/stores/gameStore'
-import { cn } from '@/lib/utils'
+import { useGameStore } from '@/stores/game/gameStore'
+import { cn } from '@/utils/classNames'
 
 export function TutorialHint() {
   const { tutorialHints, currentHintIndex, showHint, showNextHint, hideHint } = useGameStore()

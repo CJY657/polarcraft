@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { useGameStore } from '@/stores/gameStore'
-import { cn } from '@/lib/utils'
+import { useGameStore } from '@/stores/game/gameStore'
+import { cn } from '@/utils/classNames'
 
 export function VisionModeIndicator() {
   const { t } = useTranslation()
