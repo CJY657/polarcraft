@@ -151,6 +151,7 @@ export interface PublicProject {
   is_recruiting: boolean;
   max_members: number | null;
   member_count: number;
+  is_member: boolean;
   created_at: string;
   updated_at: string;
 }

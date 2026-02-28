@@ -4064,6 +4064,14 @@
       "nodeDetails": {
         "title": "节点属性",
         "hint": "选择一个节点查看详情"
+      },
+      "save": {
+        "button": "保存",
+        "saving": "保存中...",
+        "saved": "已保存",
+        "unsavedChanges": "有未保存的更改",
+        "saveError": "保存失败",
+        "lastSaved": "上次保存: {{time}}"
       }
     },
     "nodes": {
@@ -4119,7 +4127,7 @@
       "add": "添加经历",
       "edit": "编辑经历",
       "organization": "学校/单位",
-      "organizationPlaceholder": "例如：北京大学",
+      "organizationPlaceholder": "例如：清华大学",
       "organizationRequired": "请输入学校/单位",
       "major": "专业",
       "majorPlaceholder": "例如：物理学",
@@ -4168,7 +4176,7 @@
     "edit": {
       "title": "编辑项目",
       "status": "项目状态",
-      "isPublic": "公开项目"
+      "visibilityHint": "如需让其他人发现并加入此项目，请在\"设置\"中将可见性设为\"公开\""
     },
     "status": {
       "draft": "草稿",

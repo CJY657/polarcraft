@@ -12,6 +12,8 @@ export type NodeType =
   | "problem"      // 问题节点
   | "experiment"   // 实验节点
   | "conclusion"   // 结论节点
+  | "discussion"   // 讨论节点
+  | "media"        // 媒体节点
   | "note";        // 便签节点
 
 /** Edge/Relationship Types - 边/关系类型 */
@@ -112,11 +114,31 @@ export interface NoteNode extends BaseNode {
   pinned?: boolean; // 是否置顶
 }
 
+/** Discussion Node - 讨论节点 */
+export interface DiscussionNode extends BaseNode {
+  type: "discussion";
+  title: LabelI18n;
+  topic: LabelI18n; // 讨论话题
+  status: "active" | "resolved" | "archived";
+  participants?: string[]; // 参与者用户ID数组
+}
+
+/** Media Node - 媒体节点 */
+export interface MediaNode extends BaseNode {
+  type: "media";
+  title: LabelI18n;
+  description?: LabelI18n;
+  url: string; // 媒体URL
+  mediaType: "image" | "video" | "audio" | "file"; // 媒体类型
+}
+
 /** Union Type for All Nodes */
 export type ResearchNode =
   | ProblemNode
   | ExperimentNode
   | ConclusionNode
+  | DiscussionNode
+  | MediaNode
   | NoteNode;
 
 // ============================================================

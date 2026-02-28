@@ -258,7 +258,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label className={cn(
                   "block text-sm font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
@@ -276,7 +276,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                       : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
                   )}
                 />
-              </div>
+              </div> */}
 
               <div>
                 <label className={cn(

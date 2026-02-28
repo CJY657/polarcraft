@@ -387,18 +387,32 @@ export function PublicProjectExplorePage() {
                     </div>
                   </div>
 
-                  {/* Apply Button */}
-                  <button
-                    onClick={() => handleApplyClick(project)}
-                    className={cn(
-                      "w-full px-4 py-2 rounded-lg font-medium transition-colors",
-                      theme === "dark"
-                        ? "bg-teal-600 hover:bg-teal-500 text-white"
-                        : "bg-teal-500 hover:bg-teal-600 text-white"
-                    )}
-                  >
-                    {project.require_approval ? "申请加入" : "立即加入"}
-                  </button>
+                  {/* Action Button */}
+                  {project.is_member ? (
+                    <Link
+                      to={`/lab/projects/${project.id}`}
+                      className={cn(
+                        "w-full px-4 py-2 rounded-lg font-medium transition-colors text-center block",
+                        theme === "dark"
+                          ? "bg-purple-600 hover:bg-purple-500 text-white"
+                          : "bg-purple-500 hover:bg-purple-600 text-white"
+                      )}
+                    >
+                      进入项目
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => handleApplyClick(project)}
+                      className={cn(
+                        "w-full px-4 py-2 rounded-lg font-medium transition-colors",
+                        theme === "dark"
+                          ? "bg-teal-600 hover:bg-teal-500 text-white"
+                          : "bg-teal-500 hover:bg-teal-600 text-white"
+                      )}
+                    >
+                      {project.require_approval ? "申请加入" : "立即加入"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -83,6 +83,12 @@ export class ResearchModel {
     // Add owner as member
     await this.addProjectMember(id, ownerId, "owner");
 
+    // Create default main canvas
+    await this.createCanvas(id, {
+      name_zh: "主画布",
+      name_en: "Main Canvas",
+    });
+
     logger.info(`Project created: ${id}`);
     return id;
   }
@@ -322,13 +328,13 @@ export class ResearchModel {
       id,
       canvasId,
       data.type,
-      data.position.x,
-      data.position.y,
-      data.title_zh,
-      data.title_en || null,
-      data.description_zh || null,
-      data.description_en || null,
-      data.status || null,
+      data.position_x,
+      data.position_y,
+      data.title_zh ?? null,
+      data.title_en ?? null,
+      data.description_zh ?? null,
+      data.description_en ?? null,
+      data.status ?? null,
       createdBy,
       data.assigned_to ? JSON.stringify(data.assigned_to) : null,
     ]);
@@ -381,6 +387,9 @@ export class ResearchModel {
       "future_work_zh",
       "future_work_en",
       "assigned_to",
+      // Discussion fields
+      "participants",
+      // Media fields
     ];
 
     for (const field of jsonFields) {
@@ -401,7 +410,20 @@ export class ResearchModel {
     }
 
     // String fields
-    const stringFields = ["linked_demo"];
+    const stringFields = [
+      "linked_demo",
+      // Discussion fields
+      "topic_zh",
+      "topic_en",
+      // Media fields
+      "media_url",
+      "media_type",
+      // Note fields
+      "content_zh",
+      "content_en",
+      "color",
+      "pinned",
+    ];
 
     for (const field of stringFields) {
       if (data[field] !== undefined) {
@@ -452,13 +474,13 @@ export class ResearchModel {
       id,
       canvasId,
       data.type,
-      data.source,
-      data.target,
+      data.source_node_id,
+      data.target_node_id,
       data.label_zh || null,
       data.label_en || null,
-      data.evidence?.strength || null,
-      data.evidence?.notes_zh || null,
-      data.evidence?.notes_en || null,
+      data.evidence_strength || null,
+      data.evidence_notes_zh || null,
+      data.evidence_notes_en || null,
       createdBy,
     ]);
 

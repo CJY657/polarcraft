@@ -246,7 +246,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 type="text"
                 value={settings.discussion_channel || ''}
                 onChange={(e) => setSettings({ ...settings, discussion_channel: e.target.value })}
-                placeholder="https://discord.gg/xxx 或微信群链接"
+                placeholder="如微信群链接"
                 className={cn(
                   "w-full px-3 py-2 rounded-lg border transition-colors",
                   theme === "dark"

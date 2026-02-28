@@ -464,7 +464,8 @@ export class ProfileModel {
    * 获取公开项目列表
    */
   static async getPublicProjects(
-    filters: { recruiting?: boolean; search?: string } = {}
+    filters: { recruiting?: boolean; search?: string } = {},
+    userId?: string
   ): Promise<any[]> {
     let sql = `
       SELECT
@@ -474,13 +475,22 @@ export class ProfileModel {
         ps.recruitment_requirements,
         ps.is_recruiting,
         ps.max_members,
-        COUNT(DISTINCT pm.user_id) as member_count
+        COUNT(DISTINCT pm.user_id) as member_count,
+        ${userId ? `EXISTS(
+          SELECT 1 FROM research_project_members pm_check
+          WHERE pm_check.project_id = p.id AND pm_check.user_id = ?
+        )` : 'FALSE'} as is_member
       FROM research_projects p
       INNER JOIN research_project_settings ps ON p.id = ps.project_id
       LEFT JOIN research_project_members pm ON p.id = pm.project_id
       WHERE ps.visibility = 'public' AND p.status IN ('draft', 'active')
     `;
     const params: any[] = [];
+
+    // Add userId param first if exists (for the is_member subquery)
+    if (userId) {
+      params.push(userId);
+    }
 
     if (filters.recruiting !== undefined) {
       sql += " AND ps.is_recruiting = ?";

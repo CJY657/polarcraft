@@ -209,6 +209,7 @@ export class ProfileController {
   static async getPublicProjects(req: Request, res: Response): Promise<void> {
     try {
       const { recruiting, search } = req.query;
+      const userId = req.user?.sub;
 
       const filters: { recruiting?: boolean; search?: string } = {};
       if (recruiting !== undefined) {
@@ -218,7 +219,7 @@ export class ProfileController {
         filters.search = search;
       }
 
-      const projects = await ProfileModel.getPublicProjects(filters);
+      const projects = await ProfileModel.getPublicProjects(filters, userId);
       res.json({ success: true, data: projects });
     } catch (error) {
       logger.error("Get public projects error:", error);

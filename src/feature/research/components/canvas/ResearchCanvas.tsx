@@ -30,7 +30,9 @@ import { NodeDetailsPanel } from '../panels/NodeDetailsPanel';
 import { cn } from '@/utils/classNames';
 import { getExampleProjectById } from '@/data/researchExampleProjects';
 import { PersistentHeader } from '@/components/shared';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Check, AlertCircle } from 'lucide-react';
+import { researchApi } from '@/lib/research.service';
+import { nodeToApiFormat, edgeToApiFormat, apiToNodeFormat, apiToEdgeFormat, isTemporaryId } from '../../utils/canvasDataConverter';
 
 // Node types configuration
 const nodeTypes = {
@@ -106,6 +108,22 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
+  // Save state / 保存状态
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSaveTimeRef = useRef<number>(0); // Track last save time for rate limiting
+
+  // Minimum interval between saves (15 seconds) to avoid rate limiting
+  const MIN_SAVE_INTERVAL = 15000;
+  // Debounce time for auto-save (5 seconds)
+  const AUTO_SAVE_DEBOUNCE = 5000;
+
+  // Track if this is an example project (no saving)
+  const isExampleProject = !!location.state?.exampleProjectId;
+
   // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -149,8 +167,286 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     }
   }, [location.state?.exampleProjectId]);
 
+  // Load canvas data from server for real projects
+  const [isLoadingCanvas, setIsLoadingCanvas] = useState(false);
+  const [canvasError, setCanvasError] = useState<string | null>(null);
+
+  // Track original server IDs for deletion detection
+  const originalNodeIdsRef = useRef<Set<string>>(new Set());
+  const originalEdgeIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isExampleProject || !canvasId || !projectId) return;
+
+    async function loadCanvasData() {
+      setIsLoadingCanvas(true);
+      setCanvasError(null);
+
+      try {
+        // Try to get the canvas
+        const canvas = await researchApi.getCanvas(canvasId);
+
+        // Store the actual canvas ID for saving
+        setCurrentCanvasId(canvas.id);
+
+        // Load nodes and edges
+        if (canvas.nodes && canvas.nodes.length > 0) {
+          const flowNodes = canvas.nodes.map(apiToNodeFormat);
+          setFlowNodes(flowNodes);
+          setNodes(flowNodes);
+          // Store original node IDs for deletion detection
+          originalNodeIdsRef.current = new Set(canvas.nodes.map((n: any) => n.id));
+        }
+
+        if (canvas.edges && canvas.edges.length > 0) {
+          const flowEdges = canvas.edges.map(apiToEdgeFormat);
+          setFlowEdges(flowEdges);
+          setEdges(flowEdges);
+          // Store original edge IDs for deletion detection
+          originalEdgeIdsRef.current = new Set(canvas.edges.map((e: any) => e.id));
+        }
+
+        // Set initial save state
+        setLastSavedAt(new Date());
+      } catch (err) {
+        console.error('Failed to load canvas:', err);
+        // Canvas doesn't exist - we'll create it on first save
+        setCanvasError('画布数据加载失败，将在保存时自动创建');
+      } finally {
+        setIsLoadingCanvas(false);
+      }
+    }
+
+    loadCanvasData();
+  }, [canvasId, projectId, isExampleProject]);
+
   // Note: We don't automatically sync from React Flow to Zustand to avoid infinite loops
   // The store can be updated explicitly when needed (e.g., on save)
+
+  // =====================================================
+  // Save functionality / 保存功能
+  // =====================================================
+
+  // Current canvas ID (may be updated if we create a new canvas)
+  const [currentCanvasId, setCurrentCanvasId] = useState<string | null>(null);
+
+  // Save all nodes and edges to the server
+  const handleSave = useCallback(async (force: boolean = false) => {
+    if (isExampleProject || isSaving) return;
+
+    // Rate limiting: check if minimum interval has passed
+    const now = Date.now();
+    if (!force && now - lastSaveTimeRef.current < MIN_SAVE_INTERVAL) {
+      console.log('Save skipped due to rate limiting');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      // Determine which canvas ID to use
+      let targetCanvasId = currentCanvasId || canvasId;
+
+      // Check if canvas exists, if not create it
+      if (!targetCanvasId || targetCanvasId === 'main') {
+        // Need to create a new canvas for this project
+        const newCanvas = await researchApi.createCanvas(projectId, {
+          name_zh: '主画布',
+          name_en: 'Main Canvas',
+        });
+        targetCanvasId = newCanvas.id;
+        setCurrentCanvasId(targetCanvasId);
+        console.log('Created new canvas:', targetCanvasId);
+      } else {
+        // Verify canvas exists
+        try {
+          await researchApi.getCanvas(targetCanvasId);
+        } catch {
+          // Canvas doesn't exist, create it
+          const newCanvas = await researchApi.createCanvas(projectId, {
+            name_zh: '主画布',
+            name_en: 'Main Canvas',
+          });
+          targetCanvasId = newCanvas.id;
+          setCurrentCanvasId(targetCanvasId);
+          console.log('Created new canvas:', targetCanvasId);
+        }
+      }
+
+      // Get current node/edge IDs (non-temporary)
+      const currentNodeIds = new Set(flowNodes.filter(n => !isTemporaryId(n.id)).map(n => n.id));
+      const currentEdgeIds = new Set(flowEdges.filter(e => !isTemporaryId(e.id)).map(e => e.id));
+
+      // Delete edges that were removed
+      const edgesToDelete = [...originalEdgeIdsRef.current].filter(id => !currentEdgeIds.has(id));
+      for (const edgeId of edgesToDelete) {
+        try {
+          await researchApi.deleteEdge(edgeId);
+          console.log('Deleted edge:', edgeId);
+        } catch (err) {
+          console.warn('Failed to delete edge:', edgeId, err);
+        }
+      }
+
+      // Delete nodes that were removed
+      const nodesToDelete = [...originalNodeIdsRef.current].filter(id => !currentNodeIds.has(id));
+      for (const nodeId of nodesToDelete) {
+        try {
+          await researchApi.deleteNode(nodeId);
+          console.log('Deleted node:', nodeId);
+        } catch (err) {
+          console.warn('Failed to delete node:', nodeId, err);
+        }
+      }
+
+      // Map old temporary IDs to new server IDs
+      const nodeIdMap = new Map<string, string>();
+
+      // Create a copy of flowNodes to update IDs
+      const updatedNodes = [...flowNodes];
+
+      // Save all nodes with a small delay between requests to avoid rate limiting
+      for (let i = 0; i < updatedNodes.length; i++) {
+        const node = updatedNodes[i];
+        const oldId = node.id;
+        const nodeData = nodeToApiFormat(node);
+        if (isTemporaryId(node.id)) {
+          // Create new node
+          const created = await researchApi.createNode(targetCanvasId, nodeData as any);
+          // Update the node ID with the server-generated ID
+          if (created?.id) {
+            nodeIdMap.set(oldId, created.id);
+            updatedNodes[i] = { ...node, id: created.id };
+          } else {
+            console.warn('Create node response missing id, keeping temporary ID');
+          }
+        } else {
+          // Update existing node
+          await researchApi.updateNode(node.id, nodeData);
+        }
+        // Small delay between requests (100ms) to avoid rate limiting
+        if (i < updatedNodes.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      // Update React Flow state with new node IDs
+      setFlowNodes(updatedNodes);
+      setNodes(updatedNodes);
+
+      // Create a copy of flowEdges to update IDs and references
+      const updatedEdges = [...flowEdges];
+
+      // Save all edges with a small delay between requests
+      for (let i = 0; i < updatedEdges.length; i++) {
+        const edge = updatedEdges[i];
+
+        // Translate temporary node IDs to real IDs for edges
+        const sourceId = nodeIdMap.get(edge.source) || edge.source;
+        const targetId = nodeIdMap.get(edge.target) || edge.target;
+
+        const edgeData = {
+          ...edgeToApiFormat(edge),
+          source_node_id: sourceId,
+          target_node_id: targetId,
+        };
+
+        if (isTemporaryId(edge.id)) {
+          // Create new edge
+          const created = await researchApi.createEdge(targetCanvasId, edgeData as any);
+          // Update the edge ID with the server-generated ID
+          if (created?.id) {
+            updatedEdges[i] = { ...edge, id: created.id, source: sourceId, target: targetId };
+          } else {
+            console.warn('Create edge response missing id, keeping temporary ID');
+            // Still update source and target references
+            updatedEdges[i] = { ...edge, source: sourceId, target: targetId };
+          }
+        } else {
+          // Update existing edge
+          await researchApi.updateEdge(edge.id, edgeData);
+          // Update source and target references in case they changed
+          updatedEdges[i] = { ...edge, source: sourceId, target: targetId };
+        }
+        // Small delay between requests (100ms)
+        if (i < updatedEdges.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      // Update React Flow state with new edge IDs and references
+      setFlowEdges(updatedEdges);
+      setEdges(updatedEdges);
+
+      // Save canvas viewport
+      const viewport = reactFlowInstance.getViewport();
+      await researchApi.updateCanvas(targetCanvasId, {
+        viewport_data: { x: viewport.x, y: viewport.y, zoom: viewport.zoom }
+      });
+
+      // Update original IDs for future deletion detection
+      originalNodeIdsRef.current = new Set(updatedNodes.map(n => n.id));
+      originalEdgeIdsRef.current = new Set(updatedEdges.map(e => e.id));
+
+      lastSaveTimeRef.current = Date.now();
+      setLastSavedAt(new Date());
+      setHasUnsavedChanges(false);
+      setCanvasError(null);
+    } catch (err) {
+      console.error('Failed to save canvas:', err);
+      setSaveError(err instanceof Error ? err.message : '保存失败');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [canvasId, currentCanvasId, projectId, flowNodes, flowEdges, isExampleProject, isSaving, reactFlowInstance]);
+
+  // Auto-save with debounce
+  const scheduleAutoSave = useCallback(() => {
+    if (isExampleProject) return;
+
+    setHasUnsavedChanges(true);
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Schedule new save with debounce
+    saveTimeoutRef.current = setTimeout(() => {
+      handleSave();
+    }, AUTO_SAVE_DEBOUNCE);
+  }, [handleSave, isExampleProject]);
+
+  // Track node changes for auto-save
+  useEffect(() => {
+    if (flowNodes.length > 0 && !isExampleProject) {
+      scheduleAutoSave();
+    }
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [flowNodes, scheduleAutoSave, isExampleProject]);
+
+  // Track edge changes for auto-save
+  useEffect(() => {
+    if (flowEdges.length > 0 && !isExampleProject) {
+      scheduleAutoSave();
+    }
+  }, [flowEdges, scheduleAutoSave, isExampleProject]);
+
+  // Format relative time
+  const formatRelativeTime = (date: Date) => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return '刚刚';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}分钟前`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}小时前`;
+    return date.toLocaleDateString('zh-CN');
+  };
 
   // Handle new connections
   const onConnect = useCallback(
@@ -225,6 +521,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
     // Create type-specific data
     let nodeData: any = {
+      type: type,  // Add type to data for API conversion
       title: { 'zh-CN': getNodeDefaultTitle(type), zh: getNodeDefaultTitle(type) },
       ...baseFields,
     };
@@ -422,6 +719,55 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         }
         rightContent={
           <div className="flex items-center gap-2">
+            {/* Save status indicator */}
+            {!isExampleProject && (
+              <div className="flex items-center gap-2">
+                {saveError ? (
+                  <span className="flex items-center gap-1 text-xs text-red-400">
+                    <AlertCircle className="w-3 h-3" />
+                    保存失败
+                  </span>
+                ) : isLoadingCanvas ? (
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    加载中...
+                  </span>
+                ) : canvasError ? (
+                  <span className="flex items-center gap-1 text-xs text-yellow-500">
+                    <AlertCircle className="w-3 h-3" />
+                    {canvasError}
+                  </span>
+                ) : hasUnsavedChanges ? (
+                  <span className="text-xs text-yellow-400">有未保存的更改</span>
+                ) : lastSavedAt ? (
+                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <Check className="w-3 h-3" />
+                    已保存 {formatRelativeTime(lastSavedAt)}
+                  </span>
+                ) : null}
+
+                {/* Save button */}
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors",
+                    hasUnsavedChanges
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-slate-700 text-gray-500 cursor-not-allowed"
+                  )}
+                  title="保存画布"
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  保存
+                </button>
+              </div>
+            )}
+
             {/* Import button */}
             <button
               onClick={() => fileInputRef.current?.click()}

@@ -28,7 +28,6 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     description_zh: '',
     description_en: '',
     status: 'active' as const,
-    is_public: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +41,6 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         description_zh: project.description_zh || '',
         description_en: project.description_en || '',
         status: project.status || 'active',
-        is_public: project.is_public || false,
       });
     }
     setError('');
@@ -67,7 +65,6 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         description_zh: formData.description_zh || undefined,
         description_en: formData.description_en || undefined,
         status: formData.status,
-        is_public: formData.is_public,
       });
 
       onSuccess(updatedProject);
@@ -132,7 +129,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           </div>
 
           {/* Project Name (English) */}
-          <div>
+          {/* <div>
             <label className={cn(
               "block text-sm font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
@@ -150,7 +147,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
                   : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
               )}
             />
-          </div>
+          </div> */}
 
           {/* Description (Chinese) */}
           <div>
@@ -174,7 +171,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           </div>
 
           {/* Description (English) */}
-          <div>
+          {/* <div>
             <label className={cn(
               "block text-sm font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
@@ -192,7 +189,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
                   : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
               )}
             />
-          </div>
+          </div> */}
 
           {/* Status */}
           <div>
@@ -219,24 +216,12 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
             </select>
           </div>
 
-          {/* Is Public */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_public"
-              checked={formData.is_public}
-              onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
-              className="w-4 h-4"
-            />
-            <label
-              htmlFor="is_public"
-              className={cn(
-                "text-sm",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}
-            >
-              {t('project.edit.isPublic')}
-            </label>
+          {/* Hint about visibility */}
+          <div className={cn(
+            "p-3 rounded-lg text-sm",
+            theme === "dark" ? "bg-blue-900/30 text-blue-300" : "bg-blue-50 text-blue-700"
+          )}>
+            <p>{t('project.edit.visibilityHint')}</p>
           </div>
 
           {/* Error */}

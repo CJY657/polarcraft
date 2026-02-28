@@ -29,7 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
-import { researchApi, type ResearchProject, type ProjectMember } from "@/lib/research.service";
+import { researchApi, type ResearchProject, type ProjectMember, type ResearchCanvas } from "@/lib/research.service";
 import { profileApi, type ProjectSettings } from "@/lib/profile.service";
 import { ApplicationManagementPanel } from "../components/project/ApplicationManagementPanel";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
@@ -52,6 +52,7 @@ export function ResearchProjectPage() {
   // State for real projects
   const [project, setProject] = useState<ProjectWithMembers | null>(null);
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
+  const [canvases, setCanvases] = useState<ResearchCanvas[]>([]);
   const [isLoading, setIsLoading] = useState(!isExampleProject);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,12 +71,14 @@ export function ResearchProjectPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [projectData, settingsData] = await Promise.all([
+        const [projectData, settingsData, canvasesData] = await Promise.all([
           researchApi.getProject(projectId),
           profileApi.getProjectSettings(projectId).catch(() => null),
+          researchApi.getProjectCanvases(projectId).catch(() => []),
         ]);
         setProject(projectData);
         setSettings(settingsData);
+        setCanvases(canvasesData);
       } catch (err) {
         console.error("Failed to fetch project:", err);
         setError(err instanceof Error ? err.message : "加载项目失败");
@@ -485,7 +488,7 @@ export function ResearchProjectPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Main Canvas */}
           <Link
-            to={`/lab/projects/${projectId}/canvases/main`}
+            to={`/lab/projects/${projectId}/canvases/${canvases[0]?.id || 'main'}`}
             state={isExampleProject ? { exampleProjectId: exampleId } : undefined}
             className={cn(
               "group relative p-6 rounded-xl border-2 transition-all hover:shadow-lg",
@@ -631,7 +634,7 @@ export function ResearchProjectPage() {
         {/* Application Management Panel - Only for real projects */}
         {!isExampleProject && projectId && isOwnerOrAdmin && (
           <div className="mt-12">
-            <ApplicationManagementPanel projectId={projectId} />
+            <ApplicationManagementPanel projectId={projectId} isOwnerOrAdmin={isOwnerOrAdmin} />
           </div>
         )}
       </main>

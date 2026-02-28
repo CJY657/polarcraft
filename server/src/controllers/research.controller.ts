@@ -188,12 +188,18 @@ export class ResearchController {
    */
   static createNode = asyncHandler(async (req: Request, res: Response) => {
     const { canvasId } = req.params;
+
+    // Check if canvas exists, if not return error
+    let canvas = await ResearchModel.getCanvasById(canvasId);
+    if (!canvas) {
+      return res.error('画布未找到，请刷新页面重试', 'CANVAS_NOT_FOUND', 404);
+    }
+
     const nodeId = await ResearchModel.createNode(canvasId, req.body, req.user!.sub);
 
     // Log activity
-    const canvas = await ResearchModel.getCanvasById(canvasId);
     await ResearchModel.logActivity(
-      canvas!.project_id,
+      canvas.project_id,
       req.user!.sub,
       'create_node',
       'node',
