@@ -7,7 +7,9 @@
 CREATE TABLE IF NOT EXISTS users (
     id CHAR(36) PRIMARY KEY COMMENT '用户唯一标识 (UUID)',
     username VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名',
-    password_hash VARCHAR(255) NOT NULL COMMENT 'bcrypt 密码哈希',
+    password_hash VARCHAR(255) NOT NULL COMMENT 'bcrypt 密码哈希（第二层加密）',
+    client_salt VARCHAR(64) NOT NULL COMMENT '客户端哈希盐值（用于第一层SHA-256加密）',
+    client_hash_algorithm VARCHAR(20) DEFAULT 'SHA-256' COMMENT '客户端哈希算法',
     role ENUM('user', 'admin') DEFAULT 'user' COMMENT '用户角色',
     avatar_url VARCHAR(500) DEFAULT NULL COMMENT '头像URL',
     is_active BOOLEAN DEFAULT TRUE COMMENT '账号是否激活',

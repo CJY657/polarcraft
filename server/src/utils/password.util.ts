@@ -4,9 +4,18 @@
  *
  * Handles password hashing, validation, and strength checking
  * 处理密码哈希、验证和强度检查
+ *
+ * Security Architecture:
+ * 安全架构:
+ * - Layer 1 (Client): SHA-256(password + salt) - Prevents plaintext transmission
+ * - Layer 2 (Server): bcrypt(hash) - Prevents database leak exposure
+ *
+ * 第一层（客户端）：SHA-256(密码 + 盐值) - 防止明文传输
+ * 第二层（服务器）：bcrypt(哈希) - 防止数据库泄露暴露
  */
 
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { config } from '../config/index.js';
 import {
   PasswordValidationResult,
@@ -101,6 +110,40 @@ function calculateStrength(
   if (score <= 3) return 'weak';
   if (score <= 5) return 'medium';
   return 'strong';
+}
+
+/**
+ * Generate a random salt for client-side hashing
+ * 为客户端哈希生成随机盐值
+ *
+ * @returns 64-character hex string / 64字符的十六进制字符串
+ */
+export function generateClientSalt(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * Verify client-side SHA-256 hash (optional validation)
+ * 验证客户端 SHA-256 哈希（可选验证）
+ *
+ * This can be used to verify the client correctly hashed the password
+ * 这可以用来验证客户端是否正确地对密码进行了哈希
+ *
+ * @param plainPassword - The original plain password / 原始明文密码
+ * @param clientSalt - The salt used by client / 客户端使用的盐值
+ * @param clientHash - The hash received from client / 从客户端接收的哈希
+ * @returns Whether the hash matches / 哈希是否匹配
+ */
+export function verifyClientHash(
+  plainPassword: string,
+  clientSalt: string,
+  clientHash: string
+): boolean {
+  const computed = crypto
+    .createHash('sha256')
+    .update(plainPassword + clientSalt)
+    .digest('hex');
+  return computed === clientHash;
 }
 
 /**

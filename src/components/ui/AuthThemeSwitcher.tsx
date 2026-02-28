@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSystem } from '@/contexts/SystemContext'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/utils/classNames'
 import { Sun, Moon, User, LogOut } from 'lucide-react'
@@ -15,6 +16,7 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
   const { t } = useTranslation()
   const { theme, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout } = useAuth()
+  const { isSystemHealthy } = useSystem()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -79,20 +81,22 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
             )}
           </div>
         ) : (
-          <>
-            <Link
-              to="/login"
-              className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] text-sm"
-            >
-              {t('auth.login', '登录')}
-            </Link>
-            <Link
-              to="/register"
-              className="px-3 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black text-sm font-medium hover:bg-cyan-400 transition-colors"
-            >
-              {t('auth.register', '注册')}
-            </Link>
-          </>
+          isSystemHealthy ? (
+            <>
+              <Link
+                to="/login"
+                className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] text-sm"
+              >
+                {t('auth.login', '登录')}
+              </Link>
+              <Link
+                to="/register"
+                className="px-3 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black text-sm font-medium hover:bg-cyan-400 transition-colors"
+              >
+                {t('auth.register', '注册')}
+              </Link>
+            </>
+          ) : null
         )}
         <button
           onClick={toggleTheme}
@@ -144,27 +148,29 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className={cn(
-              'px-4 py-1.5 rounded-lg border border-[var(--border-color)]',
-              'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]',
-              'transition-all text-sm font-medium'
-            )}
-          >
-            {t('auth.login', '登录')}
-          </Link>
-          <Link
-            to="/register"
-            className={cn(
-              'px-4 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black',
-              'hover:bg-cyan-400 transition-colors text-sm font-medium'
-            )}
-          >
-            {t('auth.register', '注册')}
-          </Link>
-        </div>
+        isSystemHealthy ? (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/login"
+              className={cn(
+                'px-4 py-1.5 rounded-lg border border-[var(--border-color)]',
+                'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]',
+                'transition-all text-sm font-medium'
+              )}
+            >
+              {t('auth.login', '登录')}
+            </Link>
+            <Link
+              to="/register"
+              className={cn(
+                'px-4 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black',
+                'hover:bg-cyan-400 transition-colors text-sm font-medium'
+              )}
+            >
+              {t('auth.register', '注册')}
+            </Link>
+          </div>
+        ) : null
       )}
 
       {/* Theme Switcher */}

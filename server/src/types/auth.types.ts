@@ -15,6 +15,8 @@ export interface User {
   id: string;
   username: string;
   password_hash: string;
+  client_salt: string;
+  client_hash_algorithm: string;
   role: UserRole;
   avatar_url: string | null;
   is_active: boolean;
@@ -55,6 +57,7 @@ export interface SessionsResponse {
 export interface RegisterInput {
   username: string;
   password: string;
+  clientSalt: string;
   email?: string;
 }
 
@@ -64,6 +67,12 @@ export interface LoginInput {
   password: string;
   captcha?: string;
   rememberMe?: boolean;
+}
+
+/** Get user salt response / 获取用户盐值响应 */
+export interface UserSaltResponse {
+  salt: string;
+  algorithm: string;
 }
 
 // =====================================================

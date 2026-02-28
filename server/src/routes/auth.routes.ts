@@ -35,6 +35,13 @@ router.post(
 );
 
 /**
+ * @route   GET /api/auth/salt/:username
+ * @desc    Get user salt for client-side hashing
+ * @access  Public
+ */
+router.get('/salt/:username', authRateLimiter, AuthController.getUserSalt);
+
+/**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public

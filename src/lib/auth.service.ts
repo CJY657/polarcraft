@@ -1,9 +1,23 @@
 /**
  * Authentication Service
  * 认证服务
+ *
+ * Security Architecture:
+ * 安全架构:
+ * - Layer 1 (Client): SHA-256(password + salt) - Prevents plaintext transmission
+ * - Layer 2 (Server): bcrypt(hash) - Prevents database leak exposure
+ *
+ * 第一层（客户端）：SHA-256(密码 + 盐值) - 防止明文传输
+ * 第二层（服务器）：bcrypt(哈希) - 防止数据库泄露暴露
  */
 
 import { api } from './api';
+import {
+  preparePasswordForRegistration,
+  preparePasswordForLogin,
+  type PasswordValidationResult,
+  type PasswordPolicy,
+} from './password.util';
 
 // =====================================================
 // Types / 类型定义
@@ -32,6 +46,11 @@ export interface AuthResponse {
   tokens: TokenPair;
 }
 
+export interface UserSaltResponse {
+  salt: string;
+  algorithm: string;
+}
+
 export interface LoginInput {
   username: string;
   password: string;
@@ -55,11 +74,35 @@ export interface ChangePasswordInput {
 
 export const authApi = {
   /**
+   * Get user salt for client-side hashing
+   * 获取用户盐值用于客户端哈希
+   */
+  getUserSalt: async (username: string): Promise<UserSaltResponse> => {
+    const response = await api.get<UserSaltResponse>(`/api/auth/salt/${encodeURIComponent(username)}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || 'Failed to get user salt');
+  },
+
+  /**
    * Register a new user
    * 注册新用户
+   *
+   * Note: Password is hashed on client side before sending
+   * 注意：密码在发送前已在客户端哈希
    */
   register: async (input: RegisterInput): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/register', input);
+    // Pre-hash password on client side (first layer encryption)
+    // 在客户端预哈希密码（第一层加密）
+    const { hashedPassword, salt } = await preparePasswordForRegistration(input.password);
+
+    const response = await api.post<AuthResponse>('/api/auth/register', {
+      username: input.username,
+      password: hashedPassword,
+      email: input.email,
+      clientSalt: salt,
+    });
     if (response.success && response.data) {
       // Store tokens
       localStorage.setItem('access_token', response.data.tokens.accessToken);
@@ -74,9 +117,24 @@ export const authApi = {
   /**
    * Login user
    * 用户登录
+   *
+   * Note: Password is hashed on client side before sending
+   * 注意：密码在发送前已在客户端哈希
    */
   login: async (input: LoginInput): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/login', input);
+    // Get user salt first
+    // 首先获取用户盐值
+    const { salt } = await authApi.getUserSalt(input.username);
+
+    // Pre-hash password on client side (first layer encryption)
+    // 在客户端预哈希密码（第一层加密）
+    const hashedPassword = await preparePasswordForLogin(input.password, salt);
+
+    const response = await api.post<AuthResponse>('/api/auth/login', {
+      username: input.username,
+      password: hashedPassword,
+      rememberMe: input.rememberMe,
+    });
     if (response.success && response.data) {
       // Store tokens
       localStorage.setItem('access_token', response.data.tokens.accessToken);
@@ -192,3 +250,8 @@ export const authApi = {
     throw new Error('Failed to get captcha');
   },
 };
+
+// Re-export password utilities for use in components
+// 重新导出密码工具以供组件使用
+export { validatePassword, getPasswordRequirements } from './password.util';
+export type { PasswordValidationResult, PasswordPolicy };

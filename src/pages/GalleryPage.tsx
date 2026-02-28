@@ -10,16 +10,49 @@
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
-import { PersistentHeader } from "@/components/shared";
+import { PersistentHeader, Tabs } from "@/components/shared";
 import { WorksGrid } from "@/feature/gallery";
 import { getPublicWorks } from "@/data/gallery";
+import { Film, ImageIcon } from "lucide-react";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { CulturalShowcase } from "@/feature/gallery/CulturalShowcase";
+
+type TabId = "gallery" | "showcase";
+const VALID_TABS: TabId[] = ["gallery", "showcase"];
+
+const SUB_MODULE_TABS = [
+  {
+    id: "gallery",
+    label: { "zh-CN": "实验展示" },
+    icon: <ImageIcon className="w-4 h-4" />,
+  },
+  { id: "showcase", label: { "zh-CN": "创意作品" }, icon: <Film className="w-4 h-4" /> },
+];
 
 export function ExperimentsPage() {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { tabId } = useParams<{ tabId?: string }>();
+  const navigate = useNavigate();
 
   // Get public works
   const works = getPublicWorks();
+
+  const getActiveTab = (): TabId => {
+    if (tabId && VALID_TABS.includes(tabId as TabId)) {
+      return tabId as TabId;
+    }
+    return "gallery";
+  };
+
+  const [activeTab, setActiveTab] = useState<TabId>(getActiveTab());
+
+  const handleTabChange = (newTabId: string) => {
+    const tab = newTabId as TabId;
+    setActiveTab(tab);
+    navigate(`/gallery/${tab}`);
+  };
 
   return (
     <div
@@ -27,7 +60,7 @@ export function ExperimentsPage() {
         "min-h-screen",
         theme === "dark"
           ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-          : "bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#f0f9ff]"
+          : "bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#f0f9ff]",
       )}
     >
       {/* Header with Persistent Logo */}
@@ -44,7 +77,7 @@ export function ExperimentsPage() {
           <h1
             className={cn(
               "text-3xl font-bold mb-2",
-              theme === "dark" ? "text-white" : "text-gray-900"
+              theme === "dark" ? "text-white" : "text-gray-900",
             )}
           >
             {t("works.title")}
@@ -54,8 +87,29 @@ export function ExperimentsPage() {
           </p>
         </div>
 
+        {/* Sub-module Tabs */}
+        <div className="mb-6">
+          <Tabs
+            tabs={SUB_MODULE_TABS}
+            activeTab={activeTab}
+            onChange={handleTabChange}
+          />
+        </div>
+
         {/* Works Grid */}
-        <WorksGrid works={works} emptyMessage={t("works.noWorks")} from="gallery" />
+        {activeTab === "gallery" && (
+          <WorksGrid
+            works={works}
+            emptyMessage={t("works.noWorks")}
+            from="gallery"
+          />
+        )}
+
+        {activeTab === "showcase" && (
+          <>
+            <CulturalShowcase />
+          </>
+        )}
       </main>
     </div>
   );

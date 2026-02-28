@@ -27,7 +27,7 @@ export function ProjectList() {
     >
       <PersistentHeader
         moduleKey="labGroup"
-        moduleNameKey="研究项目"
+        moduleNameKey="虚拟课题组"
         variant="glass"
         className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
       />

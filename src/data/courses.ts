@@ -231,6 +231,23 @@ export const COURSE_DATA: CourseData[] = [
       },
     ],
   },
+  {
+    id: "course4",
+    unitId: "course4",
+    title: { "zh-CN": "3种仪器介绍" },
+    description: { "zh-CN": "介绍3种实验仪器的基本原理和使用方法。" },
+    color: "#C9A227",
+    coverImage: "/courses/unit4/第四单元——3种仪器介绍-.jpg",
+    lastUpdated: "2025-01-15",
+    media: [
+      {
+        id: "course4-1-pdf",
+        type: "pdf",
+        url: "/courses/unit4/第四单元——3种仪器介绍-.pdf",
+        title: { "zh-CN": "第四单元——3种仪器介绍PDF" },
+      },
+    ],
+  },
 ];
 
 // ============================================================

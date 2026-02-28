@@ -20,8 +20,8 @@ export class AuthController {
   static register = asyncHandler(async (req: Request, res: Response) => {
     setupResponseHelpers(res);
 
-    const { username, password, email } = req.body;
-    const result = await AuthService.register({ username, password, email });
+    const { username, password, email, clientSalt } = req.body;
+    const result = await AuthService.register({ username, password, email, clientSalt });
 
     logger.info(`User registered: ${username}`);
     res.success(result, '注册成功', 201);
@@ -164,6 +164,26 @@ export class AuthController {
     }
 
     res.success(user);
+  });
+
+  /**
+   * Get user salt for client-side hashing
+   * 获取用户盐值用于客户端哈希
+   */
+  static getUserSalt = asyncHandler(async (req: Request, res: Response) => {
+    setupResponseHelpers(res);
+
+    const { username } = req.params;
+    const result = await AuthService.getUserSalt(username);
+
+    if (!result) {
+      // Return a generic error to prevent username enumeration
+      // 返回通用错误以防止用户名枚举
+      res.error('用户不存在', 'USER_NOT_FOUND', 404);
+      return;
+    }
+
+    res.success(result);
   });
 
   /**
