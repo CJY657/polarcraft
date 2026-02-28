@@ -11,7 +11,8 @@
 export type NodeType =
   | "problem"      // 问题节点
   | "experiment"   // 实验节点
-  | "conclusion";  // 结论节点
+  | "conclusion"   // 结论节点
+  | "note";        // 便签节点
 
 /** Edge/Relationship Types - 边/关系类型 */
 export type EdgeType =
@@ -102,11 +103,21 @@ export interface ConclusionNode extends BaseNode {
   futureWork?: LabelI18n;
 }
 
+/** Note Node - 便签节点 */
+export interface NoteNode extends BaseNode {
+  type: "note";
+  title: LabelI18n;
+  content: LabelI18n; // 主要内容，支持 Markdown
+  color: "yellow" | "green" | "blue" | "pink" | "purple";
+  pinned?: boolean; // 是否置顶
+}
+
 /** Union Type for All Nodes */
 export type ResearchNode =
   | ProblemNode
   | ExperimentNode
-  | ConclusionNode;
+  | ConclusionNode
+  | NoteNode;
 
 // ============================================================
 // Edge Types - 边类型定义

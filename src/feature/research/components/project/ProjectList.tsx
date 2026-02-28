@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   FlaskConical,
@@ -21,6 +21,7 @@ import {
   WifiOff,
   RefreshCw,
   CheckCircle,
+  Search,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,15 +31,18 @@ import { EXAMPLE_PROJECTS } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+import { CreateProjectWizard } from "./CreateProjectWizard";
 
 export function ProjectList() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isSystemHealthy, healthStatus, isChecking, checkHealth } = useSystem();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
 
   // Get health status display configuration
   const getHealthDisplay = () => {
@@ -187,18 +191,32 @@ export function ProjectList() {
                 </div>
               </div>
 
-              <Link
-                to="/lab/projects/new"
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-purple-600 hover:bg-purple-500 text-white"
-                    : "bg-purple-500 hover:bg-purple-600 text-white",
-                )}
-              >
-                <Plus className="w-4 h-4" />
-                新建项目
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/lab/explore"
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
+                    theme === "dark"
+                      ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  )}
+                >
+                  <Search className="w-4 h-4" />
+                  发现项目
+                </Link>
+                <button
+                  onClick={() => setIsCreateWizardOpen(true)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
+                    theme === "dark"
+                      ? "bg-purple-600 hover:bg-purple-500 text-white"
+                      : "bg-purple-500 hover:bg-purple-600 text-white"
+                  )}
+                >
+                  <Plus className="w-4 h-4" />
+                  新建项目
+                </button>
+              </div>
             </div>
 
             {/* Loading State */}
@@ -362,8 +380,8 @@ export function ProjectList() {
                   >
                     创建您的第一个虚拟课题组项目，开始探索偏振光学的奥秘
                   </p>
-                  <Link
-                    to="/lab/projects/new"
+                  <button
+                    onClick={() => setIsCreateWizardOpen(true)}
                     className={cn(
                       "flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors",
                       theme === "dark"
@@ -373,7 +391,7 @@ export function ProjectList() {
                   >
                     <Plus className="w-5 h-5" />
                     创建项目
-                  </Link>
+                  </button>
                 </div>
               ))}
           </>
@@ -413,6 +431,19 @@ export function ProjectList() {
                     </p>
                   </div>
                 </div>
+
+                <Link
+                  to="/lab/explore"
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
+                    theme === "dark"
+                      ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  )}
+                >
+                  <Search className="w-4 h-4" />
+                  发现项目
+                </Link>
               </div>
 
               {/* Login Prompt Card */}
@@ -572,6 +603,16 @@ export function ProjectList() {
           </div>
         </div>
       </main>
+
+      {/* Create Project Wizard Dialog */}
+      <CreateProjectWizard
+        isOpen={isCreateWizardOpen}
+        onClose={() => setIsCreateWizardOpen(false)}
+        onSuccess={(projectId) => {
+          setIsCreateWizardOpen(false);
+          navigate(`/lab/projects/${projectId}`);
+        }}
+      />
     </div>
   );
 }

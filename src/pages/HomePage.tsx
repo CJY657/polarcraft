@@ -200,9 +200,9 @@ const MODULES: ModuleConfig[] = [
     path: "/lab",
     IconComponent: LabModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.lab.link1", path: "/research" },
-      { labelKey: "home.modules.lab.link2", path: "/research/applications" },
-      { labelKey: "home.modules.lab.link3", path: "/calc" },
+      { labelKey: "home.modules.lab.link1", path: "/lab" },
+      { labelKey: "home.modules.lab.link2", path: "/lab/explore" },
+      { labelKey: "home.modules.lab.link3", path: "/lab" },
     ],
     colorTheme: {
       bg: "bg-teal-950/20 backdrop-blur-sm",

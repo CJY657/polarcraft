@@ -8,3 +8,4 @@ export { ExperimentNode } from './ExperimentNode';
 export { ConclusionNode } from './ConclusionNode';
 export { DiscussionNode } from './DiscussionNode';
 export { MediaNode } from './MediaNode';
+export { NoteNode } from './NoteNode';

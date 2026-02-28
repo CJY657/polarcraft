@@ -24,7 +24,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { useCanvasStore } from '../../stores/canvasStore';
-import { ProblemNode, ExperimentNode, ConclusionNode, DiscussionNode, MediaNode } from '../nodes';
+import { ProblemNode, ExperimentNode, ConclusionNode, DiscussionNode, MediaNode, NoteNode } from '../nodes';
 import { CustomEdge } from '../edges/CustomEdge';
 import { NodeDetailsPanel } from '../panels/NodeDetailsPanel';
 import { cn } from '@/utils/classNames';
@@ -39,6 +39,7 @@ const nodeTypes = {
   conclusion: ConclusionNode,
   discussion: DiscussionNode,
   media: MediaNode,
+  note: NoteNode,
 };
 
 // Edge types configuration
@@ -185,6 +186,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     conclusion: '#a855f7',
     discussion: '#06b6d4',
     media: '#ec4899',
+    note: '#eab308',
   }), []);
 
   const nodeColorClassName = useCallback((node: Node) => {
@@ -269,6 +271,14 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           description: { 'zh-CN': '', zh: '' },
         };
         break;
+      case 'note':
+        nodeData = {
+          ...nodeData,
+          content: { 'zh-CN': '', zh: '' },
+          color: 'yellow',
+          pinned: false,
+        };
+        break;
     }
 
     const newNode = {
@@ -289,6 +299,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       conclusion: '新结论',
       discussion: '新讨论',
       media: '新媒体',
+      note: '新便签',
     };
     return titles[type] || '新节点';
   }
@@ -565,6 +576,12 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
             onClick={() => createNode('media')}
           >
             + 媒体
+          </button>
+          <button
+            className="px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-white text-sm rounded-lg border border-yellow-400 transition-colors"
+            onClick={() => createNode('note')}
+          >
+            + 便签
           </button>
         </div>
 

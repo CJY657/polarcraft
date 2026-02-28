@@ -2,40 +2,239 @@
  * Research Project Page
  * 研究项目页面
  *
- * Displays a single research project with its canvases
- * 显示单个研究项目及其画布
+ * Displays a single research project with its canvases and settings
+ * 显示单个研究项目及其画布和设置
  */
 
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
-import { Plus, Grid3x3, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Grid3x3,
+  ArrowLeft,
+  Settings,
+  Edit3,
+  Users,
+  Calendar,
+  Loader2,
+  Crown,
+  Shield,
+  Eye,
+  Edit,
+  Mail,
+  Globe,
+} from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
+import { researchApi, type ResearchProject, type ProjectMember } from "@/lib/research.service";
+import { profileApi, type ProjectSettings } from "@/lib/profile.service";
+import { ApplicationManagementPanel } from "../components/project/ApplicationManagementPanel";
+import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
+import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
+
+interface ProjectWithMembers extends ResearchProject {
+  members: ProjectMember[];
+}
 
 export function ResearchProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
   // Check if this is an example project
-  const isExampleProject = projectId?.startsWith('example-');
-  const exampleId = projectId?.replace('example-', '');
+  const isExampleProject = projectId?.startsWith("example-");
+  const exampleId = projectId?.replace("example-", "");
   const exampleProject = exampleId ? getExampleProjectById(exampleId) : undefined;
 
-  // Placeholder: In real implementation, fetch project data
-  const projectExists = true; // TODO: Check if project exists
+  // State for real projects
+  const [project, setProject] = useState<ProjectWithMembers | null>(null);
+  const [settings, setSettings] = useState<ProjectSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(!isExampleProject);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!projectExists) {
+  // Dialog states
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+
+  // Fetch project data
+  useEffect(() => {
+    if (isExampleProject || !projectId) {
+      setIsLoading(false);
+      return;
+    }
+
+    async function fetchProjectData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const [projectData, settingsData] = await Promise.all([
+          researchApi.getProject(projectId),
+          profileApi.getProjectSettings(projectId).catch(() => null),
+        ]);
+        setProject(projectData);
+        setSettings(settingsData);
+      } catch (err) {
+        console.error("Failed to fetch project:", err);
+        setError(err instanceof Error ? err.message : "加载项目失败");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchProjectData();
+  }, [projectId, isExampleProject]);
+
+  // Get current user's role in project
+  const currentUserRole = useMemo(() => {
+    if (!project || !user) return null;
+    const member = project.members.find((m) => m.user_id === user.id);
+    return member?.role || null;
+  }, [project, user]);
+
+  const isOwnerOrAdmin = currentUserRole === "owner" || currentUserRole === "admin";
+
+  // Format date
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("zh-CN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; className: string }> = {
+      draft: {
+        label: "草稿",
+        className: theme === "dark" ? "bg-gray-500/20 text-gray-400" : "bg-gray-100 text-gray-600",
+      },
+      active: {
+        label: "进行中",
+        className: theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600",
+      },
+      completed: {
+        label: "已完成",
+        className: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
+      },
+      archived: {
+        label: "已归档",
+        className: theme === "dark" ? "bg-amber-500/20 text-amber-400" : "bg-amber-100 text-amber-600",
+      },
+    };
+    return statusConfig[status] || statusConfig.draft;
+  };
+
+  // Get role icon
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case "owner":
+        return <Crown className="w-4 h-4 text-amber-500" />;
+      case "admin":
+        return <Shield className="w-4 h-4 text-blue-500" />;
+      case "editor":
+        return <Edit className="w-4 h-4 text-green-500" />;
+      case "viewer":
+        return <Eye className="w-4 h-4 text-gray-500" />;
+      default:
+        return null;
+    }
+  };
+
+  // Get role label
+  const getRoleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      owner: "创建者",
+      admin: "管理员",
+      editor: "编辑者",
+      viewer: "查看者",
+    };
+    return labels[role] || role;
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div
+        className={cn(
+          "min-h-screen flex items-center justify-center",
+          theme === "dark"
+            ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
+            : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
+        )}
+      >
+        <Loader2
+          className={cn(
+            "w-8 h-8 animate-spin",
+            theme === "dark" ? "text-purple-400" : "text-purple-600"
+          )}
+        />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !isExampleProject) {
+    return (
+      <div
+        className={cn(
+          "min-h-screen flex items-center justify-center",
+          theme === "dark"
+            ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
+            : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
+        )}
+      >
+        <div className="text-center">
+          <p className={cn("text-lg mb-4", theme === "dark" ? "text-red-400" : "text-red-600")}>
+            {error}
+          </p>
+          <Link
+            to="/lab/projects"
+            className={cn(
+              "px-4 py-2 rounded-lg font-medium transition-colors",
+              theme === "dark"
+                ? "bg-purple-600 hover:bg-purple-500 text-white"
+                : "bg-purple-500 hover:bg-purple-600 text-white"
+            )}
+          >
+            返回项目列表
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (!isExampleProject && !project) {
     return <Navigate to="/lab/projects" replace />;
   }
 
-  const project = exampleProject || {
-    id: projectId,
-    title: { 'zh-CN': '示例研究项目' },
-    description: { 'zh-CN': '这是一个示例研究项目' },
-    nodes: [],
-    edges: [],
-  };
+  // Get display data
+  const displayProject = isExampleProject
+    ? {
+        id: projectId!,
+        name_zh: exampleProject?.title["zh-CN"] || "示例项目",
+        name_en: exampleProject?.title["en-US"] || null,
+        description_zh: exampleProject?.description["zh-CN"] || "",
+        description_en: null,
+        status: "active" as const,
+        is_public: true,
+        thumbnail: exampleProject?.coverImage || null,
+        member_count: 1,
+        canvas_count: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        allow_guest_comments: false,
+        enable_task_board: false,
+        default_canvas_id: null,
+        members: [],
+      }
+    : project!;
+
+  const statusBadge = getStatusBadge(displayProject.status);
 
   return (
     <div
@@ -48,26 +247,215 @@ export function ResearchProjectPage() {
     >
       <PersistentHeader
         moduleKey="labGroup"
-        moduleNameKey={project.title['zh-CN']}
+        moduleNameKey={displayProject.name_zh}
         variant="glass"
         className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
         rightContent={
-          <Link
-            to="/lab/projects"
-            className={cn(
-              "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              theme === "dark"
-                ? "hover:bg-slate-800 text-gray-400 hover:text-white"
-                : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+          <div className="flex items-center gap-2">
+            {!isExampleProject && isOwnerOrAdmin && (
+              <>
+                <button
+                  onClick={() => setIsSettingsDialogOpen(true)}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    theme === "dark"
+                      ? "hover:bg-slate-800 text-gray-400 hover:text-white"
+                      : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  <Settings className="w-4 h-4" />
+                  设置
+                </button>
+                <button
+                  onClick={() => setIsEditDialogOpen(true)}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    theme === "dark"
+                      ? "hover:bg-slate-800 text-gray-400 hover:text-white"
+                      : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  编辑
+                </button>
+              </>
             )}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            返回
-          </Link>
+            <Link
+              to="/lab/projects"
+              className={cn(
+                "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                theme === "dark"
+                  ? "hover:bg-slate-800 text-gray-400 hover:text-white"
+                  : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
+              )}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              返回
+            </Link>
+          </div>
         }
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Project Header */}
+        <div className="mb-8">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1
+                  className={cn(
+                    "text-3xl font-bold",
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  )}
+                >
+                  {displayProject.name_zh}
+                </h1>
+                <span
+                  className={cn(
+                    "text-xs px-2 py-1 rounded-full",
+                    statusBadge.className
+                  )}
+                >
+                  {statusBadge.label}
+                </span>
+                {settings?.is_recruiting && (
+                  <span
+                    className={cn(
+                      "text-xs px-2 py-1 rounded-full",
+                      theme === "dark"
+                        ? "bg-teal-500/20 text-teal-400"
+                        : "bg-teal-100 text-teal-600"
+                    )}
+                  >
+                    招募中
+                  </span>
+                )}
+              </div>
+              {displayProject.name_en && (
+                <p
+                  className={cn(
+                    "text-lg mb-2",
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  )}
+                >
+                  {displayProject.name_en}
+                </p>
+              )}
+              {displayProject.description_zh && (
+                <p
+                  className={cn(
+                    "text-sm mb-4",
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  )}
+                >
+                  {displayProject.description_zh}
+                </p>
+              )}
+              <div className="flex items-center gap-4 text-sm">
+                <div
+                  className={cn(
+                    "flex items-center gap-1",
+                    theme === "dark" ? "text-gray-500" : "text-gray-400"
+                  )}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>{displayProject.member_count} 成员</span>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center gap-1",
+                    theme === "dark" ? "text-gray-500" : "text-gray-400"
+                  )}
+                >
+                  <Grid3x3 className="w-4 h-4" />
+                  <span>{displayProject.canvas_count} 画布</span>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center gap-1",
+                    theme === "dark" ? "text-gray-500" : "text-gray-400"
+                  )}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>创建于 {formatDate(displayProject.created_at)}</span>
+                </div>
+                {displayProject.is_public && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-1",
+                      theme === "dark" ? "text-gray-500" : "text-gray-400"
+                    )}
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>公开</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Members Section */}
+        {!isExampleProject && project && project.members.length > 0 && (
+          <div className="mb-8">
+            <h2
+              className={cn(
+                "text-xl font-semibold mb-4",
+                theme === "dark" ? "text-white" : "text-gray-900"
+              )}
+            >
+              项目成员
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {project.members.map((member) => (
+                <div
+                  key={member.id}
+                  className={cn(
+                    "flex items-center gap-3 p-4 rounded-xl border transition-colors",
+                    theme === "dark"
+                      ? "bg-slate-800/50 border-slate-700"
+                      : "bg-white border-gray-200"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
+                      member.role === "owner"
+                        ? "bg-amber-500/20 text-amber-500"
+                        : theme === "dark"
+                        ? "bg-gray-700 text-gray-300"
+                        : "bg-gray-100 text-gray-600"
+                    )}
+                  >
+                    {member.username?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "font-medium truncate",
+                          theme === "dark" ? "text-white" : "text-gray-900"
+                        )}
+                      >
+                        {member.username}
+                      </span>
+                      {getRoleIcon(member.role)}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-xs",
+                        theme === "dark" ? "text-gray-500" : "text-gray-400"
+                      )}
+                    >
+                      {getRoleLabel(member.role)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Canvas Grid */}
         <div className="mb-6 flex items-center justify-between">
           <h2
@@ -78,17 +466,19 @@ export function ResearchProjectPage() {
           >
             研究画布
           </h2>
-          <button
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
-              theme === "dark"
-                ? "bg-purple-600 hover:bg-purple-500 text-white"
-                : "bg-purple-500 hover:bg-purple-600 text-white"
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            新建画布
-          </button>
+          {!isExampleProject && isOwnerOrAdmin && (
+            <button
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
+                theme === "dark"
+                  ? "bg-purple-600 hover:bg-purple-500 text-white"
+                  : "bg-purple-500 hover:bg-purple-600 text-white"
+              )}
+            >
+              <Plus className="w-4 h-4" />
+              新建画布
+            </button>
+          )}
         </div>
 
         {/* Canvas Grid */}
@@ -140,7 +530,7 @@ export function ResearchProjectPage() {
                 theme === "dark" ? "text-gray-400" : "text-gray-600"
               )}
             >
-              {project.description['zh-CN']}
+              {displayProject.description_zh || "项目主画布"}
             </p>
             <div
               className={cn(
@@ -148,7 +538,9 @@ export function ResearchProjectPage() {
                 theme === "dark" ? "text-gray-500" : "text-gray-400"
               )}
             >
-              {project.nodes.length} 个节点 · {project.edges.length} 条关系
+              {isExampleProject
+                ? `${exampleProject?.nodes.length || 0} 个节点 · ${exampleProject?.edges.length || 0} 条关系`
+                : "点击进入画布"}
             </div>
           </Link>
         </div>
@@ -235,7 +627,38 @@ export function ResearchProjectPage() {
             </div>
           </div>
         </div>
+
+        {/* Application Management Panel - Only for real projects */}
+        {!isExampleProject && projectId && isOwnerOrAdmin && (
+          <div className="mt-12">
+            <ApplicationManagementPanel projectId={projectId} />
+          </div>
+        )}
       </main>
+
+      {/* Edit Dialog */}
+      {!isExampleProject && project && (
+        <ProjectEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          project={project}
+          onSuccess={(updatedProject) => {
+            setProject({ ...project, ...updatedProject });
+          }}
+        />
+      )}
+
+      {/* Settings Dialog */}
+      {!isExampleProject && projectId && (
+        <ProjectSettingsDialog
+          isOpen={isSettingsDialogOpen}
+          onClose={() => setIsSettingsDialogOpen(false)}
+          projectId={projectId}
+          onSuccess={(updatedSettings) => {
+            setSettings(updatedSettings);
+          }}
+        />
+      )}
     </div>
   );
 }
