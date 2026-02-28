@@ -18,7 +18,7 @@ import {
   createDefaultBlockState,
   PolarizationAngle
 } from './types';
-import { LightPhysics, WaveLight } from './LightPhysics';
+import { LightPhysics, WaveLight } from '@/lib/physics/LightPhysics';
 import { logger } from '@/lib/logger';
 import { LevelData } from '@/levels/types';
 

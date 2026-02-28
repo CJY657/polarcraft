@@ -1,38 +1,36 @@
 /**
- * 几何光学物理模块 | Geometric Optics Physics Module
- * 斯涅尔定律、反射、折射和双折射计算 | Snell's law, reflection, refraction, and birefringence calculations
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * GEOMETRIC OPTICS | 几何光学演示模块
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * 职责范围 | Scope:
+ * - 几何光学精确计算 | Precise geometric optics calculations
+ * - 斯涅尔定律折射计算 | Snell's law refraction
+ * - 全反射临界角 | Total internal reflection
+ * - 布鲁斯特角 | Brewster's angle
+ * - 双折射现象 | Birefringence (calcite, quartz, etc.)
+ * - 3D 光线追踪可视化 | 3D ray tracing visualization
+ *
+ * 使用场景 | Use Cases:
+ * - 教育演示组件 (Birefringence3D, IcelandSparDemo)
+ * - 光学实验室模拟
+ * - 物理现象可视化
+ *
+ * 与其他模块的区别 | Differentiation:
+ * - LightPhysics: 游戏引擎核心，处理体素世界的光传播
+ * - WaveOptics: 波动光学精确计算（琼斯矩阵）
+ * - GeometricOptics: 几何光学演示（射线追踪、折射）
+ *
+ * ⚠️ 注意: 本模块返回 THREE.Vector3 用于3D可视化，不适合游戏引擎循环
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import * as THREE from "three";
+import { REFRACTIVE_INDICES, BIREFRINGENT_MATERIALS, getBirefringenceMaterial } from "./OpticsConstants";
 
-// ============================================================================
-// 常见材料折射率 | REFRACTIVE INDICES FOR COMMON MATERIALS
-// ============================================================================
-
-/**
- * 各种材料在589nm（钠D线）处的折射率 | Refractive indices for various materials at 589nm (sodium D line)
- */
-export const REFRACTIVE_INDICES = {
-  // 真空/空气 | Vacuum/Air
-  air: 1.0003,
-  vacuum: 1.0,
-
-  // 玻璃 | Glasses
-  water: 1.333,
-  crown_glass: 1.52,
-  flint_glass: 1.62,
-  diamond: 2.417,
-
-  // 晶体 | Crystals
-  quartz: 1.544,
-  calcite_no: 1.658, // 寻常光折射率 | Ordinary ray refractive index
-  calcite_ne: 1.486, // 非寻常光折射率 | Extraordinary ray refractive index
-  ice: 1.31,
-
-  // 塑料 | Plastics
-  acrylic: 1.49,
-  polycarbonate: 1.58,
-} as const;
+// Re-export types and constants for backward compatibility
+export type { BirefringenceMaterial } from "./OpticsConstants";
+export { REFRACTIVE_INDICES, BIREFRINGENT_MATERIALS, getBirefringenceMaterial } from "./OpticsConstants";
 
 // ============================================================================
 // 斯涅尔定律 | SNELL'S LAW
@@ -108,46 +106,6 @@ export interface BirefringenceParams {
   n_o?: number; // 寻常光折射率（默认方解石：1.658） | Ordinary refractive index (default calcite: 1.658)
   n_e?: number; // 非寻常光折射率（默认方解石：1.486） | Extraordinary refractive index (default calcite: 1.486)
 }
-
-/**
- * 双折射材料属性 | Birefringence material properties
- */
-export interface BirefringenceMaterial {
-  name: string; // 材料名称 | Material name
-  n_o: number; // 寻常光折射率 | Ordinary refractive index
-  n_e: number; // 非寻常光折射率 | Extraordinary refractive index
-  deltaN: number; // 双折射率 Δn = n_o - n_e | Birefringence Δn = n_o - n_e
-}
-
-/**
- * 常见双折射材料 | Common birefringent materials
- */
-export const BIREFRINGENT_MATERIALS: Record<string, BirefringenceMaterial> = {
-  calcite: {
-    name: "方解石 (冰洲石) | Calcite (Iceland Spar)",
-    n_o: 1.658,
-    n_e: 1.486,
-    deltaN: 0.172,
-  },
-  quartz: {
-    name: "石英 | Quartz",
-    n_o: 1.544,
-    n_e: 1.553,
-    deltaN: 0.009,
-  },
-  sodium_nitrate: {
-    name: "硝酸钠 | Sodium Nitrate",
-    n_o: 1.587,
-    n_e: 1.336,
-    deltaN: 0.251,
-  },
-  ice: {
-    name: "冰 | Ice",
-    n_o: 1.309,
-    n_e: 1.313,
-    deltaN: 0.004,
-  },
-};
 
 /**
  * 计算有效非寻常光折射率 | Calculate the effective extraordinary refractive index
@@ -326,15 +284,6 @@ export function calculateDoubleImageOffset(
     oRayOffset: oRayOffset * distance,
     eRayOffset: eRayOffset * distance,
   };
-}
-
-/**
- * 根据名称获取双折射材料 | Get birefringence material by name
- * @param name - 材料名称 | Material name
- * @returns 材料属性，默认为方解石 | Material properties or default calcite
- */
-export function getBirefringenceMaterial(name: string): BirefringenceMaterial {
-  return BIREFRINGENT_MATERIALS[name] || BIREFRINGENT_MATERIALS.calcite;
 }
 
 /**
