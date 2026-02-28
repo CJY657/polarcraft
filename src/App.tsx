@@ -1,8 +1,10 @@
-import { Suspense, lazy } from "react"; // React 组件懒加载和 Suspense
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom"; // React Router 组件，删去navigate重定向模块，后续可能使用
+import { Suspense, lazy, useEffect } from "react"; // React 组件懒加载和 Suspense
+import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } from "react-router-dom"; // React Router 组件
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"; // 错误边界组件
 import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
+import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
+import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 
@@ -61,9 +63,27 @@ function ResearchCanvasWrapper() {
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 
-// Auth Pages - 认证页面
-const LoginPage = lazy(() => import("@/pages/LoginPage"));
-const RegisterPage = lazy(() => import("@/pages/RegisterPage"));
+// Profile Page - 个人中心页面
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+
+// Auth Redirect Handler - 认证重定向处理组件
+function AuthRedirectHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const openDialog = useAuthDialogStore((state) => state.openDialog);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/login') {
+      openDialog('login');
+    } else if (path === '/register') {
+      openDialog('register');
+    }
+    navigate('/', { replace: true });
+  }, [location.pathname, openDialog, navigate]);
+
+  return null;
+}
 
 function PageLoader() {
   return (
@@ -175,14 +195,20 @@ export function App() {
                 element={<AboutPage />}
               />
 
-              {/* Auth Pages - 认证页面 */}
+              {/* Profile - 个人中心 */}
+              <Route
+                path="/profile"
+                element={<ProfilePage />}
+              />
+
+              {/* Auth Pages - 认证页面（重定向到首页并打开对话框） */}
               <Route
                 path="/login"
-                element={<LoginPage />}
+                element={<AuthRedirectHandler />}
               />
               <Route
                 path="/register"
-                element={<RegisterPage />}
+                element={<AuthRedirectHandler />}
               />
               {/* Default route for 404 pages */}
             <Route
@@ -204,6 +230,7 @@ export function App() {
             />
           </Routes>
           </Suspense>
+          <AuthDialog />
           <Footer />
         </BrowserRouter>
       </AuthProvider>

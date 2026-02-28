@@ -10,6 +10,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import researchRoutes from './research.routes.js';
+import profileRoutes from './profile.routes.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
 import { testConnection } from '../database/connection.js';
@@ -81,5 +82,6 @@ router.get('/health', async (req: Request, res: Response) => {
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/research', researchRoutes);
+router.use('/profile', profileRoutes);
 
 export default router;

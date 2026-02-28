@@ -14,7 +14,17 @@
     "close": "关闭",
     "explore": "探索",
     "search": "搜索",
-    "all": "全部"
+    "all": "全部",
+    "cancel": "取消",
+    "save": "保存",
+    "add": "添加",
+    "edit": "编辑",
+    "delete": "删除",
+    "confirm": "确认",
+    "error": "发生错误",
+    "saving": "保存中...",
+    "next": "下一步",
+    "select": "请选择"
   },
   "page": {
     "courses": {
@@ -4095,6 +4105,108 @@
         "label": "关联",
         "description": "通用关联关系"
       }
+    }
+  },
+  "profile": {
+    "title": "个人中心",
+    "verified": "已验证",
+    "joinedAt": "加入于",
+    "education": {
+      "title": "教育/工作经历",
+      "add": "添加经历",
+      "edit": "编辑经历",
+      "organization": "学校/单位",
+      "organizationPlaceholder": "例如：北京大学",
+      "organizationRequired": "请输入学校/单位",
+      "major": "专业",
+      "majorPlaceholder": "例如：物理学",
+      "majorRequired": "请输入专业",
+      "startDate": "开始时间",
+      "startDateRequired": "请选择开始时间",
+      "endDate": "结束时间",
+      "present": "至今",
+      "isCurrent": "目前在此学习/工作",
+      "degreeLevel": "学位级别",
+      "selectDegree": "选择学位",
+      "selectDate": "选择年月",
+      "bachelor": "本科",
+      "master": "硕士",
+      "phd": "博士",
+      "other": "其他",
+      "confirmDelete": "确定要删除这条经历吗？",
+      "empty": "暂无教育/工作经历，点击上方按钮添加"
+    },
+    "application": {
+      "title": "申请加入",
+      "myApplications": "我的申请",
+      "noApplications": "暂无申请记录",
+      "pending": "待审核",
+      "approved": "已通过",
+      "rejected": "已拒绝",
+      "withdrawn": "已撤回",
+      "appliedAt": "申请于",
+      "reviewNotes": "审核备注",
+      "withdraw": "撤回申请",
+      "unknownProject": "未知项目"
+    }
+  },
+  "project": {
+    "create": {
+      "title": "创建项目",
+      "step1": "基本信息",
+      "step2": "创建者信息",
+      "step3": "项目设置",
+      "basicInfo": "基本信息",
+      "creatorInfo": "创建者信息",
+      "settings": "项目设置",
+      "nameRequired": "请输入项目名称",
+      "organizationRequired": "请输入单位"
+    },
+    "settings": {
+      "title": "项目设置",
+      "visibility": "可见性",
+      "public": "公开 - 所有人可见",
+      "private": "私有 - 仅成员可见",
+      "inviteOnly": "仅邀请 - 需要邀请链接",
+      "requireApproval": "加入需要审批",
+      "requireApprovalHint": "开启后，用户申请需要您批准才能加入",
+      "recruitmentRequirements": "招募要求",
+      "recruitmentRequirementsPlaceholder": "描述您希望招募什么样的队员，例如：有Python基础、对偏振光学感兴趣等",
+      "maxMembers": "最大成员数",
+      "maxMembersPlaceholder": "不填则无限制",
+      "recruitmentDeadline": "招募截止日期",
+      "isRecruiting": "正在招募",
+      "contactEmail": "联系邮箱",
+      "discussionChannel": "讨论频道"
+    },
+    "application": {
+      "title": "申请加入项目",
+      "form": {
+        "displayName": "姓名",
+        "displayNamePlaceholder": "您的姓名",
+        "organization": "单位",
+        "selectFromProfile": "从个人资料选择",
+        "enterManually": "手动输入",
+        "major": "专业",
+        "grade": "年级",
+        "gradePlaceholder": "例如：大三、研一",
+        "researchExperience": "科研经历",
+        "researchExperiencePlaceholder": "描述您的研究经历、参与过的项目等",
+        "expertise": "专长技能",
+        "expertisePlaceholder": "例如：Python编程、光学实验、数据分析等",
+        "motivation": "申请理由",
+        "motivationPlaceholder": "为什么想加入这个项目？"
+      },
+      "submit": "提交申请",
+      "success": "申请已提交",
+      "successAutoApproved": "申请已自动通过，您已成为项目成员"
+    },
+    "public": {
+      "title": "公开项目",
+      "browse": "浏览项目",
+      "recruiting": "正在招募",
+      "notRecruiting": "暂停招募",
+      "searchPlaceholder": "搜索项目..."
     }
   }
 }

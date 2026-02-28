@@ -29,11 +29,13 @@ import { cn } from "@/utils/classNames";
 import { EXAMPLE_PROJECTS } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
+import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 export function ProjectList() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isSystemHealthy, healthStatus, isChecking, checkHealth } = useSystem();
+  const openDialog = useAuthDialogStore((state) => state.openDialog);
   const [projects, setProjects] = useState<ResearchProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -451,9 +453,8 @@ export function ProjectList() {
                 >
                   登录您的账户以查看和管理您的研究项目
                 </p>
-                <Link
-                  to="/login"
-                  state={{ from: "/lab/projects" }}
+                <button
+                  onClick={() => openDialog('login')}
                   className={cn(
                     "inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors",
                     theme === "dark"
@@ -463,7 +464,7 @@ export function ProjectList() {
                 >
                   <LogIn className="w-4 h-4" />
                   立即登录
-                </Link>
+                </button>
               </div>
             </div>
           )

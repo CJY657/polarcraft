@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSystem } from '@/contexts/SystemContext'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/utils/classNames'
-import { Sun, Moon, User, LogOut } from 'lucide-react'
+import { Sun, Moon, User, LogOut, UserCircle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { useAuthDialogStore } from '@/stores/authDialogStore'
 
 interface AuthThemeSwitcherProps {
   className?: string
@@ -20,6 +21,7 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const openDialog = useAuthDialogStore((state) => state.openDialog)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -31,6 +33,11 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const handleProfile = () => {
+    navigate('/profile')
+    setShowUserMenu(false)
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -68,6 +75,16 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
                   <p className="text-xs text-[var(--text-secondary)]">{user?.email || 'user@polarcraft'}</p>
                 </div>
                 <button
+                  onClick={handleProfile}
+                  className={cn(
+                    'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                    userMenuItemClasses
+                  )}
+                >
+                  <UserCircle className="w-4 h-4" />
+                  {t('profile.title', '个人中心')}
+                </button>
+                <button
                   onClick={handleLogout}
                   className={cn(
                     'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
@@ -83,18 +100,18 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
         ) : (
           isSystemHealthy ? (
             <>
-              <Link
-                to="/login"
+              <button
+                onClick={() => openDialog('login')}
                 className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] text-sm"
               >
                 {t('auth.login', '登录')}
-              </Link>
-              <Link
-                to="/register"
+              </button>
+              <button
+                onClick={() => openDialog('register')}
                 className="px-3 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black text-sm font-medium hover:bg-cyan-400 transition-colors"
               >
                 {t('auth.register', '注册')}
-              </Link>
+              </button>
             </>
           ) : null
         )}
@@ -135,6 +152,16 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
                 <p className="text-xs text-[var(--text-secondary)]">{user?.email || 'user@polarcraft'}</p>
               </div>
               <button
+                onClick={handleProfile}
+                className={cn(
+                  'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                  userMenuItemClasses
+                )}
+              >
+                <UserCircle className="w-4 h-4" />
+                {t('profile.title', '个人中心')}
+              </button>
+              <button
                 onClick={handleLogout}
                 className={cn(
                   'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
@@ -150,8 +177,8 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
       ) : (
         isSystemHealthy ? (
           <div className="flex items-center gap-2">
-            <Link
-              to="/login"
+            <button
+              onClick={() => openDialog('login')}
               className={cn(
                 'px-4 py-1.5 rounded-lg border border-[var(--border-color)]',
                 'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]',
@@ -159,16 +186,16 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
               )}
             >
               {t('auth.login', '登录')}
-            </Link>
-            <Link
-              to="/register"
+            </button>
+            <button
+              onClick={() => openDialog('register')}
               className={cn(
                 'px-4 py-1.5 rounded-lg bg-[var(--accent-cyan)] text-black',
                 'hover:bg-cyan-400 transition-colors text-sm font-medium'
               )}
             >
               {t('auth.register', '注册')}
-            </Link>
+            </button>
           </div>
         ) : null
       )}
