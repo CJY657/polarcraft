@@ -66,13 +66,14 @@ export function Scene() {
   // Handle keyboard input for camera mode toggle and ESC to exit pointer lock
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { setCameraMode, toggleVisionMode, toggleGrid, toggleHelp, rotateSelectedBlock } = useGameStore.getState()
+      const { setCameraMode, toggleVisionMode, toggleGrid, toggleHelp, rotateSelectedBlock, setSelectedBlockType } = useGameStore.getState()
       const currentCameraMode = useGameStore.getState().cameraMode
+      const isInFirstPerson = currentCameraMode === 'first-person'
 
       switch (e.code) {
         case 'Escape':
           // Exit pointer lock mode when ESC is pressed
-          if (currentCameraMode === 'first-person' && document.pointerLockElement) {
+          if (isInFirstPerson && document.pointerLockElement) {
             document.exitPointerLock()
             // Optionally switch to isometric view for easier navigation
             // setCameraMode('isometric')
@@ -99,18 +100,65 @@ export function Scene() {
             rotateSelectedBlock()
           }
           break
-        // WASD movement keys
-        case 'KeyW':
-          moveState.current.forward = true
+        // Block selection hotkeys - Basic blocks (1-7) - always available
+        case 'Digit1':
+          setSelectedBlockType('emitter')
           break
+        case 'Digit2':
+          setSelectedBlockType('polarizer')
+          break
+        case 'Digit3':
+          setSelectedBlockType('rotator')
+          break
+        case 'Digit4':
+          setSelectedBlockType('splitter')
+          break
+        case 'Digit5':
+          setSelectedBlockType('sensor')
+          break
+        case 'Digit6':
+          setSelectedBlockType('mirror')
+          break
+        case 'Digit7':
+          setSelectedBlockType('solid')
+          break
+        // Block selection hotkeys - Advanced blocks (8-0, Q, W, E, F, P)
+        // Number keys always work, letter keys only work when not in first-person mode
+        case 'Digit8':
+          setSelectedBlockType('prism')
+          break
+        case 'Digit9':
+          setSelectedBlockType('lens')
+          break
+        case 'Digit0':
+          setSelectedBlockType('beamSplitter')
+          break
+        case 'KeyQ':
+          if (!isInFirstPerson) setSelectedBlockType('quarterWave')
+          else moveState.current.left = true
+          break
+        case 'KeyW':
+          if (!isInFirstPerson) setSelectedBlockType('halfWave')
+          else moveState.current.forward = true
+          break
+        case 'KeyE':
+          if (!isInFirstPerson) setSelectedBlockType('absorber')
+          break
+        case 'KeyF':
+          setSelectedBlockType('phaseShifter')
+          break
+        case 'KeyP':
+          setSelectedBlockType('portal')
+          break
+        // WASD movement keys (only in first-person mode for A/D, always for W/S)
         case 'KeyS':
           moveState.current.backward = true
           break
         case 'KeyA':
-          moveState.current.left = true
+          if (isInFirstPerson) moveState.current.left = true
           break
         case 'KeyD':
-          moveState.current.right = true
+          if (isInFirstPerson) moveState.current.right = true
           break
         case 'Space':
           moveState.current.jump = true
@@ -119,18 +167,24 @@ export function Scene() {
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      const { cameraMode: currentCameraMode } = useGameStore.getState()
+      const isInFirstPerson = currentCameraMode === 'first-person'
+
       switch (e.code) {
         case 'KeyW':
-          moveState.current.forward = false
+          if (isInFirstPerson) moveState.current.forward = false
           break
         case 'KeyS':
           moveState.current.backward = false
           break
         case 'KeyA':
-          moveState.current.left = false
+          if (isInFirstPerson) moveState.current.left = false
           break
         case 'KeyD':
-          moveState.current.right = false
+          if (isInFirstPerson) moveState.current.right = false
+          break
+        case 'KeyQ':
+          if (!isInFirstPerson) moveState.current.left = false
           break
         case 'Space':
           moveState.current.jump = false
