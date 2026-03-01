@@ -10,7 +10,7 @@ import { ChevronRight, ChevronLeft, Check, Info } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
 import { researchApi } from '@/lib/research.service';
 

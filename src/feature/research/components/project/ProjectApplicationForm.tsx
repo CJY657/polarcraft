@@ -9,7 +9,7 @@ import { Send, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, PublicProject } from '@/lib/profile.service';
 
 interface ProjectApplicationFormProps {

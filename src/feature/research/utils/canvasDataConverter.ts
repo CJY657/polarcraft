@@ -21,22 +21,44 @@ import type {
   ResearchNode as ApiNode,
   ResearchEdge as ApiEdge,
 } from '@/lib/research.service';
+import type {
+  ProblemNodeData,
+  ExperimentNodeData,
+  ConclusionNodeData,
+  DiscussionNodeData,
+  MediaNodeData,
+  NoteNodeData,
+  BaseNodeData,
+  getLabelValue,
+} from '../types/node-data.types';
+
+import type {
+  ProblemNodeData,
+  ExperimentNodeData,
+  ConclusionNodeData,
+  DiscussionNodeData,
+  MediaNodeData,
+  NoteNodeData,
+  BaseNodeData,
+} from '../types/node-data.types';
 
 // =====================================================
 // LabelI18n Helper
 // =====================================================
 
-interface LabelI18n {
-  'zh-CN'?: string;
-  en?: string;
-  zh?: string;
-}
-
+/**
+ * Helper to get Chinese label value
+ * 获取中文标签值
+ */
 function getZhLabel(label: LabelI18n | undefined): string | undefined {
   if (!label) return undefined;
   return label['zh-CN'] || label.zh || undefined;
 }
 
+/**
+ * Helper to get English label value
+ * 获取英文标签值
+ */
 function getEnLabel(label: LabelI18n | undefined): string | undefined {
   if (!label) return undefined;
   return label.en || undefined;
@@ -54,7 +76,7 @@ export function nodeToApiFormat(
   node: Node<ResearchNode>,
   isNew: boolean = false
 ): Partial<CreateNodeInput> {
-  const data = node.data;
+  const data = node.data as BaseNodeData;
   // Use data.type if available, otherwise fall back to node.type
   const nodeType = data.type || node.type;
 
@@ -63,77 +85,95 @@ export function nodeToApiFormat(
     position_y: node.position.y,
     title_zh: getZhLabel(data.title),
     title_en: getEnLabel(data.title),
-    description_zh: getZhLabel((data as any).description),
-    description_en: getEnLabel((data as any).description),
-    status: (data as any).status,
   };
 
   // Handle different node types
   switch (nodeType) {
-    case 'problem':
+    case 'problem': {
+      const problemData = data as ProblemNodeData;
       return {
         ...baseInput,
         type: 'problem',
-        hypothesis_zh: getZhLabel((data as ProblemNode).hypothesis),
-        hypothesis_en: getEnLabel((data as ProblemNode).hypothesis),
-        priority: (data as ProblemNode).priority,
-        tags: (data as ProblemNode).tags,
+        hypothesis_zh: getZhLabel(problemData.hypothesis),
+        hypothesis_en: getEnLabel(problemData.hypothesis),
+        description_zh: getZhLabel(problemData.description),
+        description_en: getEnLabel(problemData.description),
+        status: problemData.status,
+        priority: problemData.priority,
+        tags: problemData.tags,
       };
+    }
 
-    case 'experiment':
+    case 'experiment': {
+      const experimentData = data as ExperimentNodeData;
       return {
         ...baseInput,
         type: 'experiment',
-        simulation_config: (data as ExperimentNode).simulationConfig,
-        result_snapshot: (data as ExperimentNode).resultSnapshot,
-        linked_demo: (data as ExperimentNode).linkedDemo,
+        description_zh: getZhLabel(experimentData.description),
+        description_en: getEnLabel(experimentData.description),
+        status: experimentData.status,
+        simulation_config: experimentData.simulationConfig,
+        result_snapshot: experimentData.resultSnapshot,
+        linked_demo: experimentData.linkedDemo,
       };
+    }
 
-    case 'conclusion':
+    case 'conclusion': {
+      const conclusionData = data as ConclusionNodeData;
       return {
         ...baseInput,
         type: 'conclusion',
-        statement_zh: getZhLabel((data as ConclusionNode).statement),
-        statement_en: getEnLabel((data as ConclusionNode).statement),
-        confidence: (data as ConclusionNode).confidence,
-        evidence_ids: (data as ConclusionNode).evidenceIds,
-        limitations_zh: getZhLabel((data as ConclusionNode).limitations),
-        limitations_en: getEnLabel((data as ConclusionNode).limitations),
-        future_work_zh: getZhLabel((data as ConclusionNode).futureWork),
-        future_work_en: getEnLabel((data as ConclusionNode).futureWork),
+        description_zh: getZhLabel(conclusionData.description),
+        description_en: getEnLabel(conclusionData.description),
+        statement_zh: getZhLabel(conclusionData.statement),
+        statement_en: getEnLabel(conclusionData.statement),
+        confidence: conclusionData.confidence,
+        evidence_ids: conclusionData.evidenceIds,
+        limitations_zh: getZhLabel(conclusionData.limitations),
+        limitations_en: getEnLabel(conclusionData.limitations),
+        future_work_zh: getZhLabel(conclusionData.futureWork),
+        future_work_en: getEnLabel(conclusionData.futureWork),
       };
+    }
 
-    case 'note':
+    case 'note': {
+      const noteData = data as NoteNodeData;
       // Note type - 便签类型
       return {
         ...baseInput,
         type: 'note',
-        content_zh: getZhLabel((data as NoteNode).content),
-        content_en: getEnLabel((data as NoteNode).content),
-        color: (data as NoteNode).color,
-        pinned: (data as NoteNode).pinned,
+        content_zh: getZhLabel(noteData.content),
+        content_en: getEnLabel(noteData.content),
+        color: noteData.color,
+        pinned: noteData.pinned,
       };
+    }
 
-    case 'discussion':
+    case 'discussion': {
+      const discussionData = data as DiscussionNodeData;
       // Discussion type - 讨论类型
       return {
         ...baseInput,
         type: 'discussion',
-        topic_zh: getZhLabel((data as any).topic),
-        topic_en: getEnLabel((data as any).topic),
-        participants: (data as any).participants,
+        topic_zh: getZhLabel(discussionData.topic),
+        topic_en: getEnLabel(discussionData.topic),
+        status: discussionData.status,
+        participants: discussionData.participants,
       };
+    }
 
-    case 'media':
+    case 'media': {
+      const mediaData = data as MediaNodeData;
       // Media type - 媒体类型
       return {
         ...baseInput,
         type: 'media',
-        media_url: (data as any).url,
-        media_type: (data as any).mediaType,
-        description_zh: getZhLabel((data as any).description),
-        description_en: getEnLabel((data as any).description),
+        media_url: mediaData.url,
+        media_type: mediaData.mediaType,
+        description_zh: getZhLabel(mediaData.description),
+        description_en: getEnLabel(mediaData.description),
       };
+    }
 
     default:
       // Default to problem type
@@ -158,7 +198,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
       updatedAt: apiNode.updated_at,
       createdBy: apiNode.created_by,
       assignedTo: apiNode.assigned_to || [],
-    } as any,
+    } as BaseNodeData,
   };
 
   switch (apiNode.type) {
@@ -175,7 +215,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           status: apiNode.status as 'open' | 'investigating' | 'answered',
           priority: apiNode.priority || 'medium',
           tags: apiNode.tags || [],
-        } as ProblemNode,
+        } as ProblemNodeData,
       };
 
     case 'experiment':
@@ -191,7 +231,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           simulationConfig: apiNode.simulation_config,
           resultSnapshot: apiNode.result_snapshot,
           linkedDemo: apiNode.linked_demo,
-        } as ExperimentNode,
+        } as ExperimentNodeData,
       };
 
     case 'conclusion':
@@ -207,7 +247,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           evidenceIds: apiNode.evidence_ids || [],
           limitations: { 'zh-CN': apiNode.limitations_zh, en: apiNode.limitations_en },
           futureWork: { 'zh-CN': apiNode.future_work_zh, en: apiNode.future_work_en },
-        } as ConclusionNode,
+        } as ConclusionNodeData,
       };
 
     case 'discussion':
@@ -221,7 +261,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           topic: { 'zh-CN': apiNode.topic_zh, en: apiNode.topic_en },
           status: apiNode.status as 'active' | 'resolved' | 'archived',
           participants: apiNode.participants || [],
-        } as any,
+        } as DiscussionNodeData,
       };
 
     case 'media':
@@ -235,7 +275,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           description: { 'zh-CN': apiNode.description_zh, en: apiNode.description_en },
           url: apiNode.media_url,
           mediaType: apiNode.media_type as 'image' | 'video' | 'audio' | 'file',
-        } as any,
+        } as MediaNodeData,
       };
 
     case 'note':
@@ -249,7 +289,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           content: { 'zh-CN': apiNode.content_zh, en: apiNode.content_en },
           color: apiNode.color || 'yellow',
           pinned: apiNode.pinned || false,
-        } as NoteNode,
+        } as NoteNodeData,
       };
 
     default:
@@ -265,7 +305,7 @@ export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
           status: 'open',
           priority: 'medium',
           tags: [],
-        } as ProblemNode,
+        } as ProblemNodeData,
       };
   }
 }

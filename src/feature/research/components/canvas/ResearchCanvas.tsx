@@ -33,6 +33,15 @@ import { PersistentHeader } from '@/components/shared';
 import { ArrowLeft, Save, Loader2, Check, AlertCircle } from 'lucide-react';
 import { researchApi } from '@/lib/research.service';
 import { nodeToApiFormat, edgeToApiFormat, apiToNodeFormat, apiToEdgeFormat, isTemporaryId } from '../../utils/canvasDataConverter';
+import type {
+  ProblemNodeData,
+  ExperimentNodeData,
+  ConclusionNodeData,
+  DiscussionNodeData,
+  MediaNodeData,
+  NoteNodeData,
+  BaseNodeData,
+} from '../../types/node-data.types';
 
 // Node types configuration
 const nodeTypes = {
@@ -195,7 +204,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           setFlowNodes(flowNodes);
           setNodes(flowNodes);
           // Store original node IDs for deletion detection
-          originalNodeIdsRef.current = new Set(canvas.nodes.map((n: any) => n.id));
+          originalNodeIdsRef.current = new Set(canvas.nodes.map((n) => n.id));
         }
 
         if (canvas.edges && canvas.edges.length > 0) {
@@ -203,7 +212,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           setFlowEdges(flowEdges);
           setEdges(flowEdges);
           // Store original edge IDs for deletion detection
-          originalEdgeIdsRef.current = new Set(canvas.edges.map((e: any) => e.id));
+          originalEdgeIdsRef.current = new Set(canvas.edges.map((e) => e.id));
         }
 
         // Set initial save state
@@ -313,7 +322,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         const nodeData = nodeToApiFormat(node);
         if (isTemporaryId(node.id)) {
           // Create new node
-          const created = await researchApi.createNode(targetCanvasId, nodeData as any);
+          const created = await researchApi.createNode(targetCanvasId, nodeData);
           // Update the node ID with the server-generated ID
           if (created?.id) {
             nodeIdMap.set(oldId, created.id);
@@ -354,7 +363,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
         if (isTemporaryId(edge.id)) {
           // Create new edge
-          const created = await researchApi.createEdge(targetCanvasId, edgeData as any);
+          const created = await researchApi.createEdge(targetCanvasId, edgeData);
           // Update the edge ID with the server-generated ID
           if (created?.id) {
             updatedEdges[i] = { ...edge, id: created.id, source: sourceId, target: targetId };
@@ -520,7 +529,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     };
 
     // Create type-specific data
-    let nodeData: any = {
+    let nodeData: BaseNodeData = {
       type: type,  // Add type to data for API conversion
       title: { 'zh-CN': getNodeDefaultTitle(type), zh: getNodeDefaultTitle(type) },
       ...baseFields,
@@ -531,56 +540,62 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       case 'problem':
         nodeData = {
           ...nodeData,
+          type: 'problem',
           description: { 'zh-CN': '', zh: '' },
           status: 'open',
           priority: 'medium',
-        };
+        } as ProblemNodeData;
         break;
       case 'experiment':
         nodeData = {
           ...nodeData,
+          type: 'experiment',
           description: { 'zh-CN': '', zh: '' },
           status: 'pending',
-        };
+        } as ExperimentNodeData;
         break;
       case 'conclusion':
         nodeData = {
           ...nodeData,
+          type: 'conclusion',
           description: { 'zh-CN': '', zh: '' },
           statement: { 'zh-CN': '', zh: '' },
           confidence: 0.5,
           evidenceIds: [],
-        };
+        } as ConclusionNodeData;
         break;
       case 'discussion':
         nodeData = {
           ...nodeData,
+          type: 'discussion',
           topic: { 'zh-CN': '', zh: '' },
           status: 'active',
           participants: [],
-        };
+        } as DiscussionNodeData;
         break;
       case 'media':
         nodeData = {
           ...nodeData,
+          type: 'media',
           url: '',
           mediaType: 'image',
           description: { 'zh-CN': '', zh: '' },
-        };
+        } as MediaNodeData;
         break;
       case 'note':
         nodeData = {
           ...nodeData,
+          type: 'note',
           content: { 'zh-CN': '', zh: '' },
           color: 'yellow',
           pinned: false,
-        };
+        } as NoteNodeData;
         break;
     }
 
     const newNode = {
       id: nodeId,
-      type: type as any,
+      type: type as 'problem' | 'experiment' | 'conclusion' | 'discussion' | 'media' | 'note',
       position: pos,
       data: nodeData,
     };
@@ -657,7 +672,8 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       let csv = 'ID,Type,Title,Status,X,Y\n';
       flowNodes.forEach((node) => {
         const title = (node.data.title?.zh || node.data.title?.['zh-CN'] || '').replace(/,/g, '，');
-        const status = 'status' in node.data ? (node.data as any).status : '';
+        const nodeDataType = node.data as BaseNodeData;
+        const status = 'status' in nodeDataType ? (nodeDataType as { status?: string }).status : '';
         csv += `"${node.id}","${node.type}","${title}","${status}","${Math.round(node.position.x)}","${Math.round(node.position.y)}"\n`;
       });
 

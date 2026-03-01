@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { profileApi, type ProjectSettings } from '@/lib/profile.service';
 
 interface ProjectSettingsDialogProps {

@@ -11,15 +11,17 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { Image, Video, ExternalLink, Maximize2, X } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { CompactMarkdown } from '../shared/MarkdownRenderer';
+import type { MediaNodeData } from '../../types/node-data.types';
 
 type MediaType = 'image' | 'video';
 
 export const MediaNode = memo(({ data, selected }: NodeProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const mediaType: MediaType = (data as any).mediaType || 'image';
-  const url = (data as any).url || '';
-  const thumbnail = (data as any).thumbnail || url;
+  const mediaData = data as MediaNodeData;
+  const mediaType: MediaType = mediaData.mediaType || 'image';
+  const url = mediaData.url || '';
+  const thumbnail = mediaData.thumbnail || url;
 
   // Auto-detect media type from URL if not specified
   const detectedType: MediaType = url.toLowerCase().match(/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i)
@@ -140,10 +142,10 @@ export const MediaNode = memo(({ data, selected }: NodeProps) => {
       </div>
 
       {/* Description - Markdown rendered */}
-      {(data as any).description && !isExpanded && (
+      {mediaData.description && !isExpanded && (
         <div className="text-xs text-gray-400">
           <CompactMarkdown
-            content={(data as any).description?.zh || (data as any).description?.['zh-CN'] || (data as any).description?.en || ''}
+            content={mediaData.description?.zh || mediaData.description?.['zh-CN'] || mediaData.description?.en || ''}
           />
         </div>
       )}
