@@ -1,6 +1,6 @@
 /**
  * Create Project Wizard Component
- * 创建项目向导组件
+ * 创建课题向导组件
  */
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -117,7 +117,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
   const handleNext = () => {
     if (currentStep === 1) {
       if (!projectData.name_zh.trim()) {
-        setError(t('project.create.nameRequired') || '请输入项目名称');
+        setError(t('project.create.nameRequired') || '请输入课题名称');
         return;
       }
     } else if (currentStep === 2) {

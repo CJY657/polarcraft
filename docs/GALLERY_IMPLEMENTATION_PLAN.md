@@ -1,8 +1,8 @@
 # Gallery 学生作品展示平台 - 实施计划
 
-## 项目概述
+## 课题概述
 
-为 PolarCraft 项目创建一个完整的学生作品展示和交流平台。学生可以展示他们的研究成果、实验记录、媒体资源，并进行讨论交流。
+为 PolarCraft 课题创建一个完整的学生作品展示和交流平台。学生可以展示他们的研究成果、实验记录、媒体资源，并进行讨论交流。
 
 **核心功能：**
 
@@ -530,7 +530,7 @@ export function WorkDetailPage() {
                 theme === "dark" ? "text-white" : "text-gray-900",
               )}
             >
-              项目简介
+              课题简介
             </h2>
             <p
               className={cn(
@@ -550,7 +550,7 @@ export function WorkDetailPage() {
                     theme === "dark" ? "text-white" : "text-gray-900",
                   )}
                 >
-                  项目展示
+                  课题展示
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {work.gallery.map((img, idx) => (
@@ -1755,7 +1755,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 5. 添加国际化配置
 
 ### 第三阶段（5-7天）
-1. 初始化后端项目
+1. 初始化后端课题
 2. 设置数据库和 Prisma
 3. 实现认证 API
 4. 实现作品 CRUD API

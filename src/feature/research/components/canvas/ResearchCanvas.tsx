@@ -624,7 +624,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     } else if (format === 'markdown') {
       // Export as markdown
       let markdown = `# ${getProjectTitle()}\n\n`;
-      markdown += `项目ID: ${projectId}\n画布ID: ${canvasId}\n导出时间: ${new Date().toLocaleString('zh-CN')}\n\n`;
+      markdown += `课题ID: ${projectId}\n画布ID: ${canvasId}\n导出时间: ${new Date().toLocaleString('zh-CN')}\n\n`;
 
       // Export nodes
       markdown += `## 节点 (${flowNodes.length}个)\n\n`;
@@ -714,7 +714,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         )}
         centerContent={
           <div className="text-xs text-gray-500">
-            项目: {projectId} | {flowNodes.length} 节点 · {flowEdges.length} 关系
+            课题: {projectId} | {flowNodes.length} 节点 · {flowEdges.length} 关系
           </div>
         }
         rightContent={
@@ -884,7 +884,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         {/* Canvas Info */}
         <div className="absolute top-4 left-4 px-3 py-2 bg-slate-800/80 rounded-lg border border-slate-700">
           <div className="text-xs text-gray-400">
-            项目: {projectId} | 画布: {canvasId}
+            课题: {projectId} | 画布: {canvasId}
           </div>
           <div className="text-xs text-gray-500 mt-1">
             节点: {flowNodes.length} | 关系: {flowEdges.length}

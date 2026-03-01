@@ -1,6 +1,6 @@
 /**
  * Project Application Form Component
- * 项目申请表单组件
+ * 课题申请表单组件
  */
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -96,7 +96,7 @@ export function ProjectApplicationForm({
     setIsLoading(true);
 
     if (!project) {
-      setError('项目不存在');
+      setError('课题不存在');
       setIsLoading(false);
       return;
     }

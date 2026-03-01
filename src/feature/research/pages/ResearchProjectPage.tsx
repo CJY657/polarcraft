@@ -1,9 +1,9 @@
 /**
  * Research Project Page
- * 研究项目页面
+ * 研究课题页面
  *
  * Displays a single research project with its canvases and settings
- * 显示单个研究项目及其画布和设置
+ * 显示单个研究课题及其画布和设置
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -23,6 +23,7 @@ import {
   Edit,
   Mail,
   Globe,
+  UserCheck,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,8 +31,8 @@ import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject, type ProjectMember, type ResearchCanvas } from "@/lib/research.service";
-import { profileApi, type ProjectSettings } from "@/lib/profile.service";
-import { ApplicationManagementPanel } from "../components/project/ApplicationManagementPanel";
+import { profileApi, type ProjectSettings, type ProjectApplication } from "@/lib/profile.service";
+import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 
@@ -59,6 +60,10 @@ export function ResearchProjectPage() {
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
+
+  // Application count state
+  const [pendingApplicationCount, setPendingApplicationCount] = useState(0);
 
   // Fetch project data
   useEffect(() => {
@@ -71,17 +76,21 @@ export function ResearchProjectPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [projectData, settingsData, canvasesData] = await Promise.all([
+        const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
           researchApi.getProject(projectId),
           profileApi.getProjectSettings(projectId).catch(() => null),
           researchApi.getProjectCanvases(projectId).catch(() => []),
+          profileApi.getProjectApplications(projectId).catch(() => [] as ProjectApplication[]),
         ]);
         setProject(projectData);
         setSettings(settingsData);
         setCanvases(canvasesData);
+        // Count pending applications
+        const pending = applicationsData.filter((a: ProjectApplication) => a.status === 'pending').length;
+        setPendingApplicationCount(pending);
       } catch (err) {
         console.error("Failed to fetch project:", err);
-        setError(err instanceof Error ? err.message : "加载项目失败");
+        setError(err instanceof Error ? err.message : "加载课题失败");
       } finally {
         setIsLoading(false);
       }
@@ -203,7 +212,7 @@ export function ResearchProjectPage() {
                 : "bg-purple-500 hover:bg-purple-600 text-white"
             )}
           >
-            返回项目列表
+            返回课题列表
           </Link>
         </div>
       </div>
@@ -219,7 +228,7 @@ export function ResearchProjectPage() {
   const displayProject = isExampleProject
     ? {
         id: projectId!,
-        name_zh: exampleProject?.title["zh-CN"] || "示例项目",
+        name_zh: exampleProject?.title["zh-CN"] || "示例课题",
         name_en: exampleProject?.title["en-US"] || null,
         description_zh: exampleProject?.description["zh-CN"] || "",
         description_en: null,
@@ -401,14 +410,40 @@ export function ResearchProjectPage() {
         {/* Members Section */}
         {!isExampleProject && project && project.members.length > 0 && (
           <div className="mb-8">
-            <h2
-              className={cn(
-                "text-xl font-semibold mb-4",
-                theme === "dark" ? "text-white" : "text-gray-900"
+            <div className="flex items-center justify-between mb-4">
+              <h2
+                className={cn(
+                  "text-xl font-semibold",
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                )}
+              >
+                课题成员
+              </h2>
+              {isOwnerOrAdmin && (
+                <button
+                  onClick={() => setIsApplicationDialogOpen(true)}
+                  className={cn(
+                    "relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    theme === "dark"
+                      ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  )}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  申请管理
+                  {pendingApplicationCount > 0 && (
+                    <span className={cn(
+                      "absolute -top-1.5 -right-1.5 min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
+                      theme === "dark"
+                        ? "bg-yellow-500 text-gray-900"
+                        : "bg-yellow-500 text-gray-900"
+                    )}>
+                      {pendingApplicationCount}
+                    </span>
+                  )}
+                </button>
               )}
-            >
-              项目成员
-            </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {project.members.map((member) => (
                 <div
@@ -533,7 +568,7 @@ export function ResearchProjectPage() {
                 theme === "dark" ? "text-gray-400" : "text-gray-600"
               )}
             >
-              {displayProject.description_zh || "项目主画布"}
+              {displayProject.description_zh || "课题主画布"}
             </p>
             <div
               className={cn(
@@ -631,13 +666,16 @@ export function ResearchProjectPage() {
           </div>
         </div>
 
-        {/* Application Management Panel - Only for real projects */}
-        {!isExampleProject && projectId && isOwnerOrAdmin && (
-          <div className="mt-12">
-            <ApplicationManagementPanel projectId={projectId} isOwnerOrAdmin={isOwnerOrAdmin} />
-          </div>
-        )}
       </main>
+
+      {/* Application Management Dialog */}
+      {!isExampleProject && projectId && isOwnerOrAdmin && (
+        <ApplicationManagementDialog
+          isOpen={isApplicationDialogOpen}
+          onClose={() => setIsApplicationDialogOpen(false)}
+          projectId={projectId}
+        />
+      )}
 
       {/* Edit Dialog */}
       {!isExampleProject && project && (

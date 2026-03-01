@@ -168,7 +168,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       set({ publicProjects, isLoading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '获取公开项目失败',
+        error: error instanceof Error ? error.message : '获取公开课题失败',
         isLoading: false,
       });
     }

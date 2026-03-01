@@ -1,9 +1,9 @@
 /**
  * Example Research Projects for Virtual Research Group System
- * 虚拟课题组系统示例项目
+ * 虚拟课题组系统示例课题
  *
  * Pre-configured research projects to demonstrate the system's capabilities
- * 预配置的研究项目，用于展示系统功能
+ * 预配置的研究课题，用于展示系统功能
  */
 
 import { Node, Edge } from "reactflow";
@@ -23,7 +23,7 @@ export interface ExampleProject {
 
 // ============================================================
 // Example Project 1: Bubble Polarization Experiment
-// 示例项目1：洗手液气泡偏振实验
+// 示例课题1：洗手液气泡偏振实验
 // ============================================================
 
 export const BUBBLE_POLARIZATION_PROJECT: ExampleProject = {
@@ -1744,7 +1744,7 @@ export const BUBBLE_POLARIZATION_PROJECT: ExampleProject = {
 
 // ============================================================
 // Export all example projects
-// 导出所有示例项目
+// 导出所有示例课题
 // ============================================================
 
 export const EXAMPLE_PROJECTS: ExampleProject[] = [BUBBLE_POLARIZATION_PROJECT];
@@ -1755,7 +1755,7 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [BUBBLE_POLARIZATION_PROJECT];
 
 /**
  * Get example project by ID
- * 根据 ID 获取示例项目
+ * 根据 ID 获取示例课题
  */
 export function getExampleProjectById(id: string): ExampleProject | undefined {
   return EXAMPLE_PROJECTS.find((project) => project.id === id);
@@ -1763,7 +1763,7 @@ export function getExampleProjectById(id: string): ExampleProject | undefined {
 
 /**
  * Get all example project IDs
- * 获取所有示例项目ID
+ * 获取所有示例课题ID
  */
 export function getExampleProjectIds(): string[] {
   return EXAMPLE_PROJECTS.map((project) => project.id);

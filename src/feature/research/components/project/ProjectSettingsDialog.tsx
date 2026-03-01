@@ -1,6 +1,6 @@
 /**
  * Project Settings Dialog Component
- * 项目设置对话框组件
+ * 课题设置对话框组件
  */
 
 import { useState, useEffect, FormEvent } from 'react';

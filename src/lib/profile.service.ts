@@ -230,7 +230,7 @@ export const profileApi = {
 
   /**
    * Get project applications (admin)
-   * 获取项目申请列表（管理员）
+   * 获取课题申请列表（管理员）
    */
   getProjectApplications: async (projectId: string): Promise<ProjectApplication[]> => {
     const response = await api.get<ProjectApplication[]>(
@@ -244,7 +244,7 @@ export const profileApi = {
 
   /**
    * Create application to join project
-   * 创建加入项目申请
+   * 创建加入课题申请
    */
   createApplication: async (
     projectId: string,
@@ -290,12 +290,12 @@ export const profileApi = {
   },
 
   // =====================================================
-  // Project Settings / 项目设置
+  // Project Settings / 课题设置
   // =====================================================
 
   /**
    * Get project settings
-   * 获取项目设置
+   * 获取课题设置
    */
   getProjectSettings: async (projectId: string): Promise<ProjectSettings> => {
     const response = await api.get<ProjectSettings>(
@@ -304,12 +304,12 @@ export const profileApi = {
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '获取项目设置失败');
+    throw new Error(response.error?.message || '获取课题设置失败');
   },
 
   /**
    * Update project settings
-   * 更新项目设置
+   * 更新课题设置
    */
   updateProjectSettings: async (
     projectId: string,
@@ -322,16 +322,16 @@ export const profileApi = {
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '更新项目设置失败');
+    throw new Error(response.error?.message || '更新课题设置失败');
   },
 
   // =====================================================
-  // Project Creator Profile / 项目创建者资料
+  // Project Creator Profile / 课题创建者资料
   // =====================================================
 
   /**
    * Get project creator profiles
-   * 获取项目创建者资料
+   * 获取课题创建者资料
    */
   getCreatorProfiles: async (projectId: string): Promise<ProjectCreatorProfile[]> => {
     const response = await api.get<ProjectCreatorProfile[]>(
@@ -345,23 +345,23 @@ export const profileApi = {
 
   /**
    * Create project with creator profile
-   * 创建项目（包含创建者资料）
+   * 创建课题（包含创建者资料）
    */
   createProjectWithProfile: async (data: CreateProjectWithProfileInput): Promise<any> => {
     const response = await api.post<any>('/api/research/projects/with-profile', data);
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '创建项目失败');
+    throw new Error(response.error?.message || '创建课题失败');
   },
 
   // =====================================================
-  // Public Projects / 公开项目
+  // Public Projects / 公开课题
   // =====================================================
 
   /**
    * Get public projects
-   * 获取公开项目列表
+   * 获取公开课题列表
    */
   getPublicProjects: async (filters?: {
     recruiting?: boolean;
@@ -383,6 +383,6 @@ export const profileApi = {
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '获取公开项目失败');
+    throw new Error(response.error?.message || '获取公开课题失败');
   },
 };

@@ -1,9 +1,9 @@
 /**
  * Public Project Explore Page
- * 公开项目浏览页面
+ * 公开课题浏览页面
  *
  * Displays public projects that users can apply to join
- * 显示用户可以申请加入的公开项目
+ * 显示用户可以申请加入的公开课题
  */
 
 import { useState, useEffect } from "react";
@@ -59,7 +59,7 @@ export function PublicProjectExplorePage() {
         setProjects(data);
       } catch (err) {
         console.error("Failed to fetch public projects:", err);
-        setError(err instanceof Error ? err.message : "加载项目失败");
+        setError(err instanceof Error ? err.message : "加载课题失败");
       } finally {
         setIsLoading(false);
       }
@@ -104,7 +104,7 @@ export function PublicProjectExplorePage() {
     >
       <PersistentHeader
         moduleKey="labGroup"
-        moduleNameKey="发现项目"
+        moduleNameKey="发现课题"
         variant="glass"
         className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
         rightContent={
@@ -117,7 +117,7 @@ export function PublicProjectExplorePage() {
                 : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
             )}
           >
-            我的项目
+            我的课题
           </Link>
         }
       />
@@ -143,7 +143,7 @@ export function PublicProjectExplorePage() {
                   theme === "dark" ? "text-white" : "text-gray-900"
                 )}
               >
-                发现项目
+                发现课题
               </h1>
               <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
                 浏览并申请加入公开的虚拟课题组
@@ -164,7 +164,7 @@ export function PublicProjectExplorePage() {
             />
             <input
               type="text"
-              placeholder="搜索项目..."
+              placeholder="搜索课题..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={cn(
@@ -226,7 +226,7 @@ export function PublicProjectExplorePage() {
                   theme === "dark" ? "text-amber-300" : "text-amber-700"
                 )}
               >
-                登录后可以申请加入项目
+                登录后可以申请加入课题
               </p>
             </div>
             <button
@@ -259,7 +259,7 @@ export function PublicProjectExplorePage() {
                 theme === "dark" ? "text-gray-400" : "text-gray-600"
               )}
             >
-              加载项目中...
+              加载课题中...
             </p>
           </div>
         )}
@@ -398,7 +398,7 @@ export function PublicProjectExplorePage() {
                           : "bg-purple-500 hover:bg-purple-600 text-white"
                       )}
                     >
-                      进入项目
+                      进入课题
                     </Link>
                   ) : (
                     <button
@@ -443,7 +443,7 @@ export function PublicProjectExplorePage() {
                 theme === "dark" ? "text-white" : "text-gray-900"
               )}
             >
-              没有找到项目
+              没有找到课题
             </h3>
             <p
               className={cn(
@@ -453,7 +453,7 @@ export function PublicProjectExplorePage() {
             >
               {searchQuery || recruitingOnly
                 ? "尝试调整筛选条件"
-                : "目前没有公开的项目，请稍后再来看看"}
+                : "目前没有公开的课题，请稍后再来看看"}
             </p>
           </div>
         )}

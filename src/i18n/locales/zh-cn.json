@@ -74,7 +74,7 @@
         "viewDemo": "查看相关演示"
       },
       "galleryTitle": "偏振艺术作品展示",
-      "galleryDescription": "来自社区的精彩偏振光艺术作品，包括胶带艺术、摄影和科学项目。",
+      "galleryDescription": "来自社区的精彩偏振光艺术作品，包括胶带艺术、摄影和科学课题。",
       "category": {
         "tapeArt": "胶带艺术",
         "photography": "摄影",
@@ -157,9 +157,9 @@
       "lab": {
         "title": "虚拟课题组",
         "description": "像研究生一样做研究。选课题、定方案、做实验、写报告，从验证已知到探索未知。组建团队，协作攻关，在实践中解锁真正的科研能力。",
-        "link1": "我的项目",
-        "link2": "发现项目",
-        "link3": "创建项目"
+        "link1": "我的课题",
+        "link2": "发现课题",
+        "link3": "创建课题"
       }
     },
     "badges": {
@@ -625,8 +625,8 @@
       "mediaCount": "媒体资源 ({{count}})"
     },
     "overview": {
-      "title": "项目简介",
-      "projectShowcase": "项目展示"
+      "title": "课题简介",
+      "projectShowcase": "课题展示"
     },
     "record": {
       "title": "研究记录",
@@ -666,10 +666,10 @@
   },
   "lab": {
     "title": "虚拟课题",
-    "description": "学生进行中的研究项目，在这里可以查看和参与课题讨论",
-    "projectName": "项目名称",
-    "projectDescription": "项目描述",
-    "createProject": "创建项目",
+    "description": "学生进行中的研究课题，在这里可以查看和参与课题讨论",
+    "projectName": "课题名称",
+    "projectDescription": "课题描述",
+    "createProject": "创建课题",
     "features": {
       "private": {
         "title": "私密空间",
@@ -849,7 +849,7 @@
       "description": "光学基础、偏振、旋光与散射的交互演示",
       "comingSoon": "即将推出",
       "selectDemo": "选择一个演示开始探索",
-      "browseHint": "点击左侧目录中的演示项目，开始你的光学探索之旅",
+      "browseHint": "点击左侧目录中的演示课题，开始你的光学探索之旅",
       "units": {
         "unit0": {
           "title": "光学基础",
@@ -4020,17 +4020,17 @@
   },
   "research": {
     "title": "虚拟课题组系统",
-    "description": "使用知识图谱管理研究项目",
+    "description": "使用知识图谱管理研究课题",
     "projects": {
-      "title": "我的研究项目",
-      "description": "管理和创建虚拟课题组项目",
-      "create": "新建项目",
-      "empty": "还没有研究项目",
-      "emptyHint": "创建您的第一个虚拟课题组项目，开始探索偏振光学的奥秘",
-      "createButton": "创建项目"
+      "title": "我的研究课题",
+      "description": "管理和创建虚拟课题组课题",
+      "create": "新建课题",
+      "empty": "还没有研究课题",
+      "emptyHint": "创建您的第一个虚拟课题组课题，开始探索偏振光学的奥秘",
+      "createButton": "创建课题"
     },
     "project": {
-      "title": "示例研究项目",
+      "title": "示例研究课题",
       "canvases": "研究画布",
       "createCanvas": "新建画布",
       "demoCanvas": "示例画布",
@@ -4054,7 +4054,7 @@
     },
     "canvas": {
       "title": "研究画布",
-      "info": "项目: {{projectId}} | 画布: {{canvasId}}",
+      "info": "课题: {{projectId}} | 画布: {{canvasId}}",
       "stats": "节点: {{nodeCount}} | 关系: {{edgeCount}}",
       "toolbar": {
         "addProblem": "+ 问题",
@@ -4158,25 +4158,25 @@
       "appliedAt": "申请于",
       "reviewNotes": "审核备注",
       "withdraw": "撤回申请",
-      "unknownProject": "未知项目"
+      "unknownProject": "未知课题"
     }
   },
   "project": {
     "create": {
-      "title": "创建项目",
+      "title": "创建课题",
       "step1": "基本信息",
       "step2": "创建者信息",
-      "step3": "项目设置",
+      "step3": "课题设置",
       "basicInfo": "基本信息",
       "creatorInfo": "创建者信息",
-      "settings": "项目设置",
-      "nameRequired": "请输入项目名称",
+      "settings": "课题设置",
+      "nameRequired": "请输入课题名称",
       "organizationRequired": "请输入单位"
     },
     "edit": {
-      "title": "编辑项目",
-      "status": "项目状态",
-      "visibilityHint": "如需让其他人发现并加入此项目，请在\"设置\"中将可见性设为\"公开\""
+      "title": "编辑课题",
+      "status": "课题状态",
+      "visibilityHint": "如需让其他人发现并加入此课题，请在\"设置\"中将可见性设为\"公开\""
     },
     "status": {
       "draft": "草稿",
@@ -4185,7 +4185,7 @@
       "archived": "已归档"
     },
     "settings": {
-      "title": "项目设置",
+      "title": "课题设置",
       "visibility": "可见性",
       "public": "公开 - 所有人可见",
       "private": "私有 - 仅成员可见",
@@ -4202,7 +4202,7 @@
       "discussionChannel": "讨论频道"
     },
     "application": {
-      "title": "申请加入项目",
+      "title": "申请加入课题",
       "form": {
         "displayName": "姓名",
         "displayNamePlaceholder": "您的姓名",
@@ -4213,22 +4213,22 @@
         "grade": "年级",
         "gradePlaceholder": "例如：大三、研一",
         "researchExperience": "科研经历",
-        "researchExperiencePlaceholder": "描述您的研究经历、参与过的项目等",
+        "researchExperiencePlaceholder": "描述您的研究经历、参与过的课题等",
         "expertise": "专长技能",
         "expertisePlaceholder": "例如：Python编程、光学实验、数据分析等",
         "motivation": "申请理由",
-        "motivationPlaceholder": "为什么想加入这个项目？"
+        "motivationPlaceholder": "为什么想加入这个课题？"
       },
       "submit": "提交申请",
       "success": "申请已提交",
-      "successAutoApproved": "申请已自动通过，您已成为项目成员"
+      "successAutoApproved": "申请已自动通过，您已成为课题成员"
     },
     "public": {
-      "title": "公开项目",
-      "browse": "浏览项目",
+      "title": "公开课题",
+      "browse": "浏览课题",
       "recruiting": "正在招募",
       "notRecruiting": "暂停招募",
-      "searchPlaceholder": "搜索项目..."
+      "searchPlaceholder": "搜索课题..."
     }
   }
 }

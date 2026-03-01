@@ -1,6 +1,6 @@
 /**
  * Lab Page - Virtual Research Projects
- * 虚拟课题 - 学生进行中的研究项目
+ * 虚拟课题 - 学生进行中的研究课题
  *
  * Features:
  * - 进行中的课题 - Ongoing student research projects
@@ -167,7 +167,7 @@ export function ExperimentsPage() {
             showCta={works.length === 0}
             cta={{
               title: "虚拟课题组系统",
-              description: "使用知识图谱管理您的研究项目，创建问题节点、设计实验、连接文献并得出结论",
+              description: "使用知识图谱管理您的研究课题，创建问题节点、设计实验、连接文献并得出结论",
               buttonText: "进入研究系统",
               onButtonClick: () => {
                 window.location.href = "/lab/projects";

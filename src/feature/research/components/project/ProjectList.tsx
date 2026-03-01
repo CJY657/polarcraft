@@ -1,9 +1,9 @@
 /**
  * Project List Component
- * 项目列表组件
+ * 课题列表组件
  *
  * Displays user's research projects and example projects
- * 显示用户的研究项目和示例项目
+ * 显示用户的研究课题和示例课题
  */
 
 import { useEffect, useState } from "react";
@@ -92,7 +92,7 @@ export function ProjectList() {
         setProjects(data);
       } catch (err) {
         console.error("Failed to fetch projects:", err);
-        setError(err instanceof Error ? err.message : "加载项目失败");
+        setError(err instanceof Error ? err.message : "加载课题失败");
       } finally {
         setIsLoading(false);
       }
@@ -181,12 +181,12 @@ export function ProjectList() {
                       theme === "dark" ? "text-white" : "text-gray-900",
                     )}
                   >
-                    我的研究项目
+                    我的研究课题
                   </h1>
                   <p
                     className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}
                   >
-                    管理和创建虚拟课题组项目
+                    管理和创建虚拟课题组课题
                   </p>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export function ProjectList() {
                   )}
                 >
                   <Search className="w-4 h-4" />
-                  发现项目
+                  发现课题
                 </Link>
                 <button
                   onClick={() => setIsCreateWizardOpen(true)}
@@ -214,7 +214,7 @@ export function ProjectList() {
                   )}
                 >
                   <Plus className="w-4 h-4" />
-                  新建项目
+                  新建课题
                 </button>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function ProjectList() {
                     theme === "dark" ? "text-gray-400" : "text-gray-600",
                   )}
                 >
-                  加载项目中...
+                  加载课题中...
                 </p>
               </div>
             )}
@@ -370,7 +370,7 @@ export function ProjectList() {
                       theme === "dark" ? "text-white" : "text-gray-900",
                     )}
                   >
-                    还没有研究项目
+                    还没有研究课题
                   </h3>
                   <p
                     className={cn(
@@ -378,7 +378,7 @@ export function ProjectList() {
                       theme === "dark" ? "text-gray-400" : "text-gray-600",
                     )}
                   >
-                    创建您的第一个虚拟课题组项目，开始探索偏振光学的奥秘
+                    创建您的第一个虚拟课题组课题，开始探索偏振光学的奥秘
                   </p>
                   <button
                     onClick={() => setIsCreateWizardOpen(true)}
@@ -390,7 +390,7 @@ export function ProjectList() {
                     )}
                   >
                     <Plus className="w-5 h-5" />
-                    创建项目
+                    创建课题
                   </button>
                 </div>
               ))}
@@ -419,7 +419,7 @@ export function ProjectList() {
                         theme === "dark" ? "text-white" : "text-gray-900",
                       )}
                     >
-                      我的研究项目
+                      我的研究课题
                     </h1>
                     <p
                       className={cn(
@@ -427,7 +427,7 @@ export function ProjectList() {
                         theme === "dark" ? "text-gray-400" : "text-gray-600",
                       )}
                     >
-                      管理和创建虚拟课题组项目
+                      管理和创建虚拟课题组课题
                     </p>
                   </div>
                 </div>
@@ -442,7 +442,7 @@ export function ProjectList() {
                   )}
                 >
                   <Search className="w-4 h-4" />
-                  发现项目
+                  发现课题
                 </Link>
               </div>
 
@@ -474,7 +474,7 @@ export function ProjectList() {
                     theme === "dark" ? "text-white" : "text-gray-900",
                   )}
                 >
-                  登录后查看您的项目
+                  登录后查看您的课题
                 </h3>
                 <p
                   className={cn(
@@ -482,7 +482,7 @@ export function ProjectList() {
                     theme === "dark" ? "text-gray-400" : "text-gray-600",
                   )}
                 >
-                  登录您的账户以查看和管理您的研究项目
+                  登录您的账户以查看和管理您的研究课题
                 </p>
                 <button
                   onClick={() => openDialog('login')}
@@ -519,10 +519,10 @@ export function ProjectList() {
                   theme === "dark" ? "text-white" : "text-gray-900",
                 )}
               >
-                示例项目
+                示例课题
               </h2>
               <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-                探索这些已完成的研究项目，了解虚拟课题组的使用方法
+                探索这些已完成的研究课题，了解虚拟课题组的使用方法
               </p>
             </div>
           </div>

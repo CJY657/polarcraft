@@ -1,6 +1,6 @@
 /**
  * Project Edit Dialog Component
- * 项目编辑对话框组件
+ * 课题编辑对话框组件
  */
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -51,7 +51,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     if (!project) return;
 
     if (!formData.name_zh.trim()) {
-      setError(t('project.create.nameRequired') || '请输入项目名称');
+      setError(t('project.create.nameRequired') || '请输入课题名称');
       return;
     }
 

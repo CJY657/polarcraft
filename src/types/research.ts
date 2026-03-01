@@ -35,7 +35,7 @@ export type NodeStatus =
   | "completed"     // 已完成
   | "draft";        // 草稿
 
-/** Project Status - 项目状态 */
+/** Project Status - 课题状态 */
 export type ProjectStatus =
   | "draft"      // 草稿
   | "active"     // 进行中
@@ -161,7 +161,7 @@ export interface ResearchEdge {
 }
 
 // ============================================================
-// Canvas/Project Types - 画布/项目类型
+// Canvas/Project Types - 画布/课题类型
 // ============================================================
 
 /** Research Canvas - 研究画布 */
@@ -197,7 +197,7 @@ export interface ProjectSettings {
   defaultCanvasId?: string;
 }
 
-/** Research Project - 研究项目 */
+/** Research Project - 研究课题 */
 export interface ResearchProject {
   id: string;
   name: LabelI18n;

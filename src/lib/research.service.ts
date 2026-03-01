@@ -1,6 +1,6 @@
 /**
  * Research Service
- * 研究项目 API 服务
+ * 研究课题 API 服务
  *
  * Handles all API calls related to the virtual research group system
  * 处理虚拟课题组系统相关的所有 API 调用
@@ -207,71 +207,71 @@ export interface ResearchCanvas {
 
 export const researchApi = {
   // =====================================================
-  // Projects / 项目
+  // Projects / 课题
   // =====================================================
 
   /**
    * Get user's projects
-   * 获取用户的项目列表
+   * 获取用户的课题列表
    */
   getUserProjects: async (): Promise<ResearchProject[]> => {
     const response = await api.get<ResearchProject[]>('/api/research/projects');
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '获取项目列表失败');
+    throw new Error(response.error?.message || '获取课题列表失败');
   },
 
   /**
    * Get project by ID
-   * 获取项目详情
+   * 获取课题详情
    */
   getProject: async (projectId: string): Promise<ProjectWithMembers> => {
     const response = await api.get<ProjectWithMembers>(`/api/research/projects/${projectId}`);
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '获取项目详情失败');
+    throw new Error(response.error?.message || '获取课题详情失败');
   },
 
   /**
    * Create new project
-   * 创建新项目
+   * 创建新课题
    */
   createProject: async (input: CreateProjectInput): Promise<ResearchProject> => {
     const response = await api.post<ResearchProject>('/api/research/projects', input);
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '创建项目失败');
+    throw new Error(response.error?.message || '创建课题失败');
   },
 
   /**
    * Update project
-   * 更新项目
+   * 更新课题
    */
   updateProject: async (projectId: string, input: UpdateProjectInput): Promise<ResearchProject> => {
     const response = await api.put<ResearchProject>(`/api/research/projects/${projectId}`, input);
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.error?.message || '更新项目失败');
+    throw new Error(response.error?.message || '更新课题失败');
   },
 
   /**
    * Delete project
-   * 删除项目
+   * 删除课题
    */
   deleteProject: async (projectId: string): Promise<void> => {
     const response = await api.delete(`/api/research/projects/${projectId}`);
     if (!response.success) {
-      throw new Error(response.error?.message || '删除项目失败');
+      throw new Error(response.error?.message || '删除课题失败');
     }
   },
 
   /**
    * Add member to project
-   * 添加项目成员
+   * 添加课题成员
    */
   addProjectMember: async (projectId: string, userId: string, role: 'admin' | 'editor' | 'viewer' = 'viewer'): Promise<void> => {
     const response = await api.post(`/api/research/projects/${projectId}/members`, { userId, role });
@@ -282,7 +282,7 @@ export const researchApi = {
 
   /**
    * Remove member from project
-   * 移除项目成员
+   * 移除课题成员
    */
   removeProjectMember: async (projectId: string, userId: string): Promise<void> => {
     const response = await api.delete(`/api/research/projects/${projectId}/members/${userId}`);
@@ -297,7 +297,7 @@ export const researchApi = {
 
   /**
    * Get project canvases
-   * 获取项目的画布列表
+   * 获取课题的画布列表
    */
   getProjectCanvases: async (projectId: string): Promise<any[]> => {
     const response = await api.get<any[]>(`/api/research/projects/${projectId}/canvases`);
@@ -462,7 +462,7 @@ export const researchApi = {
 
   /**
    * Get project activity log
-   * 获取项目活动日志
+   * 获取课题活动日志
    */
   getProjectActivity: async (projectId: string, limit: number = 50): Promise<any[]> => {
     const response = await api.get<any[]>(`/api/research/projects/${projectId}/activity?limit=${limit}`);
