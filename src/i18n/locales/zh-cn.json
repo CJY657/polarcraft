@@ -143,9 +143,9 @@
       "games": {
         "title": "游戏化挑战",
         "description": "物理原理变通关策略。2D关卡规划光路、3D体素搭建装置、卡牌对战验证直觉、密室逃脱破解机关——四种玩法，从入门到专家难度递进。",
-        "link1": "2D解密关卡",
-        "link2": "3D体素关卡",
-        "link3": "创造模式"
+        "link1": "密室解谜",
+        "link2": "3D体素",
+        "link3": "全部游戏"
       },
       "gallery": {
         "title": "小课题成果",
@@ -164,6 +164,37 @@
     },
     "badges": {
       "inDevelopment": "开发中"
+    }
+  },
+  "games": {
+    "title": "游戏挑战",
+    "hero": {
+      "title": "游戏世界",
+      "description": "探索偏振光物理的奇妙世界，通过解谜、建造和策略游戏，在游戏中学习光学原理。"
+    },
+    "escape": {
+      "title": "密室解谜",
+      "description": "运用偏振光学知识破解机关，在2D平面谜题中规划光路，解开层层谜题逃离密室。"
+    },
+    "minecraft": {
+      "title": "3D体素世界",
+      "description": "在Minecraft风格的世界中自由建造，使用偏振器件搭建光路装置，探索体素化的物理世界。"
+    },
+    "cardBattle": {
+      "title": "卡牌对战",
+      "description": "收集光学器件卡牌，运用偏振原理组建卡组，与其他玩家进行策略对战。"
+    },
+    "comingSoon": {
+      "title": "敬请期待",
+      "description": "更多精彩游戏正在开发中，敬请期待。"
+    },
+    "status": {
+      "available": "可游玩",
+      "development": "开发中",
+      "locked": "未开发"
+    },
+    "footer": {
+      "hint": "点击卡片开始游戏，部分游戏正在开发中"
     }
   },
   "course": {

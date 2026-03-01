@@ -75,6 +75,18 @@ export const config = {
   // Frontend URL / 前端 URL
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 
+  // Email / 邮件配置
+  email: {
+    enabled: process.env.EMAIL_ENABLED === 'true',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10),
+    secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+    user: process.env.EMAIL_USER || '',
+    password: process.env.EMAIL_PASSWORD || '',
+    from: process.env.EMAIL_FROM || 'noreply@polarcraft.com',
+    fromName: process.env.EMAIL_FROM_NAME || 'PolarCraft',
+  },
+
   // Logging / 日志配置
   logging: {
     level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',

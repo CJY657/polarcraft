@@ -33,7 +33,7 @@ const DemosPage = lazy(() => import("@/pages/DemosPage"));
 // 解谜逃脱 × 我的世界
 const GamesPage = lazy(() => import("@/pages/GamesPage"));
 const EscapePage = lazy(() => import("@/feature/games/EscapePage"));
-const MinecraftPage = lazy(() => import("@/feature/games/MinecraftPage"));
+const MinecraftPage = lazy(() => import("@/feature/games/Minecraft/MinecraftPage"));
 
 // Module 5: 成果展示
 // 课程成果 × 文创作品

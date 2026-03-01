@@ -12,29 +12,16 @@ import { MessageSquare, Users, ThumbsUp, Reply, Send, X } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { CompactMarkdown } from '../shared/MarkdownRenderer';
 import { useCanvasStore } from '../../stores/canvasStore';
-
-interface Comment {
-  id: string;
-  author: string;
-  authorAvatar?: string;
-  content: string;
-  timestamp: string;
-  likes: number;
-  replyTo?: {
-    id: string;
-    author: string;
-    content: string;
-  };
-}
+import type { DiscussionNodeData, DiscussionComment } from '../../types/node-data.types';
 
 export const DiscussionNode = memo(({ id, data, selected }: NodeProps) => {
   const { updateNode } = useCanvasStore();
   const [newMessage, setNewMessage] = useState('');
-  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const [replyingTo, setReplyingTo] = useState<DiscussionComment | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Local state for comments - initialized from data.comments
-  const [comments, setComments] = useState<Comment[]>(() => (data as any).comments || []);
+  const [comments, setComments] = useState<DiscussionComment[]>(() => (data as DiscussionNodeData).comments || []);
 
   // Auto-scroll to bottom when new comments arrive
   useEffect(() => {
@@ -57,7 +44,7 @@ export const DiscussionNode = memo(({ id, data, selected }: NodeProps) => {
 
   const handleSubmitMessage = () => {
     if (newMessage.trim()) {
-      const comment: Comment = {
+      const comment: DiscussionComment = {
         id: `comment-${Date.now()}`,
         author: '我',
         content: newMessage,
@@ -84,7 +71,7 @@ export const DiscussionNode = memo(({ id, data, selected }: NodeProps) => {
     }
   };
 
-  const handleReply = (comment: Comment) => {
+  const handleReply = (comment: DiscussionComment) => {
     setReplyingTo(replyingTo?.id === comment.id ? null : comment);
   };
 
@@ -104,7 +91,7 @@ export const DiscussionNode = memo(({ id, data, selected }: NodeProps) => {
     return colors[index];
   };
 
-  const renderMessage = (comment: Comment) => {
+  const renderMessage = (comment: DiscussionComment) => {
     const isOwnMessage = comment.author === '我';
 
     return (

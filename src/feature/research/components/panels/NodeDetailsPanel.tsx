@@ -7,13 +7,24 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Save, Trash2 } from 'lucide-react';
+import { X, Save, Trash2, Loader2 } from 'lucide-react';
 import { useCanvasStore, selectSelectedNode } from '../../stores/canvasStore';
 import { cn } from '@/utils/classNames';
 import type { ResearchNode } from '@/types/research';
 import type { Node } from 'reactflow';
 import { MarkdownEditor } from '../shared/MarkdownEditor';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
+import { api } from '@/lib/api';
+import type {
+  ProblemNodeData,
+  ExperimentNodeData,
+  ConclusionNodeData,
+  DiscussionNodeData,
+  MediaNodeData,
+  NoteNodeData,
+  BaseNodeData,
+} from '../../types/node-data.types';
+import type { LabelI18n } from '@/types/i18n';
 
 interface NodeDetailsPanelProps {
   theme?: 'dark' | 'light';
@@ -55,28 +66,32 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
 
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState<FormData>({});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update form data when node changes
   useEffect(() => {
     if (selectedNode?.data) {
+      const data = selectedNode.data as BaseNodeData;
       setFormData({
-        title: selectedNode.data.title,
-        summary: 'summary' in selectedNode.data ? selectedNode.data.summary as any : undefined,
-        description: 'description' in selectedNode.data ? selectedNode.data.description as any : undefined,
-        status: 'status' in selectedNode.data ? selectedNode.data.status as string : undefined,
-        priority: 'priority' in selectedNode.data ? selectedNode.data.priority as string : undefined,
-        hypothesis: 'hypothesis' in selectedNode.data ? selectedNode.data.hypothesis as any : undefined,
-        statement: 'statement' in selectedNode.data ? selectedNode.data.statement as any : undefined,
-        limitations: 'limitations' in selectedNode.data ? selectedNode.data.limitations as any : undefined,
-        futureWork: 'futureWork' in selectedNode.data ? selectedNode.data.futureWork as any : undefined,
-        confidence: 'confidence' in selectedNode.data ? selectedNode.data.confidence : undefined,
-        topic: 'topic' in selectedNode.data ? selectedNode.data.topic as any : undefined,
-        participants: 'participants' in selectedNode.data ? selectedNode.data.participants as any : undefined,
-        url: 'url' in selectedNode.data ? (selectedNode.data as any).url : undefined,
-        mediaType: 'mediaType' in selectedNode.data ? (selectedNode.data as any).mediaType : undefined,
-        content: 'content' in selectedNode.data ? (selectedNode.data as any).content : undefined,
-        color: 'color' in selectedNode.data ? (selectedNode.data as any).color : undefined,
-        pinned: 'pinned' in selectedNode.data ? (selectedNode.data as any).pinned : undefined,
+        title: data.title,
+        summary: getNodeField(data, 'summary') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        description: getNodeField(data, 'description') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        status: getNodeField(data, 'status') as string,
+        priority: getNodeField(data, 'priority') as string,
+        hypothesis: getNodeField(data, 'hypothesis') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        statement: getNodeField(data, 'statement') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        limitations: getNodeField(data, 'limitations') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        futureWork: getNodeField(data, 'futureWork') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        confidence: getNodeField(data, 'confidence') as number,
+        topic: getNodeField(data, 'topic') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        participants: getNodeField(data, 'participants') as string[],
+        url: getNodeField(data, 'url') as string,
+        mediaType: getNodeField(data, 'mediaType') as 'image' | 'video',
+        content: getNodeField(data, 'content') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
+        color: getNodeField(data, 'color') as 'yellow' | 'green' | 'blue' | 'pink' | 'purple',
+        pinned: getNodeField(data, 'pinned') as boolean,
       });
       setEditing(false);
     }
@@ -84,21 +99,48 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
 
   const handleSave = async () => {
     if (selectedNode && formData) {
-      // TODO: Call API to update node
-      updateNode(selectedNode.id, {
-        data: {
-          ...selectedNode.data,
-          ...formData,
-        } as ResearchNode,
-      });
-      setEditing(false);
+      setSaving(true);
+      setError(null);
+
+      try {
+        // Call backend API to update node
+        await api.put(`/api/research/nodes/${selectedNode.id}`, formData);
+
+        // Update local state after successful API call
+        updateNode(selectedNode.id, {
+          data: {
+            ...selectedNode.data,
+            ...formData,
+          } as ResearchNode,
+        });
+
+        setEditing(false);
+      } catch (err) {
+        console.error('Failed to update node:', err);
+        setError(err instanceof Error ? err.message : '保存失败，请重试');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedNode && confirm('确定要删除此节点吗？')) {
-      // TODO: Call API to delete node
-      removeNode(selectedNode.id);
+      setDeleting(true);
+      setError(null);
+
+      try {
+        // Call backend API to delete node
+        await api.delete(`/api/research/nodes/${selectedNode.id}`);
+
+        // Update local state after successful API call
+        removeNode(selectedNode.id);
+      } catch (err) {
+        console.error('Failed to delete node:', err);
+        setError(err instanceof Error ? err.message : '删除失败，请重试');
+      } finally {
+        setDeleting(false);
+      }
     }
   };
 
@@ -138,6 +180,9 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
   const hasStatus = selectedNode?.data && 'status' in selectedNode.data;
   // Check if node has priority field
   const hasPriority = selectedNode?.data && 'priority' in selectedNode.data;
+
+  // Type-safe data access helper
+  const getData = () => selectedNode?.data as BaseNodeData;
 
   return (
     <div className="h-full flex flex-col">
@@ -212,8 +257,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).description?.zh || (selectedNode.data as any).description?.['zh-CN'] || (selectedNode.data as any).description?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).description?.zh || (selectedNode.data as any).description?.['zh-CN'] || (selectedNode.data as any).description?.en || ''} className="prose-sm" />
+                {getData().description?.zh || getData().description?.['zh-CN'] || getData().description?.en ? (
+                  <MarkdownRenderer content={getData().description?.zh || getData().description?.['zh-CN'] || getData().description?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -238,8 +283,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).summary?.zh || (selectedNode.data as any).summary?.['zh-CN'] || (selectedNode.data as any).summary?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).summary?.zh || (selectedNode.data as any).summary?.['zh-CN'] || (selectedNode.data as any).summary?.en || ''} className="prose-sm" />
+                {(getNodeField(getData(), 'summary') as LabelI18n)?.zh || (getNodeField(getData(), 'summary') as LabelI18n)?.['zh-CN'] || (getNodeField(getData(), 'summary') as LabelI18n)?.en ? (
+                  <MarkdownRenderer content={(getNodeField(getData(), 'summary') as LabelI18n)?.zh || (getNodeField(getData(), 'summary') as LabelI18n)?.['zh-CN'] || (getNodeField(getData(), 'summary') as LabelI18n)?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -264,8 +309,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).hypothesis?.zh || (selectedNode.data as any).hypothesis?.['zh-CN'] || (selectedNode.data as any).hypothesis?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).hypothesis?.zh || (selectedNode.data as any).hypothesis?.['zh-CN'] || (selectedNode.data as any).hypothesis?.en || ''} className="prose-sm" />
+                {getData().hypothesis?.zh || getData().hypothesis?.['zh-CN'] || getData().hypothesis?.en ? (
+                  <MarkdownRenderer content={getData().hypothesis?.zh || getData().hypothesis?.['zh-CN'] || getData().hypothesis?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -290,8 +335,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).statement?.zh || (selectedNode.data as any).statement?.['zh-CN'] || (selectedNode.data as any).statement?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).statement?.zh || (selectedNode.data as any).statement?.['zh-CN'] || (selectedNode.data as any).statement?.en || ''} className="prose-sm" />
+                {getData().statement?.zh || getData().statement?.['zh-CN'] || getData().statement?.en ? (
+                  <MarkdownRenderer content={getData().statement?.zh || getData().statement?.['zh-CN'] || getData().statement?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -304,8 +349,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
         {nodeType === 'conclusion' && (() => {
           const currentConfidence = formData.confidence !== undefined
             ? formData.confidence
-            : (selectedNode.data as any).confidence !== undefined
-              ? (selectedNode.data as any).confidence
+            : getData().confidence !== undefined
+              ? getData().confidence as number
               : 0.5;
           return (
             <div>
@@ -329,7 +374,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
                   // Immediately update the node without requiring save
                   updateNode(selectedNode.id, {
                     data: {
-                      ...selectedNode.data,
+                      ...getData(),
                       confidence: newConfidence,
                     } as ResearchNode,
                   });
@@ -365,8 +410,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).limitations?.zh || (selectedNode.data as any).limitations?.['zh-CN'] || (selectedNode.data as any).limitations?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).limitations?.zh || (selectedNode.data as any).limitations?.['zh-CN'] || (selectedNode.data as any).limitations?.en || ''} className="prose-sm" />
+                {getData().limitations?.zh || getData().limitations?.['zh-CN'] || getData().limitations?.en ? (
+                  <MarkdownRenderer content={getData().limitations?.zh || getData().limitations?.['zh-CN'] || getData().limitations?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -391,8 +436,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).futureWork?.zh || (selectedNode.data as any).futureWork?.['zh-CN'] || (selectedNode.data as any).futureWork?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).futureWork?.zh || (selectedNode.data as any).futureWork?.['zh-CN'] || (selectedNode.data as any).futureWork?.en || ''} className="prose-sm" />
+                {getData().futureWork?.zh || getData().futureWork?.['zh-CN'] || getData().futureWork?.en ? (
+                  <MarkdownRenderer content={getData().futureWork?.zh || getData().futureWork?.['zh-CN'] || getData().futureWork?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -409,7 +454,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             </label>
             {editing ? (
               <select
-                value={formData.status || (selectedNode.data as any).status || ''}
+                value={formData.status || getData().status || ''}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className={cn(
                   'w-full px-2 py-1.5 rounded text-sm',
@@ -429,7 +474,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               </select>
             ) : (
               <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {(selectedNode.data as any).status}
+                {getData().status as string}
               </div>
             )}
           </div>
@@ -443,7 +488,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             </label>
             {editing ? (
               <select
-                value={formData.priority || (selectedNode.data as any).priority || 'medium'}
+                value={formData.priority || (getData() as ProblemNodeData).priority || 'medium'}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                 className={cn(
                   'w-full px-2 py-1.5 rounded text-sm',
@@ -461,16 +506,16 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
                 <span
                   className={cn(
                     'text-xs px-2 py-0.5 rounded-full border',
-                    (selectedNode.data as any).priority === 'low' && 'bg-gray-500/20 text-gray-400 border-gray-500',
-                    (selectedNode.data as any).priority === 'medium' && 'bg-amber-500/20 text-amber-400 border-amber-500',
-                    (selectedNode.data as any).priority === 'high' && 'bg-red-500/20 text-red-400 border-red-500',
-                    !(selectedNode.data as any).priority && 'bg-gray-500/20 text-gray-400 border-gray-500'
+                    (getData() as ProblemNodeData).priority === 'low' && 'bg-gray-500/20 text-gray-400 border-gray-500',
+                    (getData() as ProblemNodeData).priority === 'medium' && 'bg-amber-500/20 text-amber-400 border-amber-500',
+                    (getData() as ProblemNodeData).priority === 'high' && 'bg-red-500/20 text-red-400 border-red-500',
+                    !(getData() as ProblemNodeData).priority && 'bg-gray-500/20 text-gray-400 border-gray-500'
                   )}
                 >
-                  {(selectedNode.data as any).priority === 'low' && '低优先级'}
-                  {(selectedNode.data as any).priority === 'medium' && '中优先级'}
-                  {(selectedNode.data as any).priority === 'high' && '高优先级'}
-                  {!(selectedNode.data as any).priority && '中优先级'}
+                  {(getData() as ProblemNodeData).priority === 'low' && '低优先级'}
+                  {(getData() as ProblemNodeData).priority === 'medium' && '中优先级'}
+                  {(getData() as ProblemNodeData).priority === 'high' && '高优先级'}
+                  {!(getData() as ProblemNodeData).priority && '中优先级'}
                 </span>
               </div>
             )}
@@ -493,8 +538,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).topic?.zh || (selectedNode.data as any).topic?.['zh-CN'] || (selectedNode.data as any).topic?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).topic?.zh || (selectedNode.data as any).topic?.['zh-CN'] || (selectedNode.data as any).topic?.en || ''} className="prose-sm" />
+                {(getData() as DiscussionNodeData).topic?.zh || (getData() as DiscussionNodeData).topic?.['zh-CN'] || (getData() as DiscussionNodeData).topic?.en ? (
+                  <MarkdownRenderer content={(getData() as DiscussionNodeData).topic?.zh || (getData() as DiscussionNodeData).topic?.['zh-CN'] || (getData() as DiscussionNodeData).topic?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -512,7 +557,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             {editing ? (
               <input
                 type="text"
-                value={formData.url || (selectedNode.data as any).url || ''}
+                value={formData.url || (getData() as MediaNodeData).url || ''}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 placeholder="输入图片或视频URL..."
                 className={cn(
@@ -524,7 +569,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {(selectedNode.data as any).url || '-'}
+                {(getData() as MediaNodeData).url || '-'}
               </div>
             )}
           </div>
@@ -538,7 +583,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             </label>
             {editing ? (
               <select
-                value={formData.mediaType || (selectedNode.data as any).mediaType || 'image'}
+                value={formData.mediaType || (getData() as MediaNodeData).mediaType || 'image'}
                 onChange={(e) => setFormData({ ...formData, mediaType: e.target.value as 'image' | 'video' })}
                 className={cn(
                   'w-full px-2 py-1.5 rounded text-sm',
@@ -552,7 +597,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               </select>
             ) : (
               <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {(selectedNode.data as any).mediaType === 'video' ? '视频' : '图片'}
+                {(getData() as MediaNodeData).mediaType === 'video' ? '视频' : '图片'}
               </div>
             )}
           </div>
@@ -574,8 +619,8 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               />
             ) : (
               <div className={cn('p-2 rounded border text-sm max-h-48 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(selectedNode.data as any).content?.zh || (selectedNode.data as any).content?.['zh-CN'] || (selectedNode.data as any).content?.en ? (
-                  <MarkdownRenderer content={(selectedNode.data as any).content?.zh || (selectedNode.data as any).content?.['zh-CN'] || (selectedNode.data as any).content?.en || ''} className="prose-sm" />
+                {(getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] || (getData() as NoteNodeData).content?.en ? (
+                  <MarkdownRenderer content={(getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] || (getData() as NoteNodeData).content?.en || ''} className="prose-sm" />
                 ) : (
                   <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
                 )}
@@ -598,7 +643,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
                 { value: 'pink', label: '粉色', bgClass: 'bg-pink-400', borderClass: 'ring-pink-500' },
                 { value: 'purple', label: '紫色', bgClass: 'bg-purple-400', borderClass: 'ring-purple-500' },
               ].map((colorOption) => {
-                const currentColor = formData.color || (selectedNode.data as any).color || 'yellow';
+                const currentColor = formData.color || (getData() as NoteNodeData).color || 'yellow';
                 const isSelected = currentColor === colorOption.value;
                 return (
                   <button
@@ -610,7 +655,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
                       // Immediately update the node
                       updateNode(selectedNode.id, {
                         data: {
-                          ...selectedNode.data,
+                          ...getData(),
                           color: newColor,
                         } as ResearchNode,
                       });
@@ -638,19 +683,19 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             <button
               type="button"
               onClick={() => {
-                const newPinned = !(formData.pinned ?? (selectedNode.data as any).pinned ?? false);
+                const newPinned = !(formData.pinned ?? (getData() as NoteNodeData).pinned ?? false);
                 setFormData({ ...formData, pinned: newPinned });
                 // Immediately update the node
                 updateNode(selectedNode.id, {
                   data: {
-                    ...selectedNode.data,
+                    ...getData(),
                     pinned: newPinned,
                   } as ResearchNode,
                 });
               }}
               className={cn(
                 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                (formData.pinned ?? (selectedNode.data as any).pinned ?? false)
+                (formData.pinned ?? (getData() as NoteNodeData).pinned ?? false)
                   ? 'bg-yellow-500'
                   : theme === 'dark' ? 'bg-slate-600' : 'bg-gray-300'
               )}
@@ -658,15 +703,25 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
               <span
                 className={cn(
                   'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  (formData.pinned ?? (selectedNode.data as any).pinned ?? false)
+                  (formData.pinned ?? (getData() as NoteNodeData).pinned ?? false)
                     ? 'translate-x-6'
                     : 'translate-x-1'
                 )}
               />
             </button>
             <span className={cn('ml-2 text-xs', theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}>
-              {(formData.pinned ?? (selectedNode.data as any).pinned ?? false) ? '已置顶' : '未置顶'}
+              {(formData.pinned ?? (getData() as NoteNodeData).pinned ?? false) ? '已置顶' : '未置顶'}
             </span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className={cn(
+            'p-3 rounded text-sm',
+            theme === 'dark' ? 'bg-red-900/30 text-red-400 border border-red-700' : 'bg-red-50 text-red-600 border border-red-200'
+          )}>
+            {error}
           </div>
         )}
 
@@ -686,15 +741,25 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
           <>
             <button
               onClick={handleSave}
+              disabled={saving}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors',
+                'flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 theme === 'dark'
                   ? 'bg-purple-600 hover:bg-purple-500 text-white'
                   : 'bg-purple-500 hover:bg-purple-600 text-white'
               )}
             >
-              <Save className="w-4 h-4" />
-              保存
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  保存
+                </>
+              )}
             </button>
             <button
               onClick={() => setEditing(false)}
@@ -723,14 +788,19 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
             </button>
             <button
               onClick={handleDelete}
+              disabled={deleting}
               className={cn(
-                'px-3 py-2 rounded text-sm font-medium transition-colors',
+                'px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 theme === 'dark'
                   ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50'
                   : 'bg-red-100 hover:bg-red-200 text-red-600 border border-red-300'
               )}
             >
-              <Trash2 className="w-4 h-4" />
+              {deleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
             </button>
           </>
         )}

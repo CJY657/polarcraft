@@ -8,7 +8,7 @@
  * 其他演示继续使用2D Canvas | Other demos continue to use 2D Canvas
  *
  * 3D组件来自: @/feature/demos/components/Birefringence3D | 3D components from: @/feature/demos/components/Birefringence3D
- * 物理计算来自: @/lib/physics/GeoOptics | Physics calculations from: @/lib/physics/GeoOptics
+ * 物理计算来自: @/lib/physics/GeometricOptics | Physics calculations from: @/lib/physics/GeometricOptics
  * 
  * 优化方向：Add Jones calculus (lib/math) for polarization state visualization (future feature)
  */
@@ -33,7 +33,7 @@ import {
   calculateWalkOffAngle,
   BIREFRINGENT_MATERIALS,
   type BirefringenceParams,
-} from "@/lib/physics/GeoOptics";
+} from "@/lib/physics/GeometricOptics";
 // 3D组件库 | 3D Components Library
 import {
   CalciteCrystal,

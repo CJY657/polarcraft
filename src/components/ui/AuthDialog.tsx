@@ -7,7 +7,7 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog } from './Dialog';
+import { Dialog } from './dialog';
 import { useAuthDialogStore, AuthMode } from '@/stores/authDialogStore';
 
 // Password strength checker

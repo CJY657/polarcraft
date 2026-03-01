@@ -11,11 +11,11 @@ import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Line, Grid } from "@react-three/drei";
 import * as THREE from "three";
-import type { BirefringenceParams } from "@/lib/physics/GeoOptics";
+import type { BirefringenceParams } from "@/lib/physics/GeometricOptics";
 import {
   calculateBirefringenceRayPaths,
   calculateDoubleImageOffset,
-} from "@/lib/physics/GeoOptics";
+} from "@/lib/physics/GeometricOptics";
 
 // ============================================================================
 // 晶体组件 | CRYSTAL COMPONENTS

@@ -150,9 +150,9 @@ const MODULES: ModuleConfig[] = [
     IconComponent: GamesModuleIcon,
     inDevelopment: true,
     quickLinks: [
-      { labelKey: "home.modules.games.link1", path: "/games/2d" },
-      { labelKey: "home.modules.games.link2", path: "/games/3d" },
-      { labelKey: "home.modules.games.link3", path: "/games/card" },
+      { labelKey: "home.modules.games.link1", path: "/games/escape" },
+      { labelKey: "home.modules.games.link2", path: "/games/minecraft" },
+      { labelKey: "home.modules.games.link3", path: "/games" },
     ],
     colorTheme: {
       bg: "bg-purple-950/20 backdrop-blur-sm",
