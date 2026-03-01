@@ -1,21 +1,20 @@
 // 波动光学工具
 
 /**
- * @deprecated This module is deprecated and will be removed in a future release.
- * Use `src/core/physics/unified` instead, which provides:
- * - CoherencyMatrix for polarization state representation (supports partial polarization)
- * - LightTracer for ray tracing through optical scenes
- * - OpticalSurface for optical element interactions
- * - PolarizationBasis for s-p basis transformations
+ * @fileoverview Wave Optics Module - Jones Calculus Implementation
  *
- * Migration guide:
- * - Replace JonesVector with CoherencyMatrix.fromJones()
- * - Replace manual Fresnel calculations with DielectricSurface
- * - Replace Sellmeier dispersion with DispersiveMedium (when needed)
+ * STATUS: Active - This module is used by the game engine (World.ts, LightPhysics.ts)
  *
- * @see src/core/physics/unified/CoherencyMatrix.ts
- * @see src/core/physics/unified/LightTracer.ts
- * @see src/core/physics/unified/OpticalSurface.ts
+ * Migration Notes:
+ * - The unified physics module (src/lib/physics/unified/) provides CoherencyMatrix
+ * - CoherencyMatrix is intended for partial polarization representation
+ * - Current game implementation uses JonesVector/WaveLight for full polarization simulation
+ *
+ * Future: Consider migrating to CoherencyMatrix when partial polarization support is needed
+ *
+ * @see src/lib/physics/unified/CoherencyMatrix.ts
+ * @see src/lib/physics/LightPhysics.ts (uses this module)
+ * @see src/lib/World.ts (uses WaveLight type)
  */
 
 /**

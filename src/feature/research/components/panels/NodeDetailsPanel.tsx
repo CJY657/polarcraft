@@ -7,13 +7,14 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Save, Trash2 } from 'lucide-react';
+import { X, Save, Trash2, Loader2 } from 'lucide-react';
 import { useCanvasStore, selectSelectedNode } from '../../stores/canvasStore';
 import { cn } from '@/utils/classNames';
 import type { ResearchNode } from '@/types/research';
 import type { Node } from 'reactflow';
 import { MarkdownEditor } from '../shared/MarkdownEditor';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
+import { api } from '@/lib/api';
 
 interface NodeDetailsPanelProps {
   theme?: 'dark' | 'light';
@@ -54,6 +55,9 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
 
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState<FormData>({});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update form data when node changes
   useEffect(() => {
@@ -83,21 +87,48 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
 
   const handleSave = async () => {
     if (selectedNode && formData) {
-      // TODO: Call API to update node
-      updateNode(selectedNode.id, {
-        data: {
-          ...selectedNode.data,
-          ...formData,
-        } as ResearchNode,
-      });
-      setEditing(false);
+      setSaving(true);
+      setError(null);
+
+      try {
+        // Call backend API to update node
+        await api.put(`/api/research/nodes/${selectedNode.id}`, formData);
+
+        // Update local state after successful API call
+        updateNode(selectedNode.id, {
+          data: {
+            ...selectedNode.data,
+            ...formData,
+          } as ResearchNode,
+        });
+
+        setEditing(false);
+      } catch (err) {
+        console.error('Failed to update node:', err);
+        setError(err instanceof Error ? err.message : '保存失败，请重试');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedNode && confirm('确定要删除此节点吗？')) {
-      // TODO: Call API to delete node
-      removeNode(selectedNode.id);
+      setDeleting(true);
+      setError(null);
+
+      try {
+        // Call backend API to delete node
+        await api.delete(`/api/research/nodes/${selectedNode.id}`);
+
+        // Update local state after successful API call
+        removeNode(selectedNode.id);
+      } catch (err) {
+        console.error('Failed to delete node:', err);
+        setError(err instanceof Error ? err.message : '删除失败，请重试');
+      } finally {
+        setDeleting(false);
+      }
     }
   };
 
@@ -669,6 +700,16 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
           </div>
         )}
 
+        {/* Error Message */}
+        {error && (
+          <div className={cn(
+            'p-3 rounded text-sm',
+            theme === 'dark' ? 'bg-red-900/30 text-red-400 border border-red-700' : 'bg-red-50 text-red-600 border border-red-200'
+          )}>
+            {error}
+          </div>
+        )}
+
         {/* Created Info */}
         <div className="pt-4 border-t border-slate-700">
           <div className={cn('text-xs', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
@@ -684,15 +725,25 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
           <>
             <button
               onClick={handleSave}
+              disabled={saving}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors',
+                'flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 theme === 'dark'
                   ? 'bg-purple-600 hover:bg-purple-500 text-white'
                   : 'bg-purple-500 hover:bg-purple-600 text-white'
               )}
             >
-              <Save className="w-4 h-4" />
-              保存
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  保存
+                </>
+              )}
             </button>
             <button
               onClick={() => setEditing(false)}
@@ -721,14 +772,19 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
             </button>
             <button
               onClick={handleDelete}
+              disabled={deleting}
               className={cn(
-                'px-3 py-2 rounded text-sm font-medium transition-colors',
+                'px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                 theme === 'dark'
                   ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50'
                   : 'bg-red-100 hover:bg-red-200 text-red-600 border border-red-300'
               )}
             >
-              <Trash2 className="w-4 h-4" />
+              {deleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
             </button>
           </>
         )}

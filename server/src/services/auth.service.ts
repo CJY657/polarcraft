@@ -13,6 +13,7 @@ import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { TokenService } from './token.service.js';
 import { CaptchaService } from './captcha.service.js';
+import { EmailService } from './email.service.js';
 import {
   RegisterInput,
   LoginInput,
@@ -182,18 +183,33 @@ export class AuthService {
     // 创建新的密码重置令牌
     const resetToken = await PasswordResetModel.create(user.id);
 
-    // TODO: Send email with reset link
-    // TODO: 发送带有重置链接的电子邮件
-    // In production, you would send an email with a link like:
-    // 在生产环境中，您会发送一封包含如下链接的电子邮件：
-    // `${config.frontendUrl}/reset-password?token=${resetToken.token}`
+    // Send email with reset link
+    // 发送带有重置链接的电子邮件
+    if (user.email) {
+      const emailSent = await EmailService.sendPasswordResetEmail(
+        user.email,
+        user.username,
+        resetToken.token
+      );
+
+      if (emailSent) {
+        logger.info(`Password reset email sent to: ${user.email}`);
+      } else {
+        logger.warn(`Failed to send password reset email to: ${user.email}`);
+        // If email is not configured, log the token for development
+        if (!config.email.enabled) {
+          logger.info(`Reset token (email not configured): ${resetToken.token} (valid for ${PasswordResetModel.DEFAULT_EXPIRY_MINUTES} minutes)`);
+        }
+      }
+    } else {
+      logger.warn(`User ${user.username} has no email address configured`);
+    }
 
     logger.info(`Password reset requested for user: ${user.username} (${user.id})`);
-    logger.info(`Reset token: ${resetToken.token} (valid for ${PasswordResetModel.DEFAULT_EXPIRY_MINUTES} minutes)`);
 
-    // For development, return the token in the message
-    // 仅用于开发，在消息中返回令牌
-    if (config.isDevelopment) {
+    // For development when email is not configured, return the token in the message
+    // 仅用于开发且邮件未配置时，在消息中返回令牌
+    if (!config.email.enabled && config.isDevelopment) {
       return {
         message: `密码重置令牌: ${resetToken.token} (有效期为 ${PasswordResetModel.DEFAULT_EXPIRY_MINUTES} 分钟)`,
       };
