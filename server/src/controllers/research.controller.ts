@@ -8,6 +8,7 @@
 
 import { Request, Response } from 'express';
 import { ResearchModel } from '../models/research.model.js';
+import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 
@@ -187,12 +188,18 @@ export class ResearchController {
    */
   static createNode = asyncHandler(async (req: Request, res: Response) => {
     const { canvasId } = req.params;
+
+    // Check if canvas exists, if not return error
+    let canvas = await ResearchModel.getCanvasById(canvasId);
+    if (!canvas) {
+      return res.error('画布未找到，请刷新页面重试', 'CANVAS_NOT_FOUND', 404);
+    }
+
     const nodeId = await ResearchModel.createNode(canvasId, req.body, req.user!.sub);
 
     // Log activity
-    const canvas = await ResearchModel.getCanvasById(canvasId);
     await ResearchModel.logActivity(
-      canvas!.project_id,
+      canvas.project_id,
       req.user!.sub,
       'create_node',
       'node',
@@ -457,6 +464,216 @@ export class ResearchController {
   static attachDemoToNode = asyncHandler(async (req: Request, res: Response) => {
     // TODO: Implement demo attachment
     res.success({ message: 'Demo attachment not yet implemented' }, '演示关联功能开发中');
+  });
+
+  // ============================================================
+  // Project Settings / 项目设置
+  // ============================================================
+
+  /**
+   * Get project settings
+   * 获取项目设置
+   */
+  static getProjectSettings = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const settings = await ProfileModel.getOrCreateProjectSettings(id);
+    res.success(settings);
+  });
+
+  /**
+   * Update project settings
+   * 更新项目设置
+   */
+  static updateProjectSettings = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await ProfileModel.updateProjectSettings(id, req.body);
+    const settings = await ProfileModel.getProjectSettings(id);
+    logger.info(`Project settings updated by user ${req.user!.username}: ${id}`);
+    res.success(settings, '设置更新成功');
+  });
+
+  // ============================================================
+  // Project Applications / 项目申请
+  // ============================================================
+
+  /**
+   * Get project applications
+   * 获取项目申请列表
+   */
+  static getProjectApplications = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const applications = await ProfileModel.getProjectApplications(id);
+    res.success(applications);
+  });
+
+  /**
+   * Create application to join project
+   * 创建加入项目申请
+   */
+  static createApplication = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.sub;
+
+    // Check if project exists and is recruiting
+    const settings = await ProfileModel.getOrCreateProjectSettings(id);
+    if (settings.visibility === 'invite_only') {
+      return res.error('该项目仅限邀请加入', 'INVITE_ONLY', 403);
+    }
+
+    if (!settings.is_recruiting) {
+      return res.error('该项目暂未招募', 'NOT_RECRUITING', 403);
+    }
+
+    // Check if already a member
+    const members = await ResearchModel.getProjectMembers(id);
+    const isMember = members.some((m: any) => m.user_id === userId);
+    if (isMember) {
+      return res.error('您已经是项目成员', 'ALREADY_MEMBER', 400);
+    }
+
+    try {
+      const applicationId = await ProfileModel.createApplication(id, userId, req.body);
+      const application = await ProfileModel.getApplicationById(applicationId);
+      logger.info(`Application created by user ${req.user!.username}: ${applicationId}`);
+
+      // If no approval required, auto-approve
+      if (!settings.require_approval) {
+        await ProfileModel.updateApplicationStatus(applicationId, 'approved', userId);
+        await ResearchModel.addProjectMember(id, userId, 'viewer');
+        logger.info(`Application auto-approved: ${applicationId}`);
+      }
+
+      res.success(application, '申请提交成功', 201);
+    } catch (error: any) {
+      if (error.message.includes('待处理')) {
+        return res.error(error.message, 'APPLICATION_EXISTS', 400);
+      }
+      throw error;
+    }
+  });
+
+  /**
+   * Update application status (approve/reject)
+   * 更新申请状态（批准/拒绝）
+   */
+  static updateApplicationStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, review_notes } = req.body;
+    const reviewerId = req.user!.sub;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.error('无效的状态', 'INVALID_STATUS', 400);
+    }
+
+    const application = await ProfileModel.getApplicationById(id);
+    if (!application) {
+      return res.error('申请未找到', 'APPLICATION_NOT_FOUND', 404);
+    }
+
+    if (application.status !== 'pending') {
+      return res.error('该申请已处理', 'ALREADY_PROCESSED', 400);
+    }
+
+    // Check if user is project owner/admin
+    const members = await ResearchModel.getProjectMembers(application.project_id);
+    const reviewer = members.find((m: any) => m.user_id === reviewerId);
+    if (!reviewer || !['owner', 'admin'].includes(reviewer.role)) {
+      return res.error('无权处理该申请', 'FORBIDDEN', 403);
+    }
+
+    await ProfileModel.updateApplicationStatus(id, status, reviewerId, review_notes);
+
+    // If approved, add to project members
+    if (status === 'approved') {
+      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'editor');
+      logger.info(`User ${application.user_id} added to project ${application.project_id}`);
+    }
+
+    logger.info(`Application ${id} ${status} by user ${req.user!.username}`);
+    res.success(null, status === 'approved' ? '申请已通过' : '申请已拒绝');
+  });
+
+  /**
+   * Withdraw application
+   * 撤回申请
+   */
+  static withdrawApplication = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.sub;
+
+    const application = await ProfileModel.getApplicationById(id);
+    if (!application) {
+      return res.error('申请未找到', 'APPLICATION_NOT_FOUND', 404);
+    }
+
+    if (application.user_id !== userId) {
+      return res.error('无权撤回该申请', 'FORBIDDEN', 403);
+    }
+
+    if (application.status !== 'pending') {
+      return res.error('只能撤回待处理的申请', 'NOT_PENDING', 400);
+    }
+
+    await ProfileModel.withdrawApplication(id, userId);
+    logger.info(`Application ${id} withdrawn by user ${req.user!.username}`);
+    res.success(null, '申请已撤回');
+  });
+
+  // ============================================================
+  // Project Creator Profile / 项目创建者资料
+  // ============================================================
+
+  /**
+   * Get project creator profiles
+   * 获取项目创建者资料
+   */
+  static getCreatorProfiles = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const profiles = await ProfileModel.getProjectCreatorProfiles(id);
+    res.success(profiles);
+  });
+
+  /**
+   * Create project with creator profile
+   * 创建项目（包含创建者资料）
+   */
+  static createProjectWithProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { project, creatorProfile, settings } = req.body;
+    const userId = req.user!.sub;
+
+    // Create project
+    const projectId = await ResearchModel.createProject(
+      {
+        name_zh: project.name_zh,
+        name_en: project.name_en,
+        description_zh: project.description_zh,
+        description_en: project.description_en,
+        is_public: project.is_public,
+      },
+      userId
+    );
+
+    // Create creator profile
+    if (creatorProfile) {
+      await ProfileModel.createCreatorProfile(projectId, userId, {
+        display_name: creatorProfile.display_name || req.user!.username,
+        organization: creatorProfile.organization,
+        education_id: creatorProfile.education_id,
+        major: creatorProfile.major,
+        grade: creatorProfile.grade,
+      });
+    }
+
+    // Create project settings
+    if (settings) {
+      await ProfileModel.createProjectSettings(projectId, settings);
+    } else {
+      await ProfileModel.createProjectSettings(projectId, {});
+    }
+
+    const result = await ResearchModel.getProjectById(projectId);
+    logger.info(`Project with profile created by user ${req.user!.username}: ${projectId}`);
+    res.success(result, '项目创建成功', 201);
   });
 }
 

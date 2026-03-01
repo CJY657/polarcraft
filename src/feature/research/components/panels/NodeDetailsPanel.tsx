@@ -38,6 +38,9 @@ interface FormData {
   participants?: string[];
   url?: string;
   mediaType?: 'image' | 'video';
+  content?: { 'zh-CN': string; zh?: string; en?: string };
+  color?: 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
+  pinned?: boolean;
 }
 
 export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }: NodeDetailsPanelProps) {
@@ -70,6 +73,9 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
         participants: 'participants' in selectedNode.data ? selectedNode.data.participants as any : undefined,
         url: 'url' in selectedNode.data ? (selectedNode.data as any).url : undefined,
         mediaType: 'mediaType' in selectedNode.data ? (selectedNode.data as any).mediaType : undefined,
+        content: 'content' in selectedNode.data ? (selectedNode.data as any).content : undefined,
+        color: 'color' in selectedNode.data ? (selectedNode.data as any).color : undefined,
+        pinned: 'pinned' in selectedNode.data ? (selectedNode.data as any).pinned : undefined,
       });
       setEditing(false);
     }
@@ -120,6 +126,7 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
     conclusion: '结论',
     discussion: '讨论',
     media: '媒体',
+    note: '便签',
   };
 
   const nodeType = selectedNode?.type || '';
@@ -547,6 +554,118 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode }:
                 {(selectedNode.data as any).mediaType === 'video' ? '视频' : '图片'}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Content for note nodes */}
+        {nodeType === 'note' && (
+          <div>
+            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
+              内容
+            </label>
+            {editing ? (
+              <MarkdownEditor
+                value={formData.content?.zh || formData.content?.['zh-CN'] || ''}
+                onChange={(value) => setFormData({ ...formData, content: { 'zh-CN': value, zh: value, en: value } })}
+                placeholder="支持 Markdown 语法..."
+                rows={6}
+                theme={theme}
+              />
+            ) : (
+              <div className={cn('p-2 rounded border text-sm max-h-48 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
+                {(selectedNode.data as any).content?.zh || (selectedNode.data as any).content?.['zh-CN'] || (selectedNode.data as any).content?.en ? (
+                  <MarkdownRenderer content={(selectedNode.data as any).content?.zh || (selectedNode.data as any).content?.['zh-CN'] || (selectedNode.data as any).content?.en || ''} className="prose-sm" />
+                ) : (
+                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Color picker for note nodes */}
+        {nodeType === 'note' && (
+          <div>
+            <label className={cn('text-xs text-gray-500 block mb-2', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
+              颜色
+            </label>
+            <div className="flex gap-2">
+              {[
+                { value: 'yellow', label: '黄色', bgClass: 'bg-yellow-400', borderClass: 'ring-yellow-500' },
+                { value: 'green', label: '绿色', bgClass: 'bg-green-400', borderClass: 'ring-green-500' },
+                { value: 'blue', label: '蓝色', bgClass: 'bg-blue-400', borderClass: 'ring-blue-500' },
+                { value: 'pink', label: '粉色', bgClass: 'bg-pink-400', borderClass: 'ring-pink-500' },
+                { value: 'purple', label: '紫色', bgClass: 'bg-purple-400', borderClass: 'ring-purple-500' },
+              ].map((colorOption) => {
+                const currentColor = formData.color || (selectedNode.data as any).color || 'yellow';
+                const isSelected = currentColor === colorOption.value;
+                return (
+                  <button
+                    key={colorOption.value}
+                    type="button"
+                    onClick={() => {
+                      const newColor = colorOption.value as 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
+                      setFormData({ ...formData, color: newColor });
+                      // Immediately update the node
+                      updateNode(selectedNode.id, {
+                        data: {
+                          ...selectedNode.data,
+                          color: newColor,
+                        } as ResearchNode,
+                      });
+                    }}
+                    className={cn(
+                      'w-8 h-8 rounded-full transition-all',
+                      colorOption.bgClass,
+                      isSelected ? `ring-2 ${colorOption.borderClass} ring-offset-2` : 'hover:scale-110',
+                      theme === 'dark' ? 'ring-offset-slate-800' : 'ring-offset-white'
+                    )}
+                    title={colorOption.label}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Pinned toggle for note nodes */}
+        {nodeType === 'note' && (
+          <div>
+            <label className={cn('text-xs text-gray-500 block mb-2', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
+              置顶
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const newPinned = !(formData.pinned ?? (selectedNode.data as any).pinned ?? false);
+                setFormData({ ...formData, pinned: newPinned });
+                // Immediately update the node
+                updateNode(selectedNode.id, {
+                  data: {
+                    ...selectedNode.data,
+                    pinned: newPinned,
+                  } as ResearchNode,
+                });
+              }}
+              className={cn(
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                (formData.pinned ?? (selectedNode.data as any).pinned ?? false)
+                  ? 'bg-yellow-500'
+                  : theme === 'dark' ? 'bg-slate-600' : 'bg-gray-300'
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                  (formData.pinned ?? (selectedNode.data as any).pinned ?? false)
+                    ? 'translate-x-6'
+                    : 'translate-x-1'
+                )}
+              />
+            </button>
+            <span className={cn('ml-2 text-xs', theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}>
+              {(formData.pinned ?? (selectedNode.data as any).pinned ?? false) ? '已置顶' : '未置顶'}
+            </span>
           </div>
         )}
 

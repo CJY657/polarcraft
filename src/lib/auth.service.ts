@@ -104,11 +104,8 @@ export const authApi = {
       clientSalt: salt,
     });
     if (response.success && response.data) {
-      // Store tokens
-      localStorage.setItem('access_token', response.data.tokens.accessToken);
-      if (input.rememberMe) {
-        localStorage.setItem('refresh_token', response.data.tokens.refreshToken);
-      }
+      // Tokens are set via HTTP-only cookie by backend
+      // Token 由后端通过 HTTP-only cookie 设置
       return response.data;
     }
     throw new Error(response.error?.message || 'Registration failed');
@@ -136,11 +133,10 @@ export const authApi = {
       rememberMe: input.rememberMe,
     });
     if (response.success && response.data) {
-      // Store tokens
-      localStorage.setItem('access_token', response.data.tokens.accessToken);
-      if (input.rememberMe) {
-        localStorage.setItem('refresh_token', response.data.tokens.refreshToken);
-      }
+      // Tokens are set via HTTP-only cookie by backend
+      // Token 由后端通过 HTTP-only cookie 设置
+      // rememberMe affects cookie persistence (session vs persistent)
+      // rememberMe 影响 cookie 持久性（session vs persistent）
       return response.data;
     }
     throw new Error(response.error?.message || 'Login failed');
@@ -151,31 +147,27 @@ export const authApi = {
    * 用户登出
    */
   logout: async (): Promise<void> => {
-    try {
-      await api.post('/api/auth/logout', {});
-    } finally {
-      api.removeToken();
-    }
+    await api.post('/api/auth/logout', {});
+    // Cookies are cleared by backend
+    // Cookie 由后端清除
   },
 
   /**
    * Refresh access token
    * 刷新访问令牌
+   *
+   * Note: Refresh token is read from cookie by backend
+   * 注意：刷新令牌由后端从 cookie 读取
    */
   refreshToken: async (): Promise<TokenPair> => {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
     const response = await api.post<{ accessToken: string; refreshToken: string; expiresIn: number }>(
       '/api/auth/refresh',
-      { refreshToken }
+      {} // Backend reads refresh token from cookie
     );
 
     if (response.success && response.data) {
-      localStorage.setItem('access_token', response.data.accessToken);
-      localStorage.setItem('refresh_token', response.data.refreshToken);
+      // New tokens are set via HTTP-only cookie by backend
+      // 新 token 由后端通过 HTTP-only cookie 设置
       return response.data;
     }
     throw new Error(response.error?.message || 'Token refresh failed');

@@ -4,6 +4,9 @@
  *
  * Verifies JWT tokens and attaches user info to request
  * 验证 JWT 令牌并将用户信息附加到请求
+ *
+ * Token is read from cookie first, then fallback to Authorization header
+ * 首先从 cookie 读取 token，然后回退到 Authorization 头部
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -18,10 +21,14 @@ import { sendError } from '../utils/response.util.js';
  */
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   try {
-    // Extract token from Authorization header
-    // 从 Authorization 头部提取令牌
-    const authHeader = req.headers.authorization;
-    const token = extractTokenFromHeader(authHeader);
+    // First try to get token from cookie, then fallback to Authorization header
+    // 首先尝试从 cookie 获取 token，然后回退到 Authorization 头部
+    let token: string | null | undefined = req.cookies?.access_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      token = extractTokenFromHeader(authHeader);
+    }
 
     if (!token) {
       sendError(res, '未登录，请先登录', 'UNAUTHORIZED', 401);
@@ -66,8 +73,14 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
  */
 export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    const authHeader = req.headers.authorization;
-    const token = extractTokenFromHeader(authHeader);
+    // First try to get token from cookie, then fallback to Authorization header
+    // 首先尝试从 cookie 获取 token，然后回退到 Authorization 头部
+    let token: string | null | undefined = req.cookies?.access_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      token = extractTokenFromHeader(authHeader);
+    }
 
     if (token) {
       try {

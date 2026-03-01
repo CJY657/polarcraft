@@ -277,4 +277,78 @@ router.get('/experiments/:id/results', ResearchController.getSimulationResults);
  */
 router.post('/nodes/:id/attach-demo', ResearchController.attachDemoToNode);
 
+/**
+ * =====================================================
+ * Project Settings Routes / 项目设置路由
+ * =====================================================
+ */
+
+/**
+ * @route   GET /api/research/projects/:id/settings
+ * @desc    Get project settings
+ * @access  Private
+ */
+router.get('/projects/:id/settings', ResearchController.getProjectSettings);
+
+/**
+ * @route   PUT /api/research/projects/:id/settings
+ * @desc    Update project settings
+ * @access  Private
+ */
+router.put('/projects/:id/settings', ResearchController.updateProjectSettings);
+
+/**
+ * =====================================================
+ * Project Applications Routes / 项目申请路由
+ * =====================================================
+ */
+
+/**
+ * @route   GET /api/research/projects/:id/applications
+ * @desc    Get project applications
+ * @access  Private
+ */
+router.get('/projects/:id/applications', ResearchController.getProjectApplications);
+
+/**
+ * @route   POST /api/research/projects/:id/applications
+ * @desc    Create application to join project
+ * @access  Private
+ */
+router.post('/projects/:id/applications', ResearchController.createApplication);
+
+/**
+ * @route   PUT /api/research/applications/:id/status
+ * @desc    Update application status (approve/reject)
+ * @access  Private
+ */
+router.put('/applications/:id/status', ResearchController.updateApplicationStatus);
+
+/**
+ * @route   DELETE /api/research/applications/:id
+ * @desc    Withdraw application
+ * @access  Private
+ */
+router.delete('/applications/:id', ResearchController.withdrawApplication);
+
+/**
+ * =====================================================
+ * Project Creator Profile Routes / 项目创建者资料路由
+ * =====================================================
+ */
+
+/**
+ * @route   GET /api/research/projects/:id/creator-profiles
+ * @desc    Get project creator profiles
+ * @access  Private
+ */
+router.get('/projects/:id/creator-profiles', ResearchController.getCreatorProfiles);
+
+/**
+ * @route   POST /api/research/projects/with-profile
+ * @desc    Create project with creator profile
+ * @access  Private
+ */
+router.post('/projects/with-profile', ResearchController.createProjectWithProfile);
+
 export default router;

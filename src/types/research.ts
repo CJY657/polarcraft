@@ -11,9 +11,10 @@
 export type NodeType =
   | "problem"      // 问题节点
   | "experiment"   // 实验节点
-  | "literature"   // 文献节点
-  | "data"         // 数据节点
-  | "conclusion";  // 结论节点
+  | "conclusion"   // 结论节点
+  | "discussion"   // 讨论节点
+  | "media"        // 媒体节点
+  | "note";        // 便签节点
 
 /** Edge/Relationship Types - 边/关系类型 */
 export type EdgeType =
@@ -93,32 +94,6 @@ export interface ExperimentNode extends BaseNode {
   linkedDemo?: string; // ID of demo in /feature/demos/
 }
 
-/** Literature Node - 文献节点 */
-export interface LiteratureNode extends BaseNode {
-  type: "literature";
-  title: LabelI18n;
-  authors: string[];
-  year?: number;
-  citation: string; // Full citation text
-  doi?: string;
-  url?: string;
-  pdfUrl?: string;
-  summary?: LabelI18n;
-  keyFindings?: LabelI18n[];
-}
-
-/** Data Node - 数据节点 */
-export interface DataNode extends BaseNode {
-  type: "data";
-  title: LabelI18n;
-  dataType: "observation" | "calculation" | "measurement" | "simulation";
-  values: Record<string, any>;
-  fileId?: string; // Reference to uploaded file
-  unit?: string;
-  uncertainty?: number;
-  sourceNodeId?: string; // Which experiment produced this
-}
-
 /** Conclusion Node - 结论节点 */
 export interface ConclusionNode extends BaseNode {
   type: "conclusion";
@@ -130,13 +105,41 @@ export interface ConclusionNode extends BaseNode {
   futureWork?: LabelI18n;
 }
 
+/** Note Node - 便签节点 */
+export interface NoteNode extends BaseNode {
+  type: "note";
+  title: LabelI18n;
+  content: LabelI18n; // 主要内容，支持 Markdown
+  color: "yellow" | "green" | "blue" | "pink" | "purple";
+  pinned?: boolean; // 是否置顶
+}
+
+/** Discussion Node - 讨论节点 */
+export interface DiscussionNode extends BaseNode {
+  type: "discussion";
+  title: LabelI18n;
+  topic: LabelI18n; // 讨论话题
+  status: "active" | "resolved" | "archived";
+  participants?: string[]; // 参与者用户ID数组
+}
+
+/** Media Node - 媒体节点 */
+export interface MediaNode extends BaseNode {
+  type: "media";
+  title: LabelI18n;
+  description?: LabelI18n;
+  url: string; // 媒体URL
+  mediaType: "image" | "video" | "audio" | "file"; // 媒体类型
+}
+
 /** Union Type for All Nodes */
 export type ResearchNode =
   | ProblemNode
   | ExperimentNode
-  | LiteratureNode
-  | DataNode
-  | ConclusionNode;
+  | ConclusionNode
+  | DiscussionNode
+  | MediaNode
+  | NoteNode;
 
 // ============================================================
 // Edge Types - 边类型定义

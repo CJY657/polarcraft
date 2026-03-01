@@ -14,7 +14,17 @@
     "close": "关闭",
     "explore": "探索",
     "search": "搜索",
-    "all": "全部"
+    "all": "全部",
+    "cancel": "取消",
+    "save": "保存",
+    "add": "添加",
+    "edit": "编辑",
+    "delete": "删除",
+    "confirm": "确认",
+    "error": "发生错误",
+    "saving": "保存中...",
+    "next": "下一步",
+    "select": "请选择"
   },
   "page": {
     "courses": {
@@ -147,9 +157,9 @@
       "lab": {
         "title": "虚拟课题组",
         "description": "像研究生一样做研究。选课题、定方案、做实验、写报告，从验证已知到探索未知。组建团队，协作攻关，在实践中解锁真正的科研能力。",
-        "link1": "研究任务",
-        "link2": "计算工具",
-        "link3": "社区广场"
+        "link1": "我的项目",
+        "link2": "发现项目",
+        "link3": "创建项目"
       }
     },
     "badges": {
@@ -688,6 +698,9 @@
   "lab": {
     "title": "虚拟课题",
     "description": "学生进行中的研究项目，在这里可以查看和参与课题讨论",
+    "projectName": "项目名称",
+    "projectDescription": "项目描述",
+    "createProject": "创建项目",
     "features": {
       "private": {
         "title": "私密空间",
@@ -4062,7 +4075,7 @@
         },
         "step2": {
           "title": "添加节点",
-          "description": "添加问题、实验、文献等节点"
+          "description": "添加问题、实验等节点"
         },
         "step3": {
           "title": "建立联系",
@@ -4077,13 +4090,19 @@
       "toolbar": {
         "addProblem": "+ 问题",
         "addExperiment": "+ 实验",
-        "addLiterature": "+ 文献",
-        "addData": "+ 数据",
         "addConclusion": "+ 结论"
       },
       "nodeDetails": {
         "title": "节点属性",
         "hint": "选择一个节点查看详情"
+      },
+      "save": {
+        "button": "保存",
+        "saving": "保存中...",
+        "saved": "已保存",
+        "unsavedChanges": "有未保存的更改",
+        "saveError": "保存失败",
+        "lastSaved": "上次保存: {{time}}"
       }
     },
     "nodes": {
@@ -4096,16 +4115,6 @@
         "title": "实验",
         "label": "实验",
         "description": "实验设计和实施"
-      },
-      "literature": {
-        "title": "文献",
-        "label": "文献",
-        "description": "相关文献和参考资料"
-      },
-      "data": {
-        "title": "数据",
-        "label": "数据",
-        "description": "实验数据和观测结果"
       },
       "conclusion": {
         "title": "结论",
@@ -4138,6 +4147,119 @@
         "label": "关联",
         "description": "通用关联关系"
       }
+    }
+  },
+  "profile": {
+    "title": "个人中心",
+    "verified": "已验证",
+    "joinedAt": "加入于",
+    "education": {
+      "title": "教育/工作经历",
+      "add": "添加经历",
+      "edit": "编辑经历",
+      "organization": "学校/单位",
+      "organizationPlaceholder": "例如：清华大学",
+      "organizationRequired": "请输入学校/单位",
+      "major": "专业",
+      "majorPlaceholder": "例如：物理学",
+      "majorRequired": "请输入专业",
+      "startDate": "开始时间",
+      "startDateRequired": "请选择开始时间",
+      "endDate": "结束时间",
+      "present": "至今",
+      "isCurrent": "目前在此学习/工作",
+      "degreeLevel": "学位级别",
+      "selectDegree": "选择学位",
+      "selectDate": "选择年月",
+      "bachelor": "本科",
+      "master": "硕士",
+      "phd": "博士",
+      "other": "其他",
+      "confirmDelete": "确定要删除这条经历吗？",
+      "empty": "暂无教育/工作经历，点击上方按钮添加"
+    },
+    "application": {
+      "title": "申请加入",
+      "myApplications": "我的申请",
+      "noApplications": "暂无申请记录",
+      "pending": "待审核",
+      "approved": "已通过",
+      "rejected": "已拒绝",
+      "withdrawn": "已撤回",
+      "appliedAt": "申请于",
+      "reviewNotes": "审核备注",
+      "withdraw": "撤回申请",
+      "unknownProject": "未知项目"
+    }
+  },
+  "project": {
+    "create": {
+      "title": "创建项目",
+      "step1": "基本信息",
+      "step2": "创建者信息",
+      "step3": "项目设置",
+      "basicInfo": "基本信息",
+      "creatorInfo": "创建者信息",
+      "settings": "项目设置",
+      "nameRequired": "请输入项目名称",
+      "organizationRequired": "请输入单位"
+    },
+    "edit": {
+      "title": "编辑项目",
+      "status": "项目状态",
+      "visibilityHint": "如需让其他人发现并加入此项目，请在\"设置\"中将可见性设为\"公开\""
+    },
+    "status": {
+      "draft": "草稿",
+      "active": "进行中",
+      "completed": "已完成",
+      "archived": "已归档"
+    },
+    "settings": {
+      "title": "项目设置",
+      "visibility": "可见性",
+      "public": "公开 - 所有人可见",
+      "private": "私有 - 仅成员可见",
+      "inviteOnly": "仅邀请 - 需要邀请链接",
+      "requireApproval": "加入需要审批",
+      "requireApprovalHint": "开启后，用户申请需要您批准才能加入",
+      "recruitmentRequirements": "招募要求",
+      "recruitmentRequirementsPlaceholder": "描述您希望招募什么样的队员，例如：有Python基础、对偏振光学感兴趣等",
+      "maxMembers": "最大成员数",
+      "maxMembersPlaceholder": "不填则无限制",
+      "recruitmentDeadline": "招募截止日期",
+      "isRecruiting": "正在招募",
+      "contactEmail": "联系邮箱",
+      "discussionChannel": "讨论频道"
+    },
+    "application": {
+      "title": "申请加入项目",
+      "form": {
+        "displayName": "姓名",
+        "displayNamePlaceholder": "您的姓名",
+        "organization": "单位",
+        "selectFromProfile": "从个人资料选择",
+        "enterManually": "手动输入",
+        "major": "专业",
+        "grade": "年级",
+        "gradePlaceholder": "例如：大三、研一",
+        "researchExperience": "科研经历",
+        "researchExperiencePlaceholder": "描述您的研究经历、参与过的项目等",
+        "expertise": "专长技能",
+        "expertisePlaceholder": "例如：Python编程、光学实验、数据分析等",
+        "motivation": "申请理由",
+        "motivationPlaceholder": "为什么想加入这个项目？"
+      },
+      "submit": "提交申请",
+      "success": "申请已提交",
+      "successAutoApproved": "申请已自动通过，您已成为项目成员"
+    },
+    "public": {
+      "title": "公开项目",
+      "browse": "浏览项目",
+      "recruiting": "正在招募",
+      "notRecruiting": "暂停招募",
+      "searchPlaceholder": "搜索项目..."
     }
   }
 }
