@@ -16,6 +16,7 @@
 
 import SHA256 from 'crypto-js/sha256';
 import EncHex from 'crypto-js/enc-hex';
+import CryptoJS from 'crypto-js';
 
 /**
  * Check if Web Crypto API is available
@@ -51,7 +52,7 @@ function randomWords(count: number): any {
   for (let i = 0; i < count; i++) {
     words.push(Math.random() * 0x100000000 | 0);
   }
-  return require('crypto-js').lib.WordArray.create(words);
+  return CryptoJS.lib.WordArray.create(words);
 }
 
 /**

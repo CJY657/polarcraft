@@ -56,10 +56,10 @@ export function validate(...validations: ValidationChain[]) {
  */
 export const usernameValidation = body('username')
   .trim()
-  .isLength({ min: 3, max: 50 })
-  .withMessage('用户名长度必须在 3-50 个字符之间')
-  .matches(/^[a-zA-Z0-9_-]+$/)
-  .withMessage('用户名只能包含字母、数字、下划线和连字符');
+  .isLength({ min: 1, max: 50 })
+  .withMessage('用户名长度必须在 1-50 个字符之间')
+  .matches(/^[\p{L}\p{N}_-]+$/u)
+  .withMessage('用户名只能包含字母（含中文）、数字、下划线和连字符');
 
 /**
  * Email validation (optional)

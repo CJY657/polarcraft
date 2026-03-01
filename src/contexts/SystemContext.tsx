@@ -61,7 +61,7 @@ const defaultHealthData: SystemHealthData = {
 const DEFAULT_HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://www.good5.net:3001';
 
 // =====================================================
 // Provider Component / Provider 组件
