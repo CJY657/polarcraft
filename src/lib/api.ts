@@ -6,7 +6,7 @@
  * 认证通过 HTTP-only cookie 处理
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://www.good5.net:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface ApiResponse<T = any> {
   success: boolean;
