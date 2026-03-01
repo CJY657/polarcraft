@@ -387,32 +387,41 @@ export function PublicProjectExplorePage() {
                     </div>
                   </div>
 
-                  {/* Action Button */}
-                  {project.is_member ? (
+                  {/* Action Buttons - 并排显示两个按钮 */}
+                  <div className="flex gap-2">
+                    {/* 打开课题按钮 - 始终显示 */}
                     <Link
                       to={`/lab/projects/${project.id}`}
+                      state={{ readOnly: !project.is_member }}
                       className={cn(
-                        "w-full px-4 py-2 rounded-lg font-medium transition-colors text-center block",
-                        theme === "dark"
-                          ? "bg-purple-600 hover:bg-purple-500 text-white"
-                          : "bg-purple-500 hover:bg-purple-600 text-white"
+                        "flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-center block",
+                        project.is_member
+                          ? theme === "dark"
+                            ? "bg-purple-600 hover:bg-purple-500 text-white"
+                            : "bg-purple-500 hover:bg-purple-600 text-white"
+                          : theme === "dark"
+                            ? "bg-slate-700 hover:bg-slate-600 text-gray-300 border border-slate-600"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
                       )}
                     >
-                      进入课题
+                      {project.is_member ? "进入课题" : "打开课题"}
                     </Link>
-                  ) : (
-                    <button
-                      onClick={() => handleApplyClick(project)}
-                      className={cn(
-                        "w-full px-4 py-2 rounded-lg font-medium transition-colors",
-                        theme === "dark"
-                          ? "bg-teal-600 hover:bg-teal-500 text-white"
-                          : "bg-teal-500 hover:bg-teal-600 text-white"
-                      )}
-                    >
-                      {project.require_approval ? "申请加入" : "立即加入"}
-                    </button>
-                  )}
+
+                    {/* 申请加入按钮 - 仅非成员显示 */}
+                    {!project.is_member && (
+                      <button
+                        onClick={() => handleApplyClick(project)}
+                        className={cn(
+                          "flex-1 px-4 py-2 rounded-lg font-medium transition-colors",
+                          theme === "dark"
+                            ? "bg-teal-600 hover:bg-teal-500 text-white"
+                            : "bg-teal-500 hover:bg-teal-600 text-white"
+                        )}
+                      >
+                        {project.require_approval ? "申请加入" : "立即加入"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

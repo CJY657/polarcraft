@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link, Navigate } from "react-router-dom";
+import { useParams, Link, Navigate, useLocation } from "react-router-dom";
 import {
   Plus,
   Grid3x3,
@@ -24,6 +24,7 @@ import {
   Mail,
   Globe,
   UserCheck,
+  AlertCircle,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +36,7 @@ import { profileApi, type ProjectSettings, type ProjectApplication } from "@/lib
 import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
+import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 
 interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
@@ -42,8 +44,12 @@ interface ProjectWithMembers extends ResearchProject {
 
 export function ResearchProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const location = useLocation();
   const { theme } = useTheme();
   const { user } = useAuth();
+
+  // 检查是否为只读模式（从导航状态获取）
+  const isReadOnlyMode = location.state?.readOnly === true && !projectId?.startsWith("example-");
 
   // Check if this is an example project
   const isExampleProject = projectId?.startsWith("example-");
@@ -61,6 +67,7 @@ export function ResearchProjectPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
+  const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
 
   // Application count state
   const [pendingApplicationCount, setPendingApplicationCount] = useState(0);
@@ -159,9 +166,9 @@ export function ResearchProjectPage() {
   // Get role label
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
-      owner: "创建者",
+      owner: "组长",
       admin: "管理员",
-      editor: "编辑者",
+      editor: "成员",
       viewer: "查看者",
     };
     return labels[role] || role;
@@ -264,7 +271,7 @@ export function ResearchProjectPage() {
         className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
         rightContent={
           <div className="flex items-center gap-2">
-            {!isExampleProject && isOwnerOrAdmin && (
+            {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
               <>
                 <button
                   onClick={() => setIsSettingsDialogOpen(true)}
@@ -309,6 +316,56 @@ export function ResearchProjectPage() {
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* 只读模式提示 */}
+        {isReadOnlyMode && (
+          <div
+            className={cn(
+              "mb-6 p-4 rounded-lg flex items-center justify-between",
+              theme === "dark"
+                ? "bg-amber-900/20 border border-amber-800/50"
+                : "bg-amber-50 border border-amber-200"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle
+                className={cn(
+                  "w-5 h-5",
+                  theme === "dark" ? "text-amber-400" : "text-amber-600"
+                )}
+              />
+              <div>
+                <p
+                  className={cn(
+                    "text-sm font-medium",
+                    theme === "dark" ? "text-amber-300" : "text-amber-700"
+                  )}
+                >
+                  只读模式
+                </p>
+                <p
+                  className={cn(
+                    "text-xs",
+                    theme === "dark" ? "text-amber-400/70" : "text-amber-600/70"
+                  )}
+                >
+                  您正在以访客身份浏览此课题，如需编辑请申请加入
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsApplicationFormOpen(true)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                theme === "dark"
+                  ? "bg-amber-600 hover:bg-amber-500 text-white"
+                  : "bg-amber-500 hover:bg-amber-600 text-white"
+              )}
+            >
+              申请加入
+            </button>
+          </div>
+        )}
+
         {/* Project Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between">
@@ -356,7 +413,7 @@ export function ResearchProjectPage() {
               {displayProject.description_zh && (
                 <p
                   className={cn(
-                    "text-sm mb-4",
+                    "text-xl mb-4",
                     theme === "dark" ? "text-gray-400" : "text-gray-600"
                   )}
                 >
@@ -419,7 +476,7 @@ export function ResearchProjectPage() {
               >
                 课题成员
               </h2>
-              {isOwnerOrAdmin && (
+              {isOwnerOrAdmin && !isReadOnlyMode && (
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
@@ -504,7 +561,7 @@ export function ResearchProjectPage() {
           >
             研究画布
           </h2>
-          {!isExampleProject && isOwnerOrAdmin && (
+          {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
             <button
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
@@ -524,7 +581,7 @@ export function ResearchProjectPage() {
           {/* Main Canvas */}
           <Link
             to={`/lab/projects/${projectId}/canvases/${canvases[0]?.id || 'main'}`}
-            state={isExampleProject ? { exampleProjectId: exampleId } : undefined}
+            state={isExampleProject ? { exampleProjectId: exampleId } : { readOnly: isReadOnlyMode }}
             className={cn(
               "group relative p-6 rounded-xl border-2 transition-all hover:shadow-lg",
               theme === "dark"
@@ -583,88 +640,90 @@ export function ResearchProjectPage() {
           </Link>
         </div>
 
-        {/* Getting Started Guide */}
-        <div className="mt-12 p-6 rounded-xl border-2 border-dashed border-slate-600">
-          <h3
-            className={cn(
-              "text-lg font-semibold mb-4",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
-          >
-            开始使用
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                1
+        {/* Getting Started Guide - 只读模式隐藏 */}
+        {!isReadOnlyMode && (
+          <div className="mt-12 p-6 rounded-xl border-2 border-dashed border-slate-600">
+            <h3
+              className={cn(
+                "text-lg font-semibold mb-4",
+                theme === "dark" ? "text-white" : "text-gray-900"
+              )}
+            >
+              开始使用
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <h4
+                    className={cn(
+                      "font-medium mb-1",
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    )}
+                  >
+                    创建画布
+                  </h4>
+                  <p
+                    className={cn(
+                      "text-sm",
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    )}
+                  >
+                    为您的研究创建一个新的画布
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4
-                  className={cn(
-                    "font-medium mb-1",
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  )}
-                >
-                  创建画布
-                </h4>
-                <p
-                  className={cn(
-                    "text-sm",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  为您的研究创建一个新的画布
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <h4
+                    className={cn(
+                      "font-medium mb-1",
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    )}
+                  >
+                    添加节点
+                  </h4>
+                  <p
+                    className={cn(
+                      "text-sm",
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    )}
+                  >
+                    添加问题、实验、文献等节点
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                2
-              </div>
-              <div>
-                <h4
-                  className={cn(
-                    "font-medium mb-1",
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  )}
-                >
-                  添加节点
-                </h4>
-                <p
-                  className={cn(
-                    "text-sm",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  添加问题、实验、文献等节点
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                3
-              </div>
-              <div>
-                <h4
-                  className={cn(
-                    "font-medium mb-1",
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  )}
-                >
-                  建立联系
-                </h4>
-                <p
-                  className={cn(
-                    "text-sm",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  用有向边连接节点，构建知识网络
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <h4
+                    className={cn(
+                      "font-medium mb-1",
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    )}
+                  >
+                    建立联系
+                  </h4>
+                  <p
+                    className={cn(
+                      "text-sm",
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    )}
+                  >
+                    用有向边连接节点，构建知识网络
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
       </main>
 
@@ -697,6 +756,36 @@ export function ResearchProjectPage() {
           projectId={projectId}
           onSuccess={(updatedSettings) => {
             setSettings(updatedSettings);
+          }}
+        />
+      )}
+
+      {/* Application Form for Read-Only Mode */}
+      {isReadOnlyMode && project && (
+        <ProjectApplicationForm
+          isOpen={isApplicationFormOpen}
+          onClose={() => setIsApplicationFormOpen(false)}
+          project={{
+            id: project.id,
+            name_zh: project.name_zh,
+            name_en: project.name_en,
+            description_zh: project.description_zh,
+            description_en: project.description_en,
+            thumbnail: project.thumbnail,
+            status: project.status,
+            visibility: 'public' as const,
+            require_approval: settings?.require_approval ?? true,
+            recruitment_requirements: settings?.recruitment_requirements ?? null,
+            is_recruiting: settings?.is_recruiting ?? false,
+            max_members: settings?.max_members ?? null,
+            member_count: project.member_count,
+            is_member: false,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+          }}
+          onSuccess={() => {
+            setIsApplicationFormOpen(false);
+            // 可以在这里添加成功提示或刷新页面
           }}
         />
       )}

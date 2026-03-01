@@ -20,6 +20,8 @@ import ReactFlow, {
   Node,
   ReactFlowProvider,
   useReactFlow,
+  NodeChange,
+  EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -123,6 +125,43 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
   // Track if this is an example project (no saving)
   const isExampleProject = !!location.state?.exampleProjectId;
+
+  // Track if this is read-only mode (visitor viewing a public project)
+  const isReadOnly = location.state?.readOnly === true;
+
+  // Wrapper for onNodesChange to filter changes in read-only mode
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (isReadOnly) {
+        // Only allow selection changes in read-only mode
+        const allowedChanges = changes.filter(
+          (change) => change.type === 'select' || change.type === 'reset' || change.type === 'setDimensions'
+        );
+        if (allowedChanges.length > 0) {
+          onNodesChange(allowedChanges);
+        }
+        return;
+      }
+      onNodesChange(changes);
+    },
+    [isReadOnly, onNodesChange]
+  );
+
+  // Wrapper for onEdgesChange to filter changes in read-only mode
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      if (isReadOnly) {
+        // Only allow selection changes in read-only mode
+        const allowedChanges = changes.filter((change) => change.type === 'select' || change.type === 'reset');
+        if (allowedChanges.length > 0) {
+          onEdgesChange(allowedChanges);
+        }
+        return;
+      }
+      onEdgesChange(changes);
+    },
+    [isReadOnly, onEdgesChange]
+  );
 
   // Close export menu when clicking outside
   useEffect(() => {
@@ -232,7 +271,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
   // Save all nodes and edges to the server
   const handleSave = useCallback(async (force: boolean = false) => {
-    if (isExampleProject || isSaving) return;
+    if (isExampleProject || isSaving || isReadOnly) return;
 
     // Rate limiting: check if minimum interval has passed
     const now = Date.now();
@@ -403,7 +442,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
   // Auto-save with debounce
   const scheduleAutoSave = useCallback(() => {
-    if (isExampleProject) return;
+    if (isExampleProject || isReadOnly) return;
 
     setHasUnsavedChanges(true);
 
@@ -451,6 +490,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   // Handle new connections
   const onConnect = useCallback(
     (params: Connection) => {
+      if (isReadOnly) return;
       const newEdge = {
         ...params,
         type: 'custom',
@@ -459,7 +499,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       };
       setFlowEdges((eds) => addEdge(newEdge, eds));
     },
-    [setFlowEdges]
+    [setFlowEdges, isReadOnly]
   );
 
   // Handle node click
@@ -719,8 +759,8 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         }
         rightContent={
           <div className="flex items-center gap-2">
-            {/* Save status indicator */}
-            {!isExampleProject && (
+            {/* Save status indicator - 只读模式隐藏 */}
+            {!isExampleProject && !isReadOnly && (
               <div className="flex items-center gap-2">
                 {saveError ? (
                   <span className="flex items-center gap-1 text-xs text-red-400">
@@ -768,7 +808,9 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
               </div>
             )}
 
-            {/* Import button */}
+            {/* Import button - 只读模式隐藏 */}
+            {!isReadOnly && (
+            <>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg border border-slate-600 text-gray-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -787,6 +829,8 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
               onChange={handleImport}
               className="hidden"
             />
+            </>
+            )}
 
             {/* Export button */}
             <div className="relative" ref={exportMenuRef}>
@@ -849,8 +893,8 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         <ReactFlow
           nodes={flowNodes}
           edges={edgesWithCallbacks}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
@@ -885,13 +929,15 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         <div className="absolute top-4 left-4 px-3 py-2 bg-slate-800/80 rounded-lg border border-slate-700">
           <div className="text-xs text-gray-400">
             课题: {projectId} | 画布: {canvasId}
+            {isReadOnly && <span className="ml-2 text-amber-400">(只读)</span>}
           </div>
           <div className="text-xs text-gray-500 mt-1">
             节点: {flowNodes.length} | 关系: {flowEdges.length}
           </div>
         </div>
 
-        {/* Add Node Toolbar */}
+        {/* Add Node Toolbar - 只读模式隐藏 */}
+        {!isReadOnly && (
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <button
             className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg border border-amber-500 transition-colors"
@@ -930,9 +976,10 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
             + 便签
           </button>
         </div>
+        )}
 
         {/* Instructions */}
-        {flowNodes.length === 0 && (
+        {flowNodes.length === 0 && !isReadOnly && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
             <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-600 p-8 max-w-md">
               <h3 className="text-white text-lg font-semibold mb-4">开始您的探索</h3>
@@ -942,11 +989,23 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
             </div>
           </div>
         )}
+
+        {/* Read-only empty state */}
+        {flowNodes.length === 0 && isReadOnly && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+            <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-600 p-8 max-w-md">
+              <h3 className="text-white text-lg font-semibold mb-4">画布为空</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                此课题暂无画布内容
+              </p>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* Side Panel for Node Details */}
         <div className="w-80 border-l border-slate-700 bg-slate-800/50 flex flex-col">
-          <NodeDetailsPanel theme={theme} onUpdateNode={updateNode} onRemoveNode={removeNode} />
+          <NodeDetailsPanel theme={theme} onUpdateNode={updateNode} onRemoveNode={removeNode} readOnly={isReadOnly} />
         </div>
       </div>
     </div>
