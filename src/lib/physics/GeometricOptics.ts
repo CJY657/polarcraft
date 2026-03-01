@@ -25,8 +25,19 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
+/**
+* 修改内容：
+*
+*- ✅ 删除了未使用的 REFRACTIVE_INDICES 和 getBirefringenceMaterial 的 import
+*- ✅ 保留了 BIREFRINGENT_MATERIALS 的 import（因为文件内部在使用）
+*- ✅ 保留了重新导出语句，维持向后兼容性
+*为什么这样改？
+*- BIREFRINGENT_MATERIALS 在文件内部被使用（第137、138、182、183行），所以需要 import
+*- REFRACTIVE_INDICES 和 getBirefringenceMaterial 只是为了重新导出，不需要 import
+*- 重新导出让其他模块可以从 GeometricOptics.ts 直接导入，不需要知道内部结构
+*/
 import * as THREE from "three";
-import { REFRACTIVE_INDICES, BIREFRINGENT_MATERIALS, getBirefringenceMaterial } from "./OpticsConstants";
+import { BIREFRINGENT_MATERIALS } from "./OpticsConstants";
 
 // Re-export types and constants for backward compatibility
 export type { BirefringenceMaterial } from "./OpticsConstants";
