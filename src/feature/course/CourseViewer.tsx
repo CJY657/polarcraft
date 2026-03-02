@@ -35,7 +35,6 @@ const MEDIA_TYPE_ICONS: Record<MediaType, React.ReactNode> = {
   pptx: <FileText className="h-5 w-5" />,
   image: <ImageIcon className="h-5 w-5" />,
   video: <Play className="h-5 w-5" />,
-  pdf: <FileText className="h-5 w-5" />,
 };
 
 // 媒体类型颜色
@@ -43,7 +42,6 @@ const MEDIA_TYPE_COLORS: Record<MediaType, string> = {
   pptx: "#F59E0B",
   image: "#8B5CF6",
   video: "#EF4444",
-  pdf: "#DC2626",
 };
 
 // PPTX Previewer instance type
@@ -514,19 +512,36 @@ function PptxViewer({ url, theme }: PptxViewerProps) {
 export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
 
-  // 当前媒体索引
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  // 是否全屏
+  // 当前选中的媒体（用于下方预览区）
+  const [selectedMedia, setSelectedMedia] = useState<MediaResource | null>(null);
+  // 下方预览区是否全屏
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // 主 PDF 是否全屏
+  const [isMainSlideFullscreen, setIsMainSlideFullscreen] = useState(false);
 
-  const currentMedia = course.media[currentMediaIndex];
+  // 获取主 PDF（直接从 mainSlide 字段获取）
+  const mainSlide = course.mainSlide;
+
+  // 获取媒体资源列表（PDF 已分离，不再需要过滤）
+  const mediaList = course.media;
+
+  // 获取超链接列表
+  const hyperlinks = course.hyperlinks || [];
 
   // 获取媒体标题
-  const getMediaTitle = (media: MediaResource) => {
+  const getMediaTitle = (media: MediaResource | { title: Record<string, string> }) => {
     return media.title[i18n.language];
   };
 
-  // 切换全屏
+  // 处理超链接点击
+  const handleHyperlinkClick = (targetMediaId: string) => {
+    const media = mediaList.find((m) => m.id === targetMediaId);
+    if (media) {
+      setSelectedMedia(media);
+    }
+  };
+
+  // 切换下方预览区全屏
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -534,32 +549,53 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
   // ESC 键退出全屏
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullscreen) {
-        setIsFullscreen(false);
+      if (e.key === "Escape") {
+        if (isMainSlideFullscreen) {
+          setIsMainSlideFullscreen(false);
+        } else if (isFullscreen) {
+          setIsFullscreen(false);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, isMainSlideFullscreen]);
+
+  // 渲染主 PDF 内容
+  const renderMainSlide = (isFullscreenMode = false) => {
+    if (!mainSlide) return null;
+
+    const containerClass = isFullscreenMode
+      ? "w-full h-full"
+      : "w-full h-full rounded-xl overflow-hidden";
+
+    return (
+      <div className={containerClass}>
+        <PdfViewer
+          url={mainSlide.url}
+          theme={theme}
+          hyperlinks={hyperlinks}
+          onHyperlinkClick={handleHyperlinkClick}
+          onFullscreenClick={isFullscreenMode ? undefined : () => setIsMainSlideFullscreen(true)}
+        />
+      </div>
+    );
+  };
 
   // 渲染媒体内容
-  const renderMedia = (media: MediaResource) => {
+  const renderMedia = (media: MediaResource | null) => {
+    if (!media) return null;
+
     const containerClass = isFullscreen
       ? "fixed inset-0 z-[9999] bg-black"
-      : "w-full aspect-video rounded-xl overflow-hidden";
+      : "w-full h-full rounded-xl overflow-hidden";
 
     switch (media.type) {
       case "pptx":
-        const pptxContainerClass = isFullscreen
-          ? "fixed inset-0 z-[9999] bg-black"
-          : "w-full rounded-xl overflow-hidden aspect-video";
         return (
-          <div className={pptxContainerClass}>
-            <PptxViewer
-              url={media.url}
-              theme={theme}
-            />
+          <div className={containerClass}>
+            <PptxViewer url={media.url} theme={theme} />
           </div>
         );
 
@@ -577,21 +613,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
       case "video":
         return (
           <div className={containerClass}>
-            <video
-              src={media.url}
-              controls
-              className="h-full w-full"
-            />
-          </div>
-        );
-
-      case "pdf":
-        const pdfContainerClass = isFullscreen
-          ? "fixed inset-0 z-[9999] bg-black"
-          : "w-full rounded-xl overflow-hidden aspect-video";
-        return (
-          <div className={pdfContainerClass}>
-            <PdfViewer url={media.url} theme={theme} />
+            <video src={media.url} controls className="h-full w-full" />
           </div>
         );
 
@@ -608,181 +630,185 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
     }
   };
 
-  if (!currentMedia) {
-    return null;
-  }
-
   return (
-    <div className="mx-auto max-w-4xl px-4">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={onBack}
-          className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ${
-            theme === "dark"
-              ? "text-gray-400 hover:bg-slate-800 hover:text-white"
-              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          }`}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span>{t("page.courses.backtocourses")}</span>
-        </button>
+    <div className="mx-auto max-w-6xl px-4">
+      {/* 返回按钮 */}
+      <button
+        onClick={onBack}
+        className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ${
+          theme === "dark"
+            ? "text-gray-400 hover:bg-slate-800 hover:text-white"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        }`}
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span>{t("page.courses.backtocourses")}</span>
+      </button>
 
-        <div className="flex items-start gap-4">
-          <div
-            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: `${course.color}20` }}
-          >
-            <FileText
-              className="h-6 w-6"
-              style={{ color: course.color }}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1
-              className={`mb-2 text-2xl font-bold ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
-              {course.title[i18n.language]}
-            </h1>
-            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              {course.description[i18n.language]}
-            </p>
-          </div>
+      {/* 上方区域：主 PDF 永久显示 */}
+      {mainSlide && (
+        <div className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+          <div className="aspect-video">{renderMainSlide()}</div>
         </div>
-      </div>
+      )}
 
-      {/* Main Content Area */}
-      <div className="space-y-6">
-        {/* Media Viewer */}
-        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
-          {/* Media */}
-          <div className="mb-4">{renderMedia(currentMedia)}</div>
-
-          {/* Media Controls */}
-          <div className="flex items-center justify-end gap-2">
-              {/* Fullscreen Toggle */}
-              <button
-                onClick={toggleFullscreen}
-                className={`rounded-lg p-2 transition-colors ${
-                  theme === "dark"
-                    ? "text-gray-400 hover:bg-slate-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-                title={
-                  isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")
-                }
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-5 w-5" />
-                ) : (
-                  <Maximize2 className="h-5 w-5" />
-                )}
-              </button>
-
-              {/* Download Media */}
-              <button
-                onClick={() => window.open(currentMedia.url, "_blank")}
-                className={`rounded-lg p-2 transition-colors ${
-                  theme === "dark"
-                    ? "text-gray-400 hover:bg-slate-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-                title={t("page.courses.download")}
-              >
-                <Download className="h-5 w-5" />
-              </button>
-          </div>
-
-          {/* Media Info */}
-          <div
-            className="mt-4 border-t pt-4"
-            style={{ borderColor: theme === "dark" ? "#334155" : "#e5e7eb" }}
+      {/* 主 PDF 全屏模式 */}
+      {isMainSlideFullscreen && mainSlide && (
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+          <button
+            onClick={() => setIsMainSlideFullscreen(false)}
+            className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors"
+            title={t("page.courses.exitfullscreen")}
           >
-            <div className="mb-3 flex items-center gap-3">
-              <div
-                className="rounded-lg p-1.5"
-                style={{ backgroundColor: `${MEDIA_TYPE_COLORS[currentMedia.type]}20` }}
-              >
-                <span style={{ color: MEDIA_TYPE_COLORS[currentMedia.type] }}>
-                  {MEDIA_TYPE_ICONS[currentMedia.type]}
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3
-                  className={`text-sm font-medium ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
+            <Minimize2 className="h-5 w-5" />
+          </button>
+          <div className="w-full h-full">{renderMainSlide(true)}</div>
+        </div>
+      )}
+
+      {/* 下方区域：媒体资源列表 + 预览区（左右布局） */}
+      {mediaList.length > 0 && (
+        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+          <div className="flex gap-4">
+            {/* 左侧：资源列表 */}
+            <div className="w-52 flex-shrink-0 space-y-1 max-h-[60vh] overflow-y-auto">
+              {mediaList.map((media) => (
+                <button
+                  key={media.id}
+                  onClick={() => setSelectedMedia(selectedMedia?.id === media.id ? null : media)}
+                  className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 transition-all ${
+                    selectedMedia?.id === media.id
+                      ? "bg-blue-500 text-white"
+                      : theme === "dark"
+                        ? "bg-slate-700 hover:bg-slate-600"
+                        : "bg-gray-100 hover:bg-gray-200"
                   }`}
                 >
-                  {getMediaTitle(currentMedia)}
-                </h3>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                  {currentMedia.type.toUpperCase()}
-                </p>
-              </div>
-              {currentMedia.duration && (
-                <div
-                  className="flex items-center gap-1 text-xs"
-                  style={{ color: course.color }}
-                >
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>
-                    {Math.floor(currentMedia.duration / 60)}:
-                    {(currentMedia.duration % 60).toString().padStart(2, "0")}
-                  </span>
+                  <div
+                    className="rounded p-1"
+                    style={{
+                      backgroundColor:
+                        selectedMedia?.id === media.id
+                          ? "rgba(255,255,255,0.2)"
+                          : `${MEDIA_TYPE_COLORS[media.type]}20`,
+                    }}
+                  >
+                    <span
+                      className="scale-75 inline-block"
+                      style={{
+                        color: selectedMedia?.id === media.id ? "white" : MEDIA_TYPE_COLORS[media.type],
+                      }}
+                    >
+                      {MEDIA_TYPE_ICONS[media.type]}
+                    </span>
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <span
+                      className={`block text-xs font-medium truncate ${
+                        selectedMedia?.id === media.id
+                          ? "text-white"
+                          : theme === "dark"
+                            ? "text-gray-300"
+                            : "text-gray-700"
+                      }`}
+                    >
+                      {getMediaTitle(media)}
+                    </span>
+                    {media.duration && (
+                      <div
+                        className="flex items-center gap-0.5 text-[10px] mt-0.5"
+                        style={{
+                          color: selectedMedia?.id === media.id ? "rgba(255,255,255,0.8)" : course.color,
+                        }}
+                      >
+                        <Clock className="h-2.5 w-2.5" />
+                        <span>
+                          {Math.floor(media.duration / 60)}:{(media.duration % 60).toString().padStart(2, "0")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* 右侧：选中媒体的预览区域 */}
+            <div className="flex-1 min-w-0">
+              {selectedMedia ? (
+                <div>
+                  {/* 媒体预览 */}
+                  <div className="aspect-video mb-3">{renderMedia(selectedMedia)}</div>
+
+                  {/* 媒体详情 - 置于下方 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="rounded-lg p-1.5"
+                        style={{ backgroundColor: `${MEDIA_TYPE_COLORS[selectedMedia.type]}20` }}
+                      >
+                        <span style={{ color: MEDIA_TYPE_COLORS[selectedMedia.type] }}>
+                          {MEDIA_TYPE_ICONS[selectedMedia.type]}
+                        </span>
+                      </div>
+                      <div>
+                        <h3
+                          className={`text-sm font-medium ${
+                            theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}
+                        >
+                          {getMediaTitle(selectedMedia)}
+                        </h3>
+                        {selectedMedia.duration && (
+                          <div
+                            className="flex items-center gap-1 text-xs"
+                            style={{ color: course.color }}
+                          >
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {Math.floor(selectedMedia.duration / 60)}:
+                              {(selectedMedia.duration % 60).toString().padStart(2, "0")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={toggleFullscreen}
+                        className={`rounded-lg p-2 transition-colors ${
+                          theme === "dark"
+                            ? "text-gray-400 hover:bg-slate-700"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
+                      >
+                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                      </button>
+                      <button
+                        onClick={() => window.open(selectedMedia.url, "_blank")}
+                        className={`rounded-lg p-2 transition-colors ${
+                          theme === "dark"
+                            ? "text-gray-400 hover:bg-slate-700"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        title={t("page.courses.download")}
+                      >
+                        <Download className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video flex items-center justify-center rounded-xl border-2 border-dashed">
+                  <p className={theme === "dark" ? "text-gray-500" : "text-gray-400"}>
+                    {t("page.courses.selectmedia") || "选择媒体资源查看"}
+                  </p>
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* Resources - 水平排列在下方 */}
-        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
-          <h3
-            className={`mb-4 text-sm font-bold ${
-              theme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            {t("page.courses.resources")}
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            {course.media.map((media, index) => (
-              <button
-                key={media.id}
-                onClick={() => setCurrentMediaIndex(index)}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 transition-all ${
-                  currentMediaIndex === index
-                    ? "bg-blue-500 text-white"
-                    : theme === "dark"
-                      ? "bg-slate-700 hover:bg-slate-600"
-                      : "bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                <span
-                  style={{
-                    color:
-                      currentMediaIndex === index ? "white" : MEDIA_TYPE_COLORS[media.type],
-                  }}
-                >
-                  {MEDIA_TYPE_ICONS[media.type]}
-                </span>
-                <span
-                  className={`truncate text-sm font-medium max-w-[150px] ${
-                    currentMediaIndex === index
-                      ? "text-white"
-                      : theme === "dark"
-                        ? "text-gray-300"
-                        : "text-gray-700"
-                  }`}
-                >
-                  {getMediaTitle(media)}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

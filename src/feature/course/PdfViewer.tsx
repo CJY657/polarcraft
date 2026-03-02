@@ -2,6 +2,7 @@
  * PdfViewer - PDF 查看器
  *
  * 支持横屏 PPT 式翻页和竖屏垂直滚动
+ * 支持在 PDF 上渲染可点击的超链接区域
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -16,7 +17,9 @@ import {
   ChevronRight,
   Loader2,
   FileText,
+  Maximize2,
 } from "lucide-react";
+import type { PdfHyperlink } from "@/data/courses";
 
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -25,9 +28,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 interface PdfViewerProps {
   url: string;
   theme: "dark" | "light";
+  /** PDF 上的超链接区域 */
+  hyperlinks?: PdfHyperlink[];
+  /** 点击超链接的回调 */
+  onHyperlinkClick?: (targetMediaId: string) => void;
+  /** 点击全屏按钮的回调 */
+  onFullscreenClick?: () => void;
 }
 
-function PdfViewer({ url, theme }: PdfViewerProps) {
+function PdfViewer({ url, theme, hyperlinks = [], onHyperlinkClick, onFullscreenClick }: PdfViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -284,14 +293,38 @@ function PdfViewer({ url, theme }: PdfViewerProps) {
                       display: index + 1 === currentPage ? "flex" : "none",
                     }}
                   >
-                    <Page
-                      key={`page-${index + 1}-${scale.toFixed(2)}`}
-                      pageNumber={index + 1}
-                      scale={scale}
-                      onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                    />
+                    <div className="relative">
+                      <Page
+                        key={`page-${index + 1}-${scale.toFixed(2)}`}
+                        pageNumber={index + 1}
+                        scale={scale}
+                        onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                      />
+                      {/* 超链接覆盖层 */}
+                      {index + 1 === currentPage && hyperlinks.length > 0 && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {hyperlinks
+                            .filter((h) => h.page === currentPage)
+                            .map((hyperlink) => (
+                              <button
+                                key={hyperlink.id}
+                                className="absolute pointer-events-auto bg-blue-500/20 hover:bg-blue-500/40 border-2 border-blue-500/50 hover:border-blue-500 rounded transition-colors cursor-pointer"
+                                style={{
+                                  left: `${hyperlink.x * 100}%`,
+                                  top: `${hyperlink.y * 100}%`,
+                                  width: `${hyperlink.width * 100}%`,
+                                  height: `${hyperlink.height * 100}%`,
+                                  transform: "translate(-50%, -50%)",
+                                }}
+                                onClick={() => onHyperlinkClick?.(hyperlink.targetMediaId)}
+                                title={hyperlink.targetMediaId}
+                              />
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -303,14 +336,38 @@ function PdfViewer({ url, theme }: PdfViewerProps) {
                 key={index}
                 className="pdf-page-wrapper flex justify-center"
               >
-                <Page
-                  key={`page-${index + 1}-${scale.toFixed(2)}`}
-                  pageNumber={index + 1}
-                  scale={scale}
-                  onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
+                <div className="relative">
+                  <Page
+                    key={`page-${index + 1}-${scale.toFixed(2)}`}
+                    pageNumber={index + 1}
+                    scale={scale}
+                    onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                  {/* 超链接覆盖层 */}
+                  {hyperlinks.length > 0 && (
+                    <div className="absolute inset-0 pointer-events-none">
+                      {hyperlinks
+                        .filter((h) => h.page === index + 1)
+                        .map((hyperlink) => (
+                          <button
+                            key={hyperlink.id}
+                            className="absolute pointer-events-auto bg-blue-500/20 hover:bg-blue-500/40 border-2 border-blue-500/50 hover:border-blue-500 rounded transition-colors cursor-pointer"
+                            style={{
+                              left: `${hyperlink.x * 100}%`,
+                              top: `${hyperlink.y * 100}%`,
+                              width: `${hyperlink.width * 100}%`,
+                              height: `${hyperlink.height * 100}%`,
+                              transform: "translate(-50%, -50%)",
+                            }}
+                            onClick={() => onHyperlinkClick?.(hyperlink.targetMediaId)}
+                            title={hyperlink.targetMediaId}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -330,6 +387,21 @@ function PdfViewer({ url, theme }: PdfViewerProps) {
           >
             {currentPage} / {numPages}
           </div>
+
+          {/* 全屏按钮 */}
+          {onFullscreenClick && (
+            <button
+              onClick={onFullscreenClick}
+              className={`absolute top-2 right-2 p-2 rounded-full transition-all z-20 ${
+                theme === "dark"
+                  ? "bg-black/70 text-white hover:bg-black/90"
+                  : "bg-white/90 text-gray-900 shadow-lg hover:bg-white"
+              }`}
+              title="全屏"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          )}
 
           {/* 上一页按钮 */}
           <button

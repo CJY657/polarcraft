@@ -10,8 +10,34 @@
 // Types - 类型定义
 // ============================================================
 
-/** 媒体类型 */
-export type MediaType = "pptx" | "image" | "video" | "pdf";
+/** 媒体类型（不包含 PDF，PDF 作为主课件单独处理） */
+export type MediaType = "pptx" | "image" | "video";
+
+/** 主课件（PDF） */
+export interface MainSlide {
+  id: string;
+  /** PDF URL 或本地路径 */
+  url: string;
+  /** 标题 */
+  title: LabelI18n;
+}
+
+/** PDF 上的超链接区域 */
+export interface PdfHyperlink {
+  id: string;
+  /** PDF 页码（从 1 开始） */
+  page: number;
+  /** 中心点 X 坐标（相对于 PDF 页面宽度的比例，0-1） */
+  x: number;
+  /** 中心点 Y 坐标（相对于 PDF 页面高度的比例，0-1） */
+  y: number;
+  /** 宽度（相对于 PDF 页面宽度的比例，0-1） */
+  width: number;
+  /** 高度（相对于 PDF 页面高度的比例，0-1） */
+  height: number;
+  /** 链接到的媒体资源 id */
+  targetMediaId: string;
+}
 
 /** 单个媒体资源 */
 export interface MediaResource {
@@ -38,7 +64,11 @@ export interface CourseData {
   coverImage?: string;
   /** 课程颜色 */
   color: string;
-  /** 媒体资源列表 */
+  /** 主课件 PDF */
+  mainSlide?: MainSlide;
+  /** PDF 上的超链接区域 */
+  hyperlinks?: PdfHyperlink[];
+  /** 媒体资源列表（不包含 PDF） */
   media: MediaResource[];
   /** 最后更新时间 */
   lastUpdated: string;
@@ -56,20 +86,14 @@ export const COURSE_DATA: CourseData[] = [
     description: { "zh-CN": "介绍冰洲石和布儒斯特实验的基本原理和实验过程。" },
     color: "#C9A227",
     coverImage: "/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.jpg",
+    mainSlide: {
+      id: "course1-pdf",
+      url: "/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.pdf",
+      title: { "zh-CN": "冰洲石和布儒斯特实验介绍" },
+    },
+    hyperlinks: [],
     lastUpdated: "2025-01-15",
     media: [
-      {
-        id: "course1-1-pdf",
-        type: "pdf",
-        url: "/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.pdf",
-        title: { "zh-CN": "冰洲石和布儒斯特实验介绍PDF" },
-      },
-      {
-        id: "course1-1-ppt",
-        type: "pptx",
-        url: "/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.pptx",
-        title: { "zh-CN": "冰洲石和布儒斯特实验介绍PPT" },
-      },
       {
         id: "course1-1-video",
         type: "video",
@@ -114,21 +138,14 @@ export const COURSE_DATA: CourseData[] = [
     description: { "zh-CN": "介绍色偏振及旋光实验的基本原理和实验过程。" },
     color: "#C9A227",
     coverImage: "/courses/unit2/第二单元——色偏振及旋光实验介绍.jpg",
+    mainSlide: {
+      id: "course2-pdf",
+      url: "/courses/unit2/第二单元——色偏振及旋光实验介绍.pdf",
+      title: { "zh-CN": "色偏振及旋光实验介绍" },
+    },
+    hyperlinks: [],
     lastUpdated: "2025-01-15",
     media: [
-      {
-        id: "course2-1-pdf",
-        type: "pdf",
-        url: "/courses/unit2/第二单元——色偏振及旋光实验介绍.pdf",
-        title: { "zh-CN": "第二单元——色偏振及旋光实验介绍PDF" },
-      },
-      {
-        id: "course2-1-video",
-        type: "video",
-        url: "/courses/unit2/实验-打火机烧玻璃-正交偏振系统-长时间观察视频.mp4",
-        title: { "zh-CN": "普通玻璃顶角加热在正交偏振系统视频" },
-        duration: 31,
-      },
       {
         id: "course2-2-video",
         type: "video",
@@ -215,21 +232,14 @@ export const COURSE_DATA: CourseData[] = [
     description: { "zh-CN": "介绍散射实验的基本原理和实验过程。" },
     color: "#C9A227",
     coverImage: "/courses/unit3/第三单元——散射实验介绍.jpg",
+    mainSlide: {
+      id: "course3-pdf",
+      url: "/courses/unit3/第三单元——散射实验介绍.pdf",
+      title: { "zh-CN": "散射实验介绍" },
+    },
+    hyperlinks: [],
     lastUpdated: "2025-01-15",
-    media: [
-      {
-        id: "course3-1-pdf",
-        type: "pdf",
-        url: "/courses/unit3/第三单元——散射实验介绍.pdf",
-        title: { "zh-CN": "第三单元——散射实验介绍PDF" },
-      },
-      {
-        id: "course3-1-ppt",
-        type: "pptx",
-        url: "/courses/unit3/第三单元——散射实验介绍.pptx",
-        title: { "zh-CN": "第三单元——散射实验介绍PPT" },
-      },
-    ],
+    media: [],
   },
   {
     id: "course4",
@@ -238,15 +248,14 @@ export const COURSE_DATA: CourseData[] = [
     description: { "zh-CN": "介绍3种实验仪器的基本原理和使用方法。" },
     color: "#C9A227",
     coverImage: "/courses/unit4/第四单元——3种仪器介绍-.jpg",
+    mainSlide: {
+      id: "course4-pdf",
+      url: "/courses/unit4/第四单元——3种仪器介绍-.pdf",
+      title: { "zh-CN": "3种仪器介绍" },
+    },
+    hyperlinks: [],
     lastUpdated: "2025-01-15",
-    media: [
-      {
-        id: "course4-1-pdf",
-        type: "pdf",
-        url: "/courses/unit4/第四单元——3种仪器介绍-.pdf",
-        title: { "zh-CN": "第四单元——3种仪器介绍PDF" },
-      },
-    ],
+    media: [],
   },
 ];
 
@@ -276,4 +285,13 @@ export function getAllMediaForCourse(courseId: string): MediaResource[] {
 export function filterMediaByType(courseId: string, type: MediaType): MediaResource[] {
   const allMedia = getAllMediaForCourse(courseId);
   return allMedia.filter((media) => media.type === type);
+}
+
+/**
+ * 根据媒体 ID 获取媒体资源
+ */
+export function getMediaById(courseId: string, mediaId: string): MediaResource | undefined {
+  const course = COURSE_DATA.find((c) => c.id === courseId);
+  if (!course) return undefined;
+  return course.media.find((m) => m.id === mediaId);
 }
