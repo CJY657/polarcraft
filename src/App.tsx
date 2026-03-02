@@ -20,6 +20,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // Module 1: 课程历史
 // 科学原理 × 历史故事
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
+const CourseViewerPage = lazy(() => import("@/pages/CourseViewerPage"));
 
 // Module 2: 光学器件
 // 偏振器件 × 光路设计
@@ -126,6 +127,10 @@ export function App() {
               <Route
                 path="/courses"
                 element={<CoursesPage />}
+              />
+              <Route
+                path="/courses/:courseId"
+                element={<CourseViewerPage />}
               />
 
               {/* Module 2: 光学器件 */}

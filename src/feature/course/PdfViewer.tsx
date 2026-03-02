@@ -270,20 +270,30 @@ function PdfViewer({ url, theme }: PdfViewerProps) {
           onLoadError={onDocumentLoadError}
           loading={null}
           error={null}
-          className={isLandscape ? "h-full flex items-center justify-center" : ""}
+          className={isLandscape ? "h-full w-full relative" : ""}
         >
           {isLandscape ? (
-            // 横屏模式：只显示当前页
+            // 横屏模式：预渲染所有页面，只显示当前页
             numPages > 0 && (
-              <div className="h-full flex items-center justify-center">
-                <Page
-                  pageNumber={currentPage}
-                  scale={scale}
-                  onLoadSuccess={onPageLoadSuccess}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  className="pdf-page-wrapper"
-                />
+              <div className="h-full w-full relative flex items-center justify-center">
+                {Array.from({ length: numPages }, (_, index) => (
+                  <div
+                    key={index}
+                    className="pdf-page-wrapper absolute flex items-center justify-center"
+                    style={{
+                      display: index + 1 === currentPage ? "flex" : "none",
+                    }}
+                  >
+                    <Page
+                      key={`page-${index + 1}-${scale.toFixed(2)}`}
+                      pageNumber={index + 1}
+                      scale={scale}
+                      onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                    />
+                  </div>
+                ))}
               </div>
             )
           ) : (
@@ -294,6 +304,7 @@ function PdfViewer({ url, theme }: PdfViewerProps) {
                 className="pdf-page-wrapper flex justify-center"
               >
                 <Page
+                  key={`page-${index + 1}-${scale.toFixed(2)}`}
                   pageNumber={index + 1}
                   scale={scale}
                   onLoadSuccess={index === 0 ? onPageLoadSuccess : undefined}

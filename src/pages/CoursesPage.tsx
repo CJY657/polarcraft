@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -30,7 +31,6 @@ import {
   DEMO_ITEMS,
   StoryModal,
 } from "@/feature/course/chronicles";
-import { CourseViewer } from "@/feature/course/CourseViewer";
 
 // Visible tabs - reordered: resources (default), timeline, slides, psrt
 const TABS = [
@@ -45,9 +45,9 @@ const TABS = [
 export function CoursesPage() {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { isMobile, isTablet } = useIsMobile();
   const [activeTab, setActiveTab] = useState("slides");
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
   const [filter, setFilter] = useState<string>("");
   const [trackFilter, setTrackFilter] = useState<"all" | "optics" | "polarization">("all");
@@ -261,28 +261,20 @@ export function CoursesPage() {
 
         {activeTab === "slides" && (
           <>
-            {selectedCourse ? (
-              <CourseViewer
-                course={COURSE_DATA.find((c) => c.id === selectedCourse)!}
-                onBack={() => setSelectedCourse(null)}
-                theme={theme}
-              />
-            ) : (
-              <>
-                {/* Course cards grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {COURSE_DATA.map((course) => {
-                    return (
-                      <div
-                        key={course.id}
-                        onClick={() => setSelectedCourse(course.id)}
-                        className={cn(
-                          "group rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-xl",
-                          theme === "dark"
-                            ? "bg-slate-800/50 border-2 border-slate-700 hover:border-slate-500"
-                            : "bg-white shadow-sm hover:shadow-lg",
-                        )}
-                      >
+            {/* Course cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {COURSE_DATA.map((course) => {
+                return (
+                  <div
+                    key={course.id}
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                    className={cn(
+                      "group rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-xl",
+                      theme === "dark"
+                        ? "bg-slate-800/50 border-2 border-slate-700 hover:border-slate-500"
+                        : "bg-white shadow-sm hover:shadow-lg",
+                    )}
+                  >
                         {/* Cover Image */}
                         <div className="relative h-40 overflow-hidden">
                           {course.coverImage ? (
@@ -353,8 +345,6 @@ export function CoursesPage() {
                     );
                   })}
                 </div>
-              </>
-            )}
           </>
         )}
 

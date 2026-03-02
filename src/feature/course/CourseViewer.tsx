@@ -531,16 +531,28 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
     setIsFullscreen(!isFullscreen);
   };
 
+  // ESC 键退出全屏
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
   // 渲染媒体内容
   const renderMedia = (media: MediaResource) => {
     const containerClass = isFullscreen
-      ? "fixed inset-0 z-50 bg-black"
+      ? "fixed inset-0 z-[9999] bg-black"
       : "w-full aspect-video rounded-xl overflow-hidden";
 
     switch (media.type) {
       case "pptx":
         const pptxContainerClass = isFullscreen
-          ? "fixed inset-0 z-50 bg-black"
+          ? "fixed inset-0 z-[9999] bg-black"
           : "w-full rounded-xl overflow-hidden aspect-video";
         return (
           <div className={pptxContainerClass}>
@@ -575,7 +587,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
 
       case "pdf":
         const pdfContainerClass = isFullscreen
-          ? "fixed inset-0 z-50 bg-black"
+          ? "fixed inset-0 z-[9999] bg-black"
           : "w-full rounded-xl overflow-hidden aspect-video";
         return (
           <div className={pdfContainerClass}>
@@ -601,7 +613,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4">
+    <div className="mx-auto max-w-4xl px-4">
       {/* Header */}
       <div className="mb-6">
         <button
@@ -642,138 +654,132 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      <div className="space-y-6">
         {/* Media Viewer */}
-        <div className="lg:col-span-3">
-          <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
-            {/* Media */}
-            <div className="mb-4">{renderMedia(currentMedia)}</div>
+        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+          {/* Media */}
+          <div className="mb-4">{renderMedia(currentMedia)}</div>
 
-            {/* Media Controls */}
-            <div className="flex items-center justify-end gap-2">
-                {/* Fullscreen Toggle */}
-                <button
-                  onClick={toggleFullscreen}
-                  className={`rounded-lg p-2 transition-colors ${
-                    theme === "dark"
-                      ? "text-gray-400 hover:bg-slate-700"
-                      : "text-gray-600 hover:bg-gray-100"
+          {/* Media Controls */}
+          <div className="flex items-center justify-end gap-2">
+              {/* Fullscreen Toggle */}
+              <button
+                onClick={toggleFullscreen}
+                className={`rounded-lg p-2 transition-colors ${
+                  theme === "dark"
+                    ? "text-gray-400 hover:bg-slate-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+                title={
+                  isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-5 w-5" />
+                ) : (
+                  <Maximize2 className="h-5 w-5" />
+                )}
+              </button>
+
+              {/* Download Media */}
+              <button
+                onClick={() => window.open(currentMedia.url, "_blank")}
+                className={`rounded-lg p-2 transition-colors ${
+                  theme === "dark"
+                    ? "text-gray-400 hover:bg-slate-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+                title={t("page.courses.download")}
+              >
+                <Download className="h-5 w-5" />
+              </button>
+          </div>
+
+          {/* Media Info */}
+          <div
+            className="mt-4 border-t pt-4"
+            style={{ borderColor: theme === "dark" ? "#334155" : "#e5e7eb" }}
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <div
+                className="rounded-lg p-1.5"
+                style={{ backgroundColor: `${MEDIA_TYPE_COLORS[currentMedia.type]}20` }}
+              >
+                <span style={{ color: MEDIA_TYPE_COLORS[currentMedia.type] }}>
+                  {MEDIA_TYPE_ICONS[currentMedia.type]}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h3
+                  className={`text-sm font-medium ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
                   }`}
-                  title={
-                    isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")
-                  }
                 >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-5 w-5" />
-                  ) : (
-                    <Maximize2 className="h-5 w-5" />
-                  )}
-                </button>
-
-                {/* Download Media */}
-                <button
-                  onClick={() => window.open(currentMedia.url, "_blank")}
-                  className={`rounded-lg p-2 transition-colors ${
-                    theme === "dark"
-                      ? "text-gray-400 hover:bg-slate-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                  title={t("page.courses.download")}
-                >
-                  <Download className="h-5 w-5" />
-                </button>
-            </div>
-
-            {/* Media Info */}
-            <div
-              className="mt-4 border-t pt-4"
-              style={{ borderColor: theme === "dark" ? "#334155" : "#e5e7eb" }}
-            >
-              <div className="mb-3 flex items-center gap-3">
+                  {getMediaTitle(currentMedia)}
+                </h3>
+                <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                  {currentMedia.type.toUpperCase()}
+                </p>
+              </div>
+              {currentMedia.duration && (
                 <div
-                  className="rounded-lg p-1.5"
-                  style={{ backgroundColor: `${MEDIA_TYPE_COLORS[currentMedia.type]}20` }}
+                  className="flex items-center gap-1 text-xs"
+                  style={{ color: course.color }}
                 >
-                  <span style={{ color: MEDIA_TYPE_COLORS[currentMedia.type] }}>
-                    {MEDIA_TYPE_ICONS[currentMedia.type]}
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>
+                    {Math.floor(currentMedia.duration / 60)}:
+                    {(currentMedia.duration % 60).toString().padStart(2, "0")}
                   </span>
                 </div>
-                <div className="flex-1">
-                  <h3
-                    className={`text-sm font-medium ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {getMediaTitle(currentMedia)}
-                  </h3>
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                    {currentMedia.type.toUpperCase()}
-                  </p>
-                </div>
-                {currentMedia.duration && (
-                  <div
-                    className="flex items-center gap-1 text-xs"
-                    style={{ color: course.color }}
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>
-                      {Math.floor(currentMedia.duration / 60)}:
-                      {(currentMedia.duration % 60).toString().padStart(2, "0")}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Sidebar - Empty or can be used for additional info */}
-        <div className="lg:col-span-1">
-          <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
-            <h3
-              className={`mb-4 text-sm font-bold ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
-            >
-              {t("page.courses.resources")}
-            </h3>
-            <div className="space-y-2">
-              {course.media.map((media, index) => (
-                <button
-                  key={media.id}
-                  onClick={() => setCurrentMediaIndex(index)}
-                  className={`w-full rounded-lg p-3 text-left transition-all ${
+        {/* Resources - 水平排列在下方 */}
+        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+          <h3
+            className={`mb-4 text-sm font-bold ${
+              theme === "dark" ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {t("page.courses.resources")}
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {course.media.map((media, index) => (
+              <button
+                key={media.id}
+                onClick={() => setCurrentMediaIndex(index)}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 transition-all ${
+                  currentMediaIndex === index
+                    ? "bg-blue-500 text-white"
+                    : theme === "dark"
+                      ? "bg-slate-700 hover:bg-slate-600"
+                      : "bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                <span
+                  style={{
+                    color:
+                      currentMediaIndex === index ? "white" : MEDIA_TYPE_COLORS[media.type],
+                  }}
+                >
+                  {MEDIA_TYPE_ICONS[media.type]}
+                </span>
+                <span
+                  className={`truncate text-sm font-medium max-w-[150px] ${
                     currentMediaIndex === index
-                      ? "bg-blue-500 text-white"
+                      ? "text-white"
                       : theme === "dark"
-                        ? "hover:bg-slate-700"
-                        : "hover:bg-gray-100"
+                        ? "text-gray-300"
+                        : "text-gray-700"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span
-                      style={{
-                        color:
-                          currentMediaIndex === index ? "white" : MEDIA_TYPE_COLORS[media.type],
-                      }}
-                    >
-                      {MEDIA_TYPE_ICONS[media.type]}
-                    </span>
-                    <span
-                      className={`truncate text-xs font-medium ${
-                        currentMediaIndex === index
-                          ? "text-white"
-                          : theme === "dark"
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                      }`}
-                    >
-                      {getMediaTitle(media)}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  {getMediaTitle(media)}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
