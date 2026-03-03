@@ -97,8 +97,8 @@ export class CourseModel {
       "sort_order",
     ];
 
-    const dataMap: Record<string, string | number | undefined> = {
-      unit_id: data.unitId,
+    const dataMap: Record<string, string | number | null | undefined> = {
+      unit_id: data.unitId === "" ? null : data.unitId,
       title_zh: data.title_zh,
       title_en: data.title_en,
       description_zh: data.description_zh,

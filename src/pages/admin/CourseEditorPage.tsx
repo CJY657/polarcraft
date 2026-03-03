@@ -246,11 +246,11 @@ function SettingsTab({ course }: { course: any }) {
         <h3 className="text-lg font-semibold text-white mb-4">统计信息</h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-4 bg-slate-700/50 rounded-lg">
-            <p className="text-3xl font-bold text-cyan-400">{course.media.length}</p>
+            <p className="text-3xl font-bold text-cyan-400">{course.media?.length || 0}</p>
             <p className="text-gray-400 text-sm">媒体资源</p>
           </div>
           <div className="text-center p-4 bg-slate-700/50 rounded-lg">
-            <p className="text-3xl font-bold text-cyan-400">{course.hyperlinks.length}</p>
+            <p className="text-3xl font-bold text-cyan-400">{course.hyperlinks?.length || 0}</p>
             <p className="text-gray-400 text-sm">超链接</p>
           </div>
           <div className="text-center p-4 bg-slate-700/50 rounded-lg">

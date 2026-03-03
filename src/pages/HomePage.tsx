@@ -148,7 +148,6 @@ const MODULES: ModuleConfig[] = [
     i18nNamespace: "home.modules.games",
     path: "/games",
     IconComponent: GamesModuleIcon,
-    inDevelopment: true,
     quickLinks: [
       { labelKey: "home.modules.games.link1", path: "/games/escape" },
       { labelKey: "home.modules.games.link2", path: "/games/minecraft" },
