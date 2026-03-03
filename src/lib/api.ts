@@ -184,6 +184,41 @@ export const api = {
 
   delete: <T = any>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
 
+  /**
+   * Upload a file using FormData
+   * 使用 FormData 上传文件
+   */
+  upload: async <T = any>(
+    endpoint: string,
+    file: File,
+    additionalData?: Record<string, string>
+  ): Promise<ApiResponse<T>> => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (additionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      // Don't set Content-Type - let browser set it with boundary
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || data.message || 'Upload failed');
+    }
+
+    return data;
+  },
+
   // Token is managed via HTTP-only cookie, these are kept for compatibility
   // Token 通过 HTTP-only cookie 管理，以下方法保留用于兼容
   setToken: () => {

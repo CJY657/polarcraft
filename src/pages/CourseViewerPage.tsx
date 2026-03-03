@@ -5,29 +5,48 @@
  * 简洁的全屏布局，无描述、Tab 菜单
  */
 
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { PersistentHeader } from "@/components/shared";
 import { CourseViewer } from "@/feature/course/CourseViewer";
-import { COURSE_DATA } from "@/data/courses";
+import { useCourseDetailStore } from "@/stores/courseStore";
 import { cn } from "@/utils/classNames";
+import { Loader2 } from "lucide-react";
 
 export default function CourseViewerPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const { theme } = useTheme();
   const navigate = useNavigate();
 
-  const course = COURSE_DATA.find((c) => c.id === courseId);
+  const { course, mainSlide, media, hyperlinks, isLoading, error, fetchCourse, reset } =
+    useCourseDetailStore();
 
-  if (!course) {
+  useEffect(() => {
+    if (courseId) {
+      fetchCourse(courseId);
+    }
+    return () => reset();
+  }, [courseId, fetchCourse, reset]);
+
+  if (isLoading) {
     return (
       <div
         className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}
       >
-        <PersistentHeader />
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div
+        className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}
+      >
         <div className="text-center">
           <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} mb-4`}>
-            课程不存在
+            {error || "课程不存在"}
           </p>
           <button
             onClick={() => navigate("/courses")}
@@ -40,23 +59,46 @@ export default function CourseViewerPage() {
     );
   }
 
+  // Transform data to match CourseViewer expected format
+  const courseData = {
+    id: course.id,
+    unitId: course.unitId,
+    title: { "zh-CN": course.title["zh-CN"] || "", "en-US": course.title["en-US"] || "" },
+    description: { "zh-CN": course.description["zh-CN"] || "", "en-US": course.description["en-US"] || "" },
+    coverImage: course.coverImage,
+    color: course.color,
+    lastUpdated: course.updatedAt,
+    mainSlide: mainSlide
+      ? {
+          id: mainSlide.id,
+          url: mainSlide.url,
+          title: { "zh-CN": mainSlide.title["zh-CN"] || "", "en-US": mainSlide.title["en-US"] || "" },
+        }
+      : undefined,
+    hyperlinks: hyperlinks.map((h) => ({
+      id: h.id,
+      page: h.page,
+      x: h.x,
+      y: h.y,
+      width: h.width,
+      height: h.height,
+      targetMediaId: h.targetMediaId,
+    })),
+    media: media.map((m) => ({
+      id: m.id,
+      type: m.type,
+      url: m.url,
+      title: { "zh-CN": m.title["zh-CN"] || "", "en-US": m.title["en-US"] || "" },
+      duration: m.duration,
+    })),
+  };
+
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
-      <PersistentHeader
-        moduleKey="courses"
-        moduleName={course.title["zh-CN"]}
-        variant="glass"
-        className={cn(
-          "sticky top-0 z-40",
-          theme === "dark"
-            ? "bg-slate-900/80 border-b border-slate-700"
-            : "bg-white/80 border-b border-gray-200",
-        )}
-      />
       <div className="pt-4 pb-8">
         <CourseViewer
-          course={course}
-          onBack={() => navigate("/courses")}
+          course={courseData}
+          onBack={() => navigate(`/units/${course.unitId}`)}
           theme={theme}
         />
       </div>

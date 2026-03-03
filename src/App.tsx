@@ -22,6 +22,11 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
 const CourseViewerPage = lazy(() => import("@/pages/CourseViewerPage"));
 
+// Module 1b: 实验课单元
+// 单元 × 课程
+const UnitsPage = lazy(() => import("@/pages/UnitsPage"));
+const UnitViewerPage = lazy(() => import("@/pages/UnitViewerPage"));
+
 // Module 2: 光学器件
 // 偏振器件 × 光路设计
 const DevicesPage = lazy(() => import("@/pages/DevicesPage"));
@@ -64,6 +69,13 @@ function ResearchCanvasWrapper() {
 
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
+
+// Admin Pages - 管理员页面
+const AdminCoursesPage = lazy(() => import("@/pages/admin/AdminCoursesPage"));
+const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
+const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
+const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
+const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => ({ default: m.AdminRoute })));
 
 // Profile Page - 个人中心页面
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
@@ -130,6 +142,20 @@ export function App() {
               />
               <Route
                 path="/courses/:courseId"
+                element={<CourseViewerPage />}
+              />
+
+              {/* Module 1b: 实验课单元 */}
+              <Route
+                path="/units"
+                element={<UnitsPage />}
+              />
+              <Route
+                path="/units/:unitId"
+                element={<UnitViewerPage />}
+              />
+              <Route
+                path="/units/:unitId/courses/:courseId"
                 element={<CourseViewerPage />}
               />
 
@@ -209,6 +235,40 @@ export function App() {
               <Route
                 path="/profile"
                 element={<ProfilePage />}
+              />
+
+              {/* Admin - 管理后台 */}
+              <Route
+                path="/admin/units"
+                element={
+                  <AdminRoute>
+                    <AdminUnitsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/units/:unitId"
+                element={
+                  <AdminRoute>
+                    <UnitEditorPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/courses"
+                element={
+                  <AdminRoute>
+                    <AdminCoursesPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/courses/:courseId"
+                element={
+                  <AdminRoute>
+                    <CourseEditorPage />
+                  </AdminRoute>
+                }
               />
 
               {/* Auth Pages - 认证页面（重定向到首页并打开对话框） */}

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSystem } from '@/contexts/SystemContext'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/utils/classNames'
-import { Sun, Moon, User, LogOut, UserCircle } from 'lucide-react'
+import { Sun, Moon, User, LogOut, UserCircle, Settings, ChevronDown, ChevronRight, Layers, BookOpen } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
 
@@ -20,6 +20,7 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
   const { isSystemHealthy } = useSystem()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showAdminSubmenu, setShowAdminSubmenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const openDialog = useAuthDialogStore((state) => state.openDialog)
 
@@ -84,6 +85,59 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
                   <UserCircle className="w-4 h-4" />
                   {t('profile.title', '个人中心')}
                 </button>
+                {user?.role === 'admin' && (
+                  <>
+                    {/* 课程管理 - 可展开父菜单 */}
+                    <button
+                      onClick={() => setShowAdminSubmenu(!showAdminSubmenu)}
+                      className={cn(
+                        'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center justify-between',
+                        userMenuItemClasses
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        课程管理
+                      </div>
+                      {showAdminSubmenu ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+                    {/* 子菜单 */}
+                    {showAdminSubmenu && (
+                      <div className="bg-[var(--bg-tertiary)]">
+                        <button
+                          onClick={() => {
+                            navigate('/admin/units')
+                            setShowUserMenu(false)
+                          }}
+                          className={cn(
+                            'w-full px-4 py-2 pl-8 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                            userMenuItemClasses
+                          )}
+                        >
+                          <Layers className="w-4 h-4" />
+                          单元管理
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('/admin/courses')
+                            setShowUserMenu(false)
+                          }}
+                          className={cn(
+                            'w-full px-4 py-2 pl-8 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                            userMenuItemClasses
+                          )}
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          课程设置
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
                 <button
                   onClick={handleLogout}
                   className={cn(
@@ -161,6 +215,59 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
                 <UserCircle className="w-4 h-4" />
                 {t('profile.title', '个人中心')}
               </button>
+              {user?.role === 'admin' && (
+                <>
+                  {/* 课程管理 - 可展开父菜单 */}
+                  <button
+                    onClick={() => setShowAdminSubmenu(!showAdminSubmenu)}
+                    className={cn(
+                      'w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] flex items-center justify-between',
+                      userMenuItemClasses
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      课程管理
+                    </div>
+                    {showAdminSubmenu ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  {/* 子菜单 */}
+                  {showAdminSubmenu && (
+                    <div className="bg-[var(--bg-tertiary)]">
+                      <button
+                        onClick={() => {
+                          navigate('/admin/units')
+                          setShowUserMenu(false)
+                        }}
+                        className={cn(
+                          'w-full px-4 py-2 pl-8 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                          userMenuItemClasses
+                        )}
+                      >
+                        <Layers className="w-4 h-4" />
+                        单元管理
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/admin/courses')
+                          setShowUserMenu(false)
+                        }}
+                        className={cn(
+                          'w-full px-4 py-2 pl-8 text-left text-sm text-[var(--text-secondary)] flex items-center gap-2',
+                          userMenuItemClasses
+                        )}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        课程设置
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
               <button
                 onClick={handleLogout}
                 className={cn(

@@ -10,6 +10,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config, validateConfig } from './config/index.js';
 import { logger } from './utils/logger.js';
 import { createPool, testConnection, closePool } from './database/connection.js';
@@ -17,6 +19,8 @@ import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
 import { csrfProtection } from './middleware/csrf.middleware.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // =====================================================
 // Initialize Express App
@@ -81,6 +85,22 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// =====================================================
+// Static File Serving
+// 静态文件服务
+// =====================================================
+
+// Serve uploaded files statically
+// 静态服务上传的文件
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '../public/uploads'), {
+    maxAge: '1d', // Cache for 1 day / 缓存 1 天
+    etag: true,
+    index: false, // Disable directory listing / 禁用目录列表
+  })
+);
 
 // =====================================================
 // API Routes

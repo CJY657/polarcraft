@@ -11,6 +11,9 @@ import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import researchRoutes from './research.routes.js';
 import profileRoutes from './profile.routes.js';
+import courseRoutes from './course.routes.js';
+import unitRoutes from './unit.routes.js';
+import uploadRoutes from './upload.routes.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
 import { testConnection } from '../database/connection.js';
@@ -83,5 +86,8 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/research', researchRoutes);
 router.use('/profile', profileRoutes);
+router.use('/courses', courseRoutes);
+router.use('/units', unitRoutes);
+router.use('/upload', uploadRoutes);
 
 export default router;
