@@ -24,6 +24,8 @@ import {
   Globe,
   UserCheck,
   AlertCircle,
+  UserMinus,
+  X,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +38,7 @@ import { ApplicationManagementDialog } from "../components/project/ApplicationMa
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
+import { Dialog } from "@/components/ui/dialog";
 
 interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
@@ -70,6 +73,11 @@ export function ResearchProjectPage() {
 
   // Application count state
   const [pendingApplicationCount, setPendingApplicationCount] = useState(0);
+
+  // Member removal state
+  const [memberToRemove, setMemberToRemove] = useState<ProjectMember | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
 
   // Fetch project data
   useEffect(() => {
@@ -171,6 +179,45 @@ export function ResearchProjectPage() {
       viewer: "查看者",
     };
     return labels[role] || role;
+  };
+
+  // Check if current user can remove a member
+  const canRemoveMember = (member: ProjectMember) => {
+    if (!user || !currentUserRole) return false;
+    // Cannot remove owner
+    if (member.role === "owner") return false;
+    // Owner can remove anyone except owner
+    if (currentUserRole === "owner") return true;
+    // Admin can remove editor and viewer
+    if (currentUserRole === "admin" && ["editor", "viewer"].includes(member.role)) return true;
+    // Members can remove themselves (leave project)
+    if (member.user_id === user.id) return true;
+    return false;
+  };
+
+  // Check if it's a self-removal (leaving project)
+  const isSelfRemoval = (member: ProjectMember) => {
+    return user && member.user_id === user.id;
+  };
+
+  // Handle member removal
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !projectId) return;
+
+    setIsRemovingMember(true);
+    setRemoveMemberError(null);
+    try {
+      await researchApi.removeProjectMember(projectId, memberToRemove.user_id);
+      // Refresh project data
+      const projectData = await researchApi.getProject(projectId);
+      setProject(projectData);
+      setMemberToRemove(null);
+    } catch (err) {
+      console.error("Failed to remove member:", err);
+      setRemoveMemberError(err instanceof Error ? err.message : "移除成员失败");
+    } finally {
+      setIsRemovingMember(false);
+    }
   };
 
   // Loading state
@@ -503,51 +550,75 @@ export function ResearchProjectPage() {
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {project.members.map((member) => (
-                <div
-                  key={member.id}
-                  className={cn(
-                    "flex items-center gap-3 p-4 rounded-xl border transition-colors",
-                    theme === "dark"
-                      ? "bg-slate-800/50 border-slate-700"
-                      : "bg-white border-gray-200"
-                  )}
-                >
+              {project.members.map((member) => {
+                // 判断是否可以移除该成员
+                const isSelf = user?.id === member.user_id;
+                const isSelfRemoval = isSelf && member.role !== 'owner';
+                const canRemove = !isReadOnlyMode && (
+                  isSelfRemoval || // 成员可以移除自己（退出）
+                  (isOwnerOrAdmin && member.role !== 'owner' && !isSelf) // owner/admin 可以移除非 owner 成员
+                );
+
+                return (
                   <div
+                    key={member.id}
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
-                      member.role === "owner"
-                        ? "bg-amber-500/20 text-amber-500"
-                        : theme === "dark"
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-100 text-gray-600"
+                      "flex items-center gap-3 p-4 rounded-xl border transition-colors",
+                      theme === "dark"
+                        ? "bg-slate-800/50 border-slate-700"
+                        : "bg-white border-gray-200"
                     )}
                   >
-                    {member.username?.charAt(0).toUpperCase() || "U"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "font-medium truncate",
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        )}
-                      >
-                        {member.username}
-                      </span>
-                      {getRoleIcon(member.role)}
-                    </div>
-                    <span
+                    <div
                       className={cn(
-                        "text-xs",
-                        theme === "dark" ? "text-gray-500" : "text-gray-400"
+                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
+                        member.role === "owner"
+                          ? "bg-amber-500/20 text-amber-500"
+                          : theme === "dark"
+                          ? "bg-gray-700 text-gray-300"
+                          : "bg-gray-100 text-gray-600"
                       )}
                     >
-                      {getRoleLabel(member.role)}
-                    </span>
+                      {member.username?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "font-medium truncate",
+                            theme === "dark" ? "text-white" : "text-gray-900"
+                          )}
+                        >
+                          {member.username}
+                        </span>
+                        {getRoleIcon(member.role)}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs",
+                          theme === "dark" ? "text-gray-500" : "text-gray-400"
+                        )}
+                      >
+                        {getRoleLabel(member.role)}
+                      </span>
+                    </div>
+                    {canRemove && (
+                      <button
+                        onClick={() => setMemberToRemove(member)}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          theme === "dark"
+                            ? "hover:bg-red-500/20 text-red-400"
+                            : "hover:bg-red-100 text-red-500"
+                        )}
+                        title={isSelfRemoval ? "退出课题组" : "移除成员"}
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -789,6 +860,84 @@ export function ResearchProjectPage() {
             // 可以在这里添加成功提示或刷新页面
           }}
         />
+      )}
+
+      {/* Remove Member Confirmation Dialog */}
+      {memberToRemove && (
+        <Dialog isOpen={true} onClose={() => setMemberToRemove(null)} showCloseButton={false}>
+          <div className={cn(
+            "w-full max-w-md p-6 rounded-xl",
+            theme === "dark" ? "bg-gray-800" : "bg-white"
+          )}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn(
+                "p-2 rounded-lg",
+                theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"
+              )}>
+                <UserMinus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "text-lg font-semibold",
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                )}>
+                  {user?.id === memberToRemove.user_id ? "退出课题组" : "移除成员"}
+                </h3>
+                <p className={cn(
+                  "text-sm",
+                  theme === "dark" ? "text-gray-400" : "text-gray-500"
+                )}>
+                  {user?.id === memberToRemove.user_id
+                    ? "确定要退出该课题组吗？"
+                    : `确定要将 ${memberToRemove.username} 从课题组移除吗？`
+                  }
+                </p>
+              </div>
+            </div>
+
+            {removeMemberError && (
+              <div className={cn(
+                "mb-4 p-3 rounded-lg text-sm",
+                theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
+              )}>
+                {removeMemberError}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setMemberToRemove(null);
+                  setRemoveMemberError(null);
+                }}
+                disabled={isRemovingMember}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700",
+                  isRemovingMember && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleRemoveMember}
+                disabled={isRemovingMember}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2",
+                  theme === "dark"
+                    ? "bg-red-600 hover:bg-red-500 text-white"
+                    : "bg-red-500 hover:bg-red-600 text-white",
+                  isRemovingMember && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isRemovingMember && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isRemovingMember ? "处理中..." : "确认"}
+              </button>
+            </div>
+          </div>
+        </Dialog>
       )}
     </div>
   );

@@ -106,6 +106,43 @@ export class ResearchController {
    */
   static removeProjectMember = asyncHandler(async (req: Request, res: Response) => {
     const { id, userId } = req.params;
+    const currentUserId = req.user!.sub;
+
+    // 获取项目成员列表
+    const members = await ResearchModel.getProjectMembers(id);
+    const currentUser = members.find((m: any) => m.user_id === currentUserId);
+    const targetMember = members.find((m: any) => m.user_id === userId);
+
+    // 检查目标成员是否存在
+    if (!targetMember) {
+      return res.error('成员未找到', 'MEMBER_NOT_FOUND', 404);
+    }
+
+    // 允许成员移除自己（退出课题组）
+    if (userId === currentUserId) {
+      // owner 不能移除自己
+      if (currentUser?.role === 'owner') {
+        return res.error('组长不能退出课题组，请先转让组长权限', 'OWNER_CANNOT_LEAVE', 403);
+      }
+      await ResearchModel.removeProjectMember(id, userId);
+      logger.info(`Member left project ${id}: ${userId}`);
+      return res.success(null, '已退出课题组');
+    }
+
+    // 权限检查：只有 owner 和 admin 可以移除其他成员
+    if (!currentUser || !['owner', 'admin'].includes(currentUser.role)) {
+      return res.error('无权移除成员', 'FORBIDDEN', 403);
+    }
+
+    // 不能移除 owner
+    if (targetMember.role === 'owner') {
+      return res.error('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
+    }
+
+    // admin 不能移除其他 admin
+    if (currentUser.role === 'admin' && targetMember.role === 'admin') {
+      return res.error('管理员不能移除其他管理员', 'CANNOT_REMOVE_ADMIN', 403);
+    }
 
     await ResearchModel.removeProjectMember(id, userId);
     logger.info(`Member removed from project ${id} by ${req.user!.username}: ${userId}`);
