@@ -369,9 +369,9 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                       onClick={() => handleItemClick(item)}
                       className={cn(
                         'w-full px-4 py-2 text-left text-sm flex items-center gap-3',
-                        'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]',
-                        'transition-colors',
-                        isFocused && 'bg-[var(--bg-tertiary)]'
+                        'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)]',
+                        'hover:bg-gray-100 dark:hover:bg-white/10 transition-colors',
+                        isFocused && 'bg-gray-100 dark:bg-white/10'
                       )}
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
@@ -410,9 +410,9 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                                   onClick={() => handleSubmenuItemClick(subItem.href)}
                                   className={cn(
                                     'w-full px-4 py-2 pl-11 text-left text-sm flex items-center gap-3',
-                                    'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]',
-                                    'transition-colors',
-                                    isSubFocused && 'bg-[var(--bg-tertiary)]'
+                                    'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)]',
+                                    'hover:bg-gray-100 dark:hover:bg-white/10 transition-colors',
+                                    isSubFocused && 'bg-gray-100 dark:bg-white/10'
                                   )}
                                 >
                                   <SubIcon className="w-4 h-4 flex-shrink-0" />
