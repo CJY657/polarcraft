@@ -21,7 +21,6 @@ import {
   Shield,
   Eye,
   Edit,
-  Mail,
   Globe,
   UserCheck,
   AlertCircle,
@@ -84,10 +83,10 @@ export function ResearchProjectPage() {
         setIsLoading(true);
         setError(null);
         const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
-          researchApi.getProject(projectId),
-          profileApi.getProjectSettings(projectId).catch(() => null),
-          researchApi.getProjectCanvases(projectId).catch(() => []),
-          profileApi.getProjectApplications(projectId).catch(() => [] as ProjectApplication[]),
+          researchApi.getProject(projectId!),
+          profileApi.getProjectSettings(projectId!).catch(() => null),
+          researchApi.getProjectCanvases(projectId!).catch(() => []),
+          profileApi.getProjectApplications(projectId!).catch(() => [] as ProjectApplication[]),
         ]);
         setProject(projectData);
         setSettings(settingsData);
@@ -236,7 +235,7 @@ export function ResearchProjectPage() {
     ? {
         id: projectId!,
         name_zh: exampleProject?.title["zh-CN"] || "示例课题",
-        name_en: exampleProject?.title["en-US"] || null,
+        name_en: exampleProject?.title.en || null,
         description_zh: exampleProject?.description["zh-CN"] || "",
         description_en: null,
         status: "active" as const,
