@@ -304,23 +304,37 @@ export function PublicProjectsSection() {
                         .map((member, index) => (
                           <div
                             key={index}
-                            className={cn(
-                              "w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-medium",
-                              theme === "dark"
-                                ? "border-slate-700 bg-slate-600 text-white"
-                                : "border-gray-200 bg-gray-200 text-gray-700"
-                            )}
-                            title={member.username}
+                            className="relative group/member"
                           >
-                            {member.avatar_url ? (
-                              <img
-                                src={member.avatar_url}
-                                alt={member.username}
-                                className="w-full h-full rounded-full object-cover"
-                              />
-                            ) : (
-                              member.username?.charAt(0).toUpperCase()
-                            )}
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-medium cursor-pointer transition-transform hover:scale-110 hover:z-10",
+                                theme === "dark"
+                                  ? "border-slate-700 bg-slate-600 text-white"
+                                  : "border-gray-200 bg-gray-200 text-gray-700"
+                              )}
+                            >
+                              {member.avatar_url ? (
+                                <img
+                                  src={member.avatar_url}
+                                  alt={member.username}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              ) : (
+                                member.username?.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            {/* Tooltip */}
+                            <div
+                              className={cn(
+                                "absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap opacity-0 invisible group-hover/member:opacity-100 group-hover/member:visible transition-all z-20",
+                                theme === "dark"
+                                  ? "bg-slate-700 text-white"
+                                  : "bg-gray-800 text-white"
+                              )}
+                            >
+                              {member.username}
+                            </div>
                           </div>
                         ))}
                       {project.members.filter((m) => m.role !== "owner").length > 5 && (

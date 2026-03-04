@@ -55,6 +55,7 @@ const ResearchProjectList = lazy(() => import("@/feature/research/components/pro
 const ResearchProjectPage = lazy(() => import("@/feature/research/pages/ResearchProjectPage").then(m => ({ default: m.ResearchProjectPage })));
 const ResearchCanvas = lazy(() => import("@/feature/research/components/canvas/ResearchCanvas").then(m => ({ default: m.ResearchCanvas })));
 const PublicProjectExplorePage = lazy(() => import("@/feature/research/pages/PublicProjectExplorePage").then(m => ({ default: m.PublicProjectExplorePage })));
+const MyProjectsPage = lazy(() => import("@/feature/research/pages/MyProjectsPage").then(m => ({ default: m.MyProjectsPage })));
 
 // Wrapper component for ResearchCanvas to extract route params
 // ResearchCanvas 包装组件用于提取路由参数
@@ -214,7 +215,7 @@ export function App() {
               />
               <Route
                 path="/lab/projects"
-                element={<ResearchProjectList />}
+                element={<MyProjectsPage />}
               />
               <Route
                 path="/lab/explore"

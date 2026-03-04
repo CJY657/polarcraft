@@ -6,7 +6,8 @@
  * 以紧凑列表格式显示用户的研究课题
  */
 
-import { FlaskConical, Plus, Loader2, LogIn } from "lucide-react";
+import { FlaskConical, Plus, Loader2, LogIn, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import type { ResearchProject } from "@/lib/research.service";
@@ -62,6 +63,18 @@ export function ProjectListSidebar({
             我的研究课题
           </h2>
         </div>
+        <Link
+          to="/lab/projects"
+          className={cn(
+            "flex items-center gap-1 text-xs font-medium transition-colors",
+            theme === "dark"
+              ? "text-purple-400 hover:text-purple-300"
+              : "text-purple-600 hover:text-purple-500"
+          )}
+        >
+          查看全部
+          <ExternalLink className="w-3 h-3" />
+        </Link>
       </div>
 
       {/* Create Button */}
