@@ -5,11 +5,16 @@
 
 import { Router } from "express";
 import { ProfileController } from "../controllers/profile.controller.js";
-import { authenticate } from "../middleware/auth.middleware.js";
+import { authenticate, optionalAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// All profile routes require authentication
+// Public routes (no authentication required)
+// 公开路由（无需认证）
+router.get("/public-projects", optionalAuth, ProfileController.getPublicProjects);
+
+// All other profile routes require authentication
+// 其他个人资料路由需要认证
 router.use(authenticate);
 
 /**
@@ -58,18 +63,5 @@ router.delete("/educations/:id", ProfileController.deleteEducation);
  * @access  Private
  */
 router.get("/applications", ProfileController.getUserApplications);
-
-/**
- * =====================================================
- * Public Projects Routes / 公开项目路由
- * =====================================================
- */
-
-/**
- * @route   GET /api/profile/public-projects
- * @desc    Get public projects list
- * @access  Private
- */
-router.get("/public-projects", ProfileController.getPublicProjects);
 
 export default router;
