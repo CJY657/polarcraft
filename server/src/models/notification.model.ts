@@ -29,8 +29,9 @@ export class NotificationModel {
     userId: string,
     options?: { limit?: number; offset?: number; unreadOnly?: boolean }
   ): Promise<{ notifications: UserNotification[]; total: number }> {
-    const limit = options?.limit ?? 20;
-    const offset = options?.offset ?? 0;
+    // Ensure limit and offset are valid integers (for safe SQL interpolation)
+    const limit = Math.max(1, Math.floor(options?.limit ?? 20));
+    const offset = Math.max(0, Math.floor(options?.offset ?? 0));
 
     // Build WHERE clause
     let whereClause = "WHERE user_id = ?";
@@ -46,14 +47,16 @@ export class NotificationModel {
     const total = countResult?.count ?? 0;
 
     // Get notifications
+    // Note: LIMIT and OFFSET are safely interpolated as integers (not using placeholders)
+    // because MySQL prepared statements have issues with LIMIT/OFFSET parameters
     const sql = `
       SELECT *
       FROM user_notifications
       ${whereClause}
       ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    const notifications = await query(sql, [...params, limit, offset]);
+    const notifications = await query(sql, params);
 
     return { notifications, total };
   }
