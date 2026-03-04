@@ -474,26 +474,28 @@ export function ResearchProjectPage() {
                   theme === "dark" ? "text-white" : "text-gray-900"
                 )}
               >
-                课题成员
+                研究团队
               </h2>
               {isOwnerOrAdmin && !isReadOnlyMode && (
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
-                    "relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    theme === "dark"
-                      ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    "relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    pendingApplicationCount > 0
+                      ? theme === "dark"
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/25 animate-pulse"
+                        : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/25"
+                      : theme === "dark"
+                        ? "bg-purple-600 hover:bg-purple-500 text-white"
+                        : "bg-purple-500 hover:bg-purple-600 text-white"
                   )}
                 >
                   <UserCheck className="w-4 h-4" />
                   申请管理
                   {pendingApplicationCount > 0 && (
                     <span className={cn(
-                      "absolute -top-1.5 -right-1.5 min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
-                      theme === "dark"
-                        ? "bg-yellow-500 text-gray-900"
-                        : "bg-yellow-500 text-gray-900"
+                      "ml-1 min-w-[22px] h-5.5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
+                      "bg-white text-amber-600"
                     )}>
                       {pendingApplicationCount}
                     </span>
