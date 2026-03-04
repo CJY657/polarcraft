@@ -4178,6 +4178,35 @@
       "confirmDelete": "确定要删除这条经历吗？",
       "empty": "暂无教育/工作经历，点击上方按钮添加"
     },
+    "editProfile": {
+      "button": "编辑资料",
+      "title": "编辑个人资料",
+      "username": "用户名",
+      "email": "邮箱",
+      "usernamePlaceholder": "请输入用户名",
+      "emailPlaceholder": "请输入邮箱",
+      "usernameRequired": "用户名不能为空",
+      "usernameLength": "用户名长度必须在 3-50 个字符之间",
+      "emailInvalid": "邮箱格式不正确",
+      "success": "资料更新成功"
+    },
+    "changePassword": {
+      "button": "修改密码",
+      "title": "修改密码",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码",
+      "currentPasswordPlaceholder": "请输入当前密码",
+      "newPasswordPlaceholder": "请输入新密码",
+      "confirmPasswordPlaceholder": "请再次输入新密码",
+      "currentPasswordRequired": "请输入当前密码",
+      "newPasswordRequired": "请输入新密码",
+      "passwordMismatch": "两次输入的密码不一致",
+      "strengthWeak": "密码强度：弱",
+      "strengthMedium": "密码强度：中",
+      "strengthStrong": "密码强度：强",
+      "success": "密码修改成功"
+    },
     "application": {
       "title": "申请加入",
       "myApplications": "我的申请",

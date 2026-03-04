@@ -3,20 +3,22 @@
  * 个人中心页面
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Calendar, FileText, Clock, ChevronRight } from 'lucide-react';
+import { User, Mail, Calendar, FileText, Edit, KeyRound } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { PersistentHeader } from '@/components/shared/PersistentHeader';
 import { EducationTimeline } from '@/feature/profile/components/EducationTimeline';
+import { ProfileEditDialog } from '@/feature/profile/components/ProfileEditDialog';
+import { PasswordChangeDialog } from '@/feature/profile/components/PasswordChangeDialog';
 import { useProfileStore } from '@/stores/profileStore';
 
 export default function ProfilePage() {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const {
     educations,
     applications,
@@ -30,6 +32,10 @@ export default function ProfilePage() {
     withdrawApplication,
     clearError,
   } = useProfileStore();
+
+  // Dialog states
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchEducations();
@@ -165,6 +171,34 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditDialogOpen(true)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                )}
+              >
+                <Edit className="w-4 h-4" />
+                {t('profile.editProfile.button')}
+              </button>
+              <button
+                onClick={() => setIsPasswordDialogOpen(true)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                )}
+              >
+                <KeyRound className="w-4 h-4" />
+                {t('profile.changePassword.button')}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -273,6 +307,21 @@ export default function ProfilePage() {
           )}
         </div>
       </main>
+
+      {/* Edit Profile Dialog */}
+      <ProfileEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSuccess={refreshUser}
+        user={user}
+      />
+
+      {/* Change Password Dialog */}
+      <PasswordChangeDialog
+        isOpen={isPasswordDialogOpen}
+        onClose={() => setIsPasswordDialogOpen(false)}
+        username={user?.username || ''}
+      />
     </div>
   );
 }
