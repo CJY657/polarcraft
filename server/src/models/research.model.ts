@@ -24,13 +24,12 @@ export class ResearchModel {
     const sql = `
       SELECT
         p.*,
-        COUNT(DISTINCT pm.user_id) as member_count,
-        COUNT(DISTINCT c.id) as canvas_count
+        (SELECT COUNT(DISTINCT pm2.user_id) FROM research_project_members pm2 WHERE pm2.project_id = p.id) as member_count,
+        (SELECT COUNT(DISTINCT c2.id) FROM research_canvases c2 WHERE c2.project_id = p.id) as canvas_count
       FROM research_projects p
-      LEFT JOIN research_project_members pm ON p.id = pm.project_id
-      LEFT JOIN research_canvases c ON p.id = c.project_id
-      WHERE pm.user_id = ? OR p.is_public = TRUE
-      GROUP BY p.id
+      WHERE p.id IN (
+        SELECT pm.project_id FROM research_project_members pm WHERE pm.user_id = ?
+      ) OR p.is_public = TRUE
       ORDER BY p.updated_at DESC
     `;
     return await query(sql, [userId]);
