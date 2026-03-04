@@ -1,0 +1,138 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 安装 pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 3. 设置 Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      # 4. 安装依赖
+      - name: Install dependencies
+        run: pnpm install
+
+      # 5. 创建前端 .env 文件 (从 Variables 读取，未设置则使用默认值)
+      - name: Create frontend .env
+        run: |
+          echo "VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:3001' }}" > .env
+
+      # 6. 构建前端
+      - name: Build frontend
+        run: pnpm build
+
+      # 7. 构建后端
+      - name: Build backend
+        run: pnpm build:api
+
+      # 8. 准备服务器环境
+      - name: Setup server environment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # 确保 pm2 已安装
+            if ! command -v pm2 &> /dev/null; then
+              npm install -g pm2
+            fi
+
+            # 确保 pnpm 已安装
+            if ! command -v pnpm &> /dev/null; then
+              npm install -g pnpm
+            fi
+
+            # 创建部署目录
+            mkdir -p ${{ secrets.DEPLOY_PATH }}/dist
+            mkdir -p ${{ secrets.DEPLOY_PATH }}/server/dist
+
+      # 9. 上传前端 dist 文件
+      - name: Upload frontend dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "dist"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 0
+          tar_tmp_path: /tmp/frontend.tar
+
+      # 10. 上传后端 dist 文件
+      - name: Upload backend dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "server/dist"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 0
+          tar_tmp_path: /tmp/backend.tar
+
+      # 11. 上传 package.json 和 pnpm-lock.yaml
+      - name: Upload package files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "package.json,pnpm-lock.yaml,pnpm-workspace.yaml,server/package.json"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 0
+          tar_tmp_path: /tmp/packages.tar
+
+      # 12. 安装依赖并启动服务
+      - name: Install dependencies and start services
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            # 安装依赖
+            pnpm install
+
+            # 启动/重启前端服务
+            if pm2 describe polarcraft-frontend > /dev/null 2>&1; then
+              pm2 restart polarcraft-frontend
+            else
+              pm2 start pnpm --name polarcraft-frontend -- start
+            fi
+
+            # 启动/重启后端服务
+            if pm2 describe polarcraft-api > /dev/null 2>&1; then
+              pm2 restart polarcraft-api
+            else
+              pm2 start pnpm --name polarcraft-api -- start:api
+            fi
+
+            # 保存 pm2 配置 (用于开机自启)
+            pm2 save
