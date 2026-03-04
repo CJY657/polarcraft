@@ -4192,6 +4192,28 @@
       "unknownProject": "未知课题"
     }
   },
+  "inbox": {
+    "title": "收件箱",
+    "markAllRead": "全部标记已读",
+    "delete": "删除",
+    "empty": "暂无通知",
+    "emptyUnread": "暂无未读通知",
+    "emptyRead": "暂无已读通知",
+    "unreadCount": "{{count}} 条未读",
+    "viewAll": "查看全部通知",
+    "types": {
+      "projectInvite": "课题邀请",
+      "applicationApproved": "申请通过",
+      "applicationRejected": "申请被拒",
+      "commentReply": "评论回复",
+      "system": "系统通知"
+    },
+    "filter": {
+      "all": "全部",
+      "unread": "未读",
+      "read": "已读"
+    }
+  },
   "project": {
     "create": {
       "title": "创建课题",

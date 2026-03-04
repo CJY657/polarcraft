@@ -80,6 +80,9 @@ const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => 
 // Profile Page - 个人中心页面
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 
+// Inbox Page - 收件箱页面
+const InboxPage = lazy(() => import("@/pages/InboxPage"));
+
 // Auth Redirect Handler - 认证重定向处理组件
 function AuthRedirectHandler() {
   const navigate = useNavigate();
@@ -235,6 +238,12 @@ export function App() {
               <Route
                 path="/profile"
                 element={<ProfilePage />}
+              />
+
+              {/* Inbox - 收件箱 */}
+              <Route
+                path="/inbox"
+                element={<InboxPage />}
               />
 
               {/* Admin - 管理后台 */}

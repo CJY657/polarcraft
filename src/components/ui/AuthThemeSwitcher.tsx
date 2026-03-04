@@ -7,6 +7,8 @@ import { cn } from '@/utils/classNames'
 import { Sun, Moon, User, LogOut, UserCircle, Settings, ChevronDown, ChevronRight, Layers, BookOpen } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuthDialogStore } from '@/stores/authDialogStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import { InboxDropdown } from '@/components/ui/InboxDropdown'
 
 interface AuthThemeSwitcherProps {
   className?: string
@@ -23,6 +25,17 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
   const [showAdminSubmenu, setShowAdminSubmenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const openDialog = useAuthDialogStore((state) => state.openDialog)
+  const fetchUnreadCount = useNotificationStore((state) => state.fetchUnreadCount)
+
+  // Fetch unread notification count when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUnreadCount()
+      // Poll for new notifications every 60 seconds
+      const interval = setInterval(fetchUnreadCount, 60000)
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated, fetchUnreadCount])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -58,7 +71,11 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
       <div className={cn('flex items-center gap-1', className)}>
         {/* Auth buttons or user menu (compact) */}
         {isAuthenticated ? (
-          <div className="relative" ref={menuRef}>
+          <>
+            {/* Inbox */}
+            <InboxDropdown />
+            {/* User Menu */}
+            <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--accent-cyan)]"
@@ -150,7 +167,8 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
                 </button>
               </div>
             )}
-          </div>
+            </div>
+          </>
         ) : (
           isSystemHealthy ? (
             <>
@@ -184,7 +202,11 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
     <div className={cn('flex items-center gap-3', className)}>
       {/* Auth buttons or user menu (full) */}
       {isAuthenticated ? (
-        <div className="relative" ref={menuRef}>
+        <>
+          {/* Inbox */}
+          <InboxDropdown />
+          {/* User Menu */}
+          <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             className={cn(
@@ -281,6 +303,7 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
             </div>
           )}
         </div>
+        </>
       ) : (
         isSystemHealthy ? (
           <div className="flex items-center gap-2">
