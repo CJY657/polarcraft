@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, X, Clock, User, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { profileApi, ProjectApplication } from '@/lib/profile.service';
 
 interface ApplicationManagementDialogProps {
