@@ -7,7 +7,7 @@
  */
 
 import { Link } from "react-router-dom";
-import { FlaskConical, Users, LayoutGrid, ArrowRight } from "lucide-react";
+import { Users, LayoutGrid, ArrowRight } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import type { ResearchProject } from "@/lib/research.service";
@@ -29,36 +29,24 @@ export function ProjectListItem({ project }: ProjectListItemProps) {
           : "bg-white border-gray-200 hover:border-purple-400 hover:bg-gray-50"
       )}
     >
-      {/* Thumbnail or Icon */}
-      <div
-        className={cn(
-          "w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center",
-          theme === "dark" ? "bg-gradient-to-br from-purple-500/20 to-cyan-500/20" : "bg-gradient-to-br from-purple-100 to-cyan-100"
-        )}
-      >
-        {project.thumbnail ? (
-          <img
-            src={project.thumbnail}
-            alt={project.name_zh}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <FlaskConical
-            className={cn("w-6 h-6", theme === "dark" ? "text-slate-500" : "text-gray-400")}
-          />
-        )}
-      </div>
-
       {/* Content */}
       <div className="flex-1 min-w-0">
         <h4
           className={cn(
-            "font-medium truncate group-hover:text-purple-400 transition-colors",
+            "font-medium group-hover:text-purple-400 transition-colors",
             theme === "dark" ? "text-white" : "text-gray-900"
           )}
         >
           {project.name_zh}
         </h4>
+        <p
+          className={cn(
+            "text-sm truncate mt-1",
+            theme === "dark" ? "text-gray-400" : "text-gray-600"
+          )}
+        >
+          {project.description_zh || "暂无描述"}
+        </p>
         <div
           className={cn(
             "flex items-center gap-3 text-xs mt-1",

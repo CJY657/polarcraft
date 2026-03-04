@@ -241,32 +241,12 @@ export function PublicProjectsSection() {
                   : "bg-gray-50 border-gray-200 hover:border-teal-400"
               )}
             >
-              {/* Thumbnail */}
-              <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-teal-500/20 to-cyan-500/20">
-                {project.thumbnail ? (
-                  <img
-                    src={project.thumbnail}
-                    alt={project.name_zh}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FlaskConical
-                      className={cn(
-                        "w-10 h-10",
-                        theme === "dark" ? "text-slate-600" : "text-gray-300"
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-
               {/* Content */}
-              <div className="p-3">
-                <div className="flex items-start justify-between mb-1">
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
                   <h3
                     className={cn(
-                      "font-medium text-sm line-clamp-1 group-hover:text-teal-400 transition-colors",
+                      "font-semibold text-lg line-clamp-1 group-hover:text-teal-400 transition-colors",
                       theme === "dark" ? "text-white" : "text-gray-900"
                     )}
                   >
@@ -288,12 +268,76 @@ export function PublicProjectsSection() {
 
                 <p
                   className={cn(
-                    "text-xs line-clamp-2 mb-2",
+                    "text-sm line-clamp-3 mb-3",
                     theme === "dark" ? "text-gray-400" : "text-gray-600"
                   )}
                 >
                   {project.description_zh || "暂无描述"}
                 </p>
+
+                {/* Owner */}
+                {project.owner_username && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-1 text-xs mb-2",
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    )}
+                  >
+                    <span>组长：</span>
+                    <span className="font-medium">{project.owner_username}</span>
+                  </div>
+                )}
+
+                {/* Members */}
+                {project.members && project.members.filter((m) => m.role !== "owner").length > 0 && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-1 text-xs mb-2",
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    )}
+                  >
+                    <span>成员：</span>
+                    <div className="flex items-center -space-x-1">
+                      {project.members
+                        .filter((m) => m.role !== "owner")
+                        .slice(0, 5)
+                        .map((member, index) => (
+                          <div
+                            key={index}
+                            className={cn(
+                              "w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-medium",
+                              theme === "dark"
+                                ? "border-slate-700 bg-slate-600 text-white"
+                                : "border-gray-200 bg-gray-200 text-gray-700"
+                            )}
+                            title={member.username}
+                          >
+                            {member.avatar_url ? (
+                              <img
+                                src={member.avatar_url}
+                                alt={member.username}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              member.username?.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                        ))}
+                      {project.members.filter((m) => m.role !== "owner").length > 5 && (
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded-full border flex items-center justify-center text-[10px]",
+                            theme === "dark"
+                              ? "border-slate-700 bg-slate-600 text-gray-300"
+                              : "border-gray-200 bg-gray-300 text-gray-600"
+                          )}
+                        >
+                          +{project.members.filter((m) => m.role !== "owner").length - 5}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Stats */}
                 <div className="flex items-center gap-3 text-xs mb-3">

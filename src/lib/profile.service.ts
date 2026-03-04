@@ -137,6 +137,12 @@ export interface CreateProjectWithProfileInput {
   settings?: CreateProjectSettingsInput;
 }
 
+export interface PublicProjectMember {
+  username: string;
+  avatar_url: string | null;
+  role: string;
+}
+
 export interface PublicProject {
   id: string;
   name_zh: string;
@@ -152,6 +158,9 @@ export interface PublicProject {
   max_members: number | null;
   member_count: number;
   is_member: boolean;
+  owner_username: string | null;
+  owner_avatar_url: string | null;
+  members: PublicProjectMember[];
   created_at: string;
   updated_at: string;
 }

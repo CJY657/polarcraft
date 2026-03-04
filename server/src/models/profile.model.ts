@@ -479,10 +479,26 @@ export class ProfileModel {
         ${userId ? `EXISTS(
           SELECT 1 FROM research_project_members pm_check
           WHERE pm_check.project_id = p.id AND pm_check.user_id = ?
-        )` : 'FALSE'} as is_member
+        )` : 'FALSE'} as is_member,
+        MAX(owner.username) as owner_username,
+        MAX(owner.avatar_url) as owner_avatar_url,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'username', m_user.username,
+              'avatar_url', m_user.avatar_url,
+              'role', m_pm.role
+            )
+          )
+          FROM research_project_members m_pm
+          JOIN users m_user ON m_pm.user_id = m_user.id
+          WHERE m_pm.project_id = p.id
+        ) as members
       FROM research_projects p
       INNER JOIN research_project_settings ps ON p.id = ps.project_id
       LEFT JOIN research_project_members pm ON p.id = pm.project_id
+      LEFT JOIN research_project_members owner_pm ON p.id = owner_pm.project_id AND owner_pm.role = 'owner'
+      LEFT JOIN users owner ON owner_pm.user_id = owner.id
       WHERE ps.visibility = 'public' AND p.status IN ('draft', 'active')
     `;
     const params: any[] = [];

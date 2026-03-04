@@ -291,32 +291,12 @@ export function PublicProjectExplorePage() {
                     : "bg-white border-gray-200 hover:border-teal-400"
                 )}
               >
-                {/* Thumbnail or Placeholder */}
-                <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-teal-500/20 to-cyan-500/20">
-                  {project.thumbnail ? (
-                    <img
-                      src={project.thumbnail}
-                      alt={project.name_zh}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <FlaskConical
-                        className={cn(
-                          "w-12 h-12",
-                          theme === "dark" ? "text-slate-600" : "text-gray-300"
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
-
                 {/* Content */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
                     <h3
                       className={cn(
-                        "font-semibold line-clamp-2 group-hover:text-teal-400 transition-colors",
+                        "text-xl font-bold line-clamp-2 group-hover:text-teal-400 transition-colors",
                         theme === "dark" ? "text-white" : "text-gray-900"
                       )}
                     >
@@ -338,7 +318,7 @@ export function PublicProjectExplorePage() {
 
                   <p
                     className={cn(
-                      "text-sm line-clamp-3 mb-4",
+                      "text-base line-clamp-3 mb-4",
                       theme === "dark" ? "text-gray-400" : "text-gray-600"
                     )}
                   >
@@ -357,6 +337,19 @@ export function PublicProjectExplorePage() {
                     >
                       <span className="font-medium">要求：</span>
                       {project.recruitment_requirements}
+                    </div>
+                  )}
+
+                  {/* Owner */}
+                  {project.owner_username && (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 text-sm mb-3",
+                        theme === "dark" ? "text-gray-400" : "text-gray-500"
+                      )}
+                    >
+                      <span>组长：</span>
+                      <span className="font-medium">{project.owner_username}</span>
                     </div>
                   )}
 
