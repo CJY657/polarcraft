@@ -29,18 +29,8 @@ import type {
   MediaNodeData,
   NoteNodeData,
   BaseNodeData,
-  getLabelValue,
 } from '../types/node-data.types';
-
-import type {
-  ProblemNodeData,
-  ExperimentNodeData,
-  ConclusionNodeData,
-  DiscussionNodeData,
-  MediaNodeData,
-  NoteNodeData,
-  BaseNodeData,
-} from '../types/node-data.types';
+import type { LabelI18n } from '@/types/i18n';
 
 // =====================================================
 // LabelI18n Helper
@@ -189,9 +179,16 @@ export function nodeToApiFormat(
  * 将 API 节点转换为 React Flow 格式
  */
 export function apiToNodeFormat(apiNode: ApiNode): Node<ResearchNode> {
+  // Support both snake_case (position_x) and camelCase (positionX) field names
+  // 支持蛇形命名和驼峰命名两种字段名格式
+  // IMPORTANT: Convert to number because API may return strings
+  // 重要：转换为数字类型，因为 API 可能返回字符串
+  const posX = Number(apiNode.position_x ?? (apiNode as any).positionX ?? 0);
+  const posY = Number(apiNode.position_y ?? (apiNode as any).positionY ?? 0);
+
   const baseNode = {
     id: apiNode.id,
-    position: { x: apiNode.position_x, y: apiNode.position_y },
+    position: { x: posX, y: posY },
     data: {
       id: apiNode.id,
       createdAt: apiNode.created_at,

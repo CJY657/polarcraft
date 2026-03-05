@@ -243,7 +243,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           setFlowNodes(flowNodes);
           setNodes(flowNodes);
           // Store original node IDs for deletion detection
-          originalNodeIdsRef.current = new Set(canvas.nodes.map((n) => n.id));
+          originalNodeIdsRef.current = new Set(canvas.nodes.map((n: any) => n.id));
         }
 
         if (canvas.edges && canvas.edges.length > 0) {
@@ -251,7 +251,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           setFlowEdges(flowEdges);
           setEdges(flowEdges);
           // Store original edge IDs for deletion detection
-          originalEdgeIdsRef.current = new Set(canvas.edges.map((e) => e.id));
+          originalEdgeIdsRef.current = new Set(canvas.edges.map((e: any) => e.id));
         }
 
         // Set initial save state
@@ -739,10 +739,27 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         try {
           const data = JSON.parse(e.target?.result as string);
           if (data.nodes && Array.isArray(data.nodes)) {
-            setFlowNodes(data.nodes);
-            setFlowEdges(data.edges || []);
-            setNodes(data.nodes);
-            setEdges(data.edges || []);
+            // Detect data format: API format has position_x, React Flow format has position object
+            // 检测数据格式：API 格式有 position_x，React Flow 格式有 position 对象
+            const isApiFormat = data.nodes[0]?.position_x !== undefined;
+
+            let nodes, edges;
+            if (isApiFormat) {
+              // API format needs conversion to React Flow format
+              // API 格式需要转换为 React Flow 格式
+              nodes = data.nodes.map(apiToNodeFormat);
+              edges = (data.edges || []).map(apiToEdgeFormat);
+            } else {
+              // React Flow format can be used directly
+              // React Flow 格式可以直接使用
+              nodes = data.nodes;
+              edges = data.edges || [];
+            }
+
+            setFlowNodes(nodes);
+            setFlowEdges(edges);
+            setNodes(nodes);
+            setEdges(edges);
           }
         } catch (error) {
           console.error('Failed to parse JSON:', error);
