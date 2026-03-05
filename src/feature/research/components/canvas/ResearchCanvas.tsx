@@ -81,9 +81,11 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   // Wrapper to update both React Flow state and Zustand store
   const updateNode = useCallback((nodeId: string, updates: Partial<Node>) => {
     updateNodeStore(nodeId, updates);
-    setFlowNodes((nds) => nds.map((node) =>
-      node.id === nodeId ? { ...node, ...updates } : node
-    ));
+    setFlowNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId ? { ...node, ...updates } : node
+      )
+    );
   }, [updateNodeStore]);
 
   const removeNode = useCallback((nodeId: string) => {

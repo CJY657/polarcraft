@@ -24,6 +24,7 @@ import type {
   NoteNodeData,
   BaseNodeData,
 } from '../../types/node-data.types';
+import { getNodeField } from '../../types/node-data.types';
 import type { LabelI18n } from '@/types/i18n';
 
 interface NodeDetailsPanelProps {
