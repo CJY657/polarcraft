@@ -249,19 +249,16 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
   }, [isOpen, focusedIndex, showAdminSubmenu, menuItems, adminSubmenuItems, handleItemClick]);
 
   // 主题感知样式
-  const dropdownClasses =
-    theme === 'dark'
-      ? 'bg-slate-800 border-slate-700 shadow-xl'
-      : 'bg-white border-gray-200 shadow-lg';
+  const dropdownClasses = 'glass-panel-strong shadow-[0_24px_60px_-32px_rgba(2,10,22,0.56)]';
 
   const buttonClasses = cn(
-    'relative p-2 rounded-lg transition-colors',
+    'glass-button relative rounded-xl p-2',
     'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:bg-[var(--bg-tertiary)]',
     isOpen && 'text-[var(--accent-cyan)] bg-[var(--bg-tertiary)]'
   );
 
   const fullButtonClasses = cn(
-    'flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-color)]',
+    'glass-button flex items-center gap-2 rounded-full px-3 py-1.5',
     'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]',
     'transition-all',
     isOpen && 'text-[var(--accent-cyan)] border-[var(--accent-cyan)]'
@@ -300,7 +297,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
             animate="visible"
             exit="exit"
             className={cn(
-              'absolute right-0 mt-2 w-[280px] rounded-lg border py-2 z-50',
+              'absolute right-0 z-50 mt-2 w-[280px] rounded-[1.5rem] border py-2',
               dropdownClasses
             )}
           >
@@ -310,8 +307,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                 {/* 头像 */}
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center',
-                    theme === 'dark' ? 'bg-slate-700' : 'bg-gray-100'
+                    'glass-chip flex h-10 w-10 items-center justify-center overflow-hidden rounded-full'
                   )}
                 >
                   {user?.avatar_url ? (
@@ -324,7 +320,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                     <User
                       className={cn(
                         'w-5 h-5',
-                        theme === 'dark' ? 'text-slate-400' : 'text-gray-500'
+                        'text-[var(--glass-text-muted)]'
                       )}
                     />
                   )}

@@ -51,7 +51,7 @@ export interface ProjectSettings {
   require_approval: boolean;
   recruitment_requirements: string | null;
   max_members: number | null;
-  recruitment_deadline: Date | null;
+  recruitment_deadline: string | null;
   is_recruiting: boolean;
   contact_email: string | null;
   discussion_channel: string | null;
@@ -96,6 +96,7 @@ export interface ProjectCreatorProfile {
   grade: string | null;
   created_at: Date;
   updated_at: Date;
+  username?: string;
 }
 
 export interface CreateCreatorProfileInput {
@@ -130,7 +131,6 @@ export interface ProjectApplication {
   review_notes: string | null;
   created_at: Date;
   updated_at: Date;
-  // Joined fields
   username?: string;
   avatar_url?: string | null;
   project_name?: string;

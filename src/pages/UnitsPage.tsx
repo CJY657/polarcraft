@@ -17,7 +17,7 @@ import { useUnitStore } from "@/stores/unitStore";
 
 export function UnitsPage() {
   const { theme } = useTheme();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
 
   const { units, isLoading, error, fetchUnits } = useUnitStore();
@@ -36,10 +36,7 @@ export function UnitsPage() {
   return (
     <div
       className={cn(
-        "min-h-screen",
-        theme === "dark"
-          ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-          : "bg-gradient-to-br from-[#fffbeb] via-[#fef3c7] to-[#fffbeb]"
+        "glass-page min-h-screen",
       )}
     >
       {/* Header with Persistent Logo */}
@@ -47,37 +44,68 @@ export function UnitsPage() {
         moduleKey="units"
         moduleName={isZh ? "实验课单元" : "Experiment Units"}
         variant="glass"
-        className={cn(
-          "sticky top-0 z-40",
-          theme === "dark"
-            ? "bg-slate-900/80 border-b border-slate-700"
-            : "bg-white/80 border-b border-gray-200"
-        )}
+        className="sticky top-0 z-40"
       />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Hero section */}
-        <div className="text-center mb-8">
-          <h2
-            className={cn(
-              "text-2xl sm:text-3xl font-bold mb-3",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
-          >
-            {isZh ? "实验课单元" : "Experiment Units"}
-          </h2>
-          <p
-            className={cn(
-              "text-base max-w-3xl mx-auto mb-4",
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            )}
-          >
-            {isZh
-              ? "选择一个单元开始学习，每个单元包含主课件和相关课程"
-              : "Select a unit to start learning. Each unit contains main slides and related courses."}
-          </p>
-        </div>
+        <section className="glass-panel-strong relative mx-auto mb-8 max-w-5xl overflow-hidden rounded-[2.2rem] px-6 py-8 text-center sm:px-8">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                theme === "dark"
+                  ? "radial-gradient(circle at top right, rgba(123,186,255,0.18), transparent 34%)"
+                  : "linear-gradient(180deg, rgba(25,140,255,0.04), transparent 48%)",
+            }}
+          />
+
+          <div className="relative">
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-accent)]">
+                Fluent Workspace
+              </span>
+              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
+                {isZh ? "系统伴侣式单元入口" : "System companion entry"}
+              </span>
+            </div>
+
+            <h2 className="mb-3 text-2xl font-bold text-[var(--paper-foreground)] sm:text-3xl" style={{ fontFamily: "var(--font-ui-display)" }}>
+              {isZh ? "实验课单元" : "Experiment Units"}
+            </h2>
+            <p className="mx-auto max-w-3xl text-base text-[var(--glass-text-muted)]">
+              {isZh
+                ? "选择一个单元开始学习，每个单元包含主课件、课程入口和清晰的系统式信息卡片。"
+                : "Choose a unit to begin. Each unit bundles slides, related courses, and a system-style overview."}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
+                  Units
+                </p>
+                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">{units.length}</p>
+              </div>
+              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
+                  Slides
+                </p>
+                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">
+                  {units.filter((unit) => unit.mainSlide).length}
+                </p>
+              </div>
+              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
+                  Courses
+                </p>
+                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">
+                  {units.reduce((count, unit) => count + (unit.courseCount || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Error state */}
         {error && (
@@ -87,7 +115,7 @@ export function UnitsPage() {
             </p>
             <button
               onClick={() => fetchUnits()}
-              className="mt-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
+              className="glass-button glass-button-primary mt-4 rounded-full px-4 py-2 text-sm font-medium"
             >
               {isZh ? "重试" : "Retry"}
             </button>
@@ -124,32 +152,32 @@ export function UnitsPage() {
                 key={unit.id}
                 onClick={() => navigate(`/units/${unit.id}`)}
                 className={cn(
-                  "group rounded-2xl transition-all duration-300 overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-xl",
-                  theme === "dark"
-                    ? "bg-slate-800/50 border-2 border-slate-700 hover:border-slate-500"
-                    : "bg-white shadow-sm hover:shadow-lg"
+                  "glass-panel-strong group cursor-pointer overflow-hidden rounded-[1.9rem] border transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_64px_-34px_rgba(15,42,76,0.3)]"
                 )}
               >
                 {/* Cover Image */}
                 <div className="relative h-40 overflow-hidden">
                   {unit.coverImage ? (
-                    <img
-                      src={unit.coverImage}
-                      alt={getLabel(unit.title)}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                    <>
+                      <img
+                        src={unit.coverImage}
+                        alt={getLabel(unit.title)}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,18,32,0.46)] via-transparent to-transparent" />
+                    </>
                   ) : (
                     <>
                       <div
                         className="absolute inset-0"
                         style={{
-                          background: `linear-gradient(135deg, ${unit.color}40 0%, ${unit.color}10 100%)`,
+                          background: `linear-gradient(135deg, ${unit.color}3d 0%, rgba(255,255,255,0.12) 100%)`,
                         }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div
-                          className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                          style={{ backgroundColor: `${unit.color}30` }}
+                          className="glass-chip flex h-16 w-16 items-center justify-center rounded-[1.25rem]"
+                          style={{ backgroundColor: `${unit.color}24` }}
                         >
                           <Layers className="w-8 h-8" style={{ color: unit.color }} />
                         </div>
@@ -160,11 +188,19 @@ export function UnitsPage() {
 
                 {/* Content */}
                 <div className="p-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
+                      {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`}
+                    </span>
+                    <span className="text-xs font-medium" style={{ color: unit.color }}>
+                      {unit.courseCount || 0} {isZh ? "门课程" : "courses"}
+                    </span>
+                  </div>
+
                   {/* Title */}
                   <h3
                     className={cn(
-                      "text-lg font-bold mb-2 line-clamp-2",
-                      theme === "dark" ? "text-white" : "text-gray-900"
+                      "mb-2 line-clamp-2 text-lg font-bold text-[var(--paper-foreground)]"
                     )}
                   >
                     {getLabel(unit.title)}
@@ -173,8 +209,7 @@ export function UnitsPage() {
                   {/* Description */}
                   <p
                     className={cn(
-                      "text-sm mb-4 line-clamp-2",
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      "mb-4 line-clamp-2 text-sm text-[var(--glass-text-muted)]"
                     )}
                   >
                     {getLabel(unit.description)}
@@ -183,18 +218,12 @@ export function UnitsPage() {
                   {/* Stats */}
                   <div className="flex items-center gap-4 text-xs">
                     {unit.mainSlide && (
-                      <div
-                        className="flex items-center gap-1.5"
-                        style={{ color: unit.color }}
-                      >
+                      <div className="glass-chip flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ color: unit.color }}>
                         <FileText className="w-3.5 h-3.5" />
                         <span>{isZh ? "主课件" : "Slides"}</span>
                       </div>
                     )}
-                    <div
-                      className="flex items-center gap-1.5"
-                      style={{ color: unit.color }}
-                    >
+                    <div className="glass-chip flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ color: unit.color }}>
                       <BookOpen className="w-3.5 h-3.5" />
                       <span>
                         {unit.courseCount || 0} {isZh ? "课程" : "Courses"}

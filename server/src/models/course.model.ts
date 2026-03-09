@@ -3,15 +3,15 @@
  * 课程数据模型
  */
 
-import { query, queryOne } from "../database/connection.js";
-import { generateId } from "../utils/crypto.util.js";
-import { logger } from "../utils/logger.js";
+import { getCollection } from '../database/connection.js';
+import { normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
+import { generateId } from '../utils/crypto.util.js';
+import { logger } from '../utils/logger.js';
 import type {
   CourseRow,
   MainSlideRow,
   MediaRow,
   HyperlinkRow,
-  MediaType,
   CreateCourseInput,
   UpdateCourseInput,
   CreateMainSlideInput,
@@ -19,27 +19,22 @@ import type {
   UpdateMediaInput,
   CreateHyperlinkInput,
   UpdateHyperlinkInput,
-} from "../types/course.types.js";
+} from '../types/course.types.js';
 
-/**
- * Course Model Class
- * 课程模型类
- */
+const coursesCollection = () => getCollection('courses');
+const courseMainSlidesCollection = () => getCollection('course_main_slides');
+const courseMediaCollection = () => getCollection('course_media');
+const courseHyperlinksCollection = () => getCollection('course_hyperlinks');
+
 export class CourseModel {
-  // ============================================================
-  // Courses / 课程
-  // ============================================================
-
   /**
    * Get all courses
    * 获取所有课程
    */
   static async getAllCourses(): Promise<CourseRow[]> {
-    const sql = `
-      SELECT * FROM courses
-      ORDER BY created_at DESC
-    `;
-    return await query(sql);
+    return normalizeDocuments<CourseRow>(
+      await coursesCollection().find({}).sort({ created_at: -1 }).toArray()
+    );
   }
 
   /**
@@ -47,8 +42,7 @@ export class CourseModel {
    * 获取课程详情
    */
   static async getCourseById(courseId: string): Promise<CourseRow | null> {
-    const sql = "SELECT * FROM courses WHERE id = ?";
-    return await queryOne(sql, [courseId]);
+    return normalizeDocument<CourseRow>(await coursesCollection().findOne({ id: courseId }));
   }
 
   /**
@@ -56,26 +50,25 @@ export class CourseModel {
    * 创建课程
    */
   static async createCourse(data: CreateCourseInput): Promise<string> {
-    const id = generateId();
-    const sql = `
-      INSERT INTO courses (
-        id, unit_id, title_zh, title_en, description_zh, description_en,
-        cover_image, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      data.unitId,
-      data.title_zh,
-      data.title_en || null,
-      data.description_zh || null,
-      data.description_en || null,
-      data.coverImage || null,
-      data.color || "#C9A227",
-    ]);
+    const now = new Date();
+    const course: CourseRow = {
+      id: generateId(),
+      unit_id: data.unitId,
+      title_zh: data.title_zh,
+      title_en: data.title_en || null,
+      description_zh: data.description_zh || null,
+      description_en: data.description_en || null,
+      cover_image: data.coverImage || null,
+      color: data.color || '#C9A227',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    };
 
-    logger.info(`Course created: ${id}`);
-    return id;
+    await coursesCollection().insertOne(course as unknown as Record<string, unknown>);
+
+    logger.info(`Course created: ${course.id}`);
+    return course.id;
   }
 
   /**
@@ -83,22 +76,8 @@ export class CourseModel {
    * 更新课程
    */
   static async updateCourse(courseId: string, data: UpdateCourseInput): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
-
-    const updatable = [
-      "unit_id",
-      "title_zh",
-      "title_en",
-      "description_zh",
-      "description_en",
-      "cover_image",
-      "color",
-      "sort_order",
-    ];
-
-    const dataMap: Record<string, string | number | null | undefined> = {
-      unit_id: data.unitId === "" ? null : data.unitId,
+    const updateDoc = pickDefined({
+      unit_id: data.unitId === '' ? null : data.unitId,
       title_zh: data.title_zh,
       title_en: data.title_en,
       description_zh: data.description_zh,
@@ -106,23 +85,19 @@ export class CourseModel {
       cover_image: data.coverImage,
       color: data.color,
       sort_order: data.sortOrder,
-    };
+    });
 
-    for (const field of updatable) {
-      if (dataMap[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        params.push(dataMap[field]);
-      }
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (fields.length === 0) return false;
-
-    params.push(courseId);
-    const sql = `UPDATE courses SET ${fields.join(", ")} WHERE id = ?`;
-    await query(sql, params);
+    const result = await coursesCollection().updateOne(
+      { id: courseId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Course updated: ${courseId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -130,23 +105,27 @@ export class CourseModel {
    * 删除课程
    */
   static async deleteCourse(courseId: string): Promise<boolean> {
-    const sql = "DELETE FROM courses WHERE id = ?";
-    await query(sql, [courseId]);
+    const result = await coursesCollection().deleteOne({ id: courseId });
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    await courseMainSlidesCollection().deleteMany({ course_id: courseId });
+    await courseMediaCollection().deleteMany({ course_id: courseId });
+    await courseHyperlinksCollection().deleteMany({ course_id: courseId });
+
     logger.info(`Course deleted: ${courseId}`);
     return true;
   }
-
-  // ============================================================
-  // Main Slide / 主课件
-  // ============================================================
 
   /**
    * Get main slide by course ID
    * 获取课程的主课件
    */
   static async getMainSlide(courseId: string): Promise<MainSlideRow | null> {
-    const sql = "SELECT * FROM course_main_slides WHERE course_id = ?";
-    return await queryOne(sql, [courseId]);
+    return normalizeDocument<MainSlideRow>(
+      await courseMainSlidesCollection().findOne({ course_id: courseId })
+    );
   }
 
   /**
@@ -154,30 +133,40 @@ export class CourseModel {
    * 创建或更新主课件
    */
   static async upsertMainSlide(courseId: string, data: CreateMainSlideInput): Promise<string> {
-    // Check if exists
     const existing = await this.getMainSlide(courseId);
+    const now = new Date();
 
     if (existing) {
-      // Update
-      const sql = `
-        UPDATE course_main_slides
-        SET url = ?, title_zh = ?, title_en = ?
-        WHERE course_id = ?
-      `;
-      await query(sql, [data.url, data.title_zh || null, data.title_en || null, courseId]);
+      await courseMainSlidesCollection().updateOne(
+        { course_id: courseId },
+        {
+          $set: {
+            url: data.url,
+            title_zh: data.title_zh || null,
+            title_en: data.title_en || null,
+            updated_at: now,
+          },
+        }
+      );
+
       logger.info(`Main slide updated for course: ${courseId}`);
       return existing.id;
-    } else {
-      // Create
-      const id = generateId();
-      const sql = `
-        INSERT INTO course_main_slides (id, course_id, url, title_zh, title_en)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      await query(sql, [id, courseId, data.url, data.title_zh || null, data.title_en || null]);
-      logger.info(`Main slide created for course: ${courseId}`);
-      return id;
     }
+
+    const slide: MainSlideRow = {
+      id: generateId(),
+      course_id: courseId,
+      url: data.url,
+      title_zh: data.title_zh || null,
+      title_en: data.title_en || null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    await courseMainSlidesCollection().insertOne(slide as unknown as Record<string, unknown>);
+
+    logger.info(`Main slide created for course: ${courseId}`);
+    return slide.id;
   }
 
   /**
@@ -185,27 +174,22 @@ export class CourseModel {
    * 删除主课件
    */
   static async deleteMainSlide(courseId: string): Promise<boolean> {
-    const sql = "DELETE FROM course_main_slides WHERE course_id = ?";
-    await query(sql, [courseId]);
+    const result = await courseMainSlidesCollection().deleteOne({ course_id: courseId });
     logger.info(`Main slide deleted for course: ${courseId}`);
-    return true;
+    return result.deletedCount > 0;
   }
-
-  // ============================================================
-  // Media / 媒体资源
-  // ============================================================
 
   /**
    * Get all media for a course
    * 获取课程的所有媒体资源
    */
   static async getMediaByCourse(courseId: string): Promise<MediaRow[]> {
-    const sql = `
-      SELECT * FROM course_media
-      WHERE course_id = ?
-      ORDER BY sort_order ASC, created_at ASC
-    `;
-    return await query(sql, [courseId]);
+    return normalizeDocuments<MediaRow>(
+      await courseMediaCollection()
+        .find({ course_id: courseId })
+        .sort({ sort_order: 1, created_at: 1 })
+        .toArray()
+    );
   }
 
   /**
@@ -213,8 +197,7 @@ export class CourseModel {
    * 获取单个媒体资源
    */
   static async getMediaById(mediaId: string): Promise<MediaRow | null> {
-    const sql = "SELECT * FROM course_media WHERE id = ?";
-    return await queryOne(sql, [mediaId]);
+    return normalizeDocument<MediaRow>(await courseMediaCollection().findOne({ id: mediaId }));
   }
 
   /**
@@ -222,29 +205,29 @@ export class CourseModel {
    * 创建媒体资源
    */
   static async createMedia(courseId: string, data: CreateMediaInput): Promise<string> {
-    // Get max sort order
-    const maxOrderSql = "SELECT COALESCE(MAX(sort_order), -1) as max_order FROM course_media WHERE course_id = ?";
-    const result = await queryOne<{ max_order: number }>(maxOrderSql, [courseId]);
-    const sortOrder = (result?.max_order ?? -1) + 1;
+    const maxOrderRow = normalizeDocument<Pick<MediaRow, 'sort_order'>>(
+      await courseMediaCollection().findOne({ course_id: courseId }, { sort: { sort_order: -1 } })
+    );
+    const sortOrder = (maxOrderRow?.sort_order ?? -1) + 1;
+    const now = new Date();
 
-    const id = generateId();
-    const sql = `
-      INSERT INTO course_media (id, course_id, type, url, title_zh, title_en, duration, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      courseId,
-      data.type,
-      data.url,
-      data.title_zh,
-      data.title_en || null,
-      data.duration || null,
-      sortOrder,
-    ]);
+    const media: MediaRow = {
+      id: generateId(),
+      course_id: courseId,
+      type: data.type,
+      url: data.url,
+      title_zh: data.title_zh,
+      title_en: data.title_en || null,
+      duration: data.duration || null,
+      sort_order: sortOrder,
+      created_at: now,
+      updated_at: now,
+    };
 
-    logger.info(`Media created: ${id}`);
-    return id;
+    await courseMediaCollection().insertOne(media as unknown as Record<string, unknown>);
+
+    logger.info(`Media created: ${media.id}`);
+    return media.id;
   }
 
   /**
@@ -252,26 +235,26 @@ export class CourseModel {
    * 更新媒体资源
    */
   static async updateMedia(mediaId: string, data: UpdateMediaInput): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
+    const updateDoc = pickDefined({
+      type: data.type,
+      url: data.url,
+      title_zh: data.title_zh,
+      title_en: data.title_en,
+      duration: data.duration,
+      sort_order: data.sort_order,
+    });
 
-    const updatable = ["type", "url", "title_zh", "title_en", "duration", "sort_order"];
-
-    for (const field of updatable) {
-      if (data[field as keyof UpdateMediaInput] !== undefined) {
-        fields.push(`${field} = ?`);
-        params.push(data[field as keyof UpdateMediaInput]);
-      }
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (fields.length === 0) return false;
-
-    params.push(mediaId);
-    const sql = `UPDATE course_media SET ${fields.join(", ")} WHERE id = ?`;
-    await query(sql, params);
+    const result = await courseMediaCollection().updateOne(
+      { id: mediaId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Media updated: ${mediaId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -279,8 +262,13 @@ export class CourseModel {
    * 删除媒体资源
    */
   static async deleteMedia(mediaId: string): Promise<boolean> {
-    const sql = "DELETE FROM course_media WHERE id = ?";
-    await query(sql, [mediaId]);
+    const result = await courseMediaCollection().deleteOne({ id: mediaId });
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    await courseHyperlinksCollection().deleteMany({ target_media_id: mediaId });
+
     logger.info(`Media deleted: ${mediaId}`);
     return true;
   }
@@ -290,31 +278,31 @@ export class CourseModel {
    * 重新排序媒体资源
    */
   static async reorderMedia(courseId: string, mediaIds: string[]): Promise<boolean> {
-    const sql = "UPDATE course_media SET sort_order = ? WHERE id = ? AND course_id = ?";
-
-    for (let i = 0; i < mediaIds.length; i++) {
-      await query(sql, [i, mediaIds[i], courseId]);
-    }
+    const now = new Date();
+    await Promise.all(
+      mediaIds.map((mediaId, index) =>
+        courseMediaCollection().updateOne(
+          { id: mediaId, course_id: courseId },
+          { $set: { sort_order: index, updated_at: now } }
+        )
+      )
+    );
 
     logger.info(`Media reordered for course: ${courseId}`);
     return true;
   }
-
-  // ============================================================
-  // Hyperlinks / 超链接
-  // ============================================================
 
   /**
    * Get all hyperlinks for a course
    * 获取课程的所有超链接
    */
   static async getHyperlinksByCourse(courseId: string): Promise<HyperlinkRow[]> {
-    const sql = `
-      SELECT * FROM course_hyperlinks
-      WHERE course_id = ?
-      ORDER BY page ASC, created_at ASC
-    `;
-    return await query(sql, [courseId]);
+    return normalizeDocuments<HyperlinkRow>(
+      await courseHyperlinksCollection()
+        .find({ course_id: courseId })
+        .sort({ page: 1, created_at: 1 })
+        .toArray()
+    );
   }
 
   /**
@@ -322,12 +310,12 @@ export class CourseModel {
    * 获取特定页面的超链接
    */
   static async getHyperlinksByPage(courseId: string, page: number): Promise<HyperlinkRow[]> {
-    const sql = `
-      SELECT * FROM course_hyperlinks
-      WHERE course_id = ? AND page = ?
-      ORDER BY created_at ASC
-    `;
-    return await query(sql, [courseId, page]);
+    return normalizeDocuments<HyperlinkRow>(
+      await courseHyperlinksCollection()
+        .find({ course_id: courseId, page })
+        .sort({ created_at: 1 })
+        .toArray()
+    );
   }
 
   /**
@@ -335,8 +323,9 @@ export class CourseModel {
    * 获取单个超链接
    */
   static async getHyperlinkById(hyperlinkId: string): Promise<HyperlinkRow | null> {
-    const sql = "SELECT * FROM course_hyperlinks WHERE id = ?";
-    return await queryOne(sql, [hyperlinkId]);
+    return normalizeDocument<HyperlinkRow>(
+      await courseHyperlinksCollection().findOne({ id: hyperlinkId })
+    );
   }
 
   /**
@@ -344,24 +333,24 @@ export class CourseModel {
    * 创建超链接
    */
   static async createHyperlink(courseId: string, data: CreateHyperlinkInput): Promise<string> {
-    const id = generateId();
-    const sql = `
-      INSERT INTO course_hyperlinks (id, course_id, page, x, y, width, height, target_media_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      courseId,
-      data.page,
-      data.x,
-      data.y,
-      data.width,
-      data.height,
-      data.targetMediaId,
-    ]);
+    const now = new Date();
+    const hyperlink: HyperlinkRow = {
+      id: generateId(),
+      course_id: courseId,
+      page: data.page,
+      x: data.x,
+      y: data.y,
+      width: data.width,
+      height: data.height,
+      target_media_id: data.targetMediaId,
+      created_at: now,
+      updated_at: now,
+    };
 
-    logger.info(`Hyperlink created: ${id}`);
-    return id;
+    await courseHyperlinksCollection().insertOne(hyperlink as unknown as Record<string, unknown>);
+
+    logger.info(`Hyperlink created: ${hyperlink.id}`);
+    return hyperlink.id;
   }
 
   /**
@@ -369,34 +358,26 @@ export class CourseModel {
    * 更新超链接
    */
   static async updateHyperlink(hyperlinkId: string, data: UpdateHyperlinkInput): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
-
-    const updatable = ["page", "x", "y", "width", "height", "target_media_id"];
-    const dataMap: Record<string, any> = {
+    const updateDoc = pickDefined({
       page: data.page,
       x: data.x,
       y: data.y,
       width: data.width,
       height: data.height,
       target_media_id: data.targetMediaId,
-    };
+    });
 
-    for (const field of updatable) {
-      if (dataMap[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        params.push(dataMap[field]);
-      }
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (fields.length === 0) return false;
-
-    params.push(hyperlinkId);
-    const sql = `UPDATE course_hyperlinks SET ${fields.join(", ")} WHERE id = ?`;
-    await query(sql, params);
+    const result = await courseHyperlinksCollection().updateOne(
+      { id: hyperlinkId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Hyperlink updated: ${hyperlinkId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -404,9 +385,8 @@ export class CourseModel {
    * 删除超链接
    */
   static async deleteHyperlink(hyperlinkId: string): Promise<boolean> {
-    const sql = "DELETE FROM course_hyperlinks WHERE id = ?";
-    await query(sql, [hyperlinkId]);
+    const result = await courseHyperlinksCollection().deleteOne({ id: hyperlinkId });
     logger.info(`Hyperlink deleted: ${hyperlinkId}`);
-    return true;
+    return result.deletedCount > 0;
   }
 }

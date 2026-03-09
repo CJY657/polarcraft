@@ -44,10 +44,8 @@ export function WorksGrid({
       {works.length === 0 ? (
         <div
           className={cn(
-            "text-center py-16 rounded-2xl border-2 border-dashed",
-            theme === "dark"
-              ? "bg-slate-800/30 border-slate-700"
-              : "bg-gray-50 border-gray-300"
+            "glass-panel text-center py-16 rounded-[2rem] border border-dashed",
+            theme === "dark" ? "border-slate-700/70" : "border-sky-200/70"
           )}
         >
           <ImageIcon
@@ -58,16 +56,13 @@ export function WorksGrid({
           />
           <p
             className={cn(
-              "text-lg mb-2",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
+              "mb-2 text-lg text-[var(--paper-foreground)]"
             )}
           >
             {emptyMessage}
           </p>
           {emptyHint && (
-            <p
-              className={cn("text-sm", theme === "dark" ? "text-gray-500" : "text-gray-400")}
-            >
+            <p className="text-sm text-[var(--glass-text-muted)]">
               {emptyHint}
             </p>
           )}
@@ -88,28 +83,23 @@ export function WorksGrid({
       {showCta && cta && works.length === 0 && (
         <div
           className={cn(
-            "mt-8 p-6 rounded-xl text-center",
-            theme === "dark"
-              ? "bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-2 border-purple-500/30"
-              : "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200"
+            "glass-panel mt-8 rounded-[1.75rem] border p-6 text-center"
           )}
         >
           <h3
             className={cn(
-              "text-lg font-semibold mb-2",
-              theme === "dark" ? "text-white" : "text-gray-900"
+              "mb-2 text-lg font-semibold text-[var(--paper-foreground)]"
             )}
           >
             {cta.title}
           </h3>
-          <p className={cn("text-sm mb-4", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+          <p className="mb-4 text-sm text-[var(--glass-text-muted)]">
             {cta.description}
           </p>
           <button
             onClick={cta.onButtonClick}
             className={cn(
-              "px-6 py-2 rounded-lg font-medium transition-colors",
-              "bg-purple-600 text-white hover:bg-purple-700"
+              "glass-button glass-button-primary rounded-full px-6 py-2 font-medium"
             )}
           >
             {cta.buttonText}

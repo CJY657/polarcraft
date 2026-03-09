@@ -3,9 +3,16 @@
  * 个人资料数据模型
  */
 
-import { query, queryOne } from "../database/connection.js";
-import { generateId } from "../utils/crypto.util.js";
-import { logger } from "../utils/logger.js";
+import { getCollection } from '../database/connection.js';
+import {
+  compareRole,
+  escapeRegExp,
+  normalizeDocument,
+  normalizeDocuments,
+  pickDefined,
+} from '../database/mongo.util.js';
+import { generateId } from '../utils/crypto.util.js';
+import { logger } from '../utils/logger.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -18,29 +25,82 @@ import {
   ProjectApplication,
   CreateApplicationInput,
   ApplicationStatus,
-} from "../types/profile.types.js";
+} from '../types/profile.types.js';
 
-/**
- * Profile Model Class
- * 个人资料模型类
- */
+const educationsCollection = () => getCollection('user_educations');
+const projectSettingsCollection = () => getCollection('research_project_settings');
+const creatorProfilesCollection = () => getCollection('research_project_creator_profiles');
+const applicationsCollection = () => getCollection('research_project_applications');
+const usersCollection = () => getCollection('users');
+const projectMembersCollection = () => getCollection('research_project_members');
+const researchProjectsCollection = () => getCollection('research_projects');
+
+async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
+  if (userIds.length === 0) {
+    return new Map();
+  }
+
+  const users = normalizeDocuments<{ id: string; username: string; avatar_url: string | null }>(
+    await usersCollection()
+      .find({ id: { $in: [...new Set(userIds)] } })
+      .project({ _id: 0, id: 1, username: 1, avatar_url: 1 })
+      .toArray()
+  );
+
+  return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
+}
+
+async function getProjectNameMap(projectIds: string[]): Promise<Map<string, string | undefined>> {
+  if (projectIds.length === 0) {
+    return new Map();
+  }
+
+  const projects = normalizeDocuments<{ id: string; name_zh: string | null }>(
+    await researchProjectsCollection()
+      .find({ id: { $in: [...new Set(projectIds)] } })
+      .project({ _id: 0, id: 1, name_zh: 1 })
+      .toArray()
+  );
+
+  return new Map(projects.map((project) => [project.id, project.name_zh || undefined]));
+}
+
+async function enrichApplications(applications: ProjectApplication[]): Promise<ProjectApplication[]> {
+  if (applications.length === 0) {
+    return [];
+  }
+
+  const [userMap, projectNameMap] = await Promise.all([
+    getUserMap(applications.map((application) => application.user_id)),
+    getProjectNameMap(applications.map((application) => application.project_id)),
+  ]);
+
+  return applications.map((application) => {
+    const user = userMap.get(application.user_id);
+    return {
+      ...application,
+      username: user?.username,
+      avatar_url: user?.avatar_url,
+      project_name: projectNameMap.get(application.project_id),
+    };
+  });
+}
+
 export class ProfileModel {
-  // ============================================================
-  // User Educations / 用户教育经历
-  // ============================================================
-
   /**
    * Get all educations for a user
    * 获取用户的所有教育经历
    */
   static async getUserEducations(userId: string): Promise<UserEducation[]> {
-    const sql = `
-      SELECT *
-      FROM user_educations
-      WHERE user_id = ?
-      ORDER BY start_date DESC, end_date DESC
-    `;
-    return await query(sql, [userId]);
+    const educations = normalizeDocuments<UserEducation>(
+      await educationsCollection().find({ user_id: userId }).toArray()
+    );
+
+    return educations.sort(
+      (a, b) =>
+        b.start_date.localeCompare(a.start_date) ||
+        (b.end_date ?? '').localeCompare(a.end_date ?? '')
+    );
   }
 
   /**
@@ -48,12 +108,9 @@ export class ProfileModel {
    * 根据ID获取教育经历
    */
   static async getEducationById(educationId: string, userId: string): Promise<UserEducation | null> {
-    const sql = `
-      SELECT *
-      FROM user_educations
-      WHERE id = ? AND user_id = ?
-    `;
-    return await queryOne(sql, [educationId, userId]);
+    return normalizeDocument<UserEducation>(
+      await educationsCollection().findOne({ id: educationId, user_id: userId })
+    );
   }
 
   /**
@@ -61,30 +118,24 @@ export class ProfileModel {
    * 创建教育经历
    */
   static async createEducation(userId: string, data: CreateEducationInput): Promise<string> {
-    const id = generateId();
+    const now = new Date();
+    const education: UserEducation = {
+      id: generateId(),
+      user_id: userId,
+      organization: data.organization,
+      major: data.major,
+      start_date: `${data.start_date}-01`,
+      end_date: data.end_date ? `${data.end_date}-01` : null,
+      is_current: data.is_current ?? !data.end_date,
+      degree_level: data.degree_level || null,
+      created_at: now,
+      updated_at: now,
+    };
 
-    // Convert YYYY-MM to YYYY-MM-01 for DATE field
-    const startDate = `${data.start_date}-01`;
-    const endDate = data.end_date ? `${data.end_date}-01` : null;
-    const isCurrent = data.is_current ?? !data.end_date;
+    await educationsCollection().insertOne(education as unknown as Record<string, unknown>);
 
-    const sql = `
-      INSERT INTO user_educations (id, user_id, organization, major, start_date, end_date, is_current, degree_level)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      userId,
-      data.organization,
-      data.major,
-      startDate,
-      endDate,
-      isCurrent,
-      data.degree_level || null,
-    ]);
-
-    logger.info(`Education created: ${id} for user ${userId}`);
-    return id;
+    logger.info(`Education created: ${education.id} for user ${userId}`);
+    return education.id;
   }
 
   /**
@@ -96,47 +147,26 @@ export class ProfileModel {
     userId: string,
     data: UpdateEducationInput
   ): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
+    const updateDoc = pickDefined({
+      organization: data.organization,
+      major: data.major,
+      start_date: data.start_date ? `${data.start_date}-01` : undefined,
+      end_date: data.end_date !== undefined ? (data.end_date ? `${data.end_date}-01` : null) : undefined,
+      is_current: data.is_current,
+      degree_level: data.degree_level !== undefined ? data.degree_level || null : undefined,
+    });
 
-    if (data.organization !== undefined) {
-      fields.push("organization = ?");
-      params.push(data.organization);
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (data.major !== undefined) {
-      fields.push("major = ?");
-      params.push(data.major);
-    }
-
-    if (data.start_date !== undefined) {
-      fields.push("start_date = ?");
-      params.push(`${data.start_date}-01`);
-    }
-
-    if (data.end_date !== undefined) {
-      fields.push("end_date = ?");
-      params.push(data.end_date ? `${data.end_date}-01` : null);
-    }
-
-    if (data.is_current !== undefined) {
-      fields.push("is_current = ?");
-      params.push(data.is_current);
-    }
-
-    if (data.degree_level !== undefined) {
-      fields.push("degree_level = ?");
-      params.push(data.degree_level || null);
-    }
-
-    if (fields.length === 0) return false;
-
-    params.push(educationId, userId);
-    const sql = `UPDATE user_educations SET ${fields.join(", ")} WHERE id = ? AND user_id = ?`;
-    await query(sql, params);
+    const result = await educationsCollection().updateOne(
+      { id: educationId, user_id: userId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Education updated: ${educationId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -144,27 +174,19 @@ export class ProfileModel {
    * 删除教育经历
    */
   static async deleteEducation(educationId: string, userId: string): Promise<boolean> {
-    const sql = "DELETE FROM user_educations WHERE id = ? AND user_id = ?";
-    await query(sql, [educationId, userId]);
+    const result = await educationsCollection().deleteOne({ id: educationId, user_id: userId });
     logger.info(`Education deleted: ${educationId}`);
-    return true;
+    return result.deletedCount > 0;
   }
-
-  // ============================================================
-  // Project Settings / 项目设置
-  // ============================================================
 
   /**
    * Get project settings
    * 获取项目设置
    */
   static async getProjectSettings(projectId: string): Promise<ProjectSettings | null> {
-    const sql = `
-      SELECT *
-      FROM research_project_settings
-      WHERE project_id = ?
-    `;
-    return await queryOne(sql, [projectId]);
+    return normalizeDocument<ProjectSettings>(
+      await projectSettingsCollection().findOne({ project_id: projectId })
+    );
   }
 
   /**
@@ -175,28 +197,26 @@ export class ProfileModel {
     projectId: string,
     data: CreateProjectSettingsInput
   ): Promise<string> {
-    const id = generateId();
-    const sql = `
-      INSERT INTO research_project_settings (
-        id, project_id, visibility, require_approval, recruitment_requirements,
-        max_members, recruitment_deadline, is_recruiting, contact_email, discussion_channel
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      projectId,
-      data.visibility || "private",
-      data.require_approval !== undefined ? data.require_approval : true,
-      data.recruitment_requirements || null,
-      data.max_members || null,
-      data.recruitment_deadline || null,
-      data.is_recruiting !== undefined ? data.is_recruiting : true,
-      data.contact_email || null,
-      data.discussion_channel || null,
-    ]);
+    const now = new Date();
+    const settings: ProjectSettings = {
+      id: generateId(),
+      project_id: projectId,
+      visibility: data.visibility || 'private',
+      require_approval: data.require_approval !== undefined ? data.require_approval : true,
+      recruitment_requirements: data.recruitment_requirements || null,
+      max_members: data.max_members || null,
+      recruitment_deadline: data.recruitment_deadline || null,
+      is_recruiting: data.is_recruiting !== undefined ? data.is_recruiting : true,
+      contact_email: data.contact_email || null,
+      discussion_channel: data.discussion_channel || null,
+      created_at: now,
+      updated_at: now,
+    } as ProjectSettings;
+
+    await projectSettingsCollection().insertOne(settings as unknown as Record<string, unknown>);
 
     logger.info(`Project settings created for project: ${projectId}`);
-    return id;
+    return settings.id;
   }
 
   /**
@@ -207,35 +227,28 @@ export class ProfileModel {
     projectId: string,
     data: UpdateProjectSettingsInput
   ): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
+    const updateDoc = pickDefined({
+      visibility: data.visibility,
+      require_approval: data.require_approval,
+      recruitment_requirements: data.recruitment_requirements,
+      max_members: data.max_members,
+      recruitment_deadline: data.recruitment_deadline,
+      is_recruiting: data.is_recruiting,
+      contact_email: data.contact_email,
+      discussion_channel: data.discussion_channel,
+    });
 
-    const updatable: (keyof UpdateProjectSettingsInput)[] = [
-      "visibility",
-      "require_approval",
-      "recruitment_requirements",
-      "max_members",
-      "recruitment_deadline",
-      "is_recruiting",
-      "contact_email",
-      "discussion_channel",
-    ];
-
-    for (const field of updatable) {
-      if (data[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        params.push(data[field]);
-      }
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (fields.length === 0) return false;
-
-    params.push(projectId);
-    const sql = `UPDATE research_project_settings SET ${fields.join(", ")} WHERE project_id = ?`;
-    await query(sql, params);
+    const result = await projectSettingsCollection().updateOne(
+      { project_id: projectId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Project settings updated: ${projectId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -251,21 +264,14 @@ export class ProfileModel {
     return settings!;
   }
 
-  // ============================================================
-  // Project Creator Profile / 项目创建者资料
-  // ============================================================
-
   /**
    * Get creator profile for a project
    * 获取项目的创建者资料
    */
   static async getCreatorProfile(projectId: string, userId: string): Promise<ProjectCreatorProfile | null> {
-    const sql = `
-      SELECT *
-      FROM research_project_creator_profiles
-      WHERE project_id = ? AND user_id = ?
-    `;
-    return await queryOne(sql, [projectId, userId]);
+    return normalizeDocument<ProjectCreatorProfile>(
+      await creatorProfilesCollection().findOne({ project_id: projectId, user_id: userId })
+    );
   }
 
   /**
@@ -273,14 +279,19 @@ export class ProfileModel {
    * 获取项目的所有创建者资料
    */
   static async getProjectCreatorProfiles(projectId: string): Promise<ProjectCreatorProfile[]> {
-    const sql = `
-      SELECT cp.*, u.username
-      FROM research_project_creator_profiles cp
-      LEFT JOIN users u ON cp.user_id = u.id
-      WHERE cp.project_id = ?
-      ORDER BY cp.created_at
-    `;
-    return await query(sql, [projectId]);
+    const profiles = normalizeDocuments<ProjectCreatorProfile>(
+      await creatorProfilesCollection()
+        .find({ project_id: projectId })
+        .sort({ created_at: 1 })
+        .toArray()
+    );
+
+    const userMap = await getUserMap(profiles.map((profile) => profile.user_id));
+
+    return profiles.map((profile) => ({
+      ...profile,
+      username: userMap.get(profile.user_id)?.username,
+    }));
   }
 
   /**
@@ -292,44 +303,41 @@ export class ProfileModel {
     userId: string,
     data: CreateCreatorProfileInput
   ): Promise<string> {
-    const id = generateId();
-    const sql = `
-      INSERT INTO research_project_creator_profiles (
-        id, project_id, user_id, display_name, organization, education_id, major, grade
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      projectId,
-      userId,
-      data.display_name,
-      data.organization,
-      data.education_id || null,
-      data.major || null,
-      data.grade || null,
-    ]);
+    const now = new Date();
+    const profile: ProjectCreatorProfile = {
+      id: generateId(),
+      project_id: projectId,
+      user_id: userId,
+      display_name: data.display_name,
+      organization: data.organization,
+      education_id: data.education_id || null,
+      major: data.major || null,
+      grade: data.grade || null,
+      created_at: now,
+      updated_at: now,
+    };
 
-    logger.info(`Creator profile created: ${id} for project ${projectId}`);
-    return id;
+    await creatorProfilesCollection().insertOne(profile as unknown as Record<string, unknown>);
+
+    logger.info(`Creator profile created: ${profile.id} for project ${projectId}`);
+    return profile.id;
   }
-
-  // ============================================================
-  // Project Applications / 项目申请
-  // ============================================================
 
   /**
    * Get application by ID
    * 根据ID获取申请
    */
   static async getApplicationById(applicationId: string): Promise<ProjectApplication | null> {
-    const sql = `
-      SELECT a.*, u.username, u.avatar_url, p.name_zh as project_name
-      FROM research_project_applications a
-      LEFT JOIN users u ON a.user_id = u.id
-      LEFT JOIN research_projects p ON a.project_id = p.id
-      WHERE a.id = ?
-    `;
-    return await queryOne(sql, [applicationId]);
+    const application = normalizeDocument<ProjectApplication>(
+      await applicationsCollection().findOne({ id: applicationId })
+    );
+
+    if (!application) {
+      return null;
+    }
+
+    const [enriched] = await enrichApplications([application]);
+    return enriched || null;
   }
 
   /**
@@ -337,14 +345,14 @@ export class ProfileModel {
    * 获取项目的申请列表
    */
   static async getProjectApplications(projectId: string): Promise<ProjectApplication[]> {
-    const sql = `
-      SELECT a.*, u.username, u.avatar_url
-      FROM research_project_applications a
-      LEFT JOIN users u ON a.user_id = u.id
-      WHERE a.project_id = ?
-      ORDER BY a.created_at DESC
-    `;
-    return await query(sql, [projectId]);
+    const applications = normalizeDocuments<ProjectApplication>(
+      await applicationsCollection()
+        .find({ project_id: projectId })
+        .sort({ created_at: -1 })
+        .toArray()
+    );
+
+    return enrichApplications(applications);
   }
 
   /**
@@ -352,14 +360,14 @@ export class ProfileModel {
    * 获取用户的申请列表
    */
   static async getUserApplications(userId: string): Promise<ProjectApplication[]> {
-    const sql = `
-      SELECT a.*, p.name_zh as project_name
-      FROM research_project_applications a
-      LEFT JOIN research_projects p ON a.project_id = p.id
-      WHERE a.user_id = ?
-      ORDER BY a.created_at DESC
-    `;
-    return await query(sql, [userId]);
+    const applications = normalizeDocuments<ProjectApplication>(
+      await applicationsCollection()
+        .find({ user_id: userId })
+        .sort({ created_at: -1 })
+        .toArray()
+    );
+
+    return enrichApplications(applications);
   }
 
   /**
@@ -370,12 +378,13 @@ export class ProfileModel {
     projectId: string,
     userId: string
   ): Promise<ProjectApplication | null> {
-    const sql = `
-      SELECT *
-      FROM research_project_applications
-      WHERE project_id = ? AND user_id = ? AND status = 'pending'
-    `;
-    return await queryOne(sql, [projectId, userId]);
+    return normalizeDocument<ProjectApplication>(
+      await applicationsCollection().findOne({
+        project_id: projectId,
+        user_id: userId,
+        status: 'pending',
+      })
+    );
   }
 
   /**
@@ -387,35 +396,36 @@ export class ProfileModel {
     userId: string,
     data: CreateApplicationInput
   ): Promise<string> {
-    // Check if there's an existing application
-    const existing = await this.getPendingApplication(projectId, userId);
+    const existing = await applicationsCollection().findOne({ project_id: projectId, user_id: userId });
     if (existing) {
-      throw new Error("已经存在待处理的申请");
+      throw new Error('已经存在待处理的申请');
     }
 
-    const id = generateId();
-    const sql = `
-      INSERT INTO research_project_applications (
-        id, project_id, user_id, display_name, organization, education_id,
-        major, grade, research_experience, expertise, motivation
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      projectId,
-      userId,
-      data.display_name,
-      data.organization,
-      data.education_id || null,
-      data.major || null,
-      data.grade || null,
-      data.research_experience || null,
-      data.expertise || null,
-      data.motivation || null,
-    ]);
+    const now = new Date();
+    const application: ProjectApplication = {
+      id: generateId(),
+      project_id: projectId,
+      user_id: userId,
+      display_name: data.display_name,
+      organization: data.organization,
+      education_id: data.education_id || null,
+      major: data.major || null,
+      grade: data.grade || null,
+      research_experience: data.research_experience || null,
+      expertise: data.expertise || null,
+      motivation: data.motivation || null,
+      status: 'pending',
+      reviewed_by: null,
+      reviewed_at: null,
+      review_notes: null,
+      created_at: now,
+      updated_at: now,
+    };
 
-    logger.info(`Application created: ${id} for project ${projectId}`);
-    return id;
+    await applicationsCollection().insertOne(application as unknown as Record<string, unknown>);
+
+    logger.info(`Application created: ${application.id} for project ${projectId}`);
+    return application.id;
   }
 
   /**
@@ -428,15 +438,21 @@ export class ProfileModel {
     reviewerId: string,
     reviewNotes?: string
   ): Promise<boolean> {
-    const sql = `
-      UPDATE research_project_applications
-      SET status = ?, reviewed_by = ?, reviewed_at = NOW(), review_notes = ?
-      WHERE id = ?
-    `;
-    await query(sql, [status, reviewerId, reviewNotes || null, applicationId]);
+    const result = await applicationsCollection().updateOne(
+      { id: applicationId },
+      {
+        $set: {
+          status,
+          reviewed_by: reviewerId,
+          reviewed_at: new Date(),
+          review_notes: reviewNotes || null,
+          updated_at: new Date(),
+        },
+      }
+    );
 
     logger.info(`Application ${applicationId} status updated to ${status}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -444,20 +460,19 @@ export class ProfileModel {
    * 撤回申请
    */
   static async withdrawApplication(applicationId: string, userId: string): Promise<boolean> {
-    const sql = `
-      UPDATE research_project_applications
-      SET status = 'withdrawn'
-      WHERE id = ? AND user_id = ? AND status = 'pending'
-    `;
-    await query(sql, [applicationId, userId]);
+    const result = await applicationsCollection().updateOne(
+      { id: applicationId, user_id: userId, status: 'pending' },
+      {
+        $set: {
+          status: 'withdrawn',
+          updated_at: new Date(),
+        },
+      }
+    );
 
     logger.info(`Application ${applicationId} withdrawn by user ${userId}`);
-    return true;
+    return result.matchedCount > 0;
   }
-
-  // ============================================================
-  // Public Projects / 公开项目
-  // ============================================================
 
   /**
    * Get public projects
@@ -467,60 +482,84 @@ export class ProfileModel {
     filters: { recruiting?: boolean; search?: string } = {},
     userId?: string
   ): Promise<any[]> {
-    let sql = `
-      SELECT
-        p.*,
-        ps.visibility,
-        ps.require_approval,
-        ps.recruitment_requirements,
-        ps.is_recruiting,
-        ps.max_members,
-        COUNT(DISTINCT pm.user_id) as member_count,
-        ${userId ? `EXISTS(
-          SELECT 1 FROM research_project_members pm_check
-          WHERE pm_check.project_id = p.id AND pm_check.user_id = ?
-        )` : 'FALSE'} as is_member,
-        MAX(owner.username) as owner_username,
-        MAX(owner.avatar_url) as owner_avatar_url,
-        (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'username', m_user.username,
-              'avatar_url', m_user.avatar_url,
-              'role', m_pm.role
-            )
-          )
-          FROM research_project_members m_pm
-          JOIN users m_user ON m_pm.user_id = m_user.id
-          WHERE m_pm.project_id = p.id
-        ) as members
-      FROM research_projects p
-      INNER JOIN research_project_settings ps ON p.id = ps.project_id
-      LEFT JOIN research_project_members pm ON p.id = pm.project_id
-      LEFT JOIN research_project_members owner_pm ON p.id = owner_pm.project_id AND owner_pm.role = 'owner'
-      LEFT JOIN users owner ON owner_pm.user_id = owner.id
-      WHERE ps.visibility = 'public' AND p.status IN ('draft', 'active')
-    `;
-    const params: any[] = [];
-
-    // Add userId param first if exists (for the is_member subquery)
-    if (userId) {
-      params.push(userId);
-    }
-
+    const settingsFilter: Record<string, unknown> = { visibility: 'public' };
     if (filters.recruiting !== undefined) {
-      sql += " AND ps.is_recruiting = ?";
-      params.push(filters.recruiting);
+      settingsFilter.is_recruiting = filters.recruiting;
     }
+
+    const settings = normalizeDocuments<ProjectSettings>(
+      await projectSettingsCollection().find(settingsFilter).toArray()
+    );
+    if (settings.length === 0) {
+      return [];
+    }
+
+    const projectIds = settings.map((item) => item.project_id);
+    const projectFilter: Record<string, unknown> = {
+      id: { $in: projectIds },
+      status: { $in: ['draft', 'active'] },
+    };
 
     if (filters.search) {
-      sql += " AND (p.name_zh LIKE ? OR p.name_en LIKE ? OR p.description_zh LIKE ?)";
-      const searchTerm = `%${filters.search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      const regex = new RegExp(escapeRegExp(filters.search), 'i');
+      projectFilter.$or = [
+        { name_zh: regex },
+        { name_en: regex },
+        { description_zh: regex },
+      ];
     }
 
-    sql += " GROUP BY p.id ORDER BY p.updated_at DESC";
+    const projects = normalizeDocuments<any>(
+      await researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 }).toArray()
+    );
+    if (projects.length === 0) {
+      return [];
+    }
 
-    return await query(sql, params);
+    const visibleProjectIds = projects.map((project) => project.id);
+    const members = normalizeDocuments<any>(
+      await projectMembersCollection().find({ project_id: { $in: visibleProjectIds } }).toArray()
+    );
+    const userMap = await getUserMap(members.map((member) => member.user_id));
+
+    const settingsMap = new Map(settings.map((item) => [item.project_id, item]));
+    const membersByProject = new Map<string, any[]>();
+
+    for (const member of members) {
+      const list = membersByProject.get(member.project_id) || [];
+      list.push(member);
+      membersByProject.set(member.project_id, list);
+    }
+
+    return projects.map((project) => {
+      const setting = settingsMap.get(project.id);
+      const projectMembers = (membersByProject.get(project.id) || []).sort((a, b) => {
+        const roleCompare = compareRole(a.role, b.role);
+        if (roleCompare !== 0) {
+          return roleCompare;
+        }
+        return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
+      });
+      const owner = projectMembers.find((member) => member.role === 'owner');
+      const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
+
+      return {
+        ...project,
+        visibility: setting?.visibility,
+        require_approval: setting?.require_approval,
+        recruitment_requirements: setting?.recruitment_requirements,
+        is_recruiting: setting?.is_recruiting,
+        max_members: setting?.max_members,
+        member_count: projectMembers.length,
+        is_member: userId ? projectMembers.some((member) => member.user_id === userId) : false,
+        owner_username: ownerUser?.username || null,
+        owner_avatar_url: ownerUser?.avatar_url || null,
+        members: projectMembers.map((member) => ({
+          username: userMap.get(member.user_id)?.username || '',
+          avatar_url: userMap.get(member.user_id)?.avatar_url || null,
+          role: member.role,
+        })),
+      };
+    });
   }
 }

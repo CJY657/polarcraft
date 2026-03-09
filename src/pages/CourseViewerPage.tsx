@@ -5,14 +5,26 @@
  * 简洁的全屏布局，无描述、Tab 菜单
  */
 
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
-import { PersistentHeader } from "@/components/shared";
-import { CourseViewer } from "@/feature/course/CourseViewer";
 import { useCourseDetailStore } from "@/stores/courseStore";
-import { cn } from "@/utils/classNames";
 import { Loader2 } from "lucide-react";
+import { loadCourseViewerModule } from "@/lib/routePreload";
+
+const CourseViewer = lazy(() =>
+  loadCourseViewerModule().then((module) => ({ default: module.CourseViewer }))
+);
+
+function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
+  return (
+    <div
+      className={`min-h-[60vh] flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}
+    >
+      <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+    </div>
+  );
+}
 
 export default function CourseViewerPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -96,11 +108,13 @@ export default function CourseViewerPage() {
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
       <div className="pt-4 pb-8">
-        <CourseViewer
-          course={courseData}
-          onBack={() => navigate(`/units/${course.unitId}`)}
-          theme={theme}
-        />
+        <Suspense fallback={<ViewerLoader theme={theme} />}>
+          <CourseViewer
+            course={courseData}
+            onBack={() => navigate(`/units/${course.unitId}`)}
+            theme={theme}
+          />
+        </Suspense>
       </div>
     </div>
   );

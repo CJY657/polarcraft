@@ -3,37 +3,32 @@
  * 单元数据模型
  */
 
-import { query, queryOne } from "../database/connection.js";
-import { generateId } from "../utils/crypto.util.js";
-import { logger } from "../utils/logger.js";
+import { getCollection } from '../database/connection.js';
+import { normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
+import { generateId } from '../utils/crypto.util.js';
+import { logger } from '../utils/logger.js';
 import type {
   UnitRow,
   UnitMainSlideRow,
   CreateUnitInput,
   UpdateUnitInput,
   UpsertUnitMainSlideInput,
-} from "../types/unit.types.js";
-import type { CourseRow } from "../types/course.types.js";
+} from '../types/unit.types.js';
+import type { CourseRow } from '../types/course.types.js';
 
-/**
- * Unit Model Class
- * 单元模型类
- */
+const unitsCollection = () => getCollection('units');
+const unitMainSlidesCollection = () => getCollection('unit_main_slides');
+const coursesCollection = () => getCollection('courses');
+
 export class UnitModel {
-  // ============================================================
-  // Units / 单元
-  // ============================================================
-
   /**
    * Get all units
    * 获取所有单元
    */
   static async getAllUnits(): Promise<UnitRow[]> {
-    const sql = `
-      SELECT * FROM units
-      ORDER BY sort_order ASC, created_at DESC
-    `;
-    return await query(sql);
+    return normalizeDocuments<UnitRow>(
+      await unitsCollection().find({}).sort({ sort_order: 1, created_at: -1 }).toArray()
+    );
   }
 
   /**
@@ -41,8 +36,7 @@ export class UnitModel {
    * 获取单元详情
    */
   static async getUnitById(unitId: string): Promise<UnitRow | null> {
-    const sql = "SELECT * FROM units WHERE id = ?";
-    return await queryOne(sql, [unitId]);
+    return normalizeDocument<UnitRow>(await unitsCollection().findOne({ id: unitId }));
   }
 
   /**
@@ -50,32 +44,28 @@ export class UnitModel {
    * 创建单元
    */
   static async createUnit(data: CreateUnitInput): Promise<string> {
-    const id = generateId();
+    const maxOrderRow = normalizeDocument<Pick<UnitRow, 'sort_order'>>(
+      await unitsCollection().findOne({}, { sort: { sort_order: -1 } })
+    );
+    const sortOrder = (maxOrderRow?.sort_order ?? -1) + 1;
+    const now = new Date();
+    const unit: UnitRow = {
+      id: generateId(),
+      title_zh: data.title_zh,
+      title_en: data.title_en || null,
+      description_zh: data.description_zh || null,
+      description_en: data.description_en || null,
+      cover_image: data.coverImage || null,
+      color: data.color || '#3B82F6',
+      sort_order: sortOrder,
+      created_at: now,
+      updated_at: now,
+    };
 
-    // Get max sort order
-    const maxOrderSql = "SELECT COALESCE(MAX(sort_order), -1) as max_order FROM units";
-    const result = await queryOne<{ max_order: number }>(maxOrderSql);
-    const sortOrder = (result?.max_order ?? -1) + 1;
+    await unitsCollection().insertOne(unit as unknown as Record<string, unknown>);
 
-    const sql = `
-      INSERT INTO units (
-        id, title_zh, title_en, description_zh, description_en,
-        cover_image, color, sort_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await query(sql, [
-      id,
-      data.title_zh,
-      data.title_en || null,
-      data.description_zh || null,
-      data.description_en || null,
-      data.coverImage || null,
-      data.color || "#3B82F6",
-      sortOrder,
-    ]);
-
-    logger.info(`Unit created: ${id}`);
-    return id;
+    logger.info(`Unit created: ${unit.id}`);
+    return unit.id;
   }
 
   /**
@@ -83,20 +73,7 @@ export class UnitModel {
    * 更新单元
    */
   static async updateUnit(unitId: string, data: UpdateUnitInput): Promise<boolean> {
-    const fields: string[] = [];
-    const params: any[] = [];
-
-    const updatable = [
-      "title_zh",
-      "title_en",
-      "description_zh",
-      "description_en",
-      "cover_image",
-      "color",
-      "sort_order",
-    ];
-
-    const dataMap: Record<string, string | number | undefined> = {
+    const updateDoc = pickDefined({
       title_zh: data.title_zh,
       title_en: data.title_en,
       description_zh: data.description_zh,
@@ -104,23 +81,19 @@ export class UnitModel {
       cover_image: data.coverImage,
       color: data.color,
       sort_order: data.sortOrder,
-    };
+    });
 
-    for (const field of updatable) {
-      if (dataMap[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        params.push(dataMap[field]);
-      }
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
     }
 
-    if (fields.length === 0) return false;
-
-    params.push(unitId);
-    const sql = `UPDATE units SET ${fields.join(", ")} WHERE id = ?`;
-    await query(sql, params);
+    const result = await unitsCollection().updateOne(
+      { id: unitId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
 
     logger.info(`Unit updated: ${unitId}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -128,8 +101,17 @@ export class UnitModel {
    * 删除单元
    */
   static async deleteUnit(unitId: string): Promise<boolean> {
-    const sql = "DELETE FROM units WHERE id = ?";
-    await query(sql, [unitId]);
+    const result = await unitsCollection().deleteOne({ id: unitId });
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    await unitMainSlidesCollection().deleteMany({ unit_id: unitId });
+    await coursesCollection().updateMany(
+      { unit_id: unitId },
+      { $set: { unit_id: null, updated_at: new Date() } }
+    );
+
     logger.info(`Unit deleted: ${unitId}`);
     return true;
   }
@@ -139,27 +121,28 @@ export class UnitModel {
    * 重新排序单元
    */
   static async reorderUnits(unitIds: string[]): Promise<boolean> {
-    const sql = "UPDATE units SET sort_order = ? WHERE id = ?";
+    const now = new Date();
+    await Promise.all(
+      unitIds.map((unitId, index) =>
+        unitsCollection().updateOne(
+          { id: unitId },
+          { $set: { sort_order: index, updated_at: now } }
+        )
+      )
+    );
 
-    for (let i = 0; i < unitIds.length; i++) {
-      await query(sql, [i, unitIds[i]]);
-    }
-
-    logger.info(`Units reordered`);
+    logger.info('Units reordered');
     return true;
   }
-
-  // ============================================================
-  // Main Slide / 主课件
-  // ============================================================
 
   /**
    * Get main slide by unit ID
    * 获取单元的主课件
    */
   static async getMainSlide(unitId: string): Promise<UnitMainSlideRow | null> {
-    const sql = "SELECT * FROM unit_main_slides WHERE unit_id = ?";
-    return await queryOne(sql, [unitId]);
+    return normalizeDocument<UnitMainSlideRow>(
+      await unitMainSlidesCollection().findOne({ unit_id: unitId })
+    );
   }
 
   /**
@@ -167,30 +150,40 @@ export class UnitModel {
    * 创建或更新主课件
    */
   static async upsertMainSlide(unitId: string, data: UpsertUnitMainSlideInput): Promise<string> {
-    // Check if exists
     const existing = await this.getMainSlide(unitId);
+    const now = new Date();
 
     if (existing) {
-      // Update
-      const sql = `
-        UPDATE unit_main_slides
-        SET url = ?, title_zh = ?, title_en = ?
-        WHERE unit_id = ?
-      `;
-      await query(sql, [data.url, data.title_zh || null, data.title_en || null, unitId]);
+      await unitMainSlidesCollection().updateOne(
+        { unit_id: unitId },
+        {
+          $set: {
+            url: data.url,
+            title_zh: data.title_zh || null,
+            title_en: data.title_en || null,
+            updated_at: now,
+          },
+        }
+      );
+
       logger.info(`Unit main slide updated for unit: ${unitId}`);
       return existing.id;
-    } else {
-      // Create
-      const id = generateId();
-      const sql = `
-        INSERT INTO unit_main_slides (id, unit_id, url, title_zh, title_en)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      await query(sql, [id, unitId, data.url, data.title_zh || null, data.title_en || null]);
-      logger.info(`Unit main slide created for unit: ${unitId}`);
-      return id;
     }
+
+    const slide: UnitMainSlideRow = {
+      id: generateId(),
+      unit_id: unitId,
+      url: data.url,
+      title_zh: data.title_zh || null,
+      title_en: data.title_en || null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    await unitMainSlidesCollection().insertOne(slide as unknown as Record<string, unknown>);
+
+    logger.info(`Unit main slide created for unit: ${unitId}`);
+    return slide.id;
   }
 
   /**
@@ -198,26 +191,21 @@ export class UnitModel {
    * 删除主课件
    */
   static async deleteMainSlide(unitId: string): Promise<boolean> {
-    const sql = "DELETE FROM unit_main_slides WHERE unit_id = ?";
-    await query(sql, [unitId]);
+    const result = await unitMainSlidesCollection().deleteOne({ unit_id: unitId });
     logger.info(`Unit main slide deleted for unit: ${unitId}`);
-    return true;
+    return result.deletedCount > 0;
   }
-
-  // ============================================================
-  // Courses / 关联课程
-  // ============================================================
 
   /**
    * Get courses by unit ID
    * 获取单元下的所有课程
    */
   static async getCoursesByUnit(unitId: string): Promise<CourseRow[]> {
-    const sql = `
-      SELECT * FROM courses
-      WHERE unit_id = ?
-      ORDER BY sort_order ASC, created_at ASC
-    `;
-    return await query(sql, [unitId]);
+    return normalizeDocuments<CourseRow>(
+      await coursesCollection()
+        .find({ unit_id: unitId })
+        .sort({ sort_order: 1, created_at: 1 })
+        .toArray()
+    );
   }
 }

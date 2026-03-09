@@ -13,12 +13,19 @@ interface CenturyNavigatorProps {
   events: TimelineEvent[]
   isZh: boolean
   className?: string
+  variant?: 'floating' | 'inline'
 }
 
-export function CenturyNavigator({ events, isZh, className }: CenturyNavigatorProps) {
+export function CenturyNavigator({
+  events,
+  isZh,
+  className,
+  variant = 'floating',
+}: CenturyNavigatorProps) {
   const { theme } = useTheme()
   const [activeCentury, setActiveCentury] = useState<number | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  const isInline = variant === 'inline'
 
   // Calculate centuries from events
   const centuries = useMemo(() => {
@@ -94,28 +101,36 @@ export function CenturyNavigator({ events, isZh, className }: CenturyNavigatorPr
 
   return (
     <div className={cn(
-      'fixed right-4 top-1/2 -translate-y-1/2 z-30',
+      isInline
+        ? 'sticky top-28 z-20'
+        : 'fixed right-4 top-1/2 -translate-y-1/2 z-30',
       'flex flex-col items-end gap-1',
       className
     )}>
       {/* Toggle button for mobile */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={cn(
-          'md:hidden p-2 rounded-full shadow-lg transition-all',
-          theme === 'dark'
-            ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-            : 'bg-white text-gray-700 hover:bg-gray-100'
-        )}
-      >
-        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-      </button>
+      {!isInline && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            'md:hidden p-2 rounded-full shadow-lg transition-all',
+            theme === 'dark'
+              ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          )}
+        >
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+      )}
 
       {/* Navigator bar */}
       <div className={cn(
         'flex flex-col gap-1 transition-all duration-300',
-        'md:opacity-100 md:translate-x-0',
-        isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full md:opacity-100 md:translate-x-0',
+        isInline
+          ? 'opacity-100 translate-x-0'
+          : 'md:opacity-100 md:translate-x-0',
+        !isInline && (isExpanded
+          ? 'opacity-100 translate-x-0'
+          : 'opacity-0 translate-x-full md:opacity-100 md:translate-x-0'),
         'pointer-events-auto'
       )}>
         {centuries.map(century => (
@@ -167,7 +182,8 @@ export function CenturyNavigator({ events, isZh, className }: CenturyNavigatorPr
 
       {/* Progress indicator line */}
       <div className={cn(
-        'hidden md:block absolute left-0 top-0 bottom-0 w-0.5 rounded-full -translate-x-3',
+        isInline ? 'block' : 'hidden md:block',
+        'absolute left-0 top-0 bottom-0 w-0.5 rounded-full -translate-x-3',
         theme === 'dark'
           ? 'bg-gradient-to-b from-amber-500/30 via-gray-500/30 to-cyan-500/30'
           : 'bg-gradient-to-b from-amber-300 via-gray-300 to-cyan-300'
@@ -180,7 +196,7 @@ export function CenturyNavigator({ events, isZh, className }: CenturyNavigatorPr
               theme === 'dark' ? 'bg-amber-400' : 'bg-amber-500'
             )}
             style={{
-              top: `${(centuries.indexOf(activeCentury) / (centuries.length - 1)) * 100}%`,
+              top: `${(centuries.indexOf(activeCentury) / Math.max(centuries.length - 1, 1)) * 100}%`,
             }}
           />
         )}

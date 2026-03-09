@@ -110,10 +110,7 @@ export function InboxDropdown({ className }: InboxDropdownProps) {
   };
 
   // Dropdown panel classes
-  const dropdownClasses =
-    theme === 'dark'
-      ? 'bg-slate-800 border-slate-700 shadow-xl'
-      : 'bg-white border-gray-200 shadow-lg';
+  const dropdownClasses = 'glass-panel-strong shadow-[0_24px_60px_-32px_rgba(2,10,22,0.56)]';
 
   return (
     <div className={cn('relative', className)} ref={dropdownRef}>
@@ -121,7 +118,7 @@ export function InboxDropdown({ className }: InboxDropdownProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'relative p-2 rounded-lg transition-colors',
+          'glass-button relative rounded-xl p-2',
           'text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:bg-[var(--bg-tertiary)]'
         )}
         title={t('inbox.title', '收件箱')}
@@ -145,7 +142,7 @@ export function InboxDropdown({ className }: InboxDropdownProps) {
       {isOpen && (
         <div
           className={cn(
-            'absolute right-0 mt-2 w-80 rounded-lg border py-2 z-50',
+            'absolute right-0 z-50 mt-2 w-80 rounded-[1.5rem] border py-2',
             dropdownClasses
           )}
         >

@@ -10,24 +10,37 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/classNames";
-import { BookOpen, Play, FileText, ImageIcon, ChevronRight } from "lucide-react";
+import { preloadCourseViewerRoute } from "@/lib/routePreload";
+import { BookOpen, Play, FileText, ChevronRight } from "lucide-react";
 import type { UnitCourse } from "@/lib/unit.service";
 
 interface CourseSelectorProps {
   unitId: string;
   courses: UnitCourse[];
   unitColor: string;
+  layout?: "grid" | "sidebar";
 }
 
-export function CourseSelector({ unitId, courses, unitColor }: CourseSelectorProps) {
+export function CourseSelector({
+  unitId,
+  courses,
+  unitColor,
+  layout = "grid",
+}: CourseSelectorProps) {
   const { theme } = useTheme();
   const { i18n } = useTranslation();
   const navigate = useNavigate();
 
   const isZh = i18n.language === "zh-CN";
+  const isSidebar = layout === "sidebar";
 
   const getLabel = (label: { "zh-CN"?: string; "en-US"?: string }) => {
     return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
+  };
+
+  const handleNavigate = (courseId: string) => {
+    preloadCourseViewerRoute();
+    navigate(`/units/${unitId}/courses/${courseId}`);
   };
 
   if (courses.length === 0) {
@@ -74,15 +87,20 @@ export function CourseSelector({ unitId, courses, unitColor }: CourseSelectorPro
       {/* Course list */}
       <div
         className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4",
+          "grid gap-4",
+          isSidebar ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         )}
       >
         {courses.map((course) => (
           <div
             key={course.id}
-            onClick={() => navigate(`/units/${unitId}/courses/${course.id}`)}
+            onClick={() => handleNavigate(course.id)}
+            onPointerEnter={preloadCourseViewerRoute}
+            onFocus={preloadCourseViewerRoute}
+            onTouchStart={preloadCourseViewerRoute}
             className={cn(
-              "group rounded-xl p-4 transition-all duration-200 cursor-pointer hover:scale-[1.02]",
+              "group rounded-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-lg",
+              isSidebar ? "p-3.5" : "p-4",
               theme === "dark"
                 ? "bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700"
                 : "bg-white hover:bg-gray-50 border border-gray-200 shadow-sm hover:shadow"
@@ -106,7 +124,8 @@ export function CourseSelector({ unitId, courses, unitColor }: CourseSelectorPro
               <div className="flex-1 min-w-0">
                 <h4
                   className={cn(
-                    "font-medium mb-1 truncate",
+                    "font-medium mb-1",
+                    isSidebar ? "text-sm leading-5" : "truncate",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
@@ -114,7 +133,8 @@ export function CourseSelector({ unitId, courses, unitColor }: CourseSelectorPro
                 </h4>
                 <p
                   className={cn(
-                    "text-xs line-clamp-2",
+                    "text-xs",
+                    isSidebar ? "line-clamp-3 leading-5" : "line-clamp-2",
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   )}
                 >
@@ -125,7 +145,8 @@ export function CourseSelector({ unitId, courses, unitColor }: CourseSelectorPro
               {/* Arrow */}
               <ChevronRight
                 className={cn(
-                  "w-5 h-5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
+                  "w-5 h-5 flex-shrink-0 transition-opacity",
+                  isSidebar ? "opacity-100" : "opacity-0 group-hover:opacity-100",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}
               />

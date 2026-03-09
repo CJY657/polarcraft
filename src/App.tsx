@@ -1,10 +1,19 @@
 import { Suspense, lazy, useEffect } from "react"; // React 组件懒加载和 Suspense
-import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } from "react-router-dom"; // React Router 组件
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useParams,
+  useNavigate,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom"; // React Router 组件
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"; // 错误边界组件
 import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
+import { loadCourseViewerPageModule } from "@/lib/routePreload";
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 
@@ -20,7 +29,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // Module 1: 课程历史
 // 科学原理 × 历史故事
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
-const CourseViewerPage = lazy(() => import("@/pages/CourseViewerPage"));
+const CourseViewerPage = lazy(loadCourseViewerPageModule);
 
 // Module 1b: 实验课单元
 // 单元 × 课程
@@ -105,19 +114,34 @@ function AuthRedirectHandler() {
 
 function PageLoader() {
   return (
-    <>
-      {/* Fullscreen centered loader 全屏居中加载器 */}
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        {/* Animated spinner with text 带文字的动画旋转器 */}
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          {/* Spinner 旋转器 */}
-          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-cyan-400 text-sm">Loading...</span>
+    <div className="glass-page flex min-h-screen items-center justify-center px-6">
+      <div className="glass-panel-strong flex min-w-[240px] flex-col items-center gap-4 rounded-[2rem] px-8 py-8 text-center">
+        <div className="glass-chip flex h-14 w-14 items-center justify-center rounded-[1.4rem] border">
+          <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--paper-accent)] border-t-transparent" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[var(--paper-foreground)]">学习空间载入中</p>
+          <p className="mt-1 text-xs text-[var(--glass-text-muted)]">Preparing the next lesson...</p>
         </div>
       </div>
-    </>
+    </div>
   );
 } // 页面加载器组件
+
+function ScrollToTopOnRouteChange() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+
+  useEffect(() => {
+    if (navigationType === "POP") {
+      return;
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, navigationType]);
+
+  return null;
+}
 
 // ============================================================
 // Main App Component
@@ -129,6 +153,7 @@ export function App() {
       <SystemProvider>
         <AuthProvider>
           <BrowserRouter>
+          <ScrollToTopOnRouteChange />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Home - 首页 */}
@@ -294,15 +319,20 @@ export function App() {
             <Route
               path="*"
               element={
-                <div className="min-h-screen flex items-center justify-center bg-slate-900">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-bold text-white mb-4">404</h1>
-                    <p className="text-gray-400 mb-6">Page not found</p>
+                <div className="glass-page flex min-h-screen items-center justify-center px-6">
+                  <div className="glass-panel-strong max-w-md rounded-[2.25rem] px-8 py-10 text-center">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--glass-text-muted)]">
+                      PolarCraft
+                    </p>
+                    <h1 className="mb-3 text-4xl font-bold text-[var(--paper-foreground)]">404</h1>
+                    <p className="mb-6 text-sm leading-7 text-[var(--glass-text-muted)]">
+                      这个页面没有找到。回到首页继续浏览课程和学习入口。
+                    </p>
                     <button
                       onClick={() => (window.location.href = "/")}
-                      className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
+                      className="glass-button glass-button-primary rounded-full px-5 py-2.5 text-sm font-semibold text-white"
                     >
-                      Go Home
+                      返回首页
                     </button>
                   </div>
                 </div>

@@ -339,7 +339,7 @@ export class ResearchController {
       { type: req.body.type, source: req.body.source, target: req.body.target }
     );
 
-    const edge = await queryOne('SELECT * FROM research_edges WHERE id = ?', [edgeId]);
+    const edge = await ResearchModel.getEdgeById(edgeId);
     logger.info(`Edge created by user ${req.user!.username}: ${edgeId}`);
     res.success(edge, '关系创建成功', 201);
   });
@@ -350,7 +350,7 @@ export class ResearchController {
    */
   static getEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const edge = await queryOne('SELECT * FROM research_edges WHERE id = ?', [id]);
+    const edge = await ResearchModel.getEdgeById(id);
 
     if (!edge) {
       return res.error('关系未找到', 'EDGE_NOT_FOUND', 404);
@@ -367,7 +367,7 @@ export class ResearchController {
     const { id } = req.params;
     await ResearchModel.updateEdge(id, req.body);
 
-    const edge = await queryOne('SELECT * FROM research_edges WHERE id = ?', [id]);
+    const edge = await ResearchModel.getEdgeById(id);
     logger.info(`Edge updated by user ${req.user!.username}: ${id}`);
     res.success(edge, '关系更新成功');
   });
@@ -712,11 +712,4 @@ export class ResearchController {
     logger.info(`Project with profile created by user ${req.user!.username}: ${projectId}`);
     res.success(result, '项目创建成功', 201);
   });
-}
-
-// Helper function for queries
-async function queryOne(sql: string, params: any[]): Promise<any> {
-  const { query } = await import('../database/connection.js');
-  const results = await query(sql, params);
-  return results.length > 0 ? results[0] : null;
 }

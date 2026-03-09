@@ -1,18 +1,11 @@
-// src/pages/Homepage.tsx
-// Home Page Component - Main landing page with module overviews
-
-// 导入外部库
-import { useState, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, type ComponentType } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { ArrowRight, BookOpenText, Compass, GraduationCap, Library, Sparkles } from "lucide-react";
 
-// 导入组件
 import { useTheme } from "@/contexts/ThemeContext";
-
-// 导入类型
-// import type { ModuleEffectType } from '@/components/effects'
-
-// 导入图标组件
+import { cn } from "@/utils/classNames";
+import { PersistentHeader } from "@/components/shared";
 import {
   CoursesModuleIcon,
   DevicesModuleIcon,
@@ -22,48 +15,41 @@ import {
   LabModuleIcon,
 } from "@/components/icons";
 
-import { AuthThemeSwitcher } from "@/components/ui/AuthThemeSwitcher";
-
-// Icon component type for animated module icons
-type AnimatedIconComponent = React.ComponentType<{
+type AnimatedIconComponent = ComponentType<{
   className?: string;
   size?: number;
   isHovered?: boolean;
   theme?: "dark" | "light";
 }>;
 
-// Quick link configuration
+type ModuleGroupId = "teaching" | "practice";
+
 interface QuickLink {
-  labelKey: string; // i18n 的标签键
-  path: string; // 跳转路径
+  labelKey: string;
+  path: string;
 }
 
-// Module configuration for the 6 core modules
 interface ModuleConfig {
   id: string;
-  // Use the dedicated i18n namespace for each module card content
-  i18nNamespace: string; // e.g., 'home.courses'
+  i18nNamespace: string;
   path: string;
   IconComponent: AnimatedIconComponent;
   quickLinks: QuickLink[];
+  group: ModuleGroupId;
+  workspaceLabel: string;
+  accent: string;
   inDevelopment?: boolean;
-  colorTheme: {
-    bg: string;
-    bgHover: string;
-    border: string;
-    borderHover: string;
-    iconBg: string;
-    iconColor: string;
-    shadow: string;
-    glowColor: string;
-    tagBg: string;
-    tagText: string;
-  };
+}
+
+interface NavigationGroup {
+  id: ModuleGroupId;
+  label: string;
+  description: string;
+  items: string[];
 }
 
 const MODULES: ModuleConfig[] = [
   {
-    // 1. 课程历史
     id: "courses",
     i18nNamespace: "home.modules.courses",
     path: "/courses",
@@ -73,52 +59,26 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.courses.link2", path: "/courses" },
       { labelKey: "home.modules.courses.link3", path: "/courses" },
     ],
-    colorTheme: {
-      bg: "bg-cyan-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-cyan-900/40",
-      border: "border-cyan-800/50",
-      borderHover:
-        "group-hover:border-cyan-400/80 group-hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]",
-      iconBg: "bg-cyan-500/10",
-      iconColor: "text-cyan-400",
-      shadow: "",
-      glowColor: "cyan",
-      tagBg: "bg-cyan-950/40 border border-cyan-800",
-      tagText: "text-cyan-300",
-    },
+    group: "teaching",
+    workspaceLabel: "课程主线",
+    accent: "#1865f2",
   },
   {
-    // 2. 光学器件
     id: "devices",
     i18nNamespace: "home.modules.studio",
-    // 原路径为 "/studio"，但在App.tsx中对应的路由路径是 "/devices"
-    // 由于路径不一致，访问/studio时会显示Footer而不是错误边界
-    // 已修改为 "/devices" 以与App.tsx中的路由配置保持一致
     path: "/devices",
     IconComponent: DevicesModuleIcon,
-    inDevelopment: true,
     quickLinks: [
-      // 原路径为 "/studio"，已修改为 "/devices"
       { labelKey: "home.modules.studio.link1", path: "/devices" },
       { labelKey: "home.modules.studio.link2", path: "/devices" },
       { labelKey: "home.modules.studio.link3", path: "/devices" },
     ],
-    colorTheme: {
-      bg: "bg-blue-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-blue-900/40",
-      border: "border-blue-800/50",
-      borderHover:
-        "group-hover:border-blue-400/80 group-hover:shadow-[0_0_20px_rgba(96,165,250,0.3)]",
-      iconBg: "bg-blue-500/10",
-      iconColor: "text-blue-400",
-      shadow: "",
-      glowColor: "indigo",
-      tagBg: "bg-blue-950/40 border border-blue-800",
-      tagText: "text-blue-300",
-    },
+    group: "teaching",
+    workspaceLabel: "器件与实验",
+    accent: "#14bf96",
+    inDevelopment: true,
   },
   {
-    // 3. 理论模拟
     id: "demos",
     i18nNamespace: "home.modules.theory",
     path: "/demos",
@@ -128,22 +88,11 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.theory.link2", path: "/demos/birefringence" },
       { labelKey: "home.modules.theory.link3", path: "/demos/stokes-vector" },
     ],
-    colorTheme: {
-      bg: "bg-violet-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-violet-900/40",
-      border: "border-violet-800/50",
-      borderHover:
-        "group-hover:border-violet-400/80 group-hover:shadow-[0_0_20px_rgba(167,139,250,0.3)]",
-      iconBg: "bg-violet-500/10",
-      iconColor: "text-violet-400",
-      shadow: "",
-      glowColor: "violet",
-      tagBg: "bg-violet-950/40 border border-violet-800",
-      tagText: "text-violet-300",
-    },
+    group: "teaching",
+    workspaceLabel: "计算模拟",
+    accent: "#0ea5a4",
   },
   {
-    // 4. 游戏挑战
     id: "games",
     i18nNamespace: "home.modules.games",
     path: "/games",
@@ -153,22 +102,11 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.games.link2", path: "/games/minecraft" },
       { labelKey: "home.modules.games.link3", path: "/games" },
     ],
-    colorTheme: {
-      bg: "bg-purple-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-purple-900/40",
-      border: "border-purple-800/50",
-      borderHover:
-        "group-hover:border-purple-400/80 group-hover:shadow-[0_0_20px_rgba(192,132,252,0.3)]",
-      iconBg: "bg-purple-500/10",
-      iconColor: "text-purple-400",
-      shadow: "",
-      glowColor: "violet",
-      tagBg: "bg-purple-950/40 border border-purple-800",
-      tagText: "text-purple-300",
-    },
+    group: "practice",
+    workspaceLabel: "游戏挑战",
+    accent: "#d48b1e",
   },
   {
-    // 5. 成果展示
     id: "gallery",
     i18nNamespace: "home.modules.gallery",
     path: "/gallery",
@@ -178,22 +116,11 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.gallery.link2", path: "/gallery/generator" },
       { labelKey: "home.modules.gallery.link3", path: "/gallery/gallery" },
     ],
-    colorTheme: {
-      bg: "bg-fuchsia-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-fuchsia-900/40",
-      border: "border-fuchsia-800/50",
-      borderHover:
-        "group-hover:border-fuchsia-400/80 group-hover:shadow-[0_0_20px_rgba(232,121,249,0.3)]",
-      iconBg: "bg-fuchsia-500/10",
-      iconColor: "text-fuchsia-400",
-      shadow: "",
-      glowColor: "pink",
-      tagBg: "bg-fuchsia-950/40 border border-fuchsia-800",
-      tagText: "text-fuchsia-300",
-    },
+    group: "practice",
+    workspaceLabel: "成果归档",
+    accent: "#f59e42",
   },
   {
-    // 6. 虚拟课题
     id: "lab",
     i18nNamespace: "home.modules.lab",
     path: "/lab",
@@ -203,346 +130,395 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.lab.link2", path: "/lab/explore" },
       { labelKey: "home.modules.lab.link3", path: "/lab" },
     ],
-    colorTheme: {
-      bg: "bg-teal-950/20 backdrop-blur-sm",
-      bgHover: "group-hover:bg-teal-900/40",
-      border: "border-teal-800/50",
-      borderHover:
-        "group-hover:border-teal-400/80 group-hover:shadow-[0_0_20px_rgba(45,212,191,0.3)]",
-      iconBg: "bg-teal-500/10",
-      iconColor: "text-teal-400",
-      shadow: "",
-      glowColor: "teal",
-      tagBg: "bg-teal-950/40 border border-teal-800",
-      tagText: "text-teal-300",
-    },
+    group: "practice",
+    workspaceLabel: "研究协作",
+    accent: "#0f9b74",
   },
 ];
 
-// Glow styles for different colors 光效样式
-const GLOW_STYLES: Record<string, string> = {
-  amber: "rgba(251, 191, 36, 0.4)",
-  cyan: "rgba(34, 211, 238, 0.4)",
-  indigo: "rgba(129, 140, 248, 0.4)",
-  violet: "rgba(139, 92, 246, 0.4)",
-  emerald: "rgba(52, 211, 153, 0.4)",
-  pink: "rgba(244, 114, 182, 0.4)",
-  teal: "rgba(45, 212, 191, 0.4)",
-};
+const NAV_GROUPS: NavigationGroup[] = [
+  {
+    id: "teaching",
+    label: "教学主线",
+    description: "从课程、器件到交互模拟，先建立概念和实验直觉。",
+    items: ["courses", "devices", "demos"],
+  },
+  {
+    id: "practice",
+    label: "实践拓展",
+    description: "把理解迁移到挑战任务、成果表达与研究协作中。",
+    items: ["games", "gallery", "lab"],
+  },
+];
 
-function ModuleCard({
-  module, // 模块配置
-  theme, // 当前主题
-  onHoverStart, // 鼠标悬停开始的回调
-  onHoverEnd, // 鼠标悬停开始和结束的回调
-  cardRef, // 卡片ref用于可能的定位
-  iconRef, // 图标ref用于光束效果定位
-}: {
-  module: ModuleConfig;
-  theme: "dark" | "light";
-  onHoverStart: () => void;
-  onHoverEnd: () => void;
-  cardRef: React.RefObject<HTMLDivElement | null>;
-  iconRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState(false);
-  const IconComponent = module.IconComponent;
+const LEARNING_PATH = [
+  {
+    title: "先进入课程故事",
+    description: "通过历史问题和实验情境建立偏振光学的学习动机。",
+    path: "/courses",
+  },
+  {
+    title: "再看交互模拟",
+    description: "把器件、公式和光学现象放到同一条可视化链路里。",
+    path: "/demos",
+  },
+  {
+    title: "最后做项目实践",
+    description: "从作品、挑战和研究协作中验证自己的理解。",
+    path: "/lab",
+  },
+];
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    onHoverStart();
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    onHoverEnd();
-  };
-
-  // Get translated content from i18n namespace 获取翻译内容
-  const title = t(`${module.i18nNamespace}.title`);
-  const description = t(`${module.i18nNamespace}.description`);
-
-  return (
-    <Link
-      to={module.path}
-      ref={cardRef as unknown as React.RefObject<HTMLAnchorElement>}
-      className={`
-        group relative flex flex-col p-4 sm:p-6 rounded-xl sm:rounded-2xl border transition-all duration-500
-        ${module.colorTheme.bg} ${module.colorTheme.bgHover}
-        ${module.colorTheme.border} ${module.colorTheme.borderHover}
-        hover:-translate-y-2
-        overflow-hidden cursor-pointer
-      `}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* "In Development" Badge */}
-      {module.inDevelopment && (
-        <div
-          className={`
-            absolute top-2 right-2 sm:top-3 sm:right-3 z-10
-            px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full
-            ${
-              theme === "dark"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                : "bg-amber-100 text-amber-700 border border-amber-300"
-            }
-          `}
-        >
-          {t("home.badges.inDevelopment")}
-        </div>
-      )}
-
-      {/* Background glow effect on hover */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at 30% 30%, ${GLOW_STYLES[module.colorTheme.glowColor]} 0%, transparent 60%)`,
-        }}
-      />
-
-      {/* Light beam decoration on hover 光线装饰 */}
-      <div
-        className={`
-          absolute -top-20 -right-20 w-40 h-40 rounded-full
-          transition-all duration-700 pointer-events-none
-          ${isHovered ? "opacity-30 scale-100" : "opacity-0 scale-50"}
-        `}
-        style={{
-          background: `conic-gradient(from 0deg, ${GLOW_STYLES[module.colorTheme.glowColor]}, transparent, ${GLOW_STYLES[module.colorTheme.glowColor]})`,
-        }}
-      />
-
-      {/* Header: Icon + Title side by side */}
-      <div className="flex items-start gap-3 sm:gap-4 mb-3">
-        {/* Animated Icon with ref for light beam targeting */}
-        <div
-          ref={iconRef}
-          className={`
-            relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0
-            ${module.colorTheme.iconBg}
-            transition-all duration-500
-            ${isHovered ? "scale-110 rotate-3" : "scale-100 rotate-0"}
-          `}
-        >
-          <IconComponent
-            size={48}
-            isHovered={isHovered}
-            theme={theme}
-            className="w-10 h-10 sm:w-14 sm:h-14"
-          />
-
-          {/* Pulse ring effect on hover */}
-          <div
-            className={`
-              absolute inset-0 rounded-xl border-2
-              ${module.colorTheme.border}
-              transition-all duration-500 pointer-events-none
-              ${isHovered ? "scale-125 opacity-0" : "scale-100 opacity-0"}
-            `}
-          />
-        </div>
-
-        {/* Title block - right of icon */}
-        <div className="flex-1 min-w-0 pt-0.5 sm:pt-1">
-          <h3
-            className={`
-              text-lg sm:text-xl font-bold leading-tight mb-1
-              transition-all duration-300
-              ${theme === "dark" ? "text-white" : "text-gray-900"}
-              ${isHovered ? "translate-x-1" : "translate-x-0"}
-            `}
-          >
-            {title}
-          </h3>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p
-        className={`
-          text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 flex-1
-          transition-all duration-300
-          ${theme === "dark" ? "text-gray-400" : "text-gray-600"}
-          ${isHovered ? (theme === "dark" ? "text-gray-200" : "text-gray-800") : ""}
-        `}
-      >
-        {description}
-      </p>
-
-      {/* Quick Links Tags */}
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-        {module.quickLinks.map((link, index) => (
-          <button
-            key={index}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(link.path);
-            }}
-            className={`
-              px-2 sm:px-2.5 py-0.5 sm:py-1 text-[11px] sm:text-xs font-medium rounded-full
-              transition-all duration-200 border cursor-pointer
-              ${module.colorTheme.tagBg} ${module.colorTheme.tagText}
-              hover:scale-105 hover:bg-white/10
-            `}
-          >
-            {t(link.labelKey)}
-          </button>
-        ))}
-      </div>
-
-      {/* Corner light beam decoration */}
-      <div
-        className={`
-          absolute bottom-0 left-0 w-full h-1
-          transition-all duration-500 pointer-events-none
-          ${isHovered ? "opacity-60" : "opacity-0"}
-        `}
-        style={{
-          background: `linear-gradient(90deg, transparent, ${GLOW_STYLES[module.colorTheme.glowColor]}, transparent)`,
-        }}
-      />
-    </Link>
-  );
+function getModuleById(moduleId: string) {
+  return MODULES.find((module) => module.id === moduleId) ?? MODULES[0];
 }
 
 export function HomePage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { theme } = useTheme();
-  const logoRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeModuleId, setActiveModuleId] = useState(MODULES[0].id);
 
-  // Track which module is hovered for beam effect 追蹤光纖
-  /*
-  const [activeModule, setActiveModule] = useState<ModuleEffectType | null>(null)
-  */
+  const activeModule = getModuleById(activeModuleId);
+  const activeGroup = NAV_GROUPS.find((group) => group.id === activeModule.group) ?? NAV_GROUPS[0];
+  const activeModuleTitle = t(`${activeModule.i18nNamespace}.title`);
+  const activeModuleDescription = t(`${activeModule.i18nNamespace}.description`);
+  const totalQuickLinks = MODULES.reduce((count, module) => count + module.quickLinks.length, 0);
 
-  // Track logo hover state for interactive effects
-  const [logoHovered, setLogoHovered] = useState(false);
-  const cardRefs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(new Map());
-  const iconRefs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(new Map());
-
-  // Get or create a ref for each module card
-  const getCardRef = useCallback((moduleId: string) => {
-    if (!cardRefs.current.has(moduleId)) {
-      cardRefs.current.set(moduleId, { current: null });
-    }
-    return cardRefs.current.get(moduleId)!;
-  }, []);
-
-  // Get or create a ref for each module icon (for light beam targeting)
-  const getIconRef = useCallback((moduleId: string) => {
-    if (!iconRefs.current.has(moduleId)) {
-      iconRefs.current.set(moduleId, { current: null });
-    }
-    return iconRefs.current.get(moduleId)!;
-  }, []);
-
-  // Get the ref for the currently hovered module's icon
+  const summaryItems = [
+    { label: "学习模块", value: String(MODULES.length) },
+    { label: "快捷入口", value: String(totalQuickLinks) },
+    { label: "推荐路径", value: String(LEARNING_PATH.length) },
+    { label: "当前焦点", value: activeGroup.label },
+  ];
 
   return (
-    <div
-      ref={containerRef}
-      className={`min-h-screen flex flex-col ${
-        theme === "dark"
-          ? "bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black"
-          : "bg-slate-50"
-      }`}
-    >
-      {/* Ambient floating particles background */}
-      {/* <AmbientParticles theme={theme} count={15} enabled /> */}
+    <div className="glass-page min-h-screen text-[var(--paper-foreground)]">
+      <PersistentHeader
+        variant="solid"
+        showBreadcrumb={false}
+      />
 
-      {/* Light beam effect from logo to hovered module icons */}
-      {/* <LightBeamEffect
-        logoRef={logoRef}
-        containerRef={containerRef}
-        activeModule={activeModule}
-        targetRef={activeIconRef}
-        leftLogoActive={logoHovered || activeModule !== null}
-      /> */}
+      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden rounded-[2rem] border border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)] px-6 py-8 shadow-[var(--glass-shadow-strong)] sm:px-8 sm:py-10">
+          <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,rgba(20,191,150,0.16),transparent_58%),radial-gradient(circle_at_top_right,rgba(24,101,242,0.14),transparent_52%)]" />
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:items-start">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--paper-border)] bg-[var(--glass-chip)] px-4 py-2 text-sm font-medium text-[var(--paper-link)]">
+                <Sparkles className="h-4 w-4" />
+                更像学习平台的首页入口
+              </div>
 
-      {/* Settings */}
-      <div className="fixed top-4 right-4 z-50">
-        <AuthThemeSwitcher />
-      </div>
+              <div className="space-y-4">
+                <h1
+                  className="max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  从课程故事到项目实践，把偏振光学组织成一条清晰的学习路径。
+                </h1>
+              </div>
 
-      {/* Hero Section */}
-      <header className="flex flex-col items-center justify-center pt-12 pb-8 px-4 text-center">
-        {/* Logo Row - Compact inline layout */}
-        <div className="flex items-center justify-center gap-6 mb-4">
-          {/* Combined Logo - X-Institute + Open Wisdom Lab */}
-          <div
-            ref={logoRef}
-            className={`
-              transition-all duration-500 cursor-pointer
-              ${logoHovered ? "scale-105" : "scale-100"}
-            `}
-            onMouseEnter={() => setLogoHovered(true)}
-            onMouseLeave={() => setLogoHovered(false)}
-          ></div>
-        </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate(activeModule.quickLinks[0]?.path ?? activeModule.path)}
+                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
+                >
+                  继续从 {activeModuleTitle} 开始
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/courses")}
+                  className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-[var(--paper-link)]"
+                >
+                  查看课程总览
+                </button>
+              </div>
 
-        {/* Title */}
-        <h1
-          className={`text-4xl sm:text-5xl md:text-6xl font-black mb-5 ${
-            theme === "dark"
-              ? "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400"
-              : "text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600"
-          }`}
-        >
-          {t("home.hero.title")}
-        </h1>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {summaryItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.5rem] border border-[var(--paper-border)] bg-[var(--glass-panel-soft)] px-4 py-4"
+                  >
+                    <p className="text-sm font-medium text-[var(--glass-text-muted)]">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        {/* Subtitle */}
-        <p
-          className={`text-xl sm:text-2xl font-normal mb-6 ${
-            theme === "dark" ? "text-cyan-400/80" : "text-cyan-600"
-          }`}
-        >
-          {t("home.hero.subtitle")}
-        </p>
-      </header>
+            <div className="rounded-[1.75rem] border border-[var(--paper-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,250,247,0.94))] p-5 shadow-[var(--glass-shadow)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--paper-link)]">本页焦点</p>
+                  <h2 className="mt-1 text-xl font-semibold">{activeModuleTitle}</h2>
+                  <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
+                    {activeModuleDescription}
+                  </p>
+                </div>
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                  style={{
+                    backgroundColor: `${activeModule.accent}16`,
+                    color: activeModule.accent,
+                  }}
+                >
+                  <activeModule.IconComponent
+                    size={28}
+                    theme={theme}
+                    isHovered
+                  />
+                </div>
+              </div>
 
-      {/* Main Content - consistent width container */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Platform Introduction */}
-          <div
-            className={`mb-8 p-4 sm:p-6 rounded-2xl text-left ${
-              theme === "dark"
-                ? "bg-slate-800/50 border border-slate-700/50"
-                : "bg-white/70 border border-gray-200 shadow-sm"
-            }`}
-          >
-            <p
-              className={`text-sm sm:text-base leading-relaxed ${
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              }`}
+              <div className="mt-5 space-y-2">
+                {activeGroup.items.map((moduleId) => {
+                  const module = getModuleById(moduleId);
+                  const isActive = module.id === activeModule.id;
+                  const IconComponent = module.IconComponent;
+
+                  return (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => setActiveModuleId(module.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
+                        isActive
+                          ? "border-transparent bg-[var(--paper-accent-soft)]"
+                          : "border-[var(--paper-border)] bg-white hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]",
+                      )}
+                    >
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                        style={{ backgroundColor: `${module.accent}14`, color: module.accent }}
+                      >
+                        <IconComponent
+                          size={22}
+                          theme={theme}
+                          isHovered={isActive}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {t(`${module.i18nNamespace}.title`)}
+                        </p>
+                        <p className="truncate text-xs text-[var(--glass-text-muted)]">
+                          {module.workspaceLabel}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[var(--paper-link)]">
+                        {module.quickLinks.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {activeModule.quickLinks.map((link) => (
+                  <button
+                    key={link.path}
+                    type="button"
+                    onClick={() => navigate(link.path)}
+                    className="rounded-full border border-[var(--paper-border)] bg-white px-3 py-2 text-sm font-medium text-[var(--paper-link)] transition-colors hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]"
+                  >
+                    {t(link.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-2">
+          {NAV_GROUPS.map((group) => (
+            <article
+              key={group.id}
+              className="rounded-[1.75rem] border border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)] p-6 shadow-[var(--glass-shadow)]"
             >
-              {t("home.hero.platformIntro")}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--paper-link)]">
+                    {group.id === "teaching" ? "Start learning" : "Apply what you learned"}
+                  </p>
+                  <h2 className="mt-1 text-2xl font-semibold">{group.label}</h2>
+                  <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
+                    {group.description}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-[var(--glass-panel-soft)] p-3 text-[var(--paper-link)]">
+                  {group.id === "teaching" ? (
+                    <GraduationCap className="h-6 w-6" />
+                  ) : (
+                    <Compass className="h-6 w-6" />
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                {group.items.map((moduleId) => {
+                  const module = getModuleById(moduleId);
+
+                  return (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveModuleId(module.id);
+                        navigate(module.path);
+                      }}
+                      className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold"
+                    >
+                      {t(`${module.i18nNamespace}.title`)}
+                      <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />
+                    </button>
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="space-y-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--paper-link)]">Explore all modules</p>
+              <h2
+                className="text-3xl font-semibold"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                直接进入你需要的学习空间
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-[var(--glass-text-muted)]">
+              每个模块都采用更统一的卡片语言和更清晰的主次信息，方便像 Khan Academy
+              一样快速浏览并开始学习。
             </p>
           </div>
-          {/* Module Grid */}
-          <nav className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {MODULES.map((module) => (
-              <ModuleCard
-                key={module.id}
-                module={module}
-                theme={theme}
-                cardRef={getCardRef(module.id)}
-                iconRef={getIconRef(module.id)}
-                onHoverStart={() => {
-                  // setActiveModule(module.id as ModuleEffectType)
-                }}
-                onHoverEnd={() => {
-                  // setActiveModule(null)
-                }}
-              />
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {MODULES.map((module) => {
+              const IconComponent = module.IconComponent;
+              const isActive = module.id === activeModule.id;
+
+              return (
+                <article
+                  key={module.id}
+                  className={cn(
+                    "group rounded-[1.75rem] border bg-[color:var(--paper-surface-strong)] p-5 shadow-[var(--glass-shadow)] transition-all",
+                    isActive
+                      ? "border-transparent ring-2 ring-[var(--paper-accent)]"
+                      : "border-[var(--paper-border)] hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                      style={{ backgroundColor: `${module.accent}16`, color: module.accent }}
+                    >
+                      <IconComponent
+                        size={30}
+                        theme={theme}
+                        isHovered={isActive}
+                      />
+                    </div>
+                    <span className="rounded-full bg-[var(--glass-panel-soft)] px-3 py-1 text-xs font-semibold text-[var(--paper-link)]">
+                      {module.workspaceLabel}
+                    </span>
+                  </div>
+
+                  <div className="mt-5">
+                    <h3 className="text-xl font-semibold">{t(`${module.i18nNamespace}.title`)}</h3>
+                    <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
+                      {t(`${module.i18nNamespace}.description`)}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {module.quickLinks.map((link) => (
+                      <button
+                        key={link.path}
+                        type="button"
+                        onClick={() => navigate(link.path)}
+                        className="rounded-full border border-[var(--paper-border)] bg-[var(--glass-chip)] px-3 py-1.5 text-xs font-medium text-[var(--paper-link)] transition-colors hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]"
+                      >
+                        {t(link.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModuleId(module.id);
+                      navigate(module.path);
+                    }}
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--paper-link)] transition-colors hover:text-[var(--paper-link-strong)]"
+                  >
+                    进入模块
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+
+                  {module.inDevelopment ? (
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--paper-accent-soft)] px-3 py-1 text-xs font-medium text-[var(--paper-accent-strong)]">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      持续打磨中
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)] p-6 shadow-[var(--glass-shadow)] sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--paper-link)]">Recommended path</p>
+              <h2
+                className="text-3xl font-semibold"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                如果第一次进入平台，可以按这个顺序开始
+              </h2>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--glass-panel-soft)] px-4 py-2 text-sm font-medium text-[var(--paper-foreground)]">
+              <Library className="h-4 w-4 text-[var(--paper-link)]" />
+              适合课堂导入到项目实践的完整路线
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            {LEARNING_PATH.map((step, index) => (
+              <button
+                key={step.path}
+                type="button"
+                onClick={() => navigate(step.path)}
+                className="group rounded-[1.75rem] border border-[var(--paper-border)] bg-[var(--glass-panel-soft)] p-5 text-left transition-all hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[var(--paper-link)]">
+                    {index + 1}
+                  </span>
+                  <BookOpenText className="h-5 w-5 text-[var(--paper-link)] transition-transform group-hover:translate-x-1" />
+                </div>
+                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
+                  {step.description}
+                </p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--paper-link)]">
+                  前往此步骤
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </button>
             ))}
-          </nav>
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   );

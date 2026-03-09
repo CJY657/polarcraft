@@ -1,13 +1,12 @@
 /**
  * UnitViewer - 单元内容查看器
  *
- * 上方显示单元主PDF，下方显示课程选择器
+ * 桌面端左侧显示课程选择器，右侧显示单元主PDF
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Minimize2, FileText, Loader2 } from "lucide-react";
+import { ChevronLeft, Minimize2, FileText } from "lucide-react";
 import { cn } from "@/utils/classNames";
 import PdfViewer from "@/feature/course/PdfViewer";
 import { CourseSelector } from "./CourseSelector";
@@ -23,7 +22,6 @@ interface UnitViewerProps {
 
 export function UnitViewer({ unit, mainSlide, courses, onBack, theme }: UnitViewerProps) {
   const { i18n } = useTranslation();
-  const navigate = useNavigate();
   const [isMainSlideFullscreen, setIsMainSlideFullscreen] = useState(false);
 
   const isZh = i18n.language === "zh-CN";
@@ -31,11 +29,6 @@ export function UnitViewer({ unit, mainSlide, courses, onBack, theme }: UnitView
   // Get localized label
   const getLabel = (label: { "zh-CN"?: string; "en-US"?: string }) => {
     return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
-  };
-
-  // Handle course selection - navigate to course viewer
-  const handleSelectCourse = (courseId: string) => {
-    navigate(`/units/${unit.id}/courses/${courseId}`);
   };
 
   // ESC key to exit fullscreen
@@ -72,7 +65,7 @@ export function UnitViewer({ unit, mainSlide, courses, onBack, theme }: UnitView
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    <div className="mx-auto max-w-7xl px-4">
       {/* Back button */}
       <button
         onClick={onBack}
@@ -109,36 +102,55 @@ export function UnitViewer({ unit, mainSlide, courses, onBack, theme }: UnitView
         )}
       </div>
 
-      {/* Upper area: Unit main PDF */}
-      {mainSlide ? (
+      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+        {/* Left area: Course selector */}
         <div
           className={cn(
-            "rounded-2xl p-4 mb-6",
+            "order-2 rounded-2xl p-4 lg:order-1 lg:sticky lg:top-6",
             theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm"
           )}
         >
-          <div className="aspect-video">{renderMainSlide()}</div>
+          <CourseSelector
+            unitId={unit.id}
+            courses={courses}
+            unitColor={unit.color}
+            layout="sidebar"
+          />
         </div>
-      ) : (
-        <div
-          className={cn(
-            "rounded-2xl p-4 mb-6 aspect-video flex items-center justify-center",
-            theme === "dark" ? "bg-slate-800/50" : "bg-gray-50"
-          )}
-        >
-          <div className="text-center">
-            <FileText
-              className={cn(
-                "w-16 h-16 mx-auto mb-4",
-                theme === "dark" ? "text-gray-600" : "text-gray-400"
-              )}
-            />
-            <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}>
-              {isZh ? "暂无主课件" : "No main slide available"}
-            </p>
+
+        {/* Right area: Unit main PDF */}
+        {mainSlide ? (
+          <div
+            className={cn(
+              "order-1 min-w-0 rounded-2xl p-4 lg:order-2",
+              theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm"
+            )}
+          >
+            <div className="aspect-video">{renderMainSlide()}</div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            className={cn(
+              "order-1 aspect-video min-w-0 rounded-2xl p-4 flex items-center justify-center lg:order-2",
+              theme === "dark" ? "bg-slate-800/50" : "bg-gray-50"
+            )}
+          >
+            <div className="text-center">
+              <FileText
+                className={cn(
+                  "w-16 h-16 mx-auto mb-4",
+                  theme === "dark" ? "text-gray-600" : "text-gray-400"
+                )}
+              />
+              <p
+                className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}
+              >
+                {isZh ? "暂无主课件" : "No main slide available"}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main PDF fullscreen mode */}
       {isMainSlideFullscreen && mainSlide && (
@@ -153,20 +165,6 @@ export function UnitViewer({ unit, mainSlide, courses, onBack, theme }: UnitView
           <div className="w-full h-full">{renderMainSlide(true)}</div>
         </div>
       )}
-
-      {/* Lower area: Course selector */}
-      <div
-        className={cn(
-          "rounded-2xl p-4",
-          theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm"
-        )}
-      >
-        <CourseSelector
-          unitId={unit.id}
-          courses={courses}
-          unitColor={unit.color}
-        />
-      </div>
     </div>
   );
 }

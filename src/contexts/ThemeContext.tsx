@@ -17,7 +17,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const saved = getStorageItem("polarcraft-theme");
       if (saved === "light" || saved === "dark") return saved;
     }
-    return "dark";
+    return "light";
   });
 
   useEffect(() => {
@@ -27,34 +27,34 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.add("dark");
       root.classList.remove("light");
       // Dark theme CSS variables
-      root.style.setProperty("--bg-primary", "#0a0a0f");
-      root.style.setProperty("--bg-secondary", "#0f172a");
-      root.style.setProperty("--bg-tertiary", "#1e293b");
-      root.style.setProperty("--bg-card", "rgba(15, 23, 42, 0.9)");
-      root.style.setProperty("--bg-overlay", "rgba(0, 0, 0, 0.7)");
-      root.style.setProperty("--text-primary", "#f1f5f9");
-      root.style.setProperty("--text-secondary", "#94a3b8");
-      root.style.setProperty("--text-muted", "#64748b");
-      root.style.setProperty("--border-color", "rgba(34, 211, 238, 0.2)");
-      root.style.setProperty("--accent-cyan", "#22d3ee");
-      root.style.setProperty("--accent-purple", "#a78bfa");
-      root.style.setProperty("--accent-green", "#4ade80");
+      root.style.setProperty("--bg-primary", "#0d1b1d");
+      root.style.setProperty("--bg-secondary", "#132a2e");
+      root.style.setProperty("--bg-tertiary", "rgba(22, 47, 52, 0.72)");
+      root.style.setProperty("--bg-card", "rgba(18, 41, 46, 0.88)");
+      root.style.setProperty("--bg-overlay", "rgba(13, 27, 29, 0.84)");
+      root.style.setProperty("--text-primary", "#edf8f6");
+      root.style.setProperty("--text-secondary", "#a3bdb7");
+      root.style.setProperty("--text-muted", "#86a29b");
+      root.style.setProperty("--border-color", "rgba(118, 159, 152, 0.28)");
+      root.style.setProperty("--accent-cyan", "#82b2ff");
+      root.style.setProperty("--accent-purple", "#6e9fff");
+      root.style.setProperty("--accent-green", "#38d1a7");
     } else {
       root.classList.add("light");
       root.classList.remove("dark");
       // Light theme CSS variables
-      root.style.setProperty("--bg-primary", "#f8fafc");
-      root.style.setProperty("--bg-secondary", "#ffffff");
-      root.style.setProperty("--bg-tertiary", "#f1f5f9");
-      root.style.setProperty("--bg-card", "rgba(255, 255, 255, 0.95)");
-      root.style.setProperty("--bg-overlay", "rgba(255, 255, 255, 0.9)");
-      root.style.setProperty("--text-primary", "#0f172a");
-      root.style.setProperty("--text-secondary", "#475569");
-      root.style.setProperty("--text-muted", "#94a3b8");
-      root.style.setProperty("--border-color", "rgba(15, 118, 110, 0.3)");
-      root.style.setProperty("--accent-cyan", "#0891b2");
-      root.style.setProperty("--accent-purple", "#7c3aed");
-      root.style.setProperty("--accent-green", "#16a34a");
+      root.style.setProperty("--bg-primary", "#f6fbf8");
+      root.style.setProperty("--bg-secondary", "#eef7f3");
+      root.style.setProperty("--bg-tertiary", "#f4f8ff");
+      root.style.setProperty("--bg-card", "#ffffff");
+      root.style.setProperty("--bg-overlay", "rgba(246, 251, 248, 0.92)");
+      root.style.setProperty("--text-primary", "#243b53");
+      root.style.setProperty("--text-secondary", "#61758a");
+      root.style.setProperty("--text-muted", "#7b8794");
+      root.style.setProperty("--border-color", "#dbe8e4");
+      root.style.setProperty("--accent-cyan", "#1865f2");
+      root.style.setProperty("--accent-purple", "#3b82f6");
+      root.style.setProperty("--accent-green", "#14bf96");
     }
 
     setStorageItem("polarcraft-theme", theme);

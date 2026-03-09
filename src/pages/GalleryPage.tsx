@@ -8,7 +8,6 @@
  */
 
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { PersistentHeader, Tabs } from "@/components/shared";
 import { WorksGrid } from "@/feature/gallery";
@@ -32,7 +31,6 @@ const SUB_MODULE_TABS = [
 
 export function ExperimentsPage() {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const { tabId } = useParams<{ tabId?: string }>();
   const navigate = useNavigate();
 
@@ -57,10 +55,7 @@ export function ExperimentsPage() {
   return (
     <div
       className={cn(
-        "min-h-screen",
-        theme === "dark"
-          ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-          : "bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#f0f9ff]",
+        "glass-page min-h-screen",
       )}
     >
       {/* Header with Persistent Logo */}
@@ -68,24 +63,37 @@ export function ExperimentsPage() {
         moduleKey="gallery"
         moduleNameKey={t("page.gallery.title")}
         variant="glass"
-        className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
+        className="sticky top-0 z-40"
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1
-            className={cn(
-              "text-3xl font-bold mb-2",
-              theme === "dark" ? "text-white" : "text-gray-900",
-            )}
-          >
-            {t("works.title")}
-          </h1>
-          <p className={cn("text-lg", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-            {t("works.description")}
-          </p>
-        </div>
+        <section className="glass-panel-strong relative mb-8 overflow-hidden rounded-[2.1rem] px-6 py-7 sm:px-8">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, color-mix(in srgb, var(--paper-accent) 5%, transparent), transparent 48%)",
+            }}
+          />
+          <div className="relative">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-accent)]">
+                Creative Archive
+              </span>
+              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
+                {activeTab === "gallery" ? "实验展示" : "创意作品"}
+              </span>
+            </div>
+
+            <h1 className={cn("mb-2 text-3xl font-bold text-[var(--paper-foreground)]")} style={{ fontFamily: "var(--font-ui-display)" }}>
+              {t("works.title")}
+            </h1>
+            <p className="max-w-3xl text-lg text-[var(--glass-text-muted)]">
+              {t("works.description")}
+            </p>
+          </div>
+        </section>
 
         {/* Sub-module Tabs */}
         <div className="mb-6">

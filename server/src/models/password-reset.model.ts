@@ -3,139 +3,113 @@
  * 密码重置令牌模型
  */
 
-import { query, queryOne, query as executeQuery } from '../database/connection.js';
+import { getCollection } from '../database/connection.js';
+import { normalizeDocument } from '../database/mongo.util.js';
 import { generateToken, generateId } from '../utils/crypto.util.js';
 import { PasswordResetToken } from '../types/auth.types.js';
 import { logger } from '../utils/logger.js';
 
-/**
- * Password Reset Token Model Class
- * 密码重置令牌模型类
- */
+const passwordResetCollection = () => getCollection('password_reset_tokens');
+
 export class PasswordResetModel {
   /**
    * Default token expiry: 15 minutes
- * 默认令牌过期时间：15 分钟
+   * 默认令牌过期时间：15 分钟
    */
   static readonly DEFAULT_EXPIRY_MINUTES = 15;
 
   /**
    * Create a new password reset token
- * 创建新的密码重置令牌
+   * 创建新的密码重置令牌
    */
   static async create(userId: string): Promise<PasswordResetToken> {
-    const id = generateId();
-    const token = generateToken(32);
     const expiresAt = new Date(Date.now() + this.DEFAULT_EXPIRY_MINUTES * 60 * 1000);
-
-    const sql = `
-      INSERT INTO password_reset_tokens (id, user_id, token, expires_at)
-      VALUES (?, ?, ?, ?)
-    `;
-
-    await executeQuery(sql, [id, userId, token, expiresAt]);
-
-    logger.info(`Password reset token created for user: ${userId}`);
-    return {
-      id,
+    const resetToken: PasswordResetToken = {
+      id: generateId(),
       user_id: userId,
-      token,
+      token: generateToken(32),
       expires_at: expiresAt,
       used_at: null,
       created_at: new Date(),
     };
+
+    await passwordResetCollection().insertOne(resetToken as unknown as Record<string, unknown>);
+
+    logger.info(`Password reset token created for user: ${userId}`);
+    return resetToken;
   }
 
   /**
    * Find password reset token by token value
- * 根据令牌值查找密码重置令牌
+   * 根据令牌值查找密码重置令牌
    */
   static async findByToken(token: string): Promise<PasswordResetToken | null> {
-    const sql = `
-      SELECT *
-      FROM password_reset_tokens
-      WHERE token = ? AND used_at IS NULL
-    `;
-
-    return await queryOne<PasswordResetToken>(sql, [token]);
+    return normalizeDocument<PasswordResetToken>(
+      await passwordResetCollection().findOne({ token, used_at: null })
+    );
   }
 
   /**
    * Find valid (not expired and not used) password reset token
- * 查找有效（未过期且未使用）的密码重置令牌
+   * 查找有效（未过期且未使用）的密码重置令牌
    */
   static async findValidToken(token: string): Promise<PasswordResetToken | null> {
-    const sql = `
-      SELECT *
-      FROM password_reset_tokens
-      WHERE token = ? AND used_at IS NULL AND expires_at > NOW()
-    `;
-
-    return await queryOne<PasswordResetToken>(sql, [token]);
+    return normalizeDocument<PasswordResetToken>(
+      await passwordResetCollection().findOne({
+        token,
+        used_at: null,
+        expires_at: { $gt: new Date() },
+      })
+    );
   }
 
   /**
    * Mark token as used
- * 将令牌标记为已使用
+   * 将令牌标记为已使用
    */
   static async markAsUsed(token: string): Promise<boolean> {
-    const sql = `
-      UPDATE password_reset_tokens
-      SET used_at = NOW()
-      WHERE token = ?
-    `;
+    const result = await passwordResetCollection().updateOne(
+      { token },
+      { $set: { used_at: new Date() } }
+    );
 
-    await executeQuery(sql, [token]);
     logger.info(`Password reset token marked as used: ${token}`);
-    return true;
+    return result.matchedCount > 0;
   }
 
   /**
    * Invalidate all unused tokens for a user
- * 使用户的所有未使用令牌失效
+   * 使用户的所有未使用令牌失效
    */
   static async invalidateAllForUser(userId: string): Promise<number> {
-    const sql = `
-      UPDATE password_reset_tokens
-      SET used_at = NOW()
-      WHERE user_id = ? AND used_at IS NULL
-    `;
-
-    await executeQuery(sql, [userId]);
-    const result = await query<any>(
-      'SELECT ROW_COUNT() as count',
-      []
+    const result = await passwordResetCollection().updateMany(
+      { user_id: userId, used_at: null },
+      { $set: { used_at: new Date() } }
     );
-    const count = result[0]?.count || 0;
 
-    logger.info(`Invalidated ${count} password reset tokens for user: ${userId}`);
-    return count;
+    logger.info(`Invalidated ${result.modifiedCount} password reset tokens for user: ${userId}`);
+    return result.modifiedCount;
   }
 
   /**
    * Clean up expired and used tokens
- * 清理过期和已使用的令牌
+   * 清理过期和已使用的令牌
    */
   static async cleanup(): Promise<number> {
-    const sql = `
-      DELETE FROM password_reset_tokens
-      WHERE used_at IS NOT NULL OR expires_at < NOW()
-    `;
+    const result = await passwordResetCollection().deleteMany({
+      $or: [
+        { used_at: { $ne: null } },
+        { expires_at: { $lt: new Date() } },
+      ],
+    });
 
-    await executeQuery(sql, []);
-    const result = await query<any>(
-      'SELECT ROW_COUNT() as count',
-      []
-    );
-    const count = result[0]?.count || 0;
-
-    logger.info(`Cleaned up ${count} password reset tokens`);
-    return count;
+    logger.info(`Cleaned up ${result.deletedCount} password reset tokens`);
+    return result.deletedCount;
   }
 
   /**
    * Check if a token is valid
- * 检查令牌是否有效
+   * 检查令牌是否有效
    */
   static async isValid(token: string): Promise<boolean> {
     const resetToken = await this.findValidToken(token);

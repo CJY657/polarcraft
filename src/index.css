@@ -2,26 +2,26 @@
 
 /* Theme configuration for shadcn/ui style components */
 @theme {
-  --color-background: hsl(222 47% 5%);
-  --color-foreground: hsl(210 40% 98%);
-  --color-card: hsl(222 47% 8%);
-  --color-card-foreground: hsl(210 40% 98%);
-  --color-popover: hsl(222 47% 8%);
-  --color-popover-foreground: hsl(210 40% 98%);
-  --color-primary: hsl(199 89% 70%);
-  --color-primary-foreground: hsl(222 47% 5%);
-  --color-secondary: hsl(217 33% 17%);
-  --color-secondary-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(217 33% 17%);
-  --color-muted-foreground: hsl(215 20% 65%);
-  --color-accent: hsl(217 33% 17%);
-  --color-accent-foreground: hsl(210 40% 98%);
-  --color-destructive: hsl(0 62% 55%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(217 33% 17%);
-  --color-input: hsl(217 33% 17%);
-  --color-ring: hsl(199 89% 70%);
-  --radius: 0.5rem;
+  --color-background: hsl(156 44% 98%);
+  --color-foreground: hsl(212 34% 22%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(212 34% 22%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(212 34% 22%);
+  --color-primary: hsl(162 80% 39%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(204 70% 97%);
+  --color-secondary-foreground: hsl(212 34% 22%);
+  --color-muted: hsl(156 26% 96%);
+  --color-muted-foreground: hsl(210 14% 45%);
+  --color-accent: hsl(204 70% 97%);
+  --color-accent-foreground: hsl(212 34% 22%);
+  --color-destructive: hsl(356 76% 56%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(158 22% 88%);
+  --color-input: hsl(158 22% 88%);
+  --color-ring: hsl(220 88% 53%);
+  --radius: 1.25rem;
 
   /* Polarization colors */
   --color-polarization-0: #ff4444;
@@ -32,37 +32,265 @@
 
 /* Light Mode Overrides */
 html.light {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222 47% 5%);
+  --color-background: hsl(156 44% 98%);
+  --color-foreground: hsl(212 34% 22%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222 47% 5%);
+  --color-card-foreground: hsl(212 34% 22%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222 47% 5%);
-  --color-primary: hsl(199 89% 40%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(199 89% 40%);
+  --color-popover-foreground: hsl(212 34% 22%);
+  --color-primary: hsl(162 80% 39%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(204 70% 97%);
+  --color-secondary-foreground: hsl(212 34% 22%);
+  --color-muted: hsl(156 26% 96%);
+  --color-muted-foreground: hsl(210 14% 45%);
+  --color-accent: hsl(204 70% 97%);
+  --color-accent-foreground: hsl(212 34% 22%);
+  --color-destructive: hsl(356 76% 56%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(158 22% 88%);
+  --color-input: hsl(158 22% 88%);
+  --color-ring: hsl(220 88% 53%);
+  --paper-bg: #f6fbf8;
+  --paper-surface: #ffffff;
+  --paper-surface-strong: #ffffff;
+  --paper-border: #dbe8e4;
+  --paper-muted: #61706a;
+  --paper-foreground: #243b53;
+  --paper-accent: #14bf96;
+  --paper-accent-strong: #0ea67f;
+  --paper-link: #1865f2;
+  --paper-link-strong: #1153c9;
+  --paper-accent-soft: rgba(20, 191, 150, 0.1);
+  --paper-accent-glow: rgba(20, 191, 150, 0.22);
+  --glass-page-start: #f6fbf8;
+  --glass-page-mid: #fbfdff;
+  --glass-page-end: #f4f9ff;
+  --glass-orb-a: rgba(20, 191, 150, 0.12);
+  --glass-orb-b: rgba(24, 101, 242, 0.08);
+  --glass-orb-c: rgba(12, 166, 127, 0.05);
+  --glass-panel: rgba(255, 255, 255, 0.94);
+  --glass-panel-strong: rgba(255, 255, 255, 0.98);
+  --glass-panel-soft: #f3faf7;
+  --glass-chip: #f7fbf9;
+  --glass-stroke: #dbe8e4;
+  --glass-stroke-strong: #cfe0db;
+  --glass-text-muted: #6f7f79;
+  --glass-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 16px 40px -30px rgba(36, 59, 83, 0.18);
+  --glass-shadow-strong:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 24px 48px -34px rgba(36, 59, 83, 0.2);
+  --glass-neon:
+    0 0 0 1px rgba(24, 101, 242, 0.1),
+    0 14px 28px -24px rgba(24, 101, 242, 0.18);
+  --glass-grid: rgba(36, 59, 83, 0.035);
+  --body-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.14) 28%, transparent 60%);
+  --body-accent-blur: rgba(20, 191, 150, 0.16);
+}
+
+html.dark {
+  --color-background: hsl(202 35% 11%);
+  --color-foreground: hsl(196 100% 96%);
+  --color-card: hsl(202 30% 16% / 0.9);
+  --color-card-foreground: hsl(196 100% 96%);
+  --color-popover: hsl(202 30% 14% / 0.94);
+  --color-popover-foreground: hsl(196 100% 96%);
+  --color-primary: hsl(163 73% 59%);
+  --color-primary-foreground: hsl(201 45% 12%);
+  --color-secondary: hsl(201 23% 20%);
+  --color-secondary-foreground: hsl(196 100% 96%);
+  --color-muted: hsl(201 23% 20%);
+  --color-muted-foreground: hsl(200 25% 71%);
+  --color-accent: hsl(201 23% 20%);
+  --color-accent-foreground: hsl(196 100% 96%);
+  --color-destructive: hsl(356 78% 61%);
+  --color-destructive-foreground: hsl(196 100% 96%);
+  --color-border: hsl(198 24% 27%);
+  --color-input: hsl(198 24% 27%);
+  --color-ring: hsl(219 93% 68%);
+  --paper-bg: #0d1b1d;
+  --paper-surface: rgba(13, 27, 29, 0.78);
+  --paper-surface-strong: rgba(16, 35, 40, 0.92);
+  --paper-border: rgba(113, 156, 149, 0.36);
+  --paper-muted: #98b7af;
+  --paper-foreground: #edf8f6;
+  --paper-accent: #38d1a7;
+  --paper-accent-strong: #22b38d;
+  --paper-link: #82b2ff;
+  --paper-link-strong: #a3c6ff;
+  --paper-accent-soft: rgba(56, 209, 167, 0.16);
+  --paper-accent-glow: rgba(56, 209, 167, 0.24);
+  --glass-page-start: #091315;
+  --glass-page-mid: #0f2127;
+  --glass-page-end: #102c34;
+  --glass-orb-a: rgba(56, 209, 167, 0.18);
+  --glass-orb-b: rgba(130, 178, 255, 0.14);
+  --glass-orb-c: rgba(36, 179, 223, 0.1);
+  --glass-panel: rgba(16, 35, 40, 0.74);
+  --glass-panel-strong: rgba(18, 41, 46, 0.88);
+  --glass-panel-soft: rgba(22, 47, 52, 0.62);
+  --glass-chip: rgba(255, 255, 255, 0.06);
+  --glass-stroke: rgba(118, 159, 152, 0.22);
+  --glass-stroke-strong: rgba(152, 193, 186, 0.34);
+  --glass-text-muted: rgba(226, 243, 239, 0.72);
+  --glass-shadow:
+    0 24px 64px -38px rgba(2, 9, 11, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-shadow-strong:
+    0 34px 86px -42px rgba(2, 9, 11, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --glass-neon:
+    0 0 0 1px rgba(130, 178, 255, 0.14),
+    0 18px 34px -22px rgba(130, 178, 255, 0.22);
+  --glass-grid: rgba(152, 193, 186, 0.06);
+  --body-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 18%);
+  --body-accent-blur: color-mix(in srgb, var(--paper-accent) 18%, transparent);
+}
+
+:root {
+  --paper-link: #1865f2;
+  --paper-link-strong: #1153c9;
+  --font-sans-ui:
+    "Avenir Next",
+    "Segoe UI Variable Text",
+    "Trebuchet MS",
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    sans-serif;
+  --font-ui-display:
+    "Avenir Next",
+    "Segoe UI Variable Display",
+    "Trebuchet MS",
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    sans-serif;
+  --font-editorial:
+    "Avenir Next",
+    "Segoe UI Variable Display",
+    "Trebuchet MS",
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    sans-serif;
+  --glass-radius-sm: 1rem;
+  --glass-radius-md: 1.5rem;
+  --glass-radius-lg: 2rem;
+  --glass-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @layer utilities {
+  .glass-page {
+    position: relative;
+    isolation: isolate;
+    background: transparent;
+  }
+
+  .glass-panel,
+  .glass-panel-strong,
+  .glass-panel-soft,
+  .glass-chip,
+  .glass-button,
+  .glass-input {
+    color: var(--paper-foreground);
+  }
+
+  .glass-panel {
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-panel);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-panel-strong {
+    border: 1px solid var(--glass-stroke-strong);
+    background: var(--glass-panel-strong);
+    box-shadow: var(--glass-shadow-strong);
+  }
+
+  .glass-panel-soft {
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-panel-soft);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-chip {
+    border: 1px solid var(--glass-stroke);
+    background: var(--glass-chip);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  .glass-button {
+    border: 1px solid var(--glass-stroke-strong);
+    background: var(--paper-surface-strong);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    transition:
+      transform 180ms var(--glass-ease),
+      border-color 180ms var(--glass-ease),
+      box-shadow 180ms var(--glass-ease),
+      background-color 180ms var(--glass-ease),
+      filter 180ms var(--glass-ease);
+  }
+
+  .glass-button:hover {
+    border-color: color-mix(in srgb, var(--paper-link) 18%, var(--glass-stroke-strong));
+    box-shadow:
+      0 12px 22px -20px rgba(24, 101, 242, 0.22),
+      0 0 0 1px color-mix(in srgb, var(--paper-link) 10%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .glass-button:active {
+    transform: translateY(0) scale(0.985);
+  }
+
+  .glass-button-primary {
+    border: 1px solid color-mix(in srgb, var(--paper-accent) 78%, white);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--paper-accent) 92%, white), var(--paper-accent-strong));
+    color: #ffffff;
+    box-shadow:
+      0 14px 28px -18px var(--paper-accent-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .glass-input {
+    border: 1px solid var(--glass-stroke-strong);
+    background: #ffffff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .glass-input::placeholder {
+    color: var(--glass-text-muted);
+  }
+
+  .glass-input:focus,
+  .glass-input:focus-visible {
+    border-color: color-mix(in srgb, var(--paper-accent) 70%, white);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--paper-accent) 22%, transparent),
+      var(--glass-neon);
+    outline: none;
+  }
+
   .tech-card {
     @apply bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)];
   }
+
   .tech-card:hover {
     @apply border-cyan-400/50 shadow-[0_0_25px_rgba(34,211,238,0.2)];
   }
+
   .tech-text-glow {
     text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
   }
+
   .tech-border-glow {
     box-shadow:
       0 0 10px rgba(34, 211, 238, 0.2),
@@ -75,22 +303,97 @@ html.light {
   border-color: var(--color-border);
 }
 
+html,
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family:
-    Quotes,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    "Fira Sans",
-    "Droid Sans",
-    "Helvetica Neue",
-    sans-serif;
+  min-height: 100%;
+}
+
+body {
+  position: relative;
+  color: var(--paper-foreground);
+  font-family: var(--font-sans-ui);
+  background:
+    radial-gradient(circle at 0% 0%, var(--glass-orb-a), transparent 32%),
+    radial-gradient(circle at 100% 0%, var(--glass-orb-b), transparent 26%),
+    radial-gradient(circle at 50% 100%, var(--glass-orb-c), transparent 24%),
+    linear-gradient(180deg, var(--glass-page-start) 0%, var(--glass-page-mid) 52%, var(--glass-page-end) 100%);
+  background-attachment: fixed;
+  line-height: 1.5;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background: var(--body-overlay);
+}
+
+body::after {
+  inset: auto;
+  right: 8vw;
+  top: 5vh;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 9999px;
+  background: var(--body-accent-blur);
+  filter: blur(90px);
+  opacity: 0.6;
+}
+
+::selection {
+  background: var(--paper-link);
+  color: #ffffff;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 180ms var(--glass-ease),
+    background-color 180ms var(--glass-ease),
+    border-color 180ms var(--glass-ease),
+    box-shadow 180ms var(--glass-ease),
+    transform 180ms var(--glass-ease),
+    opacity 180ms var(--glass-ease);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--paper-accent) 55%, white);
+  outline-offset: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--paper-link) 26%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--paper-link) 40%, transparent);
+  background-clip: padding-box;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 /* Game specific styles */
@@ -447,8 +750,8 @@ body {
   header,
   footer,
   nav,
-  .print\\:hidden,
-  button:not(.print\\:block),
+  .print\:hidden,
+  button:not(.print\:block),
   .fixed,
   .sticky,
   .animate-beam-move,
@@ -457,16 +760,16 @@ body {
   }
 
   /* Show print-only elements */
-  .print\\:block {
+  .print\:block {
     display: block !important;
   }
 
   /* Ensure content is visible */
-  .print\\:text-black {
+  .print\:text-black {
     color: black !important;
   }
 
-  .print\\:bg-white {
+  .print\:bg-white {
     background: white !important;
   }
 

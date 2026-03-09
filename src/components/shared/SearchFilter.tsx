@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/contexts/ThemeContext";
 import { Search, X, Filter, ChevronDown } from "lucide-react";
 import { cn } from "@/utils/classNames";
 
@@ -17,31 +16,27 @@ interface SearchInputProps {
 }
 
 export function SearchInput({ value, onChange, placeholder, className }: SearchInputProps) {
-  const { theme } = useTheme();
   const { t } = useTranslation();
 
   return (
     <div className={cn("relative", className)}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--glass-text-muted)]" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || t("common.search")}
         className={cn(
-          "w-full pl-10 pr-8 py-2 rounded-lg border transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
-          theme === "dark"
-            ? "bg-slate-800 border-slate-700 text-white placeholder:text-gray-500"
-            : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400",
+          "glass-input w-full rounded-2xl px-4 py-3 pl-11 pr-10 text-sm",
+          "focus:outline-none",
         )}
       />
       {value && (
         <button
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--glass-text-muted)] hover:text-[var(--paper-foreground)]"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -62,16 +57,12 @@ interface FilterSelectProps {
 }
 
 export function FilterSelect({ label, value, options, onChange, className }: FilterSelectProps) {
-  const { theme } = useTheme();
   const { t, i18n } = useTranslation();
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <label
-        className={cn(
-          "text-sm font-medium whitespace-nowrap",
-          theme === "dark" ? "text-gray-300" : "text-gray-700",
-        )}
+        className="whitespace-nowrap text-sm font-medium text-[var(--paper-foreground)]"
       >
         {label[i18n.language]}
       </label>
@@ -80,11 +71,8 @@ export function FilterSelect({ label, value, options, onChange, className }: Fil
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
-            "appearance-none pl-3 pr-8 py-1.5 rounded-md border text-sm cursor-pointer",
-            "focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
-            theme === "dark"
-              ? "bg-slate-800 border-slate-700 text-white"
-              : "bg-white border-gray-200 text-gray-900",
+            "glass-input min-w-32 cursor-pointer appearance-none rounded-xl px-3 py-2 pr-8 text-sm",
+            "focus:outline-none",
           )}
         >
           <option value="">{t("common.all")}</option>
@@ -97,7 +85,7 @@ export function FilterSelect({ label, value, options, onChange, className }: Fil
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--glass-text-muted)]" />
       </div>
     </div>
   );
@@ -111,11 +99,10 @@ interface ToggleFilterProps {
 }
 
 export function ToggleFilter({ label, checked, onChange, className }: ToggleFilterProps) {
-  const { theme } = useTheme();
   const { i18n } = useTranslation();
 
   return (
-    <label className={cn("flex items-center gap-2 cursor-pointer", className)}>
+    <label className={cn("flex cursor-pointer items-center gap-2", className)}>
       <input
         type="checkbox"
         checked={checked}
@@ -124,18 +111,18 @@ export function ToggleFilter({ label, checked, onChange, className }: ToggleFilt
       />
       <div
         className={cn(
-          "w-9 h-5 rounded-full transition-colors relative",
-          checked ? "bg-cyan-500" : theme === "dark" ? "bg-slate-700" : "bg-gray-300",
+          "glass-chip relative h-5 w-9 rounded-full",
+          checked && "border-[var(--paper-accent)] bg-[var(--paper-accent-soft)]",
         )}
       >
         <div
           className={cn(
-            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+            "absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_6px_14px_rgba(6,18,40,0.18)] transition-transform",
             checked && "translate-x-4",
           )}
         />
       </div>
-      <span className={cn("text-sm", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+      <span className="text-sm text-[var(--paper-foreground)]">
         {label[i18n.language]}
       </span>
     </label>
@@ -148,14 +135,12 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ children, className }: FilterBarProps) {
-  const { theme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div
       className={cn(
-        "rounded-lg border p-3",
-        theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-gray-50 border-gray-200",
+        "glass-panel rounded-[1.75rem] p-3.5",
         className,
       )}
     >
@@ -163,21 +148,20 @@ export function FilterBar({ children, className }: FilterBarProps) {
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          "md:hidden flex items-center gap-2 text-sm font-medium w-full",
-          theme === "dark" ? "text-gray-300" : "text-gray-700",
+          "flex w-full items-center gap-2 text-sm font-medium text-[var(--paper-foreground)] md:hidden",
         )}
       >
-        <Filter className="w-4 h-4" />
+        <Filter className="h-4 w-4" />
         <span>Filters</span>
         <ChevronDown
-          className={cn("w-4 h-4 ml-auto transition-transform", isExpanded && "rotate-180")}
+          className={cn("ml-auto h-4 w-4 transition-transform", isExpanded && "rotate-180")}
         />
       </button>
 
       {/* Filters content */}
       <div
         className={cn(
-          "flex flex-wrap gap-3 items-center",
+          "flex flex-wrap items-center gap-3",
           "md:flex",
           isExpanded ? "flex mt-3" : "hidden",
         )}
@@ -210,15 +194,15 @@ interface BadgeProps {
 
 export function Badge({ children, color = "gray", size = "sm", className }: BadgeProps) {
   const colors = {
-    gray: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
-    green: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400",
-    blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400",
-    yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400",
-    orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400",
-    red: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400",
-    purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400",
-    cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-400",
-    pink: "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-400",
+    gray: "border-[rgba(136,160,189,0.24)] bg-white/20 text-[var(--paper-foreground)]",
+    green: "border-emerald-300/30 bg-emerald-400/10 text-emerald-200 dark:text-emerald-300",
+    blue: "border-sky-300/30 bg-sky-400/10 text-sky-200 dark:text-sky-300",
+    yellow: "border-amber-300/30 bg-amber-400/10 text-amber-200 dark:text-amber-300",
+    orange: "border-orange-300/30 bg-orange-400/10 text-orange-200 dark:text-orange-300",
+    red: "border-red-300/30 bg-red-400/10 text-red-200 dark:text-red-300",
+    purple: "border-violet-300/30 bg-violet-400/10 text-violet-200 dark:text-violet-300",
+    cyan: "border-cyan-300/30 bg-cyan-400/10 text-cyan-200 dark:text-cyan-300",
+    pink: "border-pink-300/30 bg-pink-400/10 text-pink-200 dark:text-pink-300",
   };
 
   const sizes = {
@@ -229,7 +213,7 @@ export function Badge({ children, color = "gray", size = "sm", className }: Badg
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full font-medium",
+        "glass-chip inline-flex items-center rounded-full border font-medium",
         colors[color],
         sizes[size],
         className,
@@ -255,14 +239,12 @@ interface TabsProps {
 }
 
 export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
-  const { theme } = useTheme();
   const { i18n } = useTranslation();
 
   return (
     <div
       className={cn(
-        "flex gap-1 p-1 rounded-lg overflow-x-auto",
-        theme === "dark" ? "bg-slate-800" : "bg-gray-100",
+        "glass-panel flex gap-1.5 overflow-x-auto rounded-[1.75rem] p-1.5",
         className,
       )}
     >
@@ -271,14 +253,10 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors",
+            "flex items-center gap-2 whitespace-nowrap rounded-[1.1rem] border px-4 py-2.5 text-sm font-medium transition-all",
             activeTab === tab.id
-              ? theme === "dark"
-                ? "bg-slate-700 text-white"
-                : "bg-white text-gray-900 shadow-sm"
-              : theme === "dark"
-                ? "text-gray-400 hover:text-gray-300"
-                : "text-gray-600 hover:text-gray-900",
+              ? "glass-panel-strong border-[var(--glass-stroke-strong)] text-[var(--paper-foreground)] shadow-[var(--glass-neon)]"
+              : "border-transparent bg-transparent text-[var(--glass-text-muted)] hover:border-[var(--glass-stroke-strong)] hover:bg-[var(--paper-accent-soft)] hover:text-[var(--paper-foreground)]",
           )}
         >
           {tab.icon}

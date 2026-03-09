@@ -1,126 +1,134 @@
 /**
- * Footer Component - Site-wide footer with cool facts and minimal navigation
- * 页脚组件 - 精简版页脚，{已经删去(包含随机偏振光知识/历史事件)}
+ * Footer Component - site-wide educational footer.
  */
 
-// import { Link } from 'react-router-dom'
-
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/contexts/ThemeContext";
-import { cn } from "@/utils/classNames";
-import { Github, ExternalLink, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
-// About section links
+import { ArrowUpRight, Github } from "lucide-react";
+
+import { useTheme } from "@/contexts/ThemeContext";
+import { PolarCraftLogo } from "@/components/icons";
+
 interface FooterLink {
-  labelKey: string;
-  labelZh: string;
+  label: string;
   path: string;
   external?: boolean;
-  icon?: "github" | "mail" | "external";
 }
 
-const ABOUT_LINKS: FooterLink[] = [
-  {
-    labelKey: "GitHub",
-    labelZh: "GitHub",
-    path: "https://github.com/amatke31/polarcraft",
-    external: true,
-    icon: "github",
-  },
+const LEARN_LINKS: FooterLink[] = [
+  { label: "课程总览", path: "/courses" },
+  { label: "实验单元", path: "/units" },
+  { label: "交互模拟", path: "/demos" },
 ];
+
+const EXPLORE_LINKS: FooterLink[] = [
+  { label: "成果展示", path: "/gallery" },
+  { label: "研究协作", path: "/lab" },
+  { label: "平台说明", path: "/about" },
+];
+
+const RESOURCE_LINKS: FooterLink[] = [
+  { label: "GitHub", path: "https://github.com/amatke31/polarcraft", external: true },
+  { label: "首页", path: "/" },
+];
+
+function FooterLinkList({
+  title,
+  links,
+}: {
+  title: string;
+  links: FooterLink[];
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--glass-text-muted)]">
+        {title}
+      </p>
+      <div className="mt-4 flex flex-col gap-3">
+        {links.map((link) =>
+          link.external ? (
+            <a
+              key={link.path}
+              href={link.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--paper-foreground)] transition-colors hover:text-[var(--paper-link)]"
+            >
+              {link.label}
+              {link.label === "GitHub" ? <Github className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+            </a>
+          ) : (
+            <Link
+              key={link.path}
+              to={link.path}
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--paper-foreground)] transition-colors hover:text-[var(--paper-link)]"
+            >
+              {link.label}
+            </Link>
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function Footer() {
   const { theme } = useTheme();
   const { t } = useTranslation();
 
-  const getIcon = (iconType?: string) => {
-    switch (iconType) {
-      case "github":
-        return <Github className="w-3 h-3" />;
-      case "mail":
-        return <Mail className="w-3 h-3" />;
-      case "external":
-        return <ExternalLink className="w-3 h-3" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <footer
-      className={cn(
-        "border-t py-8 px-4 sm:px-6 lg:px-8 bottom-0 w-full", 
-        theme === "dark" ? "bg-slate-900 border-slate-800" : "bg-white border-gray-200",
-      )}
+      className="relative mt-16 border-t border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)]/95 px-4 py-12 text-[var(--paper-foreground)] sm:px-6 lg:px-8"
       style={{ zIndex: 1000, position: "relative" }}
     >
-      <div className="max-w-6xl mx-auto">
-        {/* Bottom Bar */}
-        <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4")}>
-          {/* Left: Logo and Copyright */}
-          <div className="flex items-center gap-4">
-            <img
-              src={
-                theme === "dark" ? "/images/combined-logo-white.png" : "/images/combined-logo.png"
-              }
-              alt="X-Institute & Open Wisdom Lab"
-              className="h-10 w-auto"
-            />
-            <div className="flex flex-col">
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700",
-                )}
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-10 border-b border-[var(--paper-border)] pb-10 lg:grid-cols-[minmax(0,1.3fr)_0.85fr_0.85fr_0.85fr]">
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="glass-chip flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--paper-border)]">
+                <PolarCraftLogo size={30} theme={theme} animated={false} />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--glass-text-muted)]">
+                  PolarCraft
+                </p>
+                <p className="text-lg font-semibold" style={{ fontFamily: "var(--font-ui-display)" }}>
+                  偏振课程平台
+                </p>
+              </div>
+            </div>
+
+            <p className="max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">
+              用课程故事、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/courses"
+                className="glass-button glass-button-primary rounded-full px-5 py-2.5 text-sm font-semibold text-white"
               >
-                PolarCraft &copy; 2026
-              </p>
-              <p className={cn("text-xs", theme === "dark" ? "text-gray-500" : "text-gray-400")}>
-                supported by Open Wisdom Lab
-              </p>
+                开始学习
+              </Link>
+              <Link
+                to="/lab/explore"
+                className="glass-button rounded-full px-5 py-2.5 text-sm font-semibold text-[var(--paper-link)]"
+              >
+                浏览项目
+              </Link>
             </div>
           </div>
 
-          {/* Right: About Links */}
-          <div className="flex items-center gap-4">
-            <span
-              className={cn(
-                "text-xs font-medium uppercase tracking-wider",
-                theme === "dark" ? "text-gray-500" : "text-gray-400",
-              )}
-            >
-              <Link
-                to="/about"
-                className={cn(
-                  "flex items-center gap-1 text-xs transition-colors",
-                  theme === "dark"
-                    ? "text-gray-500 hover:text-cyan-400"
-                    : "text-gray-600 hover:text-cyan-600",
-                )}
-              >
-                {t("footer.about")}
-              </Link>
-            </span>
-            <div className="flex items-center gap-3">
-              {ABOUT_LINKS.map((link) => (
-                <a
-                  key={link.path}
-                  href={link.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "flex items-center gap-1 text-xs transition-colors",
-                    theme === "dark"
-                      ? "text-gray-500 hover:text-cyan-400"
-                      : "text-gray-600 hover:text-cyan-600",
-                  )}
-                >
-                  {t(link.labelKey)}
-                  {getIcon(link.icon)}
-                </a>
-              ))}
-            </div>
-          </div>
+          <FooterLinkList title="Learn" links={LEARN_LINKS} />
+          <FooterLinkList title="Explore" links={EXPLORE_LINKS.map((link) => ({
+            ...link,
+            label: link.label === "平台说明" ? t("footer.about") : link.label,
+          }))} />
+          <FooterLinkList title="Resources" links={RESOURCE_LINKS} />
+        </div>
+
+        <div className="flex flex-col gap-3 pt-6 text-sm text-[var(--glass-text-muted)] md:flex-row md:items-center md:justify-between">
+          <p>PolarCraft © 2026</p>
+          <p>Inspired by modern learning-platform UI patterns and adapted for this project.</p>
         </div>
       </div>
     </footer>
