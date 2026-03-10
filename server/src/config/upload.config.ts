@@ -3,21 +3,18 @@
  * 上传配置
  */
 
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { appPaths } from './paths.js';
 
 export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx';
 
 export const uploadConfig = {
   // Storage path - relative to project root
   // 存储路径 - 相对于项目根目录
-  uploadDir: path.resolve(__dirname, '../../../public/uploads/courses'),
+  uploadDir: appPaths.uploadCoursesDir,
 
   // Public URL prefix for accessing uploaded files
   // 访问上传文件的公共 URL 前缀
-  publicUrlPrefix: '/uploads/courses',
+  publicUrlPrefix: process.env.UPLOAD_PUBLIC_URL_PREFIX || '/uploads/courses',
 
   // File size limits (in bytes)
   // 文件大小限制（字节）

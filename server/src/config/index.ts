@@ -16,7 +16,10 @@ loadEnv();
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3001', 10),
-  apiUrl: process.env.API_URL || 'http://localhost:3001',
+  apiUrl:
+    process.env.API_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    `http://localhost:${process.env.PORT || '3001'}`,
   isDevelopment: process.env.NODE_ENV !== 'production',
   isProduction: process.env.NODE_ENV === 'production',
 
@@ -56,7 +59,11 @@ export const config = {
 
   // CORS / CORS 配置
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin:
+      process.env.CORS_ORIGIN ||
+      process.env.FRONTEND_URL ||
+      process.env.RENDER_EXTERNAL_URL ||
+      'http://localhost:5173',
   },
 
   // CAPTCHA / 验证码配置
@@ -73,7 +80,11 @@ export const config = {
   },
 
   // Frontend URL / 前端 URL
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  frontendUrl:
+    process.env.FRONTEND_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.API_URL ||
+    'http://localhost:5173',
 
   // Email / 邮件配置
   email: {

@@ -6,7 +6,10 @@
  * 认证通过 HTTP-only cookie 处理
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const configuredApiBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+const isLocalhostApi =
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl);
+const API_BASE_URL = import.meta.env.PROD && isLocalhostApi ? '' : configuredApiBaseUrl;
 
 interface ApiResponse<T = any> {
   success: boolean;

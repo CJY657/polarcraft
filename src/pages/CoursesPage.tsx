@@ -14,7 +14,6 @@ import {
   ArrowRight,
   BookOpenText,
   Clock,
-  GraduationCap,
   Layers,
   Loader2,
   Sparkles,
@@ -39,12 +38,12 @@ import {
 const TABS = [
   {
     id: "slides",
-    label: { "zh-CN": "课程单元" },
+    label: { "zh-CN": "单元" },
     icon: <BookOpenText className="w-4 h-4" />,
   },
   {
     id: "timeline",
-    label: { "zh-CN": "历史时间线" },
+    label: { "zh-CN": "时间线" },
     icon: <Clock className="w-4 h-4" />,
   },
 ];
@@ -664,7 +663,7 @@ export function CoursesPage() {
       />
 
       <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:py-8">
-        <section className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
+        <section className="mb-6">
           <div
             className={cn(
               "glass-panel-strong relative overflow-hidden rounded-[32px] border p-6 shadow-[0_26px_80px_-60px_rgba(15,23,42,0.45)] sm:p-8",
@@ -687,14 +686,7 @@ export function CoursesPage() {
                     "glass-chip rounded-full border px-3 py-1 text-[var(--paper-accent)]",
                   )}
                 >
-                  Experiment Course
-                </span>
-                <span
-                  className={cn(
-                    "glass-chip rounded-full border px-3 py-1 text-[var(--glass-text-muted)]",
-                  )}
-                >
-                  实验课内容工作区
+                  课程总览
                 </span>
               </div>
 
@@ -717,69 +709,12 @@ export function CoursesPage() {
                   onClick={() => setActiveTab(activeTab === "slides" ? "timeline" : "slides")}
                   className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5"
                 >
-                  {activeTab === "slides" ? "切换到时间线" : "切换到课程单元"}
+                  {activeTab === "slides" ? "查看时间线" : "查看单元"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </div>
-
-          <section
-            className={cn(
-              "glass-panel-strong rounded-[32px] border p-5",
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "glass-chip flex h-10 w-10 items-center justify-center rounded-[1rem] text-[var(--paper-accent)]",
-                )}
-              >
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold">本页概览</h3>
-                <p className="mt-1 text-xs text-[var(--glass-text-muted)]">
-                  单元入口和历史时间线放在同一套工作区里
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              {[
-                {
-                  label: "课程单元",
-                  value: String(units.length),
-                  helper: "从主课件进入每个单元",
-                },
-                {
-                  label: "可见事件",
-                  value: String(filteredEvents.length),
-                  helper: "时间线会响应章节和轨道筛选",
-                },
-                {
-                  label: "重要节点",
-                  value: String(majorMilestoneCount),
-                  helper: "标记当前筛选范围内的关键里程碑",
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className={cn(
-                    "glass-panel-soft rounded-2xl border p-4",
-                  )}
-                >
-                  <p className="text-xs text-[var(--paper-muted)]">
-                    {item.label}
-                  </p>
-                  <p className="mt-2 text-2xl font-black tracking-tight">{item.value}</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-                    {item.helper}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -790,10 +725,7 @@ export function CoursesPage() {
               )}
             >
               <div className="mb-4">
-                <h3 className="text-base font-bold">工作区切换</h3>
-                <p className="mt-1 text-xs text-[var(--glass-text-muted)]">
-                  左侧负责控制，右侧负责浏览内容
-                </p>
+                <h3 className="text-base font-bold">浏览模式</h3>
               </div>
 
               <Tabs
@@ -803,29 +735,29 @@ export function CoursesPage() {
                 className="rounded-2xl p-1.5"
               />
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span
                   className={cn(
-                    "glass-panel-soft rounded-2xl border p-4",
+                    "rounded-full border px-3 py-1 text-xs font-semibold",
+                    theme === "dark"
+                      ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                      : "border-slate-200 bg-slate-50 text-slate-600",
                   )}
                 >
-                  <p className="text-xs text-[var(--paper-muted)]">
-                    当前视图
-                  </p>
-                  <p className="mt-2 text-sm font-semibold">
-                    {activeTab === "slides" ? "课程单元" : "时间线"}
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "glass-panel-soft rounded-2xl border p-4",
-                  )}
-                >
-                  <p className="text-xs text-[var(--paper-muted)]">
-                    涵盖世纪
-                  </p>
-                  <p className="mt-2 text-sm font-semibold">{totalCenturyCount || 0}</p>
-                </div>
+                  {activeTab === "slides" ? `${units.length} 个单元` : `${filteredEvents.length} 个事件`}
+                </span>
+                {activeTab === "timeline" && (
+                  <span
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-semibold",
+                      theme === "dark"
+                        ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                        : "border-slate-200 bg-slate-50 text-slate-600",
+                    )}
+                  >
+                    {majorMilestoneCount} 个里程碑
+                  </span>
+                )}
               </div>
             </section>
 
@@ -839,10 +771,7 @@ export function CoursesPage() {
                 )}
               >
                 <div className="mb-4">
-                  <h3 className="text-base font-bold">单元目录</h3>
-                  <p className={cn("mt-1 text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                    先选单元，再进入对应课件和课程
-                  </p>
+                  <h3 className="text-base font-bold">单元列表</h3>
                 </div>
 
                 {unitsLoading ? (
@@ -920,9 +849,6 @@ export function CoursesPage() {
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div>
                       <h3 className="text-base font-bold">章节筛选</h3>
-                      <p className={cn("mt-1 text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                        用课程章节反向查看历史脉络
-                      </p>
                     </div>
 
                     {hasTimelineFilters && (
@@ -957,10 +883,7 @@ export function CoursesPage() {
                   )}
                 >
                   <div className="mb-4">
-                    <h3 className="text-base font-bold">筛选控制</h3>
-                    <p className={cn("mt-1 text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                      轨道和事件类型会直接作用于右侧时间线
-                    </p>
+                    <h3 className="text-base font-bold">时间线筛选</h3>
                   </div>
 
                   <div className="space-y-5">
@@ -1065,7 +988,7 @@ export function CoursesPage() {
                         )}
                       >
                         <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                          匹配事件
+                          事件
                         </p>
                         <p className="mt-2 text-lg font-semibold">{filteredEvents.length}</p>
                       </div>
@@ -1078,7 +1001,7 @@ export function CoursesPage() {
                         )}
                       >
                         <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                          涵盖世纪
+                          世纪
                         </p>
                         <p className="mt-2 text-lg font-semibold">{totalCenturyCount || 0}</p>
                       </div>
@@ -1176,18 +1099,6 @@ export function CoursesPage() {
                             >
                               {isZh ? "当前单元" : "Current unit"}
                             </span>
-                            {selectedUnit.mainSlide && (
-                              <span
-                                className={cn(
-                                  "rounded-full border px-3 py-1 text-xs font-semibold",
-                                  theme === "dark"
-                                    ? "border-slate-700 bg-slate-900/80 text-slate-300"
-                                    : "border-slate-200 bg-slate-50 text-slate-600",
-                                )}
-                              >
-                                主课件已配置
-                              </span>
-                            )}
                           </div>
 
                           <div>
@@ -1204,7 +1115,7 @@ export function CoursesPage() {
                             </p>
                           </div>
 
-                          <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="grid gap-3 sm:grid-cols-2">
                             <div
                               className={cn(
                                 "rounded-2xl border p-4",
@@ -1214,7 +1125,7 @@ export function CoursesPage() {
                               )}
                             >
                               <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                关联课程
+                                课程
                               </p>
                               <p className="mt-2 text-lg font-semibold">
                                 {selectedUnit.courseCount || 0} 门
@@ -1229,25 +1140,10 @@ export function CoursesPage() {
                               )}
                             >
                               <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                主课件
+                                课件状态
                               </p>
                               <p className="mt-2 text-lg font-semibold">
                                 {selectedUnit.mainSlide ? "已就绪" : "待补充"}
-                              </p>
-                            </div>
-                            <div
-                              className={cn(
-                                "rounded-2xl border p-4",
-                                theme === "dark"
-                                  ? "border-slate-800 bg-slate-900/65"
-                                  : "border-slate-200 bg-slate-50/80",
-                              )}
-                            >
-                              <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                推荐动作
-                              </p>
-                              <p className="mt-2 text-lg font-semibold">
-                                {isZh ? "进入学习" : "Open"}
                               </p>
                             </div>
                           </div>
@@ -1262,7 +1158,7 @@ export function CoursesPage() {
                                 boxShadow: `0 18px 40px -24px ${selectedUnit.color}`,
                               }}
                             >
-                              进入当前单元
+                              进入单元
                               <ArrowRight className="h-4 w-4" />
                             </button>
                             <button
@@ -1275,7 +1171,7 @@ export function CoursesPage() {
                                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white",
                               )}
                             >
-                              查看相关时间线
+                              查看时间线
                               <Clock className="h-4 w-4" />
                             </button>
                           </div>
@@ -1298,10 +1194,7 @@ export function CoursesPage() {
                         )}
                       >
                         <div>
-                          <h3 className="text-base font-bold">单元总览</h3>
-                          <p className={cn("mt-1 text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                            用列表而不是散卡片组织所有实验课单元，入口更稳定
-                          </p>
+                          <h3 className="text-base font-bold">全部单元</h3>
                         </div>
 
                         <div
@@ -1325,8 +1218,8 @@ export function CoursesPage() {
                         )}
                       >
                         <span>单元</span>
-                        <span>内容定位</span>
-                        <span className="text-right">资源状态</span>
+                        <span>简介</span>
+                        <span className="text-right">课程</span>
                       </div>
 
                       <div className={cn("divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
@@ -1359,15 +1252,7 @@ export function CoursesPage() {
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                      <h3 className="text-2xl font-black tracking-tight">时间线工作区</h3>
-                      <p
-                        className={cn(
-                          "mt-2 max-w-4xl text-sm leading-7",
-                          theme === "dark" ? "text-slate-300" : "text-slate-600",
-                        )}
-                      >
-                        把课程章节、轨道和事件类型整合到同一套控制区里，右侧时间线只负责浏览与展开。
-                      </p>
+                      <h3 className="text-2xl font-black tracking-tight">历史时间线</h3>
                     </div>
 
                     <div className="flex flex-wrap gap-2">

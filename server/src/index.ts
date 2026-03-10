@@ -10,17 +10,17 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { config, validateConfig } from './config/index.js';
+import { appPaths } from './config/paths.js';
 import { logger } from './utils/logger.js';
 import { connectDatabase, testConnection, closeDatabase } from './database/connection.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
-import { csrfProtection } from './middleware/csrf.middleware.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const shouldServeFrontend = config.isProduction && fs.existsSync(appPaths.frontendIndexFile);
 
 const app = express();
 
@@ -59,7 +59,7 @@ app.use((req, res, next) => {
 
 app.use(
   '/uploads',
-  express.static(path.join(__dirname, '../public/uploads'), {
+  express.static(appPaths.uploadRootDir, {
     maxAge: '1d',
     etag: true,
     index: false,
@@ -67,17 +67,43 @@ app.use(
 );
 
 app.use('/api', routes);
+app.use('/api', notFoundHandler);
 
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      name: 'PolarCraft Authentication API',
-      version: '1.0.0',
-      status: 'running',
-    },
+if (shouldServeFrontend) {
+  app.use(
+    express.static(appPaths.frontendDistDir, {
+      index: false,
+      maxAge: '1h',
+      etag: true,
+    })
+  );
+
+  app.get('*', (req, res, next) => {
+    if (
+      req.method !== 'GET' ||
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/uploads') ||
+      path.extname(req.path) ||
+      !req.accepts('html')
+    ) {
+      next();
+      return;
+    }
+
+    res.sendFile(appPaths.frontendIndexFile);
   });
-});
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        name: 'PolarCraft Authentication API',
+        version: '1.0.0',
+        status: 'running',
+      },
+    });
+  });
+}
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -99,6 +125,10 @@ async function startServer() {
       logger.info(`📝 Environment: ${config.env}`);
       logger.info(`🌐 Server running on: http://localhost:${config.port}`);
       logger.info(`🔒 API Base URL: ${config.apiUrl}`);
+      if (shouldServeFrontend) {
+        logger.info(`🖥️  Frontend served from: ${appPaths.frontendDistDir}`);
+      }
+      logger.info(`📁 Uploads served from: ${appPaths.uploadRootDir}`);
       logger.info(`📊 Health check: http://localhost:${config.port}/api/health`);
       logger.info('='.repeat(50));
     });

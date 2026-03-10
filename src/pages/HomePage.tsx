@@ -251,12 +251,31 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-[var(--paper-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,250,247,0.94))] p-5 shadow-[var(--glass-shadow)]">
+            <div
+              className={cn(
+                "rounded-[1.75rem] border p-5 shadow-[var(--glass-shadow)]",
+                theme === "dark"
+                  ? "border-[var(--paper-border)] bg-[linear-gradient(180deg,rgba(16,35,40,0.98),rgba(13,27,29,0.94))] text-[var(--paper-foreground)]"
+                  : "border-[var(--paper-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,250,247,0.94))] text-[var(--color-foreground)]",
+              )}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-[var(--paper-link)]">本页焦点</p>
-                  <h2 className="mt-1 text-xl font-semibold">{activeModuleTitle}</h2>
-                  <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
+                  <h2
+                    className={cn(
+                      "mt-1 text-xl font-semibold",
+                      theme === "dark" ? "text-[var(--paper-foreground)]" : "text-slate-900",
+                    )}
+                  >
+                    {activeModuleTitle}
+                  </h2>
+                  <p
+                    className={cn(
+                      "mt-2 text-sm leading-7",
+                      theme === "dark" ? "text-[var(--paper-muted)]" : "text-slate-600",
+                    )}
+                  >
                     {activeModuleDescription}
                   </p>
                 </div>
@@ -290,7 +309,9 @@ export function HomePage() {
                         "flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
                         isActive
                           ? "border-transparent bg-[var(--paper-accent-soft)]"
-                          : "border-[var(--paper-border)] bg-white hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]",
+                          : theme === "dark"
+                            ? "border-[var(--paper-border)] bg-white/6 hover:border-[var(--paper-link)] hover:bg-white/10"
+                            : "border-[var(--paper-border)] bg-white hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]",
                       )}
                     >
                       <div
@@ -304,14 +325,29 @@ export function HomePage() {
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
+                        <p
+                          className={cn(
+                            "truncate text-sm font-semibold",
+                            theme === "dark" ? "text-[var(--paper-foreground)]" : "text-slate-900",
+                          )}
+                        >
                           {t(`${module.i18nNamespace}.title`)}
                         </p>
-                        <p className="truncate text-xs text-[var(--glass-text-muted)]">
+                        <p
+                          className={cn(
+                            "truncate text-xs",
+                            theme === "dark" ? "text-[var(--paper-muted)]" : "text-slate-500",
+                          )}
+                        >
                           {module.workspaceLabel}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[var(--paper-link)]">
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--paper-link)]",
+                          theme === "dark" ? "bg-white/8" : "bg-white",
+                        )}
+                      >
                         {module.quickLinks.length}
                       </span>
                     </button>
@@ -395,10 +431,7 @@ export function HomePage() {
                 直接进入你需要的学习空间
               </h2>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-[var(--glass-text-muted)]">
-              每个模块都采用更统一的卡片语言和更清晰的主次信息，方便像 Khan Academy
-              一样快速浏览并开始学习。
-            </p>
+
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

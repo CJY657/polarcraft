@@ -74,7 +74,7 @@ PolarCraft 是一款由零一学院开发的，基于偏振光物理的教育类
 - **公式渲染**：KaTeX
 - **文档**：react-markdown + remark-gfm
 - **国际化**：i18next + react-i18next
-- **后端**：Express + TypeScript + MySQL + WebSocket + JWT
+- **后端**：Express + TypeScript + MongoDB + JWT
 
 ## 快速命令
 
@@ -91,8 +91,56 @@ npm run test:coverage # 运行测试并生成覆盖率报告
 # 后端（在 /server 目录中）
 cd server
 npm install
-npm run start:dev    # 以监视模式启动 Express 服务器
+npm run dev          # 以监视模式启动 Express 服务器
 npm run build        # 为生产环境构建
+```
+
+## Render 部署
+
+当前仓库已经适配为“单个 Render Web Service”部署：
+
+- Render 上只需要创建一个 Node Web Service。
+- 生产环境由 Express 同时提供 `/api`、`/uploads` 和前端 SPA 页面。
+- 上传文件建议挂载 Render Persistent Disk，否则实例重启后上传内容会丢失。
+
+### 关键文件
+
+- `render.yaml`：Render Blueprint 配置
+- `server/src/index.ts`：生产环境下托管前端构建产物
+- `server/src/config/paths.ts`：统一前端构建目录与上传目录
+
+### 部署前准备
+
+1. 确保代码已推送到 GitHub。
+2. 准备一个 MongoDB 连接串，推荐 MongoDB Atlas。
+3. 如果需要密码重置邮件，再准备 SMTP 账号；不需要则保持 `EMAIL_ENABLED=false`。
+
+### 在 Render 中部署
+
+1. 登录 Render，点击 `New +` -> `Blueprint`。
+2. 选择这个 GitHub 仓库，Render 会自动读取根目录的 `render.yaml`。
+3. 首次创建时填写 `MONGODB_URI`。
+4. 其余密钥类变量会由 Blueprint 自动生成，无需手填：
+   - `JWT_ACCESS_SECRET`
+   - `JWT_REFRESH_SECRET`
+   - `CSRF_SECRET`
+   - `COOKIE_SECRET`
+5. 确认磁盘挂载路径为 `/var/data`。
+6. 创建完成后等待首次构建部署。
+
+### 可选环境变量
+
+- `FRONTEND_URL`：如需自定义密码重置链接域名，可设置为站点公网地址
+- `API_URL`：如需覆盖默认公网地址，可手动设置
+- `EMAIL_ENABLED=true` 后，还需要补齐 `EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USER`、`EMAIL_PASSWORD`、`EMAIL_FROM`
+
+### 本地验证生产构建
+
+```bash
+npm ci
+npm --prefix server ci
+npm run build
+npm --prefix server run build
 ```
 
 ## Git工作流

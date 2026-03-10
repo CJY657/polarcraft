@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: polarcraft
+    runtime: node
+    rootDir: .
+    buildCommand: npm ci && npm --prefix server ci && npm run build && npm --prefix server run build
+    startCommand: npm --prefix server run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: polarcraft-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: polarcraft
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: UPLOAD_ROOT_DIR
+        value: /var/data/uploads
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_ENABLED
+        value: true
+      - key: EMAIL_ENABLED
+        value: false
