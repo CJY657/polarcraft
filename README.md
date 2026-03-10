@@ -137,8 +137,8 @@ npm run build        # 为生产环境构建
 ### 本地验证生产构建
 
 ```bash
-npm ci
-npm --prefix server ci
+npm ci --include=dev
+npm --prefix server ci --include=dev
 npm run build
 npm --prefix server run build
 ```
