@@ -8,14 +8,16 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/utils/classNames";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Upload } from "lucide-react";
 import { useUnitDetailStore } from "@/stores/unitStore";
 import { UnitViewer } from "@/feature/unit/UnitViewer";
 
 export function UnitViewerPage() {
   const { unitId } = useParams<{ unitId: string }>();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { unit, mainSlide, courses, isLoading, error, fetchUnit, reset } = useUnitDetailStore();
@@ -29,6 +31,10 @@ export function UnitViewerPage() {
 
   const handleBack = () => {
     navigate("/courses");
+  };
+
+  const handleManageResources = () => {
+    navigate(`/admin/units/${unitId}?tab=courses`);
   };
 
   // Loading state
@@ -149,6 +155,49 @@ export function UnitViewerPage() {
           : "bg-gradient-to-br from-[#fffbeb] via-[#fef3c7] to-[#fffbeb]"
       )}
     >
+      {user?.role === "admin" && (
+        <div className="mx-auto mb-4 max-w-7xl px-4">
+          <div
+            className={cn(
+              "flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+              theme === "dark"
+                ? "border-cyan-500/30 bg-cyan-500/10"
+                : "border-cyan-200 bg-cyan-50"
+            )}
+          >
+            <div>
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  theme === "dark" ? "text-cyan-200" : "text-cyan-900"
+                )}
+              >
+                仅管理员可上传或修改实验课资源
+              </p>
+              <p
+                className={cn(
+                  "text-xs",
+                  theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
+                )}
+              >
+                可在单元管理页进入课程后上传视频、图片和 PPT 相关资源。
+              </p>
+            </div>
+            <button
+              onClick={handleManageResources}
+              className={cn(
+                "inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto",
+                theme === "dark"
+                  ? "bg-cyan-500 text-white hover:bg-cyan-400"
+                  : "bg-cyan-600 text-white hover:bg-cyan-700"
+              )}
+            >
+              <Upload className="h-4 w-4" />
+              管理资源
+            </button>
+          </div>
+        </div>
+      )}
       <UnitViewer
         unit={unit}
         mainSlide={mainSlide}

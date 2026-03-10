@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import { CourseFormDialog } from '@/feature/admin/components/CourseFormDialog';
 import { MediaManager } from '@/feature/admin/components/MediaManager';
@@ -25,6 +25,7 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
 export default function CourseEditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentCourse, isLoading, error, fetchCourse, clearError } = useCourseAdminStore();
 
   const [activeTab, setActiveTab] = useState<TabId>('settings');
@@ -35,6 +36,13 @@ export default function CourseEditorPage() {
       fetchCourse(courseId);
     }
   }, [courseId, fetchCourse]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab === 'settings' || requestedTab === 'media' || requestedTab === 'hyperlinks') {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   if (isLoading && !currentCourse) {
     return (

@@ -8,8 +8,9 @@
 import { Suspense, lazy, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCourseDetailStore } from "@/stores/courseStore";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { loadCourseViewerModule } from "@/lib/routePreload";
 
 const CourseViewer = lazy(() =>
@@ -29,6 +30,7 @@ function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
 export default function CourseViewerPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { course, mainSlide, media, hyperlinks, isLoading, error, fetchCourse, reset } =
@@ -108,6 +110,45 @@ export default function CourseViewerPage() {
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
       <div className="pt-4 pb-8">
+        {user?.role === "admin" && (
+          <div className="mx-auto mb-4 max-w-7xl px-4">
+            <div
+              className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                theme === "dark"
+                  ? "border-cyan-500/30 bg-cyan-500/10"
+                  : "border-cyan-200 bg-cyan-50"
+              }`}
+            >
+              <div>
+                <p
+                  className={`text-sm font-medium ${
+                    theme === "dark" ? "text-cyan-200" : "text-cyan-900"
+                  }`}
+                >
+                  仅管理员可上传课程媒体资源
+                </p>
+                <p
+                  className={`text-xs ${
+                    theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
+                  }`}
+                >
+                  使用课程管理页上传视频、图片和 PPT 相关资源。
+                </p>
+              </div>
+              <button
+                onClick={() => navigate(`/admin/courses/${course.id}?tab=media`)}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
+                  theme === "dark"
+                    ? "bg-cyan-500 text-white hover:bg-cyan-400"
+                    : "bg-cyan-600 text-white hover:bg-cyan-700"
+                }`}
+              >
+                <Upload className="h-4 w-4" />
+                上传资源
+              </button>
+            </div>
+          </div>
+        )}
         <Suspense fallback={<ViewerLoader theme={theme} />}>
           <CourseViewer
             course={courseData}

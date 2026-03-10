@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
@@ -26,6 +26,7 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
 export default function UnitEditorPage() {
   const { unitId } = useParams<{ unitId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { theme } = useTheme();
   const { currentUnit, isLoading, error, fetchUnit, clearError } = useUnitAdminStore();
 
@@ -37,6 +38,13 @@ export default function UnitEditorPage() {
       fetchUnit(unitId);
     }
   }, [unitId, fetchUnit]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab === "settings" || requestedTab === "mainSlide" || requestedTab === "courses") {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   if (isLoading && !currentUnit) {
     return (
