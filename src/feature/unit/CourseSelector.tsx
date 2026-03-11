@@ -40,7 +40,7 @@ export function CourseSelector({
 
   const handleNavigate = (courseId: string) => {
     preloadCourseViewerRoute();
-    navigate(`/units/${unitId}/courses/${courseId}`);
+    navigate(`/units/${unitId}/courses/${courseId}`, { flushSync: true });
   };
 
   if (courses.length === 0) {

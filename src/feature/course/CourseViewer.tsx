@@ -787,39 +787,79 @@ function PptxViewer({
             transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
           }
 
+          .course-hotspot {
+            transition: all 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            border: 2px solid transparent;
+            transform: translateZ(0); /* Force GPU acceleration */
+          }
+
           .course-hotspot:hover,
           .course-hotspot-active {
-            background-color: rgba(34, 211, 238, 0.12);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-            transform: translateY(-4px);
-            border: 1.5px solid rgba(34, 211, 238, 0.4);
+            background-color: rgba(34, 211, 238, 0.1);
+            border-color: rgba(34, 211, 238, 0.5);
+            backdrop-filter: blur(4px);
+            box-shadow: 
+              inset 0 0 25px rgba(34, 211, 238, 0.15),
+              0 0 20px rgba(34, 211, 238, 0.25);
           }
 
-          .course-hotspot-active {
-            animation: pptx-hotspot-pulse 2s infinite ease-in-out;
-            background-color: rgba(34, 211, 238, 0.18);
-            border-color: rgba(34, 211, 238, 0.6);
-          }
-
-          @keyframes pptx-hotspot-pulse {
-            0%, 100% {
-              box-shadow: 0 8px 20px rgba(34, 211, 238, 0.15);
-            }
-            50% {
-              box-shadow: 0 12px 28px rgba(34, 211, 238, 0.3);
-            }
+          @keyframes hotspot-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.5); }
+            70% { box-shadow: 0 0 0 12px rgba(34, 211, 238, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
           }
 
           .course-hotspot-dot {
-            transition: all 200ms ease;
-            opacity: 0;
-            transform: scale(0.5);
+            transition: all 300ms ease;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            opacity: 0.6;
           }
 
           .course-hotspot:hover .course-hotspot-dot,
           .course-hotspot-active .course-hotspot-dot {
             opacity: 1;
-            transform: scale(1);
+            transform: scale(1.25);
+            animation: hotspot-pulse 2s infinite;
+          }
+
+          .hotspot-tooltip {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 50;
+          }
+
+          /* Small arrow for tooltip */
+          .hotspot-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+          }
+
+          .course-hotspot:hover .hotspot-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
           }
         `}
       </style>
@@ -869,7 +909,7 @@ function PptxViewer({
               >
                 <button
                   type="button"
-                  className={`course-hotspot group relative h-full w-full overflow-hidden rounded-2xl pointer-events-auto bg-transparent ${
+                  className={`course-hotspot group relative h-full w-full overflow-visible rounded-2xl pointer-events-auto bg-transparent ${
                     hyperlink.targetMediaId === activeMediaId ? "course-hotspot-active" : ""
                   }`}
                   onClick={(event) => {
@@ -881,8 +921,10 @@ function PptxViewer({
                   onPointerLeave={() => setLinkedParagraphActive(hyperlink.targetMediaId, false)}
                   onFocus={() => setLinkedParagraphActive(hyperlink.targetMediaId, true)}
                   onBlur={() => setLinkedParagraphActive(hyperlink.targetMediaId, false)}
-                  title={getHyperlinkTitle?.(hyperlink.targetMediaId) || hyperlink.targetMediaId}
                 >
+                  <div className="hotspot-tooltip">
+                    {getHyperlinkTitle?.(hyperlink.targetMediaId) || hyperlink.targetMediaId}
+                  </div>
                   <span
                     className={`course-hotspot-dot pointer-events-none absolute right-2 top-2 h-2.5 w-2.5 rounded-full ${
                       theme === "dark"
@@ -1197,19 +1239,21 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
   };
 
   return (
-    <div className="mx-auto max-w-[1540px] px-4 sm:px-5 xl:px-6 2xl:pr-10">
+    <div className="w-full">
       {/* 返回按钮 */}
-      <button
-        onClick={onBack}
-        className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ${
-          theme === "dark"
-            ? "text-gray-400 hover:bg-slate-800 hover:text-white"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        }`}
-      >
-        <ChevronLeft className="h-4 w-4" />
-        <span>{t("page.courses.backtocourses")}</span>
-      </button>
+      <div className="px-4 py-3 xl:px-6">
+        <button
+          onClick={onBack}
+          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ${
+            theme === "dark"
+              ? "text-gray-400 hover:bg-slate-800 hover:text-white"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span>{t("page.courses.backtocourses")}</span>
+        </button>
+      </div>
 
       {/* 上方区域：主 PDF 永久显示 */}
       {!hasPptxLayout && mainSlide && (
@@ -1234,18 +1278,18 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
 
       {hasPptxLayout && (
         <div
-          className={`rounded-[28px] border p-3 sm:p-4 shadow-[0_20px_80px_rgba(15,23,42,0.08)] ${
+          className={`min-h-[calc(100vh-80px)] border-t ${
             theme === "dark"
-              ? "border-slate-700/70 bg-slate-900/70"
-              : "border-slate-200 bg-white/95"
+              ? "border-slate-700/70 bg-slate-900/40"
+              : "border-slate-200 bg-white/50"
           }`}
         >
-          <div className="grid items-start gap-4 xl:grid-cols-[252px_minmax(0,1.08fr)_minmax(280px,0.8fr)] 2xl:grid-cols-[264px_minmax(0,1.08fr)_320px]">
+          <div className="grid items-start xl:grid-cols-[280px_1.1fr_0.9fr] 2xl:grid-cols-[300px_1.15fr_0.85fr]">
             <aside
-              className={`rounded-[24px] border p-4 xl:h-[68vh] ${
+              className={`xl:h-[calc(100vh-80px)] border-r p-4 overflow-y-auto ${
                 theme === "dark"
-                  ? "border-slate-700/70 bg-slate-800/70"
-                  : "border-slate-200 bg-slate-50/95"
+                  ? "border-slate-700/70 bg-slate-800/40"
+                  : "border-slate-200 bg-slate-50/50"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -1305,7 +1349,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                 </div>
               </div>
 
-              <div className="mt-4 max-h-[45vh] space-y-3 overflow-y-auto pr-1 xl:h-[calc(100%-8.5rem)] xl:max-h-none">
+              <div className="mt-4 space-y-3">
                 {resourceSections.map((section) => (
                   <div
                     key={section.id}
@@ -1426,13 +1470,13 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
             </aside>
 
             <section
-              className={`rounded-[24px] border p-4 xl:h-[68vh] ${
+              className={`p-4 xl:h-[calc(100vh-80px)] overflow-y-auto ${
                 theme === "dark"
-                  ? "border-slate-700/70 bg-slate-800/55"
-                  : "border-slate-200 bg-slate-50/70"
+                  ? "border-r border-slate-700/70"
+                  : "border-r border-slate-200"
               }`}
             >
-              <div className="mx-auto flex h-full w-full max-w-[860px] flex-col">
+              <div className="mx-auto flex h-full w-full flex-col">
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
                     <p
@@ -1449,11 +1493,6 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                     >
                       {activePptMedia ? getMediaTitle(activePptMedia) : isZh ? "暂无课件" : "No deck"}
                     </h3>
-                    <p className={`mt-2 text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                      {isZh
-                        ? "左侧选择图片或视频时，会同步切换右侧预览和当前课件页；若课件中配置了可点击区域，也会反向联动。"
-                        : "Selecting media from the left will sync both the right preview and the active deck page. Clickable overlays in the deck also work in reverse."}
-                    </p>
                   </div>
 
                   {activePptMedia && (
@@ -1472,7 +1511,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                 </div>
 
                 <div
-                  className={`min-h-[340px] flex-1 overflow-hidden rounded-[22px] border ${
+                  className={`min-h-[400px] flex-1 overflow-hidden rounded-[22px] border ${
                     theme === "dark"
                       ? "border-slate-700 bg-slate-950/70"
                       : "border-slate-200 bg-white"
@@ -1503,13 +1542,9 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
             </section>
 
             <section
-              className={`rounded-[24px] border p-4 xl:h-[68vh] ${
-                theme === "dark"
-                  ? "border-slate-700/70 bg-slate-800/55"
-                  : "border-slate-200 bg-slate-50/70"
-              }`}
+              className="p-4 xl:h-[calc(100vh-80px)] overflow-y-auto"
             >
-              <div className="mx-auto flex h-full w-full max-w-[420px] flex-col">
+              <div className="mx-auto flex h-full w-full flex-col">
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
                     <p
@@ -1530,11 +1565,6 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                           ? "从左侧选择视频或图片"
                           : "Select a video or image"}
                     </h3>
-                    <p className={`mt-2 text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                      {isZh
-                        ? "视频资源会优先显示在这里，图片则作为补充说明。"
-                        : "Videos are prioritized here, while images stay as supporting references."}
-                    </p>
                   </div>
 
                   {activePreviewMedia && (
@@ -1566,7 +1596,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                 </div>
 
                 <div
-                  className={`min-h-[280px] flex-1 overflow-hidden rounded-[22px] border ${
+                  className={`min-h-[300px] flex-1 overflow-hidden rounded-[22px] border ${
                     theme === "dark"
                       ? "border-slate-700 bg-slate-950/70"
                       : "border-slate-200 bg-white"

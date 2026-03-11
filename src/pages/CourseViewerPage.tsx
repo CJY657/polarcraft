@@ -109,9 +109,9 @@ export default function CourseViewerPage() {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
-      <div className="pt-4 pb-8">
+      <div>
         {user?.role === "admin" && (
-          <div className="mx-auto mb-4 max-w-7xl px-4">
+          <div className="mb-4 w-full px-4 pt-4 xl:px-6">
             <div
               className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
                 theme === "dark"

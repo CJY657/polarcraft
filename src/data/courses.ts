@@ -81,7 +81,7 @@ export interface CourseData {
 export const COURSE_DATA: CourseData[] = [
   {
     id: "course1",
-    unitId: "course1",
+    unitId: "unit1",
     title: { "zh-CN": "冰洲石和布儒斯特实验介绍" },
     description: { "zh-CN": "介绍冰洲石和布儒斯特实验的基本原理和实验过程。" },
     color: "#C9A227",
@@ -133,7 +133,7 @@ export const COURSE_DATA: CourseData[] = [
   },
   {
     id: "course2",
-    unitId: "course2",
+    unitId: "unit2",
     title: { "zh-CN": "色偏振及旋光实验介绍" },
     description: { "zh-CN": "介绍色偏振及旋光实验的基本原理和实验过程。" },
     color: "#C9A227",
@@ -227,7 +227,7 @@ export const COURSE_DATA: CourseData[] = [
   },
   {
     id: "course3",
-    unitId: "course3",
+    unitId: "unit3",
     title: { "zh-CN": "散射实验介绍" },
     description: { "zh-CN": "介绍散射实验的基本原理和实验过程。" },
     color: "#C9A227",
@@ -243,7 +243,7 @@ export const COURSE_DATA: CourseData[] = [
   },
   {
     id: "course4",
-    unitId: "course4",
+    unitId: "unit4",
     title: { "zh-CN": "3种仪器介绍" },
     description: { "zh-CN": "介绍3种实验仪器的基本原理和使用方法。" },
     color: "#C9A227",

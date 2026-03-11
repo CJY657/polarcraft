@@ -13,9 +13,9 @@ import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
-import { loadCourseViewerPageModule } from "@/lib/routePreload";
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
+import CourseViewerPage from "@/pages/CourseViewerPage";
 
 // Lazy load all pages for code splitting
 // 懒加载所有页面组件以实现代码分割
@@ -29,7 +29,6 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // Module 1: 课程历史
 // 科学原理 × 历史故事
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
-const CourseViewerPage = lazy(loadCourseViewerPageModule);
 
 // Module 1b: 实验课单元
 // 单元 × 课程
@@ -180,12 +179,12 @@ export function App() {
                 element={<UnitsPage />}
               />
               <Route
-                path="/units/:unitId"
-                element={<UnitViewerPage />}
-              />
-              <Route
                 path="/units/:unitId/courses/:courseId"
                 element={<CourseViewerPage />}
+              />
+              <Route
+                path="/units/:unitId"
+                element={<UnitViewerPage />}
               />
 
               {/* Module 2: 光学器件 */}
