@@ -60,8 +60,13 @@ const defaultHealthData: SystemHealthData = {
 // Health check interval (default: 5 minutes)
 const DEFAULT_HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
 
-// API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Match the main API client behavior:
+// - local dev can point to an explicit VITE_API_URL
+// - production single-service deployments (e.g. Render) should use same-origin /api
+const configuredApiBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+const isLocalhostApi =
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl);
+const API_BASE_URL = import.meta.env.PROD && isLocalhostApi ? '' : configuredApiBaseUrl;
 
 // =====================================================
 // Provider Component / Provider 组件
