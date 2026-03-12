@@ -143,6 +143,158 @@ npm run build
 npm --prefix server run build
 ```
 
+## 阿里云 ECS（1G 内存）部署
+
+如果你希望部署到阿里云服务器（ECS）并控制在 1G 内存机型可稳定运行，建议采用 **Nginx + Node.js（单进程）+ PM2 + MongoDB Atlas** 的方案：
+
+- Nginx 负责 HTTPS、静态缓存、反向代理。
+- Node.js 只跑一个进程（避免 1G 内存下多进程爆内存）。
+- MongoDB 建议放到云数据库（Atlas/阿里云 MongoDB），不要在 1G 机器本地再起一套 MongoDB。
+
+### 1）服务器初始化（Ubuntu 22.04 示例）
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y nginx git curl
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+sudo npm i -g pm2
+
+# 可选：创建 1G swap，降低内存不足导致的进程被杀风险
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 2）拉取代码并构建
+
+```bash
+cd /var/www
+sudo git clone https://github.com/amatke31/polarcraft.git
+sudo chown -R $USER:$USER /var/www/polarcraft
+cd /var/www/polarcraft
+
+npm ci --include=dev
+npm --prefix server ci --include=dev
+npm run build
+npm --prefix server run build
+```
+
+### 3）配置后端环境变量（生产）
+
+在 `/var/www/polarcraft/server/.env` 中至少填写以下变量（示例）：
+
+```bash
+NODE_ENV=production
+PORT=3001
+
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority
+MONGODB_DB_NAME=polarcraft
+
+JWT_ACCESS_SECRET=<strong_random_string>
+JWT_REFRESH_SECRET=<strong_random_string>
+CSRF_SECRET=<strong_random_string>
+COOKIE_SECRET=<strong_random_string>
+
+FRONTEND_URL=https://你的域名
+CORS_ORIGIN=https://你的域名
+API_URL=https://你的域名
+
+UPLOAD_ROOT_DIR=/var/www/polarcraft/server/uploads
+LOG_LEVEL=info
+LOG_ENABLED=true
+EMAIL_ENABLED=false
+```
+
+> 说明：生产环境下必须配置 `MONGODB_URI`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`，否则服务启动会失败。
+
+### 4）用 PM2 启动并设置开机自启
+
+```bash
+cd /var/www/polarcraft
+
+# 用较保守的 V8 内存上限，适配 1G 机器
+NODE_OPTIONS='--max-old-space-size=384' pm2 start server/dist/index.js --name polarcraft
+
+pm2 save
+pm2 startup
+```
+
+如需更新代码：
+
+```bash
+cd /var/www/polarcraft
+git pull
+npm ci --include=dev
+npm --prefix server ci --include=dev
+npm run build
+npm --prefix server run build
+pm2 restart polarcraft
+```
+
+### 5）配置 Nginx 反向代理
+
+新建 `/etc/nginx/sites-available/polarcraft`：
+
+```nginx
+server {
+    listen 80;
+    server_name 你的域名;
+
+    client_max_body_size 20m;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+启用并重载：
+
+```bash
+sudo ln -s /etc/nginx/sites-available/polarcraft /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 6）配置 HTTPS（Let’s Encrypt）
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d 你的域名
+```
+
+### 7）1G 机型优化建议（重点）
+
+- 只开 **1 个 PM2 实例**，不要 `-i max`。
+- 把 MongoDB 放到托管服务，ECS 上仅运行 Nginx + Node。
+- `NODE_OPTIONS=--max-old-space-size=384`（可在 320~512 间按实际负载微调）。
+- 上传目录单独挂盘（或对象存储 OSS），避免系统盘撑满。
+- 使用 `pm2 monit`、`free -h`、`top` 观察内存；若频繁 OOM，先扩到 2G。
+
+### 8）验收检查
+
+```bash
+# 本机回环健康检查
+curl http://127.0.0.1:3001/api/health
+
+# 域名健康检查
+curl -I https://你的域名/api/health
+
+# 查看进程与日志
+pm2 status
+pm2 logs polarcraft --lines 100
+```
+
 ## Git工作流
 
 **分支策略：**
