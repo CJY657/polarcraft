@@ -4,7 +4,7 @@
  * 支持显示 PPTX、图片、视频等多种媒体类型
  */
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
@@ -25,9 +25,7 @@ import {
   normalizeMediaReferenceText,
 } from "./mediaReference";
 
-// PPTX Previewer component using pptx-preview
-import { init } from "pptx-preview";
-import PdfViewer from "./PdfViewer";
+const PdfViewer = lazy(() => import("./PdfViewer"));
 
 interface CourseViewerProps {
   course: CourseData;
@@ -69,7 +67,44 @@ interface PptxDocument {
 
 type PptRenderMode = "checking" | "pdf" | "pptx";
 
+type PptxPreviewModule = typeof import("pptx-preview");
+
 const DEFAULT_PPT_ASPECT_RATIO = 16 / 9;
+const pdfSidecarAvailabilityCache = new Map<string, boolean>();
+let pptxPreviewModulePromise: Promise<PptxPreviewModule> | null = null;
+const OPTIMIZED_UNIT2_VIDEO_FILENAMES = new Set([
+  "实验-保鲜膜拉伸-平行偏振系统-旋转样品视频.mp4",
+  "实验-保鲜膜拉伸-正交偏振系统-旋转样品视频.mp4",
+  "实验-打火机烧玻璃-正交偏振系统-长时间观察视频.mp4",
+  "实验-透明胶条-平行偏振系统-旋转样品视频.mp4",
+  "实验-透明胶条-正交偏振系统-旋转样品视频.mp4",
+  "实验-透明胶条（重叠阵列）-正交偏振系统-旋转样品视频.mp4",
+  "文创-学院logo-正交偏振系统-旋转样品视频.mp4",
+  "文创-辛普森一家丽莎-正交偏振系统-旋转样品视频.mp4",
+  "文创-辛普森一家巴特-正交偏振系统-旋转样品视频.mp4",
+]);
+
+function loadPptxPreviewModule() {
+  if (!pptxPreviewModulePromise) {
+    pptxPreviewModulePromise = import("pptx-preview");
+  }
+
+  return pptxPreviewModulePromise;
+}
+
+function getPreferredMediaUrl(media: MediaResource) {
+  if (media.type !== "video") {
+    return media.url;
+  }
+
+  const matchedFilename = media.url.match(/\/courses\/unit2\/([^/?#]+\.mp4)(?:[?#].*)?$/)?.[1];
+  if (!matchedFilename || !OPTIMIZED_UNIT2_VIDEO_FILENAMES.has(matchedFilename)) {
+    return media.url;
+  }
+
+  return `/videos/chromatic-polarization/${matchedFilename}`;
+}
+
 function fitPresentationSize(width: number, height: number, aspectRatio: number) {
   if (width <= 0 || height <= 0) {
     return { width: 0, height: 0 };
@@ -93,6 +128,11 @@ function getPptPdfFallbackUrl(url: string) {
 }
 
 async function hasPdfSidecar(url: string) {
+  const cachedResult = pdfSidecarAvailabilityCache.get(url);
+  if (cachedResult != null) {
+    return cachedResult;
+  }
+
   const classifyPdfResponse = (response: Response) => {
     const contentType = response.headers.get("content-type")?.toLowerCase() || "";
 
@@ -121,20 +161,25 @@ async function hasPdfSidecar(url: string) {
     }
   };
 
+  const remember = (value: boolean) => {
+    pdfSidecarAvailabilityCache.set(url, value);
+    return value;
+  };
+
   try {
     const headResponse = await fetch(url, { method: "HEAD" });
     const headClassification = classifyPdfResponse(headResponse);
 
     if (headResponse.ok && headClassification === true) {
-      return true;
+      return remember(true);
     }
 
     if (headResponse.ok && headClassification === false) {
-      return false;
+      return remember(false);
     }
 
     if (headResponse.status !== 405 && headResponse.status !== 501) {
-      return false;
+      return remember(false);
     }
   } catch {
     // Some hosts block HEAD; retry with GET below.
@@ -150,17 +195,17 @@ async function hasPdfSidecar(url: string) {
     });
 
     if (!getResponse.ok) {
-      return false;
+      return remember(false);
     }
 
     const getClassification = classifyPdfResponse(getResponse);
     if (getClassification !== null) {
-      return getClassification;
+      return remember(getClassification);
     }
 
-    return hasPdfSignature(getResponse);
+    return remember(await hasPdfSignature(getResponse));
   } catch {
-    return false;
+    return remember(false);
   }
 }
 
@@ -236,6 +281,7 @@ async function detectPptReferencePageMap(
   }
 
   const scratchHost = document.createElement("div");
+  const { init } = await loadPptxPreviewModule();
   const scratchPreviewer = init(scratchHost, {
     width: 1,
     height: 1,
@@ -697,22 +743,58 @@ function PptxViewer({
     previewerRef.current?.destroy?.();
     previewerRef.current = null;
     containerRef.current.innerHTML = "";
+    let isDisposed = false;
 
-    previewerRef.current = init(containerRef.current, {
-      width: stageSize.width,
-      height: stageSize.height,
-      mode: "slide",
-    });
+    const initializePreviewer = async () => {
+      const container = containerRef.current;
+      if (!container) {
+        return;
+      }
 
-    if (cachedDataRef.current) {
-      void renderPresentationRef.current(cachedDataRef.current, currentPageRef.current);
-    }
+      const { init } = await loadPptxPreviewModule();
+      if (isDisposed || containerRef.current !== container) {
+        return;
+      }
+
+      previewerRef.current = init(container, {
+        width: stageSize.width,
+        height: stageSize.height,
+        mode: "slide",
+      });
+
+      if (cachedDataRef.current) {
+        await renderPresentationRef.current(cachedDataRef.current, currentPageRef.current);
+      }
+    };
+
+    void initializePreviewer();
 
     return () => {
+      isDisposed = true;
       previewerRef.current?.destroy?.();
       previewerRef.current = null;
     };
   }, [renderMode, stageSize.height, stageSize.width]);
+
+  const renderPdfFallback = () => {
+    if (!pdfFallbackUrl) {
+      return null;
+    }
+
+    return (
+      <Suspense fallback={<ViewerModuleLoader theme={theme} message="Loading PDF viewer..." />}>
+        <PdfViewer
+          url={pdfFallbackUrl}
+          theme={theme}
+          hyperlinks={hyperlinks}
+          onHyperlinkClick={onHyperlinkClick}
+          mediaList={mediaList}
+          linkedMediaId={linkedMediaId}
+          linkedMediaNonce={linkedMediaNonce}
+        />
+      </Suspense>
+    );
+  };
 
   if (renderMode === "checking") {
     return (
@@ -728,19 +810,7 @@ function PptxViewer({
   }
 
   if (renderMode === "pdf" && pdfFallbackUrl) {
-    return (
-      <div className="h-full w-full overflow-hidden">
-        <PdfViewer
-          url={pdfFallbackUrl}
-          theme={theme}
-          hyperlinks={hyperlinks}
-          onHyperlinkClick={onHyperlinkClick}
-          mediaList={mediaList}
-          linkedMediaId={linkedMediaId}
-          linkedMediaNonce={linkedMediaNonce}
-        />
-      </div>
-    );
+    return <div className="h-full w-full overflow-hidden">{renderPdfFallback()}</div>;
   }
 
   if (error) {
@@ -984,6 +1054,25 @@ function PptxViewer({
   );
 }
 
+function ViewerModuleLoader({
+  theme,
+  message,
+}: {
+  theme: "dark" | "light";
+  message: string;
+}) {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-slate-900">
+      <div className="text-center">
+        <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-amber-500" />
+        <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+          {message}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -1159,14 +1248,16 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
 
     return (
       <div className={containerClass}>
-        <PdfViewer
-          url={mainSlide.url}
-          theme={theme}
-          hyperlinks={hyperlinks}
-          mediaList={mediaList}
-          onHyperlinkClick={handleHyperlinkClick}
-          onFullscreenClick={isFullscreenMode ? undefined : () => setIsMainSlideFullscreen(true)}
-        />
+        <Suspense fallback={<ViewerModuleLoader theme={theme} message="Loading PDF viewer..." />}>
+          <PdfViewer
+            url={mainSlide.url}
+            theme={theme}
+            hyperlinks={hyperlinks}
+            mediaList={mediaList}
+            onHyperlinkClick={handleHyperlinkClick}
+            onFullscreenClick={isFullscreenMode ? undefined : () => setIsMainSlideFullscreen(true)}
+          />
+        </Suspense>
       </div>
     );
   };
@@ -1192,6 +1283,8 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
             <img
               src={media.url}
               alt={getMediaTitle(media)}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-contain"
             />
           );
@@ -1200,7 +1293,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
           return (
             <video
               key={`${media.id}-${previewPlaybackKey}`}
-              src={media.url}
+              src={getPreferredMediaUrl(media)}
               controls
               playsInline
               autoPlay={shouldAutoplayPreview}

@@ -43,7 +43,9 @@ export default function CourseViewerPage() {
     return () => reset();
   }, [courseId, fetchCourse, reset]);
 
-  if (isLoading) {
+  const isPendingInitialLoad = Boolean(courseId) && !course && !error;
+
+  if (isLoading || isPendingInitialLoad) {
     return (
       <div
         className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}

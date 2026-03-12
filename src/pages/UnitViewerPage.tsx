@@ -29,6 +29,8 @@ export function UnitViewerPage() {
     return () => reset();
   }, [unitId, fetchUnit, reset]);
 
+  const isPendingInitialLoad = Boolean(unitId) && !unit && !error;
+
   const handleBack = () => {
     navigate("/courses");
   };
@@ -38,7 +40,7 @@ export function UnitViewerPage() {
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || isPendingInitialLoad) {
     return (
       <div
         className={cn(

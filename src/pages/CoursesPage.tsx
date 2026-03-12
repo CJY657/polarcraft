@@ -3,8 +3,8 @@
  * 保留原有单元和时间线交互，重构为更清晰的工作台式布局
  */
 
-import { useState, useCallback, useMemo, useEffect, type CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -25,7 +25,8 @@ import { TIMELINE_EVENTS } from "@/data/timeline-events";
 import { CATEGORY_LABELS } from "@/data/chronicles-constants";
 import { PSRT_CURRICULUM, getSectionsForEvent } from "@/data/psrt-curriculum";
 import { useUnitStore } from "@/stores/unitStore";
-import type { Unit } from "@/lib/unit.service";
+import { unitApi, type UnitCourse } from "@/lib/unit.service";
+import { CourseSelector } from "@/feature/unit/CourseSelector";
 
 import {
   DualTrackCard,
@@ -38,133 +39,15 @@ import {
 const TABS = [
   {
     id: "slides",
-    label: { "zh-CN": "单元" },
+    label: { "zh-CN": "按单元浏览", "en-US": "By Unit" },
     icon: <BookOpenText className="w-4 h-4" />,
   },
   {
     id: "timeline",
-    label: { "zh-CN": "时间线" },
+    label: { "zh-CN": "历史时间线", "en-US": "Timeline" },
     icon: <Clock className="w-4 h-4" />,
   },
 ];
-
-interface UnitDirectoryRowProps {
-  unit: Unit;
-  theme: "dark" | "light";
-  isZh: boolean;
-  isActive: boolean;
-  getLabel: (label: { "zh-CN"?: string; "en-US"?: string }) => string;
-  onSelect: () => void;
-  onOpen: () => void;
-}
-
-function UnitDirectoryRow({
-  unit,
-  theme,
-  isZh,
-  isActive,
-  getLabel,
-  onSelect,
-  onOpen,
-}: UnitDirectoryRowProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "group grid w-full gap-4 px-5 py-4 text-left transition-all lg:grid-cols-[1.15fr_1.8fr_0.9fr]",
-        theme === "dark" ? "hover:bg-slate-900/75" : "hover:bg-slate-50/85",
-        isActive && "shadow-[inset_4px_0_0_0_var(--unit-accent)]",
-      )}
-      style={
-        isActive
-          ? ({
-              "--unit-accent": unit.color,
-              backgroundColor:
-                theme === "dark" ? `${unit.color}14` : `${unit.color}10`,
-              borderColor:
-                theme === "dark" ? `${unit.color}38` : `${unit.color}22`,
-            } as CSSProperties)
-          : undefined
-      }
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <div
-          className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border"
-          style={{
-            backgroundColor: theme === "dark" ? `${unit.color}1b` : `${unit.color}12`,
-            borderColor: theme === "dark" ? `${unit.color}36` : `${unit.color}24`,
-          }}
-        >
-          {unit.coverImage ? (
-            <img
-              src={unit.coverImage}
-              alt={getLabel(unit.title)}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <Layers className="h-7 w-7" style={{ color: unit.color }} />
-          )}
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold sm:text-base">{getLabel(unit.title)}</p>
-          <p className={cn("mt-1 text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-            {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`}
-          </p>
-        </div>
-      </div>
-
-      <p
-        className={cn(
-          "text-sm leading-7",
-          theme === "dark" ? "text-slate-300" : "text-slate-600",
-        )}
-      >
-        {getLabel(unit.description)}
-      </p>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end">
-        <div className="flex flex-wrap gap-2">
-          {unit.mainSlide && (
-            <span
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs font-medium",
-                theme === "dark"
-                  ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                  : "border-slate-200 bg-slate-50 text-slate-600",
-              )}
-            >
-              {isZh ? "主课件" : "Slides"}
-            </span>
-          )}
-          <span
-            className="rounded-full border px-3 py-1 text-xs font-medium"
-            style={{
-              color: theme === "dark" ? "#f8fafc" : unit.color,
-              backgroundColor: theme === "dark" ? `${unit.color}20` : `${unit.color}12`,
-              borderColor: theme === "dark" ? `${unit.color}38` : `${unit.color}22`,
-            }}
-          >
-            {unit.courseCount || 0} {isZh ? "门课程" : "courses"}
-          </span>
-        </div>
-
-        <span
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold"
-          style={{ color: unit.color }}
-        >
-          {isZh ? "进入单元" : "Open"}
-          <ArrowRight className="h-4 w-4" />
-        </span>
-      </div>
-    </button>
-  );
-}
 
 function EmptyWorkspace({
   theme,
@@ -193,7 +76,6 @@ function EmptyWorkspace({
 export function CoursesPage() {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const { isMobile, isTablet } = useIsMobile();
 
   const [activeTab, setActiveTab] = useState("slides");
@@ -205,6 +87,10 @@ export function CoursesPage() {
   const [highlightedSections, setHighlightedSections] = useState<Set<string>>(new Set());
   const [selectedDemos] = useState<string[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitCourses, setSelectedUnitCourses] = useState<UnitCourse[]>([]);
+  const [selectedUnitCoursesLoading, setSelectedUnitCoursesLoading] = useState(false);
+  const [selectedUnitCoursesError, setSelectedUnitCoursesError] = useState<string | null>(null);
+  const [selectedUnitCoursesReloadKey, setSelectedUnitCoursesReloadKey] = useState(0);
 
   const { units, isLoading: unitsLoading, fetchUnits } = useUnitStore();
 
@@ -240,6 +126,46 @@ export function CoursesPage() {
   void highlightedSections;
 
   const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null;
+
+  useEffect(() => {
+    if (!selectedUnit) {
+      setSelectedUnitCourses([]);
+      setSelectedUnitCoursesLoading(false);
+      setSelectedUnitCoursesError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setSelectedUnitCoursesLoading(true);
+    setSelectedUnitCoursesError(null);
+
+    unitApi
+      .getPublicUnitCourses(selectedUnit.id)
+      .then((courses) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSelectedUnitCourses(courses);
+        setSelectedUnitCoursesLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSelectedUnitCourses([]);
+        setSelectedUnitCoursesLoading(false);
+        setSelectedUnitCoursesError(
+          error instanceof Error ? error.message : isZh ? "课程加载失败" : "Failed to load courses",
+        );
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isZh, selectedUnit, selectedUnitCoursesReloadKey]);
 
   const matchedEventKeysFromSections = useMemo(() => {
     if (selectedSections.length === 0) {
@@ -1099,6 +1025,16 @@ export function CoursesPage() {
                             >
                               {isZh ? "当前单元" : "Current unit"}
                             </span>
+                            <span
+                              className={cn(
+                                "rounded-full border px-3 py-1 text-xs font-semibold",
+                                theme === "dark"
+                                  ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                                  : "border-slate-200 bg-slate-50 text-slate-600",
+                              )}
+                            >
+                              {isZh ? "课程总览 / 单元 / 课程" : "Course overview / Unit / Course"}
+                            </span>
                           </div>
 
                           <div>
@@ -1146,21 +1082,47 @@ export function CoursesPage() {
                                 {selectedUnit.mainSlide ? "已就绪" : "待补充"}
                               </p>
                             </div>
+                            <div
+                              className={cn(
+                                "rounded-2xl border p-4 sm:col-span-2",
+                                theme === "dark"
+                                  ? "border-slate-800 bg-slate-900/65"
+                                  : "border-slate-200 bg-slate-50/80",
+                              )}
+                            >
+                              <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
+                                {isZh ? "关系" : "Relationship"}
+                              </p>
+                              <p className="mt-2 text-lg font-semibold">
+                                {isZh
+                                  ? `1 份单元导览 + ${selectedUnit.courseCount || 0} 门课程`
+                                  : `1 unit overview + ${selectedUnit.courseCount || 0} courses`}
+                              </p>
+                              <p
+                                className={cn(
+                                  "mt-2 text-sm leading-6",
+                                  theme === "dark" ? "text-slate-400" : "text-slate-600",
+                                )}
+                              >
+                                {isZh
+                                  ? "单元负责组织主题和导览，课程负责承载具体课件与媒体资源。"
+                                  : "The unit frames the topic and overview, while courses hold the detailed slides and media."}
+                              </p>
+                            </div>
                           </div>
 
                           <div className="flex flex-wrap gap-3">
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/units/${selectedUnit.id}`)}
+                            <Link
+                              to={`/units/${selectedUnit.id}`}
                               className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-slate-950 transition-transform hover:-translate-y-0.5"
                               style={{
                                 backgroundColor: selectedUnit.color,
                                 boxShadow: `0 18px 40px -24px ${selectedUnit.color}`,
                               }}
                             >
-                              进入单元
+                              {isZh ? "进入单元导览" : "Open unit overview"}
                               <ArrowRight className="h-4 w-4" />
-                            </button>
+                            </Link>
                             <button
                               type="button"
                               onClick={() => setActiveTab("timeline")}
@@ -1194,9 +1156,13 @@ export function CoursesPage() {
                         )}
                       >
                         <div>
-                          <h3 className="text-base font-bold">全部单元</h3>
+                          <h3 className="text-base font-bold">{isZh ? "当前单元下的课程" : "Courses in this unit"}</h3>
+                          <p className={cn("mt-1 text-sm", theme === "dark" ? "text-slate-400" : "text-slate-600")}>
+                            {isZh
+                              ? "单元是学习容器，下面这些课程才是具体进入点。"
+                              : "The unit is the container; the courses below are the concrete entry points."}
+                          </p>
                         </div>
-
                         <div
                           className={cn(
                             "rounded-full border px-3 py-1 text-xs font-semibold",
@@ -1205,36 +1171,56 @@ export function CoursesPage() {
                               : "border-slate-200 bg-slate-50 text-slate-600",
                           )}
                         >
-                          共 {units.length} 个单元
+                          {selectedUnitCoursesLoading
+                            ? isZh
+                              ? "课程加载中"
+                              : "Loading courses"
+                            : `${selectedUnitCourses.length} ${isZh ? "门课程" : "courses"}`}
                         </div>
                       </div>
 
-                      <div
-                        className={cn(
-                          "hidden grid-cols-[1.15fr_1.8fr_0.9fr] gap-4 border-b px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] lg:grid",
-                          theme === "dark"
-                            ? "border-slate-800 text-slate-500"
-                            : "border-slate-200 text-slate-500",
-                        )}
-                      >
-                        <span>单元</span>
-                        <span>简介</span>
-                        <span className="text-right">课程</span>
-                      </div>
-
-                      <div className={cn("divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
-                        {units.map((unit) => (
-                          <UnitDirectoryRow
-                            key={unit.id}
-                            unit={unit}
+                      <div className="px-5 py-5">
+                        {selectedUnitCoursesLoading ? (
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+                          </div>
+                        ) : selectedUnitCoursesError ? (
+                          <div className="py-8 text-center">
+                            <p className={cn("text-sm", theme === "dark" ? "text-red-300" : "text-red-600")}>
+                              {selectedUnitCoursesError}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedUnitCoursesReloadKey((value) => value + 1)}
+                              className={cn(
+                                "mt-4 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                                theme === "dark"
+                                  ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
+                                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+                              )}
+                            >
+                              {isZh ? "重试" : "Retry"}
+                            </button>
+                          </div>
+                        ) : selectedUnitCourses.length === 0 ? (
+                          <EmptyWorkspace
                             theme={theme}
-                            isZh={isZh}
-                            isActive={selectedUnit.id === unit.id}
-                            getLabel={getLabel}
-                            onSelect={() => setSelectedUnitId(unit.id)}
-                            onOpen={() => navigate(`/units/${unit.id}`)}
+                            icon={BookOpenText}
+                            title={isZh ? "该单元暂无课程" : "No courses in this unit"}
+                            description={
+                              isZh
+                                ? "当前单元还没有可进入的课程内容。"
+                                : "There are no course entries available in this unit yet."
+                            }
                           />
-                        ))}
+                        ) : (
+                          <CourseSelector
+                            unitId={selectedUnit.id}
+                            courses={selectedUnitCourses}
+                            unitColor={selectedUnit.color}
+                            showHeader={false}
+                          />
+                        )}
                       </div>
                     </section>
                   </>

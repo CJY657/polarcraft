@@ -218,36 +218,22 @@ export function HomePage() {
                 </h1>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-4 pt-4">
                 <button
                   type="button"
                   onClick={() => navigate(activeModule.quickLinks[0]?.path ?? activeModule.path)}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
+                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-6 py-4 text-base font-bold text-white"
                 >
                   继续从 {activeModuleTitle} 开始
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-5 w-5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate("/courses")}
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-[var(--paper-link)]"
+                  className="glass-button inline-flex items-center gap-2 rounded-full px-6 py-4 text-base font-bold text-[var(--paper-link)]"
                 >
                   查看课程总览
                 </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {summaryItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-[1.5rem] border border-[var(--paper-border)] bg-[var(--glass-panel-soft)] px-4 py-4"
-                  >
-                    <p className="text-sm font-medium text-[var(--glass-text-muted)]">
-                      {item.label}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold">{item.value}</p>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -434,25 +420,20 @@ export function HomePage() {
 
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isActive = module.id === activeModule.id;
 
               return (
-                <article
+                <div
                   key={module.id}
-                  className={cn(
-                    "group rounded-[1.75rem] border bg-[color:var(--paper-surface-strong)] p-5 shadow-[var(--glass-shadow)] transition-all",
-                    isActive
-                      ? "border-transparent ring-2 ring-[var(--paper-accent)]"
-                      : "border-[var(--paper-border)] hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]",
-                  )}
+                  className="group relative flex flex-col transition-all hover:translate-x-1"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
                     <div
                       className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                      style={{ backgroundColor: `${module.accent}16`, color: module.accent }}
+                      style={{ backgroundColor: `${module.accent}12`, color: module.accent }}
                     >
                       <IconComponent
                         size={30}
@@ -460,25 +441,25 @@ export function HomePage() {
                         isHovered={isActive}
                       />
                     </div>
-                    <span className="rounded-full bg-[var(--glass-panel-soft)] px-3 py-1 text-xs font-semibold text-[var(--paper-link)]">
-                      {module.workspaceLabel}
-                    </span>
+                    <div>
+                      <h3 className="text-xl font-bold">{t(`${module.i18nNamespace}.title`)}</h3>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--paper-link)]">
+                        {module.workspaceLabel}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="mt-5">
-                    <h3 className="text-xl font-semibold">{t(`${module.i18nNamespace}.title`)}</h3>
-                    <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
-                      {t(`${module.i18nNamespace}.description`)}
-                    </p>
-                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-[var(--glass-text-muted)]">
+                    {t(`${module.i18nNamespace}.description`)}
+                  </p>
 
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {module.quickLinks.map((link) => (
                       <button
                         key={link.path}
                         type="button"
                         onClick={() => navigate(link.path)}
-                        className="rounded-full border border-[var(--paper-border)] bg-[var(--glass-chip)] px-3 py-1.5 text-xs font-medium text-[var(--paper-link)] transition-colors hover:border-[var(--paper-link)] hover:bg-[var(--color-secondary)]"
+                        className="text-xs font-medium text-[var(--paper-link)] hover:underline"
                       >
                         {t(link.labelKey)}
                       </button>
@@ -491,19 +472,12 @@ export function HomePage() {
                       setActiveModuleId(module.id);
                       navigate(module.path);
                     }}
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--paper-link)] transition-colors hover:text-[var(--paper-link-strong)]"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--paper-link)]"
                   >
-                    进入模块
-                    <ArrowRight className="h-4 w-4" />
+                    进入学习空间
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </button>
-
-                  {module.inDevelopment ? (
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--paper-accent-soft)] px-3 py-1 text-xs font-medium text-[var(--paper-accent-strong)]">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      持续打磨中
-                    </div>
-                  ) : null}
-                </article>
+                </div>
               );
             })}
           </div>

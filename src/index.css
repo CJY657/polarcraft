@@ -206,25 +206,23 @@ html {
   .glass-panel {
     border: 1px solid var(--glass-stroke);
     background: var(--glass-panel);
-    box-shadow: var(--glass-shadow);
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
   }
 
   .glass-panel-strong {
     border: 1px solid var(--glass-stroke-strong);
     background: var(--glass-panel-strong);
-    box-shadow: var(--glass-shadow-strong);
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12);
   }
 
   .glass-panel-soft {
     border: 1px solid var(--glass-stroke);
     background: var(--glass-panel-soft);
-    box-shadow: var(--glass-shadow);
   }
 
   .glass-chip {
     border: 1px solid var(--glass-stroke);
     background: var(--glass-chip);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
   }
 
   .glass-button {
@@ -312,38 +310,8 @@ body {
   position: relative;
   color: var(--paper-foreground);
   font-family: var(--font-sans-ui);
-  background:
-    radial-gradient(circle at 0% 0%, var(--glass-orb-a), transparent 32%),
-    radial-gradient(circle at 100% 0%, var(--glass-orb-b), transparent 26%),
-    radial-gradient(circle at 50% 100%, var(--glass-orb-c), transparent 24%),
-    linear-gradient(180deg, var(--glass-page-start) 0%, var(--glass-page-mid) 52%, var(--glass-page-end) 100%);
-  background-attachment: fixed;
+  background: var(--glass-page-start);
   line-height: 1.5;
-}
-
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-body::before {
-  background: var(--body-overlay);
-}
-
-body::after {
-  inset: auto;
-  right: 8vw;
-  top: 5vh;
-  width: 18rem;
-  height: 18rem;
-  border-radius: 9999px;
-  background: var(--body-accent-blur);
-  filter: blur(90px);
-  opacity: 0.6;
 }
 
 ::selection {
