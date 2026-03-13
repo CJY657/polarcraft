@@ -16,7 +16,7 @@ interface FooterLink {
 }
 
 const LEARN_LINKS: FooterLink[] = [
-  { label: "课程总览", path: "/courses" },
+  { label: "实验总览", path: "/experiments" },
   { label: "实验单元", path: "/units" },
   { label: "交互模拟", path: "/demos" },
 ];
@@ -93,21 +93,21 @@ export function Footer() {
                   PolarCraft
                 </p>
                 <p className="text-lg font-semibold" style={{ fontFamily: "var(--font-ui-display)" }}>
-                  偏振课程平台
+                  偏振实验平台
                 </p>
               </div>
             </div>
 
             <p className="max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">
-              用课程故事、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
+              用实验内容、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
             </p>
 
             <div className="flex flex-wrap gap-3">
               <Link
-                to="/courses"
+                to="/experiments"
                 className="glass-button glass-button-primary rounded-full px-5 py-2.5 text-sm font-semibold text-white"
               >
-                开始学习
+                查看实验
               </Link>
               <Link
                 to="/lab/explore"

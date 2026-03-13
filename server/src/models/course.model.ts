@@ -216,6 +216,7 @@ export class CourseModel {
       course_id: courseId,
       type: data.type,
       url: data.url,
+      preview_pdf_url: data.previewPdfUrl || null,
       title_zh: data.title_zh,
       title_en: data.title_en || null,
       duration: data.duration || null,
@@ -238,6 +239,7 @@ export class CourseModel {
     const updateDoc = pickDefined({
       type: data.type,
       url: data.url,
+      preview_pdf_url: data.previewPdfUrl === '' ? null : data.previewPdfUrl,
       title_zh: data.title_zh,
       title_en: data.title_en,
       duration: data.duration,
@@ -267,7 +269,9 @@ export class CourseModel {
       return false;
     }
 
-    await courseHyperlinksCollection().deleteMany({ target_media_id: mediaId });
+    await courseHyperlinksCollection().deleteMany({
+      $or: [{ target_media_id: mediaId }, { source_media_id: mediaId }],
+    });
 
     logger.info(`Media deleted: ${mediaId}`);
     return true;
@@ -300,7 +304,7 @@ export class CourseModel {
     return normalizeDocuments<HyperlinkRow>(
       await courseHyperlinksCollection()
         .find({ course_id: courseId })
-        .sort({ page: 1, created_at: 1 })
+        .sort({ source_media_id: 1, page: 1, created_at: 1 })
         .toArray()
     );
   }
@@ -337,6 +341,7 @@ export class CourseModel {
     const hyperlink: HyperlinkRow = {
       id: generateId(),
       course_id: courseId,
+      source_media_id: data.sourceMediaId,
       page: data.page,
       x: data.x,
       y: data.y,
@@ -359,6 +364,7 @@ export class CourseModel {
    */
   static async updateHyperlink(hyperlinkId: string, data: UpdateHyperlinkInput): Promise<boolean> {
     const updateDoc = pickDefined({
+      source_media_id: data.sourceMediaId,
       page: data.page,
       x: data.x,
       y: data.y,

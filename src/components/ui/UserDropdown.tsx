@@ -18,7 +18,6 @@ import {
   ChevronRight,
   ChevronDown,
   Layers,
-  BookOpen,
   FolderKanban,
   Bell,
 } from 'lucide-react';
@@ -127,7 +126,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       ? [
           {
             id: 'admin',
-            label: t('admin.courseManagement', '课程管理'),
+            label: t('admin.contentManagement', '内容管理'),
             icon: Settings,
             isSubmenuTrigger: true,
             isAdmin: true,
@@ -150,16 +149,10 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
   // 子菜单项
   const adminSubmenuItems = [
     {
-      id: 'units',
-      label: t('admin.units', '单元管理'),
+      id: 'content',
+      label: t('admin.unitsAndExperiments', '单元与实验'),
       icon: Layers,
       href: '/admin/units',
-    },
-    {
-      id: 'courses',
-      label: t('admin.courses', '课程设置'),
-      icon: BookOpen,
-      href: '/admin/courses',
     },
   ];
 

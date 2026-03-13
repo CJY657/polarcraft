@@ -121,7 +121,7 @@ export default function AdminUnitsPage() {
               theme === "dark" ? "text-gray-400" : "text-gray-600"
             )}
           >
-            管理实验课单元及其课程
+            管理实验单元及其下的实验
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export default function AdminUnitsPage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <BookOpen className="w-4 h-4" />
-                        <span>{unit.courseCount || 0} 个课程</span>
+                        <span>{unit.courseCount || 0} 个实验</span>
                       </div>
                     </div>
                   </div>

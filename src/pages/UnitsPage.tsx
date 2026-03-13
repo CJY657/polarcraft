@@ -2,8 +2,8 @@
  * Units Page - Experiment Units List
  * 单元页面 - 实验课单元列表
  *
- * Displays all experiment units with PDF slides and course selections
- * 展示所有实验课单元，包含PDF课件和课程选择
+ * Displays all experiment units with direct experiment entry
+ * 展示所有实验单元，并直接进入实验内容
  */
 
 import { useEffect } from "react";
@@ -42,7 +42,7 @@ export function UnitsPage() {
       {/* Header with Persistent Logo */}
       <PersistentHeader
         moduleKey="units"
-        moduleName={isZh ? "实验课单元" : "Experiment Units"}
+        moduleName={isZh ? "实验单元" : "Experiment Units"}
         variant="glass"
         className="sticky top-0 z-40"
       />
@@ -64,20 +64,20 @@ export function UnitsPage() {
           <div className="relative">
             <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
               <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-accent)]">
-                Fluent Workspace
+                Direct Entry
               </span>
               <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
-                {isZh ? "系统伴侣式单元入口" : "System companion entry"}
+                {isZh ? "单元直达实验" : "Unit to experiment"}
               </span>
             </div>
 
             <h2 className="mb-3 text-2xl font-bold text-[var(--paper-foreground)] sm:text-3xl" style={{ fontFamily: "var(--font-ui-display)" }}>
-              {isZh ? "实验课单元" : "Experiment Units"}
+              {isZh ? "实验单元" : "Experiment Units"}
             </h2>
             <p className="mx-auto max-w-3xl text-base text-[var(--glass-text-muted)]">
               {isZh
-                ? "选择一个单元开始学习，每个单元包含主课件、课程入口和清晰的系统式信息卡片。"
-                : "Choose a unit to begin. Each unit bundles slides, related courses, and a system-style overview."}
+                ? "选择单元后直接进入实验内容，减少中间跳转。"
+                : "Choose a unit to open its experiment directly, without the extra overview step."}
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -97,7 +97,7 @@ export function UnitsPage() {
               </div>
               <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
-                  Courses
+                  Experiments
                 </p>
                 <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">
                   {units.reduce((count, unit) => count + (unit.courseCount || 0), 0)}
@@ -193,7 +193,7 @@ export function UnitsPage() {
                       {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`}
                     </span>
                     <span className="text-xs font-medium" style={{ color: unit.color }}>
-                      {unit.courseCount || 0} {isZh ? "门课程" : "courses"}
+                      {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
                     </span>
                   </div>
 
@@ -226,7 +226,7 @@ export function UnitsPage() {
                     <div className="glass-chip flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ color: unit.color }}>
                       <BookOpen className="w-3.5 h-3.5" />
                       <span>
-                        {unit.courseCount || 0} {isZh ? "课程" : "Courses"}
+                        {unit.courseCount || 0} {isZh ? "个实验" : "Experiments"}
                       </span>
                     </div>
                   </div>

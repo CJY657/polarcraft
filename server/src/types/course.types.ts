@@ -32,6 +32,7 @@ export interface CourseMedia {
   id: string;
   type: MediaType;
   url: string;
+  previewPdfUrl?: string;
   title: LabelI18n;
   duration?: number;
   sortOrder: number;
@@ -39,6 +40,7 @@ export interface CourseMedia {
 
 export interface CourseHyperlink {
   id: string;
+  sourceMediaId?: string;
   page: number;
   x: number;
   y: number;
@@ -95,6 +97,7 @@ export interface CreateMainSlideInput {
 export interface CreateMediaInput {
   type: MediaType;
   url: string;
+  previewPdfUrl?: string;
   title_zh: string;
   title_en?: string;
   duration?: number;
@@ -103,6 +106,7 @@ export interface CreateMediaInput {
 export interface UpdateMediaInput {
   type?: MediaType;
   url?: string;
+  previewPdfUrl?: string;
   title_zh?: string;
   title_en?: string;
   duration?: number;
@@ -110,6 +114,7 @@ export interface UpdateMediaInput {
 }
 
 export interface CreateHyperlinkInput {
+  sourceMediaId: string;
   page: number;
   x: number;
   y: number;
@@ -119,6 +124,7 @@ export interface CreateHyperlinkInput {
 }
 
 export interface UpdateHyperlinkInput {
+  sourceMediaId?: string;
   page?: number;
   x?: number;
   y?: number;
@@ -160,6 +166,7 @@ export interface MediaRow {
   course_id: string;
   type: MediaType;
   url: string;
+  preview_pdf_url: string | null;
   title_zh: string;
   title_en: string | null;
   duration: number | null;
@@ -171,6 +178,7 @@ export interface MediaRow {
 export interface HyperlinkRow {
   id: string;
   course_id: string;
+  source_media_id: string | null;
   page: number;
   x: number;
   y: number;

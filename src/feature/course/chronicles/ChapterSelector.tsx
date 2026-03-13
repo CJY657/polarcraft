@@ -114,13 +114,13 @@ export function ChapterSelector({
             'text-sm font-semibold',
             theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
           )}>
-            {isZh ? 'P-SRT 课程时间线' : 'P-SRT Course Timeline'}
+            {isZh ? 'P-SRT 实验时间线' : 'P-SRT Experiment Timeline'}
           </span>
           <span className={cn(
             'text-xs',
             theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
           )}>
-            {isZh ? '(选择章节筛选历史事件)' : '(Select chapters to filter events)'}
+            {isZh ? '(选择单元筛选历史事件)' : '(Select units to filter events)'}
           </span>
         </div>
 

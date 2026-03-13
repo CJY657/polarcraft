@@ -28,22 +28,23 @@ function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
 }
 
 export default function CourseViewerPage() {
-  const { courseId } = useParams<{ courseId: string }>();
+  const { courseId, experimentId } = useParams<{ courseId?: string; experimentId?: string }>();
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const resolvedExperimentId = experimentId || courseId;
 
   const { course, mainSlide, media, hyperlinks, isLoading, error, fetchCourse, reset } =
     useCourseDetailStore();
 
   useEffect(() => {
-    if (courseId) {
-      fetchCourse(courseId);
+    if (resolvedExperimentId) {
+      fetchCourse(resolvedExperimentId);
     }
     return () => reset();
-  }, [courseId, fetchCourse, reset]);
+  }, [fetchCourse, reset, resolvedExperimentId]);
 
-  const isPendingInitialLoad = Boolean(courseId) && !course && !error;
+  const isPendingInitialLoad = Boolean(resolvedExperimentId) && !course && !error;
 
   if (isLoading || isPendingInitialLoad) {
     return (
@@ -62,13 +63,13 @@ export default function CourseViewerPage() {
       >
         <div className="text-center">
           <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} mb-4`}>
-            {error || "课程不存在"}
+            {error || "实验不存在"}
           </p>
           <button
-            onClick={() => navigate("/courses")}
+            onClick={() => navigate("/experiments")}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
-            返回课程列表
+            返回实验总览
           </button>
         </div>
       </div>
@@ -93,6 +94,7 @@ export default function CourseViewerPage() {
       : undefined,
     hyperlinks: hyperlinks.map((h) => ({
       id: h.id,
+      sourceMediaId: h.sourceMediaId,
       page: h.page,
       x: h.x,
       y: h.y,
@@ -104,6 +106,7 @@ export default function CourseViewerPage() {
       id: m.id,
       type: m.type,
       url: m.url,
+      previewPdfUrl: m.previewPdfUrl,
       title: { "zh-CN": m.title["zh-CN"] || "", "en-US": m.title["en-US"] || "" },
       duration: m.duration,
     })),
@@ -127,18 +130,18 @@ export default function CourseViewerPage() {
                     theme === "dark" ? "text-cyan-200" : "text-cyan-900"
                   }`}
                 >
-                  仅管理员可上传课程媒体资源
+                  仅管理员可上传实验媒体资源
                 </p>
                 <p
                   className={`text-xs ${
                     theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
                   }`}
                 >
-                  使用课程管理页上传视频、图片和 PPT 相关资源。
+                  使用实验管理页上传视频、图片和 PPT 相关资源。
                 </p>
               </div>
               <button
-                onClick={() => navigate(`/admin/courses/${course.id}?tab=media`)}
+                onClick={() => navigate(`/admin/experiments/${course.id}?tab=media`)}
                 className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
                   theme === "dark"
                     ? "bg-cyan-500 text-white hover:bg-cyan-400"
@@ -154,7 +157,7 @@ export default function CourseViewerPage() {
         <Suspense fallback={<ViewerLoader theme={theme} />}>
           <CourseViewer
             course={courseData}
-            onBack={() => navigate(`/units/${course.unitId}`)}
+            onBack={() => navigate("/experiments")}
             theme={theme}
           />
         </Suspense>

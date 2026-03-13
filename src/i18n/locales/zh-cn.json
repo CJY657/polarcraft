@@ -1,7 +1,7 @@
 {
   "common": {
     "game": "游戏",
-    "course": "课程",
+    "course": "实验",
     "home": "首页",
     "back": "返回",
     "loading": "加载中...",
@@ -28,7 +28,7 @@
   },
   "page": {
     "courses": {
-      "title": "实验课内容",
+      "title": "实验内容",
       "description": "先选择实验单元进入课件，再按章节、轨道或类型查看对应的历史事件。",
       "track": "轨道：",
       "optics": "广义光学",
@@ -41,14 +41,14 @@
       "slides-num": "张幻灯片",
       "openpdf": "打开 PDF",
       "unsupportedmediatype": "不支持的媒体类型",
-      "backtocourses": "返回课程列表",
+      "backtocourses": "返回实验总览",
       "previousslide": "上一张幻灯片",
       "nextslide": "下一张幻灯片",
       "fullscreen": "全屏",
       "exitfullscreen": "退出全屏",
       "download": "下载",
       "downloadpptx": "下载 PPTX 文件",
-      "coursedirectory": "课程目录",
+      "coursedirectory": "实验目录",
       "tags": "标签",
       "resources": "资源",
       "all": "全部",
@@ -120,7 +120,7 @@
     },
     "modules": {
       "courses": {
-        "title": "实验课内容",
+        "title": "实验内容",
         "description": "穿越350年光学史，重走发现之路。从冰洲石双像到马吕斯定律，每个故事都连接一个动手实验。不只是读历史，而是亲手重现那些改变世界的瞬间。",
         "link1": "马吕斯的发现",
         "link2": "旋光的秘密",

@@ -12,7 +12,7 @@ import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import { CourseFormDialog } from '@/feature/admin/components/CourseFormDialog';
 import { MediaManager } from '@/feature/admin/components/MediaManager';
 import { HyperlinkEditor } from '@/feature/admin/components/HyperlinkEditor';
-import { ArrowLeft, Settings, Image, Link2, FileText } from 'lucide-react';
+import { ArrowLeft, Settings, Image, Link2 } from 'lucide-react';
 
 type TabId = 'settings' | 'media' | 'hyperlinks';
 
@@ -49,7 +49,7 @@ export default function CourseEditorPage() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-cyan-400 text-sm">加载课程中...</span>
+          <span className="text-cyan-400 text-sm">加载实验中...</span>
         </div>
       </div>
     );
@@ -59,8 +59,8 @@ export default function CourseEditorPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">课程未找到</h2>
-          <p className="text-gray-400 mb-4">您查找的课程不存在。</p>
+          <h2 className="text-xl font-semibold text-white mb-2">实验未找到</h2>
+          <p className="text-gray-400 mb-4">您查找的实验不存在。</p>
           <button
             onClick={() => navigate('/admin/units')}
             className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm transition-colors"
@@ -143,7 +143,6 @@ export default function CourseEditorPage() {
         {activeTab === 'hyperlinks' && currentCourse && (
           <HyperlinkEditor
             courseId={currentCourse.id}
-            mainSlide={currentCourse.mainSlide}
             media={currentCourse.media}
             hyperlinks={currentCourse.hyperlinks}
           />
@@ -169,46 +168,9 @@ function SettingsTab({ course }: { course: any }) {
 
   return (
     <div className="space-y-6">
-      {/* Main Slide Section */}
-      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            主课件 (PDF)
-          </h3>
-        </div>
-        {course.mainSlide ? (
-          <div className="space-y-2">
-            <p className="text-gray-300">
-              <span className="text-gray-400">链接:</span>{' '}
-              <a
-                href={course.mainSlide.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-cyan-400 hover:underline break-all"
-              >
-                {course.mainSlide.url}
-              </a>
-            </p>
-            {course.mainSlide.title['zh-CN'] && (
-              <p className="text-gray-300">
-                <span className="text-gray-400">标题 (中文):</span> {course.mainSlide.title['zh-CN']}
-              </p>
-            )}
-            {course.mainSlide.title['en-US'] && (
-              <p className="text-gray-300">
-                <span className="text-gray-400">标题 (英文):</span> {course.mainSlide.title['en-US']}
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-400">尚未配置主课件。请前往超链接标签页添加。</p>
-        )}
-      </div>
-
       {/* Course Info */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-lg font-semibold text-white mb-4">课程信息</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">实验信息</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-400">单元 ID:</span>
@@ -252,7 +214,7 @@ function SettingsTab({ course }: { course: any }) {
       {/* Stats */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <h3 className="text-lg font-semibold text-white mb-4">统计信息</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-slate-700/50 rounded-lg">
             <p className="text-3xl font-bold text-cyan-400">{course.media?.length || 0}</p>
             <p className="text-gray-400 text-sm">媒体资源</p>
@@ -260,10 +222,6 @@ function SettingsTab({ course }: { course: any }) {
           <div className="text-center p-4 bg-slate-700/50 rounded-lg">
             <p className="text-3xl font-bold text-cyan-400">{course.hyperlinks?.length || 0}</p>
             <p className="text-gray-400 text-sm">超链接</p>
-          </div>
-          <div className="text-center p-4 bg-slate-700/50 rounded-lg">
-            <p className="text-3xl font-bold text-cyan-400">{course.mainSlide ? 1 : 0}</p>
-            <p className="text-gray-400 text-sm">主课件</p>
           </div>
         </div>
       </div>

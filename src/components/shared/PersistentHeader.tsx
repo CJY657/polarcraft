@@ -6,7 +6,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
@@ -36,7 +36,6 @@ const MODULE_THEMES: Record<
 
 const NAV_ITEMS = [
   { label: "首页", path: "/" },
-  { label: "课程", path: "/courses" },
   { label: "单元", path: "/units" },
   { label: "模拟", path: "/demos" },
   { label: "成果", path: "/gallery" },
@@ -156,7 +155,7 @@ export function PersistentHeader({
                   PolarCraft
                 </p>
                 <p className="truncate text-base font-semibold" style={{ fontFamily: "var(--font-ui-display)" }}>
-                  偏振课程平台
+                  偏振实验平台
                 </p>
               </div>
             )}
@@ -185,6 +184,36 @@ export function PersistentHeader({
                 </Link>
               );
             })}
+
+            {moduleKey && displayName && showBreadcrumb ? (
+              <div
+                className={cn(
+                  "ml-2 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium",
+                  isTransparent
+                    ? "border-white/18 bg-white/10 text-white"
+                    : "border-[var(--paper-link)]/18 bg-[var(--paper-accent-soft)] text-[var(--paper-link)]",
+                )}
+                style={
+                  !isTransparent && moduleTheme?.primary
+                    ? {
+                        borderColor: `${moduleTheme.primary}22`,
+                        backgroundColor: `${moduleTheme.primary}14`,
+                        color: moduleTheme.primary,
+                      }
+                    : undefined
+                }
+              >
+                {ModuleIcon && (
+                  <ModuleIcon
+                    size={16}
+                    primaryColor={moduleTheme?.primary}
+                    secondaryColor={moduleTheme?.secondary}
+                    className="shrink-0"
+                  />
+                )}
+                <span className="truncate font-semibold">{displayName}</span>
+              </div>
+            ) : null}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -204,7 +233,7 @@ export function PersistentHeader({
           </div>
         </div>
 
-        {(mobileMenuOpen || centerContent || (moduleKey && displayName && showBreadcrumb)) && (
+        {(mobileMenuOpen || centerContent) && (
           <div
             className={cn(
               "border-t py-3",
@@ -236,52 +265,40 @@ export function PersistentHeader({
                       </Link>
                     );
                   })}
+
+                  {moduleKey && displayName && showBreadcrumb ? (
+                    <div
+                      className={cn(
+                        "mt-1 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold",
+                        isTransparent
+                          ? "border-white/18 bg-white/10 text-white"
+                          : "border-[var(--paper-link)]/18 bg-[var(--paper-accent-soft)] text-[var(--paper-link)]",
+                      )}
+                      style={
+                        !isTransparent && moduleTheme?.primary
+                          ? {
+                              borderColor: `${moduleTheme.primary}22`,
+                              backgroundColor: `${moduleTheme.primary}12`,
+                              color: moduleTheme.primary,
+                            }
+                          : undefined
+                      }
+                    >
+                      {ModuleIcon && (
+                        <ModuleIcon
+                          size={18}
+                          primaryColor={moduleTheme?.primary}
+                          secondaryColor={moduleTheme?.secondary}
+                          className="shrink-0"
+                        />
+                      )}
+                      <span className="truncate">{displayName}</span>
+                    </div>
+                  ) : null}
                 </nav>
               )}
 
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                {moduleKey && displayName && showBreadcrumb ? (
-                  <div
-                    className={cn(
-                      "inline-flex w-fit items-center gap-3 rounded-full border px-4 py-2.5",
-                      !isTransparent && "glass-chip",
-                    )}
-                    style={
-                      isTransparent
-                        ? {
-                            borderColor: "rgba(255,255,255,0.18)",
-                            backgroundColor: "rgba(5, 14, 22, 0.32)",
-                          }
-                        : {
-                            borderColor: moduleTheme?.primary
-                              ? `${moduleTheme.primary}2c`
-                              : "var(--paper-border)",
-                            backgroundColor: moduleTheme?.primary
-                              ? `${moduleTheme.primary}14`
-                              : "var(--glass-panel-soft)",
-                          }
-                    }
-                  >
-                    {ModuleIcon && (
-                      <ModuleIcon
-                        size={compact ? 18 : 22}
-                        primaryColor={moduleTheme?.primary}
-                        secondaryColor={moduleTheme?.secondary}
-                        className="shrink-0"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--glass-text-muted)]">
-                        当前模块
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold">{displayName}</span>
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--glass-text-muted)]" />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
                 {centerContent ? (
                   <div className="min-w-0 flex-1 md:flex md:justify-end">{centerContent}</div>
                 ) : null}

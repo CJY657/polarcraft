@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/utils/classNames";
-import { Tabs, PersistentHeader } from "@/components/shared";
+import { PersistentHeader } from "@/components/shared";
 import {
   ArrowRight,
   BookOpenText,
@@ -126,6 +126,7 @@ export function CoursesPage() {
   void highlightedSections;
 
   const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null;
+  const primaryCourse = selectedUnitCourses[0] ?? null;
 
   useEffect(() => {
     if (!selectedUnit) {
@@ -158,7 +159,7 @@ export function CoursesPage() {
         setSelectedUnitCourses([]);
         setSelectedUnitCoursesLoading(false);
         setSelectedUnitCoursesError(
-          error instanceof Error ? error.message : isZh ? "课程加载失败" : "Failed to load courses",
+          error instanceof Error ? error.message : isZh ? "实验加载失败" : "Failed to load experiments",
         );
       });
 
@@ -252,9 +253,6 @@ export function CoursesPage() {
     return filteredEvents.filter((event) => event.importance === 1).length;
   }, [filteredEvents]);
 
-  const hasTimelineFilters =
-    selectedSections.length > 0 || trackFilter !== "all" || Boolean(filter);
-
   const handleFilterChange = useCallback((sections: string[]) => {
     setSelectedSections(sections);
   }, []);
@@ -314,11 +312,17 @@ export function CoursesPage() {
     }
   }, []);
 
-  const resetTimelineFilters = useCallback(() => {
-    setSelectedSections([]);
-    setTrackFilter("all");
-    setFilter("");
-  }, []);
+  const surfaceClass = theme === "dark"
+    ? "border-slate-800 bg-slate-950/80"
+    : "border-slate-200 bg-white";
+  const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
+  const subtleTextClass = theme === "dark" ? "text-slate-500" : "text-slate-500";
+  const pillClass = cn(
+    "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold",
+    theme === "dark"
+      ? "border-slate-700 bg-slate-900 text-slate-300"
+      : "border-slate-200 bg-slate-50 text-slate-600",
+  );
 
   const renderMobileTimeline = () => (
     <div className="relative pl-8">
@@ -571,138 +575,108 @@ export function CoursesPage() {
   return (
     <div
       className={cn(
-        "glass-page min-h-screen",
+        "min-h-screen",
         theme === "dark" ? "text-slate-100" : "text-slate-900",
       )}
       style={{
         background:
           theme === "dark"
-            ? "radial-gradient(circle at top left, rgba(123, 186, 255, 0.16), transparent 24%), radial-gradient(circle at top right, rgba(96, 212, 255, 0.14), transparent 26%), linear-gradient(180deg, rgba(7,20,34,0.94) 0%, rgba(10,24,44,0.96) 52%, rgba(7,20,34,0.98) 100%)"
-            : "#ffffff",
+            ? "linear-gradient(180deg, rgba(7,20,34,0.98) 0%, rgba(9,24,40,0.98) 100%)"
+            : "linear-gradient(180deg, #f6f8fc 0%, #ffffff 28%, #f8fafc 100%)",
       }}
     >
       <PersistentHeader
         moduleKey="courses"
         moduleName={t("page.courses.title")}
-        variant="glass"
+        variant="solid"
         className="sticky top-0 z-40"
       />
 
-      <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:py-8">
-        <section className="mb-6">
+      <main className="w-full pb-8">
+        <section className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
+                Experiment Library
+              </p>
+              <h1
+                className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                {t("page.courses.title")}
+              </h1>
+              <p className={cn("mt-2 text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
+                {isZh
+                  ? "从单元直接进入实验，或者沿着时间线查看关键发现。"
+                  : "Open experiments by unit, or browse the key discoveries on a timeline."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <span className={pillClass}>{units.length} {isZh ? "个单元" : "units"}</span>
+              <span className={pillClass}>
+                {activeTab === "slides"
+                  ? `${selectedUnit?.courseCount || 0} ${isZh ? "个实验" : "experiments"}`
+                  : `${filteredEvents.length} ${isZh ? "个事件" : "events"}`}
+              </span>
+              {activeTab === "timeline" && (
+                <span className={pillClass}>{majorMilestoneCount} {isZh ? "个里程碑" : "milestones"}</span>
+              )}
+            </div>
+          </div>
+
           <div
             className={cn(
-              "glass-panel-strong relative overflow-hidden rounded-[32px] border p-6 shadow-[0_26px_80px_-60px_rgba(15,23,42,0.45)] sm:p-8",
+              "inline-flex w-fit flex-wrap gap-2 rounded-full border p-1.5",
+              theme === "dark"
+                ? "border-slate-800 bg-slate-900"
+                : "border-slate-200 bg-slate-50",
             )}
           >
-            <div
-              className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                theme === "dark"
-                    ? "radial-gradient(circle at top right, rgba(123,186,255,0.2), transparent 40%)"
-                    : "linear-gradient(180deg, rgba(25,140,255,0.04), transparent 50%)",
-              }}
-            />
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
 
-            <div className="relative flex flex-col gap-5">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em]">
-                <span
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    "glass-chip rounded-full border px-3 py-1 text-[var(--paper-accent)]",
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                    isActive
+                      ? "bg-[#1d4ed8] text-white"
+                      : theme === "dark"
+                        ? "text-slate-300 hover:bg-slate-800"
+                        : "text-slate-600 hover:bg-white",
                   )}
                 >
-                  课程总览
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="max-w-4xl">
-                  <h2 className="text-3xl font-black tracking-tight sm:text-[2.3rem]" style={{ fontFamily: "var(--font-ui-display)" }}>
-                    {t("page.courses.title")}
-                  </h2>
-                  <p
-                    className={cn(
-                      "mt-3 text-sm leading-7 text-[var(--glass-text-muted)] sm:text-[15px]",
-                    )}
-                  >
-                    {t("page.courses.description")}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(activeTab === "slides" ? "timeline" : "slides")}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5"
-                >
-                  {activeTab === "slides" ? "查看时间线" : "查看单元"}
-                  <ArrowRight className="h-4 w-4" />
+                  {tab.icon}
+                  <span>{getLabel(tab.label)}</span>
                 </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="space-y-6 xl:sticky xl:top-[116px] xl:self-start">
-            <section
-              className={cn(
-                "glass-panel-strong rounded-[28px] border p-5 shadow-[0_18px_60px_-46px_rgba(15,23,42,0.35)]",
-              )}
-            >
-              <div className="mb-4">
-                <h3 className="text-base font-bold">浏览模式</h3>
-              </div>
-
-              <Tabs
-                tabs={TABS}
-                activeTab={activeTab}
-                onChange={setActiveTab}
-                className="rounded-2xl p-1.5"
-              />
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-semibold",
-                    theme === "dark"
-                      ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                      : "border-slate-200 bg-slate-50 text-slate-600",
-                  )}
-                >
-                  {activeTab === "slides" ? `${units.length} 个单元` : `${filteredEvents.length} 个事件`}
-                </span>
-                {activeTab === "timeline" && (
-                  <span
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-semibold",
-                      theme === "dark"
-                        ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                        : "border-slate-200 bg-slate-50 text-slate-600",
-                    )}
-                  >
-                    {majorMilestoneCount} 个里程碑
-                  </span>
-                )}
-              </div>
-            </section>
-
-            {activeTab === "slides" ? (
+        {activeTab === "slides" ? (
+          <div className="mt-2 grid gap-6 lg:grid-cols-[292px_minmax(0,1fr)]">
+            <aside className="lg:sticky lg:top-[108px] lg:self-start">
               <section
                 className={cn(
-                  "rounded-[28px] border p-5",
-                  theme === "dark"
-                    ? "border-slate-800 bg-slate-950/72"
-                    : "border-slate-200 bg-white/92",
+                  "mx-4 rounded-[1.75rem] border px-4 py-5 sm:mx-6 lg:mx-0 lg:rounded-l-none lg:border-l-0",
+                  surfaceClass,
                 )}
               >
-                <div className="mb-4">
-                  <h3 className="text-base font-bold">单元列表</h3>
+                <div className="px-2 pb-3">
+                  <h2 className="text-lg font-semibold">{isZh ? "实验单元" : "Units"}</h2>
+                  <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
+                    {isZh ? "先选单元，再进入当前单元下的实验。" : "Choose a unit, then open one of its experiments."}
+                  </p>
                 </div>
 
                 {unitsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#1d4ed8]" />
                   </div>
                 ) : units.length === 0 ? (
                   <EmptyWorkspace
@@ -710,289 +684,77 @@ export function CoursesPage() {
                     icon={Layers}
                     title={isZh ? "暂无单元" : "No units"}
                     description={
-                      isZh ? "当前还没有可展示的实验课单元。" : "No experiment units are available yet."
+                      isZh ? "当前还没有可展示的实验单元。" : "No experiment units are available yet."
                     }
                   />
                 ) : (
-                  <div className="space-y-2">
-                    {units.map((unit) => (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        onClick={() => setSelectedUnitId(unit.id)}
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
-                          theme === "dark"
-                            ? "border-slate-800 bg-slate-900/65 hover:bg-slate-900/85"
-                            : "border-slate-200 bg-slate-50/80 hover:bg-white",
-                        )}
-                        style={
-                          selectedUnit?.id === unit.id
-                            ? {
-                                backgroundColor:
-                                  theme === "dark" ? `${unit.color}14` : `${unit.color}10`,
-                                borderColor:
-                                  theme === "dark" ? `${unit.color}38` : `${unit.color}22`,
-                              }
-                            : undefined
-                        }
-                      >
-                        <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                          style={{
-                            backgroundColor:
-                              theme === "dark" ? `${unit.color}18` : `${unit.color}12`,
-                          }}
+                  <div className={cn("mt-2 divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
+                    {units.map((unit) => {
+                      const isSelected = selectedUnit?.id === unit.id;
+
+                      return (
+                        <button
+                          key={unit.id}
+                          type="button"
+                          onClick={() => setSelectedUnitId(unit.id)}
+                          className={cn(
+                            "flex w-full items-start gap-3 px-3 py-4 text-left transition-colors",
+                            theme === "dark" ? "hover:bg-slate-900/80" : "hover:bg-slate-50",
+                          )}
+                          style={
+                            isSelected
+                              ? {
+                                  backgroundColor: theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
+                                }
+                              : undefined
+                          }
                         >
-                          <Layers className="h-5 w-5" style={{ color: unit.color }} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">{getLabel(unit.title)}</p>
-                          <p
-                            className={cn(
-                              "mt-1 text-xs",
-                              theme === "dark" ? "text-slate-400" : "text-slate-500",
-                            )}
-                          >
-                            {unit.courseCount || 0} {isZh ? "门课程" : "courses"}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
+                          <span
+                            className="mt-0.5 h-10 w-1 shrink-0 rounded-full"
+                            style={{ backgroundColor: isSelected ? unit.color : "transparent" }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{getLabel(unit.title)}</p>
+                            <p className={cn("mt-1 text-xs", subtleTextClass)}>
+                              {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`} · {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </section>
-            ) : (
-              <>
-                <section
-                  className={cn(
-                    "rounded-[28px] border p-5",
-                    theme === "dark"
-                      ? "border-slate-800 bg-slate-950/72"
-                      : "border-slate-200 bg-white/92",
-                  )}
-                >
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold">章节筛选</h3>
-                    </div>
+            </aside>
 
-                    {hasTimelineFilters && (
-                      <button
-                        type="button"
-                        onClick={resetTimelineFilters}
-                        className={cn(
-                          "rounded-xl px-3 py-2 text-xs font-semibold transition-colors",
-                          theme === "dark"
-                            ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                        )}
-                      >
-                        清除筛选
-                      </button>
-                    )}
-                  </div>
-
-                  <ChapterSelector
-                    selectedSections={selectedSections}
-                    onFilterChange={handleFilterChange}
-                    matchedEventCount={filteredEvents.length}
-                  />
-                </section>
-
-                <section
-                  className={cn(
-                    "rounded-[28px] border p-5",
-                    theme === "dark"
-                      ? "border-slate-800 bg-slate-950/72"
-                      : "border-slate-200 bg-white/92",
-                  )}
-                >
-                  <div className="mb-4">
-                    <h3 className="text-base font-bold">时间线筛选</h3>
-                  </div>
-
-                  <div className="space-y-5">
-                    <div>
-                      <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
-                        轨道
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setTrackFilter("all")}
-                          className={cn(
-                            "rounded-full px-3 py-2 text-sm font-medium transition-all",
-                            trackFilter === "all"
-                              ? "bg-slate-700 text-white"
-                              : theme === "dark"
-                                ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                          )}
-                        >
-                          全部
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTrackFilter("optics")}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all",
-                            trackFilter === "optics"
-                              ? "bg-amber-500 text-white"
-                              : theme === "dark"
-                                ? "bg-amber-500/12 text-amber-300 hover:bg-amber-500/20"
-                                : "bg-amber-50 text-amber-700 hover:bg-amber-100",
-                          )}
-                        >
-                          <Sun className="h-3.5 w-3.5" />
-                          广义光学
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTrackFilter("polarization")}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all",
-                            trackFilter === "polarization"
-                              ? "bg-cyan-500 text-white"
-                              : theme === "dark"
-                                ? "bg-cyan-500/12 text-cyan-300 hover:bg-cyan-500/20"
-                                : "bg-cyan-50 text-cyan-700 hover:bg-cyan-100",
-                          )}
-                        >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          偏振光
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
-                        类型
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFilter("")}
-                          className={cn(
-                            "rounded-full px-3 py-2 text-sm font-medium transition-all",
-                            !filter
-                              ? "bg-slate-700 text-white"
-                              : theme === "dark"
-                                ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                          )}
-                        >
-                          全部
-                        </button>
-                        {Object.entries(CATEGORY_LABELS).map(([key, value]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setFilter(key)}
-                            className={cn(
-                              "rounded-full px-3 py-2 text-sm font-medium transition-all",
-                              filter === key
-                                ? "bg-slate-700 text-white"
-                                : theme === "dark"
-                                  ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                            )}
-                          >
-                            {isZh ? value.zh : value.en}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div
-                        className={cn(
-                          "rounded-2xl border p-4",
-                          theme === "dark"
-                            ? "border-slate-800 bg-slate-900/65"
-                            : "border-slate-200 bg-slate-50/80",
-                        )}
-                      >
-                        <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                          事件
-                        </p>
-                        <p className="mt-2 text-lg font-semibold">{filteredEvents.length}</p>
-                      </div>
-                      <div
-                        className={cn(
-                          "rounded-2xl border p-4",
-                          theme === "dark"
-                            ? "border-slate-800 bg-slate-900/65"
-                            : "border-slate-200 bg-slate-50/80",
-                        )}
-                      >
-                        <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                          世纪
-                        </p>
-                        <p className="mt-2 text-lg font-semibold">{totalCenturyCount || 0}</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </>
-            )}
-          </aside>
-
-          <section className="min-w-0 space-y-6">
-            {activeTab === "slides" ? (
-              <>
+            <section className="space-y-6 px-4 sm:px-6 lg:pl-0 lg:pr-8 xl:pr-10">
+              <div className="max-w-5xl space-y-6">
                 {unitsLoading ? (
-                  <section
-                    className={cn(
-                      "rounded-[32px] border",
-                      theme === "dark"
-                        ? "border-slate-800 bg-slate-950/72"
-                        : "border-slate-200 bg-white/92",
-                    )}
-                  >
-                    <div className="flex items-center justify-center py-20">
-                      <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+                  <section className={cn("rounded-[2rem] border", surfaceClass)}>
+                    <div className="flex items-center justify-center py-24">
+                      <Loader2 className="h-8 w-8 animate-spin text-[#1d4ed8]" />
                     </div>
                   </section>
                 ) : !selectedUnit ? (
-                  <section
-                    className={cn(
-                      "rounded-[32px] border",
-                      theme === "dark"
-                        ? "border-slate-800 bg-slate-950/72"
-                        : "border-slate-200 bg-white/92",
-                    )}
-                  >
+                  <section className={cn("rounded-[2rem] border", surfaceClass)}>
                     <EmptyWorkspace
                       theme={theme}
                       icon={Layers}
                       title={isZh ? "暂无单元" : "No units"}
                       description={
-                        isZh
-                          ? "当前还没有可展示的实验课单元。"
-                          : "No experiment units are available yet."
+                        isZh ? "当前还没有可展示的实验单元。" : "No experiment units are available yet."
                       }
                     />
                   </section>
                 ) : (
                   <>
-                    <section
-                      className={cn(
-                        "overflow-hidden rounded-[32px] border p-6 shadow-[0_28px_90px_-70px_rgba(15,23,42,0.9)] sm:p-7",
-                        theme === "dark"
-                          ? "border-slate-800 bg-slate-950/72"
-                          : "border-slate-200 bg-white/92",
-                      )}
-                    >
-                      <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+                    <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
+                      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
                         <div
-                          className="relative overflow-hidden rounded-[28px] border"
-                          style={{
-                            backgroundColor:
-                              theme === "dark" ? `${selectedUnit.color}12` : `${selectedUnit.color}0e`,
-                            borderColor:
-                              theme === "dark" ? `${selectedUnit.color}38` : `${selectedUnit.color}22`,
-                          }}
+                          className={cn(
+                            "overflow-hidden rounded-[1.5rem] border",
+                            theme === "dark" ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-slate-50",
+                          )}
                         >
                           {selectedUnit.coverImage ? (
                             <img
@@ -1001,188 +763,98 @@ export function CoursesPage() {
                               className="h-full min-h-[220px] w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full min-h-[220px] items-center justify-center">
-                              <Layers className="h-16 w-16" style={{ color: selectedUnit.color }} />
+                            <div className="flex min-h-[220px] items-center justify-center">
+                              <Layers className="h-14 w-14" style={{ color: selectedUnit.color }} />
                             </div>
                           )}
                         </div>
 
-                        <div className="flex flex-col gap-5">
+                        <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <span
-                              className="rounded-full border px-3 py-1 text-xs font-semibold"
+                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
                               style={{
                                 color: theme === "dark" ? "#f8fafc" : selectedUnit.color,
-                                backgroundColor:
-                                  theme === "dark"
-                                    ? `${selectedUnit.color}20`
-                                    : `${selectedUnit.color}12`,
-                                borderColor:
-                                  theme === "dark"
-                                    ? `${selectedUnit.color}38`
-                                    : `${selectedUnit.color}22`,
+                                backgroundColor: theme === "dark" ? `${selectedUnit.color}20` : `${selectedUnit.color}12`,
                               }}
                             >
-                              {isZh ? "当前单元" : "Current unit"}
+                              {isZh ? `单元 ${selectedUnit.sortOrder + 1}` : `Unit ${selectedUnit.sortOrder + 1}`}
                             </span>
-                            <span
-                              className={cn(
-                                "rounded-full border px-3 py-1 text-xs font-semibold",
-                                theme === "dark"
-                                  ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                                  : "border-slate-200 bg-slate-50 text-slate-600",
-                              )}
-                            >
-                              {isZh ? "课程总览 / 单元 / 课程" : "Course overview / Unit / Course"}
+                            <span className={pillClass}>
+                              {selectedUnit.courseCount || 0} {isZh ? "个实验" : "experiments"}
+                            </span>
+                            <span className={pillClass}>
+                              {selectedUnit.mainSlide
+                                ? isZh ? "主课件已就绪" : "Slides ready"
+                                : isZh ? "主课件待补充" : "Slides pending"}
                             </span>
                           </div>
 
-                          <div>
-                            <h3 className="text-3xl font-black tracking-tight">
-                              {getLabel(selectedUnit.title)}
-                            </h3>
-                            <p
-                              className={cn(
-                                "mt-3 text-sm leading-7 sm:text-[15px]",
-                                theme === "dark" ? "text-slate-300" : "text-slate-600",
-                              )}
-                            >
-                              {getLabel(selectedUnit.description)}
-                            </p>
-                          </div>
+                          <h2 className="mt-4 text-3xl font-semibold tracking-tight">
+                            {getLabel(selectedUnit.title)}
+                          </h2>
+                          <p className={cn("mt-3 max-w-2xl text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
+                            {getLabel(selectedUnit.description)}
+                          </p>
 
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div
-                              className={cn(
-                                "rounded-2xl border p-4",
-                                theme === "dark"
-                                  ? "border-slate-800 bg-slate-900/65"
-                                  : "border-slate-200 bg-slate-50/80",
-                              )}
-                            >
-                              <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                课程
-                              </p>
-                              <p className="mt-2 text-lg font-semibold">
-                                {selectedUnit.courseCount || 0} 门
-                              </p>
-                            </div>
-                            <div
-                              className={cn(
-                                "rounded-2xl border p-4",
-                                theme === "dark"
-                                  ? "border-slate-800 bg-slate-900/65"
-                                  : "border-slate-200 bg-slate-50/80",
-                              )}
-                            >
-                              <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                课件状态
-                              </p>
-                              <p className="mt-2 text-lg font-semibold">
-                                {selectedUnit.mainSlide ? "已就绪" : "待补充"}
-                              </p>
-                            </div>
-                            <div
-                              className={cn(
-                                "rounded-2xl border p-4 sm:col-span-2",
-                                theme === "dark"
-                                  ? "border-slate-800 bg-slate-900/65"
-                                  : "border-slate-200 bg-slate-50/80",
-                              )}
-                            >
-                              <p className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-                                {isZh ? "关系" : "Relationship"}
-                              </p>
-                              <p className="mt-2 text-lg font-semibold">
-                                {isZh
-                                  ? `1 份单元导览 + ${selectedUnit.courseCount || 0} 门课程`
-                                  : `1 unit overview + ${selectedUnit.courseCount || 0} courses`}
-                              </p>
-                              <p
+                          <div className="mt-6 flex flex-wrap items-center gap-4">
+                            {primaryCourse ? (
+                              <Link
+                                to={`/experiments/${primaryCourse.id}`}
+                                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                                style={{ backgroundColor: selectedUnit.color }}
+                              >
+                                {isZh ? "进入当前实验" : "Open experiment"}
+                                <ArrowRight className="h-4 w-4" />
+                              </Link>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
                                 className={cn(
-                                  "mt-2 text-sm leading-6",
-                                  theme === "dark" ? "text-slate-400" : "text-slate-600",
+                                  "inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold",
+                                  theme === "dark"
+                                    ? "bg-slate-800 text-slate-400"
+                                    : "bg-slate-100 text-slate-500",
                                 )}
                               >
-                                {isZh
-                                  ? "单元负责组织主题和导览，课程负责承载具体课件与媒体资源。"
-                                  : "The unit frames the topic and overview, while courses hold the detailed slides and media."}
-                              </p>
-                            </div>
-                          </div>
+                                {selectedUnitCoursesLoading
+                                  ? isZh ? "实验加载中" : "Loading experiment"
+                                  : isZh ? "暂无实验" : "No experiment"}
+                              </button>
+                            )}
 
-                          <div className="flex flex-wrap gap-3">
-                            <Link
-                              to={`/units/${selectedUnit.id}`}
-                              className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-slate-950 transition-transform hover:-translate-y-0.5"
-                              style={{
-                                backgroundColor: selectedUnit.color,
-                                boxShadow: `0 18px 40px -24px ${selectedUnit.color}`,
-                              }}
-                            >
-                              {isZh ? "进入单元导览" : "Open unit overview"}
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
                             <button
                               type="button"
                               onClick={() => setActiveTab("timeline")}
-                              className={cn(
-                                "inline-flex items-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition-colors",
-                                theme === "dark"
-                                  ? "border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800"
-                                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white",
-                              )}
+                              className="text-sm font-semibold text-[#1d4ed8] transition-opacity hover:opacity-80"
                             >
-                              查看时间线
-                              <Clock className="h-4 w-4" />
+                              {isZh ? "从时间线浏览" : "Browse the timeline"}
                             </button>
                           </div>
                         </div>
                       </div>
                     </section>
 
-                    <section
-                      className={cn(
-                        "overflow-hidden rounded-[32px] border shadow-[0_28px_80px_-60px_rgba(15,23,42,0.9)]",
-                        theme === "dark"
-                          ? "border-slate-800 bg-slate-950/72"
-                          : "border-slate-200 bg-white/92",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between",
-                          theme === "dark" ? "border-slate-800" : "border-slate-200",
-                        )}
-                      >
+                    <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                          <h3 className="text-base font-bold">{isZh ? "当前单元下的课程" : "Courses in this unit"}</h3>
-                          <p className={cn("mt-1 text-sm", theme === "dark" ? "text-slate-400" : "text-slate-600")}>
-                            {isZh
-                              ? "单元是学习容器，下面这些课程才是具体进入点。"
-                              : "The unit is the container; the courses below are the concrete entry points."}
+                          <h3 className="text-xl font-semibold">{isZh ? "本单元实验" : "Experiments in this unit"}</h3>
+                          <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
+                            {isZh ? "选择一个实验，直接进入课件与媒体内容。" : "Choose an experiment to open its slides and media."}
                           </p>
                         </div>
-                        <div
-                          className={cn(
-                            "rounded-full border px-3 py-1 text-xs font-semibold",
-                            theme === "dark"
-                              ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                              : "border-slate-200 bg-slate-50 text-slate-600",
-                          )}
-                        >
+                        <span className={pillClass}>
                           {selectedUnitCoursesLoading
-                            ? isZh
-                              ? "课程加载中"
-                              : "Loading courses"
-                            : `${selectedUnitCourses.length} ${isZh ? "门课程" : "courses"}`}
-                        </div>
+                            ? isZh ? "实验加载中" : "Loading experiments"
+                            : `${selectedUnitCourses.length} ${isZh ? "个实验" : "experiments"}`}
+                        </span>
                       </div>
 
-                      <div className="px-5 py-5">
+                      <div className="mt-5">
                         {selectedUnitCoursesLoading ? (
                           <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+                            <Loader2 className="h-6 w-6 animate-spin text-[#1d4ed8]" />
                           </div>
                         ) : selectedUnitCoursesError ? (
                           <div className="py-8 text-center">
@@ -1192,30 +864,24 @@ export function CoursesPage() {
                             <button
                               type="button"
                               onClick={() => setSelectedUnitCoursesReloadKey((value) => value + 1)}
-                              className={cn(
-                                "mt-4 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
-                                theme === "dark"
-                                  ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                                  : "bg-slate-100 text-slate-700 hover:bg-slate-200",
-                              )}
+                              className="mt-4 text-sm font-semibold text-[#1d4ed8] transition-opacity hover:opacity-80"
                             >
-                              {isZh ? "重试" : "Retry"}
+                              {isZh ? "重新加载" : "Retry"}
                             </button>
                           </div>
                         ) : selectedUnitCourses.length === 0 ? (
                           <EmptyWorkspace
                             theme={theme}
                             icon={BookOpenText}
-                            title={isZh ? "该单元暂无课程" : "No courses in this unit"}
+                            title={isZh ? "该单元暂无实验" : "No experiments in this unit"}
                             description={
                               isZh
-                                ? "当前单元还没有可进入的课程内容。"
-                                : "There are no course entries available in this unit yet."
+                                ? "当前单元还没有可进入的实验内容。"
+                                : "There are no experiment entries available in this unit yet."
                             }
                           />
                         ) : (
                           <CourseSelector
-                            unitId={selectedUnit.id}
                             courses={selectedUnitCourses}
                             unitColor={selectedUnit.color}
                             showHeader={false}
@@ -1225,81 +891,165 @@ export function CoursesPage() {
                     </section>
                   </>
                 )}
-              </>
-            ) : (
-              <>
-                <section
-                  className={cn(
-                    "rounded-[32px] border p-6 shadow-[0_24px_80px_-60px_rgba(15,23,42,0.9)]",
-                    theme === "dark"
-                      ? "border-slate-800 bg-slate-950/72"
-                      : "border-slate-200 bg-white/92",
-                  )}
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <h3 className="text-2xl font-black tracking-tight">历史时间线</h3>
-                    </div>
+              </div>
+            </section>
+          </div>
+        ) : (
+          <div className="mx-auto mt-8 max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
+                    Timeline
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                    {isZh ? "历史时间线" : "Historical timeline"}
+                  </h2>
+                  <p className={cn("mt-2 text-sm leading-7", mutedTextClass)}>
+                    {isZh
+                      ? "按单元、轨道和主题筛选关键实验与发现。"
+                      : "Filter key discoveries by unit, track, and theme."}
+                  </p>
+                </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        `${filteredEvents.length} 个事件`,
-                        `${majorMilestoneCount} 个里程碑`,
-                        `${totalCenturyCount || 0} 个世纪`,
-                      ].map((label) => (
-                        <span
-                          key={label}
-                          className={cn(
-                            "rounded-full border px-3 py-1 text-xs font-semibold",
-                            theme === "dark"
-                              ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                              : "border-slate-200 bg-slate-50 text-slate-600",
-                          )}
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={pillClass}>{filteredEvents.length} {isZh ? "个事件" : "events"}</span>
+                  <span className={pillClass}>{majorMilestoneCount} {isZh ? "个里程碑" : "milestones"}</span>
+                  <span className={pillClass}>{totalCenturyCount || 0} {isZh ? "个世纪" : "centuries"}</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <ChapterSelector
+                  className="rounded-[1.5rem]"
+                  selectedSections={selectedSections}
+                  onFilterChange={handleFilterChange}
+                  matchedEventCount={filteredEvents.length}
+                />
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <div>
+                  <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+                    {isZh ? "轨道" : "Track"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTrackFilter("all")}
+                      className={cn(
+                        "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                        trackFilter === "all"
+                          ? "bg-[#1d4ed8] text-white"
+                          : theme === "dark"
+                            ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      )}
+                    >
+                      {isZh ? "全部" : "All"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTrackFilter("optics")}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                        trackFilter === "optics"
+                          ? "bg-amber-500 text-white"
+                          : theme === "dark"
+                            ? "bg-amber-500/12 text-amber-300 hover:bg-amber-500/20"
+                            : "bg-amber-50 text-amber-700 hover:bg-amber-100",
+                      )}
+                    >
+                      <Sun className="h-3.5 w-3.5" />
+                      {isZh ? "广义光学" : "General optics"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTrackFilter("polarization")}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                        trackFilter === "polarization"
+                          ? "bg-cyan-500 text-white"
+                          : theme === "dark"
+                            ? "bg-cyan-500/12 text-cyan-300 hover:bg-cyan-500/20"
+                            : "bg-cyan-50 text-cyan-700 hover:bg-cyan-100",
+                      )}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {isZh ? "偏振光" : "Polarization"}
+                    </button>
                   </div>
-                </section>
+                </div>
 
-                <section className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_140px]">
-                  <div
-                    className={cn(
-                      "overflow-hidden rounded-[32px] border p-6 shadow-[0_28px_80px_-60px_rgba(15,23,42,0.9)]",
-                      theme === "dark"
-                        ? "border-slate-800 bg-slate-950/72"
-                        : "border-slate-200 bg-white/92",
-                    )}
-                  >
-                    {filteredEvents.length === 0 ? (
-                      <EmptyWorkspace
-                        theme={theme}
-                        icon={Clock}
-                        title={isZh ? "没有匹配的历史事件" : "No matching events"}
-                        description={
-                          isZh
-                            ? "可以清除筛选，或者换一个章节、轨道与类型组合。"
-                            : "Try clearing filters or changing the chapter, track, and category combination."
-                        }
-                      />
-                    ) : useSingleTrack ? (
-                      renderMobileTimeline()
-                    ) : (
-                      renderDesktopTimeline()
-                    )}
+                <div>
+                  <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+                    {isZh ? "类型" : "Category"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFilter("")}
+                      className={cn(
+                        "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                        !filter
+                          ? "bg-[#1d4ed8] text-white"
+                          : theme === "dark"
+                            ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      )}
+                    >
+                      {isZh ? "全部" : "All"}
+                    </button>
+                    {Object.entries(CATEGORY_LABELS).map(([key, value]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setFilter(key)}
+                        className={cn(
+                          "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                          filter === key
+                            ? "bg-[#1d4ed8] text-white"
+                            : theme === "dark"
+                              ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                        )}
+                      >
+                        {isZh ? value.zh : value.en}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
+              {filteredEvents.length === 0 ? (
+                <EmptyWorkspace
+                  theme={theme}
+                  icon={Clock}
+                  title={isZh ? "没有匹配的历史事件" : "No matching events"}
+                  description={
+                    isZh
+                      ? "可以清除筛选，或者换一个章节、轨道与类型组合。"
+                      : "Try clearing filters or changing the chapter, track, and category combination."
+                  }
+                />
+              ) : (
+                <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_140px]">
+                  <div>
+                    {useSingleTrack ? renderMobileTimeline() : renderDesktopTimeline()}
                   </div>
 
-                  {!useSingleTrack && filteredEvents.length > 0 && (
+                  {!useSingleTrack && (
                     <div className="hidden 2xl:block">
                       <CenturyNavigator events={filteredEvents} isZh={isZh} variant="inline" />
                     </div>
                   )}
-                </section>
-              </>
-            )}
-          </section>
-        </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </main>
 
       {storyModalEvent !== null && filteredEvents[storyModalEvent] && (

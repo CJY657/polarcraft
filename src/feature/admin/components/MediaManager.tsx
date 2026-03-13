@@ -104,7 +104,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-gray-400">
-          管理此课程的媒体资源。拖拽可重新排序。
+          管理此实验的媒体资源。拖拽可重新排序。
         </p>
         <div className="flex items-center gap-2">
           <button

@@ -29,6 +29,7 @@ export interface CourseMedia {
   id: string;
   type: MediaType;
   url: string;
+  previewPdfUrl?: string;
   title: LabelI18n;
   duration?: number;
   sortOrder: number;
@@ -36,6 +37,7 @@ export interface CourseMedia {
 
 export interface CourseHyperlink {
   id: string;
+  sourceMediaId?: string;
   page: number;
   x: number;
   y: number;
@@ -92,6 +94,7 @@ export interface UpsertMainSlideInput {
 export interface CreateMediaInput {
   type: MediaType;
   url: string;
+  previewPdfUrl?: string;
   title_zh: string;
   title_en?: string;
   duration?: number;
@@ -100,12 +103,14 @@ export interface CreateMediaInput {
 export interface UpdateMediaInput {
   type?: MediaType;
   url?: string;
+  previewPdfUrl?: string;
   title_zh?: string;
   title_en?: string;
   duration?: number;
 }
 
 export interface CreateHyperlinkInput {
+  sourceMediaId: string;
   page: number;
   x: number;
   y: number;
@@ -115,6 +120,7 @@ export interface CreateHyperlinkInput {
 }
 
 export interface UpdateHyperlinkInput {
+  sourceMediaId?: string;
   page?: number;
   x?: number;
   y?: number;

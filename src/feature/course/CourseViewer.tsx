@@ -24,6 +24,7 @@ import {
   extractReferenceKeysFromText,
   normalizeMediaReferenceText,
 } from "./mediaReference";
+import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
@@ -70,7 +71,6 @@ type PptRenderMode = "checking" | "pdf" | "pptx";
 type PptxPreviewModule = typeof import("pptx-preview");
 
 const DEFAULT_PPT_ASPECT_RATIO = 16 / 9;
-const pdfSidecarAvailabilityCache = new Map<string, boolean>();
 let pptxPreviewModulePromise: Promise<PptxPreviewModule> | null = null;
 const OPTIMIZED_UNIT2_VIDEO_FILENAMES = new Set([
   "实验-保鲜膜拉伸-平行偏振系统-旋转样品视频.mp4",
@@ -117,96 +117,6 @@ function fitPresentationSize(width: number, height: number, aspectRatio: number)
     width: Math.max(0, Math.floor(fittedWidth)),
     height: Math.max(0, Math.floor(fittedHeight)),
   };
-}
-
-function getPptPdfFallbackUrl(url: string) {
-  if (!/\.(pptx?|ppt)(?=(?:[?#].*)?$)/i.test(url)) {
-    return null;
-  }
-
-  return url.replace(/\.(pptx?|ppt)(?=(?:[?#].*)?$)/i, ".pdf");
-}
-
-async function hasPdfSidecar(url: string) {
-  const cachedResult = pdfSidecarAvailabilityCache.get(url);
-  if (cachedResult != null) {
-    return cachedResult;
-  }
-
-  const classifyPdfResponse = (response: Response) => {
-    const contentType = response.headers.get("content-type")?.toLowerCase() || "";
-
-    if (contentType.includes("application/pdf")) {
-      return true;
-    }
-
-    if (contentType.startsWith("text/html")) {
-      return false;
-    }
-
-    if (contentType.startsWith("text/")) {
-      return false;
-    }
-
-    return null;
-  };
-
-  const hasPdfSignature = async (response: Response) => {
-    try {
-      const buffer = await response.arrayBuffer();
-      const signature = new Uint8Array(buffer.slice(0, 5));
-      return String.fromCharCode(...signature) === "%PDF-";
-    } catch {
-      return false;
-    }
-  };
-
-  const remember = (value: boolean) => {
-    pdfSidecarAvailabilityCache.set(url, value);
-    return value;
-  };
-
-  try {
-    const headResponse = await fetch(url, { method: "HEAD" });
-    const headClassification = classifyPdfResponse(headResponse);
-
-    if (headResponse.ok && headClassification === true) {
-      return remember(true);
-    }
-
-    if (headResponse.ok && headClassification === false) {
-      return remember(false);
-    }
-
-    if (headResponse.status !== 405 && headResponse.status !== 501) {
-      return remember(false);
-    }
-  } catch {
-    // Some hosts block HEAD; retry with GET below.
-  }
-
-  try {
-    const getResponse = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        Range: "bytes=0-4",
-      },
-    });
-
-    if (!getResponse.ok) {
-      return remember(false);
-    }
-
-    const getClassification = classifyPdfResponse(getResponse);
-    if (getClassification !== null) {
-      return remember(getClassification);
-    }
-
-    return remember(await hasPdfSignature(getResponse));
-  } catch {
-    return remember(false);
-  }
 }
 
 function collectReferenceKeysFromPptNode(
@@ -304,6 +214,7 @@ async function detectPptReferencePageMap(
 // PPTX Viewer Component
 interface PptxViewerProps {
   url: string;
+  preferredPdfUrl?: string;
   theme: "dark" | "light";
   hyperlinks?: PdfHyperlink[];
   onHyperlinkClick?: (targetMediaId: string) => void;
@@ -316,6 +227,7 @@ interface PptxViewerProps {
 
 function PptxViewer({
   url,
+  preferredPdfUrl,
   theme,
   hyperlinks = [],
   onHyperlinkClick,
@@ -370,7 +282,7 @@ function PptxViewer({
 
   useEffect(() => {
     let isCancelled = false;
-    const nextPdfFallbackUrl = getPptPdfFallbackUrl(url);
+    const nextPdfFallbackUrl = preferredPdfUrl || getPptPdfFallbackUrl(url);
 
     cachedDataRef.current = null;
     renderVersionRef.current += 1;
@@ -409,7 +321,7 @@ function PptxViewer({
     return () => {
       isCancelled = true;
     };
-  }, [mediaReferenceSignature, url]);
+  }, [mediaReferenceSignature, preferredPdfUrl, url]);
 
   useEffect(() => {
     if (renderMode === "pptx") {
@@ -1131,6 +1043,21 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
 
   // 获取超链接列表
   const hyperlinks = course.hyperlinks || [];
+  const getHyperlinksForPpt = (pptMediaId: string | null) => {
+    if (!pptMediaId) {
+      return [];
+    }
+
+    const hasSinglePpt = pptMediaList.length === 1;
+    return hyperlinks.filter((hyperlink) => {
+      if (hyperlink.sourceMediaId) {
+        return hyperlink.sourceMediaId === pptMediaId;
+      }
+
+      return hasSinglePpt;
+    });
+  };
+  const activePptHyperlinks = getHyperlinksForPpt(activePptMedia?.id ?? null);
 
   // 获取媒体标题
   const getMediaTitle = (media: MediaResource | { title: Record<string, string> }) => {
@@ -1252,8 +1179,6 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
           <PdfViewer
             url={mainSlide.url}
             theme={theme}
-            hyperlinks={hyperlinks}
-            mediaList={mediaList}
             onHyperlinkClick={handleHyperlinkClick}
             onFullscreenClick={isFullscreenMode ? undefined : () => setIsMainSlideFullscreen(true)}
           />
@@ -1272,6 +1197,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
           return (
             <PptxViewer
               url={media.url}
+              preferredPdfUrl={media.previewPdfUrl}
               theme={theme}
               mediaList={previewMediaList}
               activeMediaId={activePreviewMedia?.id}
@@ -1614,8 +1540,9 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                     <PptxViewer
                       key={activePptMedia.id}
                       url={activePptMedia.url}
+                      preferredPdfUrl={activePptMedia.previewPdfUrl}
                       theme={theme}
-                      hyperlinks={hyperlinks}
+                      hyperlinks={activePptHyperlinks}
                       onHyperlinkClick={handleHyperlinkClick}
                       getHyperlinkTitle={getHyperlinkTitle}
                       mediaList={previewMediaList}

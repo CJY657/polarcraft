@@ -61,7 +61,7 @@ const initialState = {
   error: null,
 };
 
-export const useCourseAdminStore = create<CourseAdminState>((set, get) => ({
+export const useCourseAdminStore = create<CourseAdminState>((set) => ({
   ...initialState,
 
   // =====================================================
@@ -267,7 +267,7 @@ export const useCourseAdminStore = create<CourseAdminState>((set, get) => ({
               ...state.currentCourse,
               media: state.currentCourse.media.filter((m) => m.id !== mediaId),
               hyperlinks: state.currentCourse.hyperlinks.filter(
-                (h) => h.targetMediaId !== mediaId
+                (h) => h.targetMediaId !== mediaId && h.sourceMediaId !== mediaId
               ),
             },
             isLoading: false,

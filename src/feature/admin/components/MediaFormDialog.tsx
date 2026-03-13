@@ -48,6 +48,7 @@ export function MediaFormDialog({
   const [formData, setFormData] = useState({
     type: 'image' as MediaType,
     url: '',
+    previewPdfUrl: '',
     title_zh: '',
     title_en: '',
     duration: '',
@@ -58,6 +59,7 @@ export function MediaFormDialog({
       setFormData({
         type: media.type,
         url: media.url,
+        previewPdfUrl: media.previewPdfUrl || '',
         title_zh: media.title['zh-CN'] || '',
         title_en: media.title['en-US'] || '',
         duration: media.duration?.toString() || '',
@@ -66,6 +68,7 @@ export function MediaFormDialog({
       setFormData({
         type: 'image',
         url: '',
+        previewPdfUrl: '',
         title_zh: '',
         title_en: '',
         duration: '',
@@ -81,6 +84,7 @@ export function MediaFormDialog({
         const input: CreateMediaInput = {
           type: formData.type,
           url: formData.url,
+          previewPdfUrl: formData.type === 'pptx' && formData.previewPdfUrl ? formData.previewPdfUrl : undefined,
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
@@ -90,6 +94,7 @@ export function MediaFormDialog({
         const input: UpdateMediaInput = {
           type: formData.type,
           url: formData.url,
+          previewPdfUrl: formData.type === 'pptx' ? formData.previewPdfUrl : '',
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
@@ -159,6 +164,25 @@ export function MediaFormDialog({
               preview={formData.type === 'image'}
             />
           </div>
+
+          {formData.type === 'pptx' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                PDF 预览文件
+              </label>
+              <FileUpload
+                category="pdf"
+                unitId={courseId}
+                value={formData.previewPdfUrl}
+                onChange={(url) => setFormData({ ...formData, previewPdfUrl: url })}
+                preview={false}
+                showUrlInput={false}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                给 PPT 绑定一个 PDF 预览后，才能在“超链接”标签中直接拉框配置热点。
+              </p>
+            </div>
+          )}
 
           {/* Title (Chinese) */}
           <div>

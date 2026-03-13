@@ -99,7 +99,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">
-            {mode === 'create' ? '创建课程' : '编辑课程'}
+            {mode === 'create' ? '创建实验' : '编辑实验'}
           </h3>
           <button
             onClick={onClose}
@@ -136,7 +136,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               value={formData.title_zh}
               onChange={(e) => setFormData({ ...formData, title_zh: e.target.value })}
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="课程标题"
+              placeholder="实验标题"
               required
             />
           </div>
@@ -151,7 +151,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               value={formData.title_en}
               onChange={(e) => setFormData({ ...formData, title_en: e.target.value })}
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="Course Title"
+              placeholder="Experiment Title"
             />
           </div>
 
@@ -164,7 +164,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               value={formData.description_zh}
               onChange={(e) => setFormData({ ...formData, description_zh: e.target.value })}
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-              placeholder="课程描述"
+              placeholder="实验描述"
               rows={3}
             />
           </div>
@@ -178,7 +178,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               value={formData.description_en}
               onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-              placeholder="Course description"
+              placeholder="Experiment description"
               rows={3}
             />
           </div>

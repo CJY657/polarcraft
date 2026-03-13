@@ -2,11 +2,12 @@
  * Hyperlink Editor Component
  * 超链接编辑器组件
  *
- * Allows editing hyperlinks on PDF pages with click-to-create and drag-to-adjust
- * 允许在 PDF 页面上编辑超链接，支持点击创建和拖拽调整
+ * Allows editing hyperlinks on PDF pages with drag-to-create interactions
+ * 允许在 PDF 页面上编辑超链接，支持拖拽拉框创建
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import {
@@ -17,33 +18,94 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import {
-  MainSlide,
-  CourseMedia,
-  CourseHyperlink,
-  UpsertMainSlideInput,
-} from '@/lib/course.service';
-import { HyperlinkFormDialog } from './HyperlinkFormDialog';
+import { CourseMedia, CourseHyperlink } from '@/lib/course.service';
+import { getPptPdfFallbackUrl, hasPdfSidecar } from '@/feature/course/pptMedia';
 import { FileUpload } from '@/components/ui/FileUpload';
+import { HyperlinkFormDialog } from './HyperlinkFormDialog';
 
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
+const DEFAULT_SELECTION_WIDTH = 0.15;
+const DEFAULT_SELECTION_HEIGHT = 0.1;
+const MIN_SELECTION_SIZE = 0.01;
+const DRAG_THRESHOLD_PX = 6;
+
+type HyperlinkRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  page: number;
+};
+
+type DragSelectionState = {
+  pointerId: number;
+  page: number;
+  start: { x: number; y: number };
+  current: { x: number; y: number };
+  startClientX: number;
+  startClientY: number;
+};
+
+function clampUnit(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function createRectFromPoints(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  page: number
+): HyperlinkRect {
+  const left = Math.min(start.x, end.x);
+  const right = Math.max(start.x, end.x);
+  const top = Math.min(start.y, end.y);
+  const bottom = Math.max(start.y, end.y);
+  const width = Math.max(right - left, MIN_SELECTION_SIZE);
+  const height = Math.max(bottom - top, MIN_SELECTION_SIZE);
+  const boundedLeft = Math.min(left, 1 - width);
+  const boundedTop = Math.min(top, 1 - height);
+
+  return {
+    page,
+    x: boundedLeft + width / 2,
+    y: boundedTop + height / 2,
+    width,
+    height,
+  };
+}
+
+function createDefaultRect(point: { x: number; y: number }, page: number): HyperlinkRect {
+  const left = clampUnit(point.x - DEFAULT_SELECTION_WIDTH / 2);
+  const top = clampUnit(point.y - DEFAULT_SELECTION_HEIGHT / 2);
+  const boundedLeft = Math.min(left, 1 - DEFAULT_SELECTION_WIDTH);
+  const boundedTop = Math.min(top, 1 - DEFAULT_SELECTION_HEIGHT);
+
+  return {
+    page,
+    x: boundedLeft + DEFAULT_SELECTION_WIDTH / 2,
+    y: boundedTop + DEFAULT_SELECTION_HEIGHT / 2,
+    width: DEFAULT_SELECTION_WIDTH,
+    height: DEFAULT_SELECTION_HEIGHT,
+  };
+}
+
 interface HyperlinkEditorProps {
   courseId: string;
-  mainSlide?: MainSlide | null;
   media: CourseMedia[];
   hyperlinks: CourseHyperlink[];
 }
 
 export function HyperlinkEditor({
   courseId,
-  mainSlide,
   media,
   hyperlinks,
 }: HyperlinkEditorProps) {
-  const { upsertMainSlide, deleteHyperlink, isLoading, error, clearError } = useCourseAdminStore();
+  const { deleteHyperlink, updateMedia, isLoading, error, clearError } = useCourseAdminStore();
+  const pptMedia = media.filter((item) => item.type === 'pptx');
+  const targetMedia = media.filter((item) => item.type !== 'pptx');
+  const hasSinglePpt = pptMedia.length === 1;
 
   // PDF state
   const [numPages, setNumPages] = useState(0);
@@ -60,18 +122,84 @@ export function HyperlinkEditor({
   // Dialog state
   const [isHyperlinkDialogOpen, setIsHyperlinkDialogOpen] = useState(false);
   const [editingHyperlink, setEditingHyperlink] = useState<CourseHyperlink | null>(null);
-  const [newHyperlinkPosition, setNewHyperlinkPosition] = useState<{
-    x: number;
-    y: number;
-    page: number;
-  } | null>(null);
+  const [newHyperlinkPosition, setNewHyperlinkPosition] = useState<HyperlinkRect | null>(null);
+  const [dragSelection, setDragSelection] = useState<DragSelectionState | null>(null);
 
   // Delete confirmation
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // PDF URL state
-  const [pdfUrl, setPdfUrl] = useState(mainSlide?.url || '');
-  const [showPdfInput, setShowPdfInput] = useState(!mainSlide?.url);
+  const [selectedPptId, setSelectedPptId] = useState('');
+  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
+  const [isCheckingPreview, setIsCheckingPreview] = useState(false);
+  const activePptMedia = pptMedia.find((item) => item.id === selectedPptId) ?? pptMedia[0] ?? null;
+  const legacyHyperlinks = hyperlinks.filter((hyperlink) => !hyperlink.sourceMediaId);
+  const currentPptHyperlinks = activePptMedia
+    ? hyperlinks.filter((hyperlink) => {
+        if (hyperlink.sourceMediaId) {
+          return hyperlink.sourceMediaId === activePptMedia.id;
+        }
+
+        return hasSinglePpt;
+      })
+    : [];
+
+  useEffect(() => {
+    if (!pptMedia.length) {
+      setSelectedPptId('');
+      return;
+    }
+
+    setSelectedPptId((currentId) => {
+      if (currentId && pptMedia.some((item) => item.id === currentId)) {
+        return currentId;
+      }
+
+      return pptMedia[0].id;
+    });
+  }, [pptMedia]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadPreviewPdf = async () => {
+      if (!activePptMedia) {
+        setPreviewPdfUrl('');
+        return;
+      }
+
+      setPreviewPdfUrl('');
+
+      const fallbackUrl = activePptMedia.previewPdfUrl || getPptPdfFallbackUrl(activePptMedia.url);
+      if (!fallbackUrl) {
+        return;
+      }
+
+      setIsCheckingPreview(true);
+      try {
+        const exists = await hasPdfSidecar(fallbackUrl);
+        if (!isCancelled) {
+          setPreviewPdfUrl(exists ? fallbackUrl : '');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingPreview(false);
+        }
+      }
+    };
+
+    void loadPreviewPdf();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activePptMedia]);
+
+  useEffect(() => {
+    setNumPages(0);
+    setCurrentPage(1);
+    setPageDimensions(null);
+    setPageLoading(Boolean(previewPdfUrl));
+  }, [previewPdfUrl]);
 
   // Calculate scale
   useEffect(() => {
@@ -109,28 +237,93 @@ export function HyperlinkEditor({
     setPageLoading(false);
   }, []);
 
-  // Handle PDF URL submit
-  const handlePdfUrlSubmit = async () => {
-    if (!pdfUrl.trim()) return;
-
-    try {
-      const input: UpsertMainSlideInput = { url: pdfUrl.trim() };
-      await upsertMainSlide(courseId, input);
-      setShowPdfInput(false);
-    } catch (err) {
-      console.error('Failed to set PDF URL:', err);
+  const getRelativePoint = useCallback((clientX: number, clientY: number) => {
+    if (!pdfWrapperRef.current) {
+      return null;
     }
-  };
-
-  // Handle click on PDF to create hyperlink
-  const handlePdfClick = (e: React.MouseEvent) => {
-    if (!pdfWrapperRef.current) return;
 
     const rect = pdfWrapperRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    return {
+      x: clampUnit((clientX - rect.left) / rect.width),
+      y: clampUnit((clientY - rect.top) / rect.height),
+    };
+  }, []);
 
-    setNewHyperlinkPosition({ x, y, page: currentPage });
+  const shouldIgnorePointerEvent = (target: EventTarget | null) =>
+    target instanceof Element && Boolean(target.closest('[data-hyperlink-control="true"]'));
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || shouldIgnorePointerEvent(event.target)) {
+      return;
+    }
+
+    const point = getRelativePoint(event.clientX, event.clientY);
+    if (!point) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    setDragSelection({
+      pointerId: event.pointerId,
+      page: currentPage,
+      start: point,
+      current: point,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+    });
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragSelection || event.pointerId !== dragSelection.pointerId) {
+      return;
+    }
+
+    const point = getRelativePoint(event.clientX, event.clientY);
+    if (!point) {
+      return;
+    }
+
+    setDragSelection((prev) =>
+      prev && prev.pointerId === event.pointerId
+        ? { ...prev, current: point }
+        : prev
+    );
+  };
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragSelection || event.pointerId !== dragSelection.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    setDragSelection(null);
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragSelection || event.pointerId !== dragSelection.pointerId) {
+      return;
+    }
+
+    const point = getRelativePoint(event.clientX, event.clientY) ?? dragSelection.current;
+    const deltaX = Math.abs(event.clientX - dragSelection.startClientX);
+    const deltaY = Math.abs(event.clientY - dragSelection.startClientY);
+    const nextRect =
+      Math.max(deltaX, deltaY) >= DRAG_THRESHOLD_PX
+        ? createRectFromPoints(dragSelection.start, point, dragSelection.page)
+        : createDefaultRect(point, dragSelection.page);
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    setDragSelection(null);
+    setEditingHyperlink(null);
+    setNewHyperlinkPosition(nextRect);
     setIsHyperlinkDialogOpen(true);
   };
 
@@ -160,7 +353,11 @@ export function HyperlinkEditor({
   };
 
   // Get hyperlinks for current page
-  const currentPageHyperlinks = hyperlinks.filter((h) => h.page === currentPage);
+  const currentPageHyperlinks = currentPptHyperlinks.filter((h) => h.page === currentPage);
+  const draftHyperlinkRect =
+    dragSelection && dragSelection.page === currentPage
+      ? createRectFromPoints(dragSelection.start, dragSelection.current, dragSelection.page)
+      : null;
 
   // Get media title for hyperlink
   const getMediaTitle = (mediaId: string) => {
@@ -168,36 +365,87 @@ export function HyperlinkEditor({
     return m?.title['zh-CN'] || mediaId;
   };
 
-  // No PDF URL state
-  if (showPdfInput) {
+  const handlePreviewPdfChange = (url: string) => {
+    if (!activePptMedia) {
+      return;
+    }
+
+    void updateMedia(activePptMedia.id, { previewPdfUrl: url }).catch((err) => {
+      console.error('Failed to update PPT preview PDF:', err);
+    });
+  };
+
+  if (!pptMedia.length) {
     return (
       <div className="space-y-4">
         <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            设置主课件 PDF
-          </h3>
+          <h3 className="text-lg font-semibold text-white mb-4">暂无可配置超链接的 PPT</h3>
           <p className="text-gray-400 mb-4">
-            上传 PDF 文件或输入链接作为主课件。
+            超链接现在只支持配置在 `pptx` 类型媒体上。请先在“媒体”标签中添加 PPT 课件。
           </p>
-
-          <FileUpload
-            category="pdf"
-            value={pdfUrl}
-            onChange={(url) => setPdfUrl(url)}
-            preview={false}
-          />
-
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              onClick={handlePdfUrlSubmit}
-              disabled={isLoading || !pdfUrl.trim()}
-              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 text-white rounded-lg text-sm transition-colors"
-            >
-              {isLoading ? '保存中...' : '保存'}
-            </button>
-          </div>
           {error && (
             <p className="text-red-400 text-sm mt-2">{error}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isCheckingPreview && !previewPdfUrl) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-cyan-500" />
+          <div>
+            <h3 className="text-lg font-semibold text-white">正在检查 PPT 预览</h3>
+            <p className="text-sm text-gray-400">正在确认所选 PPT 是否存在可编辑的 PDF 预览。</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activePptMedia && !previewPdfUrl) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h3 className="text-lg font-semibold text-white mb-4">当前 PPT 缺少 PDF 预览</h3>
+          <p className="text-gray-400 mb-2">
+            只能在 PPT 的 PDF 预览上拉框配置超链接。当前已选择：
+            <span className="ml-1 text-white">
+              {activePptMedia.title['zh-CN'] || activePptMedia.title['en-US'] || activePptMedia.id}
+            </span>
+          </p>
+          <p className="text-sm text-gray-500">
+            先为这个 PPT 上传一个 PDF 预览文件，上传完成后即可在下方编辑热点。
+          </p>
+          <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/60 p-4">
+            <p className="mb-2 text-sm font-medium text-white">上传 PDF 预览</p>
+            <FileUpload
+              category="pdf"
+              unitId={courseId}
+              value={activePptMedia.previewPdfUrl || ''}
+              onChange={handlePreviewPdfChange}
+              preview={false}
+              showUrlInput={false}
+            />
+          </div>
+          {pptMedia.length > 1 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {pptMedia.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedPptId(item.id)}
+                  className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                    item.id === activePptMedia.id
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {item.title['zh-CN'] || item.title['en-US'] || item.id}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -207,22 +455,72 @@ export function HyperlinkEditor({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-gray-400">
-            点击 PDF 创建超链接。每个超链接指向一个媒体资源。
+            仅可在 PPT 课件上拖拽拉框，并将热点指向右侧实验媒体（图片/视频）。
           </p>
           <p className="text-gray-500 text-sm mt-1">
-            共 {hyperlinks.length} 个超链接，分布于 {numPages} 页
+            当前正在编辑：
+            <span className="mx-1 text-white">
+              {activePptMedia?.title['zh-CN'] || activePptMedia?.title['en-US'] || activePptMedia?.id}
+            </span>
+            。本 PPT 共 {currentPptHyperlinks.length} 个超链接，分布于 {numPages} 页。
           </p>
         </div>
-        <button
-          onClick={() => setShowPdfInput(true)}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          更换 PDF
-        </button>
+        {pptMedia.length > 1 && (
+          <div className="flex flex-wrap justify-end gap-2">
+            {pptMedia.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setSelectedPptId(item.id)}
+                className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                  item.id === activePptMedia?.id
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                }`}
+              >
+                {item.title['zh-CN'] || item.title['en-US'] || item.id}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      <div className="rounded-2xl border border-slate-700 bg-slate-800/80 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-white">PPT 预览 PDF</p>
+            <p className="text-xs text-gray-400">
+              为当前 PPT 绑定或替换 PDF 预览文件。上传后会立即用于超链接编辑。
+            </p>
+          </div>
+        </div>
+        <FileUpload
+          category="pdf"
+          unitId={courseId}
+          value={activePptMedia?.previewPdfUrl || ''}
+          onChange={handlePreviewPdfChange}
+          preview={false}
+          showUrlInput={false}
+        />
+      </div>
+
+      {legacyHyperlinks.length > 0 && !hasSinglePpt && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+          <span className="text-sm text-amber-300">
+            检测到 {legacyHyperlinks.length} 个旧超链接尚未绑定具体 PPT，当前不会显示。请重新创建到对应 PPT。
+          </span>
+        </div>
+      )}
+
+      {targetMedia.length === 0 && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+          <span className="text-sm text-amber-300">
+            当前没有可作为目标的实验媒体。请先添加图片或视频资源，再为 PPT 配置超链接。
+          </span>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -276,7 +574,7 @@ export function HyperlinkEditor({
           )}
 
           <Document
-            file={pdfUrl}
+            file={previewPdfUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={handlePdfLoadError}
             loading={null}
@@ -285,7 +583,10 @@ export function HyperlinkEditor({
               <div
                 ref={pdfWrapperRef}
                 className="relative cursor-crosshair"
-                onClick={handlePdfClick}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
               >
                 <Page
                   pageNumber={currentPage}
@@ -296,9 +597,25 @@ export function HyperlinkEditor({
                 />
 
                 {/* Hyperlink overlays */}
+                {draftHyperlinkRect && (
+                  <div
+                    className="pointer-events-none absolute z-10"
+                    style={{
+                      left: `${draftHyperlinkRect.x * 100}%`,
+                      top: `${draftHyperlinkRect.y * 100}%`,
+                      width: `${draftHyperlinkRect.width * 100}%`,
+                      height: `${draftHyperlinkRect.height * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  >
+                    <div className="absolute inset-0 rounded border-2 border-cyan-300 bg-cyan-400/20 shadow-[0_0_0_1px_rgba(103,232,249,0.25)]" />
+                  </div>
+                )}
+
                 {currentPageHyperlinks.map((hyperlink) => (
                   <div
                     key={hyperlink.id}
+                    data-hyperlink-control="true"
                     className="absolute group"
                     style={{
                       left: `${hyperlink.x * 100}%`,
@@ -323,6 +640,7 @@ export function HyperlinkEditor({
                           e.stopPropagation();
                           handleEditHyperlink(hyperlink);
                         }}
+                        onPointerDown={(e) => e.stopPropagation()}
                         className="p-1 bg-slate-700 hover:bg-slate-600 text-white rounded"
                       >
                         <Link2 className="w-3 h-3" />
@@ -332,6 +650,7 @@ export function HyperlinkEditor({
                           e.stopPropagation();
                           setDeleteConfirmId(hyperlink.id);
                         }}
+                        onPointerDown={(e) => e.stopPropagation()}
                         className="p-1 bg-red-500 hover:bg-red-600 text-white rounded"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -346,11 +665,11 @@ export function HyperlinkEditor({
       </div>
 
       {/* Hyperlink List */}
-      {hyperlinks.length > 0 && (
+      {currentPptHyperlinks.length > 0 && (
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">所有超链接</h4>
+          <h4 className="text-sm font-medium text-gray-300 mb-3">当前 PPT 的超链接</h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
-            {hyperlinks.map((h) => (
+            {currentPptHyperlinks.map((h) => (
               <div
                 key={h.id}
                 className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg text-sm"
@@ -389,7 +708,11 @@ export function HyperlinkEditor({
           setNewHyperlinkPosition(null);
         }}
         courseId={courseId}
-        media={media}
+        sourceMediaId={activePptMedia?.id || ''}
+        sourceMediaTitle={
+          activePptMedia?.title['zh-CN'] || activePptMedia?.title['en-US'] || activePptMedia?.id || ''
+        }
+        media={targetMedia}
         editingHyperlink={editingHyperlink}
         newPosition={newHyperlinkPosition}
       />

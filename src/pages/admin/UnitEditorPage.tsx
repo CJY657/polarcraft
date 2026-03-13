@@ -12,15 +12,13 @@ import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
 import { useCourseAdminStore } from "@/stores/courseAdminStore";
 import { UnitFormDialog } from "@/feature/admin/components/UnitFormDialog";
-import { FileUpload } from "@/components/ui/FileUpload";
-import { ArrowLeft, Settings, FileText, BookOpen, Trash2, Save, Plus, Edit, Loader2, X, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Settings, BookOpen, Save, Plus, Edit, Loader2, X, Check, ChevronUp, ChevronDown } from "lucide-react";
 
-type TabId = "settings" | "mainSlide" | "courses";
+type TabId = "settings" | "experiments";
 
 const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "settings", label: "设置", icon: <Settings className="w-4 h-4" /> },
-  { id: "mainSlide", label: "主课件", icon: <FileText className="w-4 h-4" /> },
-  { id: "courses", label: "课程", icon: <BookOpen className="w-4 h-4" /> },
+  { id: "experiments", label: "实验", icon: <BookOpen className="w-4 h-4" /> },
 ];
 
 export default function UnitEditorPage() {
@@ -41,8 +39,8 @@ export default function UnitEditorPage() {
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
-    if (requestedTab === "settings" || requestedTab === "mainSlide" || requestedTab === "courses") {
-      setActiveTab(requestedTab);
+    if (requestedTab === "settings" || requestedTab === "experiments" || requestedTab === "courses") {
+      setActiveTab(requestedTab === "courses" ? "experiments" : requestedTab);
     }
   }, [searchParams]);
 
@@ -206,11 +204,8 @@ export default function UnitEditorPage() {
         {activeTab === "settings" && currentUnit && (
           <SettingsTab unit={currentUnit} theme={theme} />
         )}
-        {activeTab === "mainSlide" && currentUnit && (
-          <MainSlideTab unit={currentUnit} theme={theme} />
-        )}
-        {activeTab === "courses" && currentUnit && (
-          <CoursesTab unit={currentUnit} theme={theme} />
+        {activeTab === "experiments" && currentUnit && (
+          <ExperimentsTab unit={currentUnit} theme={theme} />
         )}
       </div>
 
@@ -327,20 +322,7 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
         >
           统计信息
         </h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div
-            className={cn(
-              "text-center p-4 rounded-lg",
-              theme === "dark" ? "bg-slate-700/50" : "bg-gray-50"
-            )}
-          >
-            <p className="text-3xl font-bold text-cyan-400">
-              {unit.mainSlide ? 1 : 0}
-            </p>
-            <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}>
-              主课件
-            </p>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div
             className={cn(
               "text-center p-4 rounded-lg",
@@ -351,7 +333,7 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
               {unit.courses?.length || unit.courseCount || 0}
             </p>
             <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}>
-                关联课程
+                关联实验
             </p>
           </div>
           <div
@@ -373,163 +355,8 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
   );
 }
 
-// Main Slide Tab Component
-function MainSlideTab({ unit, theme }: { unit: any; theme: string }) {
-  const { upsertMainSlide, deleteMainSlide, isLoading } = useUnitAdminStore();
-
-  const [slideUrl, setSlideUrl] = useState(unit.mainSlide?.url || "");
-  const [titleZh, setTitleZh] = useState(unit.mainSlide?.title?.["zh-CN"] || "");
-  const [titleEn, setTitleEn] = useState(unit.mainSlide?.title?.["en-US"] || "");
-
-  // Sync form state when unit changes
-  useEffect(() => {
-    setSlideUrl(unit.mainSlide?.url || "");
-    setTitleZh(unit.mainSlide?.title?.["zh-CN"] || "");
-    setTitleEn(unit.mainSlide?.title?.["en-US"] || "");
-  }, [unit.mainSlide]);
-
-  if (!unit) return null;
-
-  const handleSave = async () => {
-    if (!slideUrl) return;
-    try {
-      await upsertMainSlide(unit.id, {
-        url: slideUrl,
-        title_zh: titleZh || undefined,
-        title_en: titleEn || undefined,
-      });
-    } catch (error) {
-      // Error is handled in store
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm("确定要删除主课件吗？")) return;
-    try {
-      await deleteMainSlide(unit.id);
-      setSlideUrl("");
-      setTitleZh("");
-      setTitleEn("");
-    } catch (error) {
-      // Error is handled in store
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div
-        className={cn(
-          "rounded-xl p-6 border",
-          theme === "dark"
-            ? "bg-slate-800 border-slate-700"
-            : "bg-white border-gray-200 shadow-sm"
-        )}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3
-            className={cn(
-              "text-lg font-semibold flex items-center gap-2",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
-          >
-            <FileText className="w-5 h-5" />
-            主课件 (PDF)
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* PDF Upload */}
-          <div>
-            <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
-              上传 PDF 文件
-            </label>
-            <FileUpload
-              category="pdf"
-              unitId={unit.id}
-              value={slideUrl}
-              onChange={setSlideUrl}
-              accept=".pdf"
-              preview={false}
-            />
-          </div>
-
-          {/* Title Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
-                标题 (中文)
-              </label>
-              <input
-                type="text"
-                value={titleZh}
-                onChange={(e) => setTitleZh(e.target.value)}
-                placeholder="主课件标题"
-                className={cn(
-                  "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                  theme === "dark"
-                    ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                )}
-              />
-            </div>
-            <div>
-              <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
-                标题 (英文)
-              </label>
-              <input
-                type="text"
-                value={titleEn}
-                onChange={(e) => setTitleEn(e.target.value)}
-                placeholder="Main Slide Title"
-                className={cn(
-                  "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                  theme === "dark"
-                    ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-4">
-            <button
-              onClick={handleSave}
-              disabled={!slideUrl || isLoading}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                slideUrl && !isLoading
-                  ? "bg-cyan-500 hover:bg-cyan-600 text-white"
-                  : "bg-gray-400 cursor-not-allowed text-white"
-              )}
-            >
-              <Save className="w-4 h-4" />
-              {isLoading ? "保存中..." : "保存"}
-            </button>
-            {unit.mainSlide && (
-              <button
-                onClick={handleDelete}
-                disabled={isLoading}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
-                    : "bg-red-50 hover:bg-red-100 text-red-600"
-                )}
-              >
-                <Trash2 className="w-4 h-4" />
-                删除
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Courses Tab Component
-function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
+// Experiments Tab Component
+function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
   const navigate = useNavigate();
   const { courses, isLoading: coursesLoading, fetchCourses, updateCourse, createCourse } = useCourseAdminStore();
   const { fetchUnit } = useUnitAdminStore();
@@ -583,7 +410,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
   };
 
   const handleRemoveCourse = async (courseId: string) => {
-    if (!confirm("确定要将此课程从单元中移除吗？")) return;
+    if (!confirm("确定要将此实验从单元中移除吗？")) return;
 
     setUpdatingCourses((prev) => new Set(prev).add(courseId));
     try {
@@ -678,7 +505,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
           )}
         >
           <BookOpen className="w-5 h-5" />
-          单元课程 ({currentCourses.length})
+          单元实验 ({currentCourses.length})
         </h3>
         <div className="flex items-center gap-2">
           <button
@@ -693,14 +520,14 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
             )}
           >
             <Plus className="w-4 h-4" />
-            新建课程
+            新建实验
           </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-cyan-500 hover:bg-cyan-600 text-white"
           >
             <BookOpen className="w-4 h-4" />
-            添加现有
+            添加现有实验
           </button>
         </div>
       </div>
@@ -721,7 +548,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
               theme === "dark" ? "text-white" : "text-gray-900"
             )}
           >
-            创建新课程
+            创建新实验
           </h4>
 
           <div className="space-y-4">
@@ -734,7 +561,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                   type="text"
                   value={newCourse.title_zh}
                   onChange={(e) => setNewCourse({ ...newCourse, title_zh: e.target.value })}
-                  placeholder="课程标题"
+                  placeholder="实验标题"
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                     theme === "dark"
@@ -751,7 +578,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                   type="text"
                   value={newCourse.title_en}
                   onChange={(e) => setNewCourse({ ...newCourse, title_en: e.target.value })}
-                  placeholder="Course Title"
+                  placeholder="Experiment Title"
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                     theme === "dark"
@@ -770,7 +597,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                 <textarea
                   value={newCourse.description_zh}
                   onChange={(e) => setNewCourse({ ...newCourse, description_zh: e.target.value })}
-                  placeholder="课程描述"
+                  placeholder="实验描述"
                   rows={2}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none",
@@ -787,7 +614,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                 <textarea
                   value={newCourse.description_en}
                   onChange={(e) => setNewCourse({ ...newCourse, description_en: e.target.value })}
-                  placeholder="Course Description"
+                  placeholder="Experiment Description"
                   rows={2}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none",
@@ -842,7 +669,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {updatingCourses.has("new") ? "创建中..." : "创建课程"}
+                {updatingCourses.has("new") ? "创建中..." : "创建实验"}
               </button>
               <button
                 onClick={() => setShowCreateForm(false)}
@@ -872,7 +699,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
         >
           <BookOpen className={cn("w-12 h-12 mx-auto mb-4", theme === "dark" ? "text-gray-600" : "text-gray-400")} />
           <p className={cn("text-lg", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-            暂无课程，点击上方按钮添加
+            暂无实验，点击上方按钮添加
           </p>
         </div>
       ) : (
@@ -923,7 +750,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
-                  {course.title?.["zh-CN"] || "未命名课程"}
+                  {course.title?.["zh-CN"] || "未命名实验"}
                 </h4>
                 <p
                   className={cn(
@@ -966,7 +793,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
               {/* Actions */}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate(`/admin/courses/${course.id}`)}
+                  onClick={() => navigate(`/admin/experiments/${course.id}`)}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                     theme === "dark"
@@ -1026,7 +853,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                   theme === "dark" ? "text-white" : "text-gray-900"
                 )}
               >
-                选择要添加的课程
+                选择要添加的实验
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -1047,7 +874,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="搜索课程..."
+                placeholder="搜索实验..."
                 className={cn(
                   "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                   theme === "dark"
@@ -1066,7 +893,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
               ) : availableCourses.length === 0 ? (
                 <div className="text-center py-10">
                   <p className={cn(theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-                    {searchTerm ? "没有找到匹配的课程" : "所有课程已添加到此单元"}
+                    {searchTerm ? "没有找到匹配的实验" : "所有实验已添加到此单元"}
                   </p>
                 </div>
               ) : (
@@ -1095,7 +922,7 @@ function CoursesTab({ unit, theme }: { unit: any; theme: string }) {
                               theme === "dark" ? "text-white" : "text-gray-900"
                             )}
                           >
-                            {course.title?.["zh-CN"] || "未命名课程"}
+                            {course.title?.["zh-CN"] || "未命名实验"}
                           </p>
                           <p
                             className={cn(

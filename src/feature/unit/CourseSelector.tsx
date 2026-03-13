@@ -15,7 +15,6 @@ import { BookOpen, Play, FileText, ChevronRight } from "lucide-react";
 import type { UnitCourse } from "@/lib/unit.service";
 
 interface CourseSelectorProps {
-  unitId: string;
   courses: UnitCourse[];
   unitColor: string;
   layout?: "grid" | "sidebar";
@@ -25,7 +24,6 @@ interface CourseSelectorProps {
 }
 
 export function CourseSelector({
-  unitId,
   courses,
   unitColor,
   layout = "grid",
@@ -43,7 +41,7 @@ export function CourseSelector({
     return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
   };
 
-  const getCourseHref = (courseId: string) => `/units/${unitId}/courses/${courseId}`;
+  const getCourseHref = (courseId: string) => `/experiments/${courseId}`;
 
   if (courses.length === 0) {
     return (
@@ -62,7 +60,7 @@ export function CourseSelector({
           )}
         />
         <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-          {isZh ? "该单元暂无课程" : "No courses in this unit"}
+          {isZh ? "该单元暂无实验" : "No experiments in this unit"}
         </p>
       </div>
     );
@@ -72,21 +70,21 @@ export function CourseSelector({
     title ||
     (isSidebar
       ? isZh
-        ? "步骤 2 · 进入课程"
-        : "Step 2 · Open a Course"
+        ? "实验入口"
+        : "Experiment entry"
       : isZh
-        ? "单元内课程"
-        : "Courses in This Unit");
+        ? "单元内实验"
+        : "Experiments in This Unit");
 
   const sectionDescription =
     description ||
     (isSidebar
       ? isZh
-        ? "先浏览单元导览，再进入下面的具体课程。每门课程都属于当前单元。"
-        : "Review the unit overview first, then enter a course. Every course below belongs to this unit."
+        ? "选择下面的实验，直接进入课件与媒体资源界面。"
+        : "Choose an experiment below to open the slide and media workspace directly."
       : isZh
-        ? "下面的课程都属于当前单元，进入后查看具体课件与媒体资源。"
-        : "Each course below belongs to the selected unit and opens into detailed slides and media.");
+        ? "下面的实验都属于当前单元，进入后直接查看课件与媒体资源。"
+        : "Each experiment below belongs to the selected unit and opens directly into slides and media.");
 
   return (
     <div className="space-y-4">
@@ -163,7 +161,7 @@ export function CourseSelector({
                           theme === "dark" ? "text-slate-500" : "text-slate-400",
                         )}
                       >
-                        {isZh ? `课程 ${String(index + 1).padStart(2, "0")}` : `Course ${String(index + 1).padStart(2, "0")}`}
+                        {isZh ? `实验 ${String(index + 1).padStart(2, "0")}` : `Experiment ${String(index + 1).padStart(2, "0")}`}
                       </p>
                       <h4
                         className={cn(
@@ -190,7 +188,7 @@ export function CourseSelector({
                     className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold"
                     style={{ color: course.color }}
                   >
-                    {isZh ? "进入课程" : "Open"}
+                    {isZh ? "进入实验" : "Open"}
                     <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </div>
@@ -207,7 +205,7 @@ export function CourseSelector({
                         )}
                       >
                         <FileText className="w-3.5 h-3.5" style={{ color: course.color }} />
-                        {isZh ? "课程课件" : "Slides"}
+                        {isZh ? "实验课件" : "Slides"}
                       </span>
                     )}
                     {course.mediaCount !== undefined && course.mediaCount > 0 && (

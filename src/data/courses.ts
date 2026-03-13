@@ -22,9 +22,10 @@ export interface MainSlide {
   title: LabelI18n;
 }
 
-/** PDF 上的超链接区域 */
+/** PPT/PDF 预览上的超链接区域 */
 export interface PdfHyperlink {
   id: string;
+  sourceMediaId?: string;
   /** PDF 页码（从 1 开始） */
   page: number;
   /** 中心点 X 坐标（相对于 PDF 页面宽度的比例，0-1） */
@@ -45,6 +46,8 @@ export interface MediaResource {
   type: MediaType;
   /** 媒体 URL 或本地路径 */
   url: string;
+  /** PPT 绑定的 PDF 预览地址 */
+  previewPdfUrl?: string;
   /** 媒体标题 */
   title: LabelI18n;
   /** 持续时间（秒，用于视频） */
@@ -66,7 +69,7 @@ export interface CourseData {
   color: string;
   /** 主课件 PDF */
   mainSlide?: MainSlide;
-  /** PDF 上的超链接区域 */
+  /** PPT/PDF 预览上的超链接区域 */
   hyperlinks?: PdfHyperlink[];
   /** 媒体资源列表（不包含 PDF） */
   media: MediaResource[];

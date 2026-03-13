@@ -3,6 +3,7 @@ import {
   BrowserRouter,
   Routes,
   Route,
+  Navigate,
   useParams,
   useNavigate,
   useLocation,
@@ -27,13 +28,13 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // 每个模块都是独立的一级页面，不再是简单的导航枢纽
 
 // ============================================================
-// Module 1: 课程历史
+// Module 1: 实验内容
 // 科学原理 × 历史故事
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
 
 // Module 1b: 实验课单元
-// 单元 × 课程
-const UnitViewerPage = lazy(() => import("@/pages/UnitViewerPage"));
+// 单元列表（旧单元详情页已收敛为课程入口）
+const UnitRedirectPage = lazy(() => import("@/pages/UnitRedirectPage"));
 
 // Module 2: 光学器件
 // 偏振器件 × 光路设计
@@ -74,13 +75,48 @@ function ResearchCanvasWrapper() {
   }
   return <ResearchCanvas projectId={projectId} canvasId={canvasId} />;
 }
+
+function LegacyUnitCourseRouteRedirect() {
+  const { courseId } = useParams();
+
+  return <Navigate to={courseId ? `/experiments/${courseId}` : "/experiments"} replace />;
+}
+
+function LegacyCoursesIndexRedirect() {
+  return <Navigate to="/experiments" replace />;
+}
+
+function LegacyCourseViewerRedirect() {
+  const { courseId } = useParams();
+
+  return <Navigate to={courseId ? `/experiments/${courseId}` : "/experiments"} replace />;
+}
+
+function LegacyAdminCoursesRedirect() {
+  return <Navigate to="/admin/units" replace />;
+}
+
+function LegacyAdminCourseEditorRedirect() {
+  const { courseId } = useParams();
+  const location = useLocation();
+
+  return (
+    <Navigate
+      to={
+        courseId
+          ? { pathname: `/admin/experiments/${courseId}`, search: location.search }
+          : { pathname: "/admin/units" }
+      }
+      replace
+    />
+  );
+}
 // ============================================================
 
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 
 // Admin Pages - 管理员页面
-const AdminCoursesPage = lazy(() => import("@/pages/admin/AdminCoursesPage"));
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
 const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
@@ -161,14 +197,22 @@ function AppRouterContent() {
 
           {/* 6 Core Modules - 六大核心模块（一级页面）首页六个模块直接链接到这些页面 */}
 
-          {/* Module 1: 课程历史 */}
+          {/* Module 1: 实验内容 */}
           <Route
-            path="/courses"
+            path="/experiments"
             element={<CoursesPage />}
           />
           <Route
-            path="/courses/:courseId"
+            path="/experiments/:experimentId"
             element={<CourseViewerPage />}
+          />
+          <Route
+            path="/courses"
+            element={<LegacyCoursesIndexRedirect />}
+          />
+          <Route
+            path="/courses/:courseId"
+            element={<LegacyCourseViewerRedirect />}
           />
 
           {/* Module 1b: 实验课单元 */}
@@ -178,11 +222,11 @@ function AppRouterContent() {
           />
           <Route
             path="/units/:unitId/courses/:courseId"
-            element={<CourseViewerPage />}
+            element={<LegacyUnitCourseRouteRedirect />}
           />
           <Route
             path="/units/:unitId"
-            element={<UnitViewerPage />}
+            element={<UnitRedirectPage />}
           />
 
           {/* Module 2: 光学器件 */}
@@ -287,20 +331,24 @@ function AppRouterContent() {
             }
           />
           <Route
-            path="/admin/courses"
-            element={
-              <AdminRoute>
-                <AdminCoursesPage />
-              </AdminRoute>
-            }
+            path="/admin/experiments"
+            element={<LegacyAdminCoursesRedirect />}
           />
           <Route
-            path="/admin/courses/:courseId"
+            path="/admin/experiments/:courseId"
             element={
               <AdminRoute>
                 <CourseEditorPage />
               </AdminRoute>
             }
+          />
+          <Route
+            path="/admin/courses"
+            element={<LegacyAdminCoursesRedirect />}
+          />
+          <Route
+            path="/admin/courses/:courseId"
+            element={<LegacyAdminCourseEditorRedirect />}
           />
 
           {/* Auth Pages - 认证页面（重定向到首页并打开对话框） */}
@@ -323,7 +371,7 @@ function AppRouterContent() {
                   </p>
                   <h1 className="mb-3 text-4xl font-bold text-[var(--paper-foreground)]">404</h1>
                   <p className="mb-6 text-sm leading-7 text-[var(--glass-text-muted)]">
-                    这个页面没有找到。回到首页继续浏览课程和学习入口。
+                    这个页面没有找到。回到首页继续浏览实验和学习入口。
                   </p>
                   <button
                     onClick={() => (window.location.href = "/")}

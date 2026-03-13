@@ -20,9 +20,11 @@ interface HyperlinkFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   courseId: string;
+  sourceMediaId: string;
+  sourceMediaTitle: string;
   media: CourseMedia[];
   editingHyperlink?: CourseHyperlink | null;
-  newPosition?: { x: number; y: number; page: number } | null;
+  newPosition?: { x: number; y: number; width: number; height: number; page: number } | null;
 }
 
 const DEFAULT_WIDTH = 0.15;
@@ -32,6 +34,8 @@ export function HyperlinkFormDialog({
   isOpen,
   onClose,
   courseId,
+  sourceMediaId,
+  sourceMediaTitle,
   media,
   editingHyperlink,
   newPosition,
@@ -62,8 +66,8 @@ export function HyperlinkFormDialog({
         page: newPosition.page,
         x: newPosition.x,
         y: newPosition.y,
-        width: DEFAULT_WIDTH,
-        height: DEFAULT_HEIGHT,
+        width: newPosition.width,
+        height: newPosition.height,
         targetMediaId: '',
       });
     } else {
@@ -86,6 +90,7 @@ export function HyperlinkFormDialog({
     try {
       if (editingHyperlink) {
         const input: UpdateHyperlinkInput = {
+          sourceMediaId,
           page: formData.page,
           x: formData.x,
           y: formData.y,
@@ -96,6 +101,7 @@ export function HyperlinkFormDialog({
         await updateHyperlink(editingHyperlink.id, input);
       } else {
         const input: CreateHyperlinkInput = {
+          sourceMediaId,
           page: formData.page,
           x: formData.x,
           y: formData.y,
@@ -125,7 +131,7 @@ export function HyperlinkFormDialog({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">
-            {editingHyperlink ? '编辑超链接' : '创建超链接'}
+            {editingHyperlink ? '编辑实验媒体超链接' : '创建实验媒体超链接'}
           </h3>
           <button
             onClick={onClose}
@@ -137,10 +143,15 @@ export function HyperlinkFormDialog({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
+            <p className="mb-1 text-xs text-gray-400">当前 PPT</p>
+            <p className="text-sm text-white">{sourceMediaTitle}</p>
+          </div>
+
           {/* Target Media */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              目标媒体 *
+              目标实验媒体 *
             </label>
             <select
               value={formData.targetMediaId}
@@ -148,7 +159,7 @@ export function HyperlinkFormDialog({
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               required
             >
-              <option value="">选择媒体...</option>
+              <option value="">选择右侧实验媒体...</option>
               {media.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.title['zh-CN']}
@@ -158,7 +169,7 @@ export function HyperlinkFormDialog({
             </select>
             {media.length === 0 && (
               <p className="text-amber-400 text-xs mt-1">
-                暂无可用媒体。请先添加媒体。
+                暂无可用的图片或视频媒体，请先在“媒体”标签中添加。
               </p>
             )}
           </div>

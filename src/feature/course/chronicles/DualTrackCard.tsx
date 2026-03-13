@@ -91,14 +91,14 @@ export function DualTrackCard({ event, eventIndex, isExpanded, onToggle, onReadS
             {event.importance === 1 && (
               <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
             )}
-            {/* 关联课程标记 */}
+            {/* 关联学习模块标记 */}
             {relatedDemos.length > 0 && (
               <span className={cn(
                 'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium',
                 theme === 'dark'
                   ? 'bg-blue-500/20 text-blue-300'
                   : 'bg-blue-100 text-blue-600'
-              )} title={isZh ? `关联 ${relatedDemos.length} 个课程模块` : `Related to ${relatedDemos.length} course module${relatedDemos.length > 1 ? 's' : ''}`}>
+              )} title={isZh ? `关联 ${relatedDemos.length} 个学习模块` : `Related to ${relatedDemos.length} learning module${relatedDemos.length > 1 ? 's' : ''}`}>
                 <GraduationCap className="w-3 h-3" />
                 <span>{relatedDemos.length}</span>
               </span>
@@ -209,7 +209,7 @@ export function DualTrackCard({ event, eventIndex, isExpanded, onToggle, onReadS
 
           {/* Resource Gallery - 已移除，相关资源统一在实验资源库展示 */}
 
-          {/* 关联课程模块 */}
+          {/* 关联学习模块 */}
           {relatedDemos.length > 0 && (
             <div className="mb-3">
               <h4 className={cn(
@@ -217,7 +217,7 @@ export function DualTrackCard({ event, eventIndex, isExpanded, onToggle, onReadS
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
               )}>
                 <GraduationCap className="w-3.5 h-3.5" />
-                {isZh ? '相关课程模块' : 'Related Course Modules'}
+                {isZh ? '相关学习模块' : 'Related Learning Modules'}
               </h4>
               <div className="flex flex-wrap gap-1.5">
                 {relatedDemos.map((demo) => {
@@ -344,4 +344,3 @@ export function DualTrackCard({ event, eventIndex, isExpanded, onToggle, onReadS
     </div>
   )
 }
-

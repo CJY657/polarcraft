@@ -72,6 +72,7 @@ function transformMediaRow(row: MediaRow) {
     id: row.id,
     type: row.type,
     url: row.url,
+    previewPdfUrl: row.preview_pdf_url || undefined,
     title: {
       "zh-CN": row.title_zh,
       "en-US": row.title_en || undefined,
@@ -87,6 +88,7 @@ function transformMediaRow(row: MediaRow) {
 function transformHyperlinkRow(row: HyperlinkRow) {
   return {
     id: row.id,
+    sourceMediaId: row.source_media_id || undefined,
     page: row.page,
     x: row.x,
     y: row.y,
@@ -408,6 +410,7 @@ export class CourseController {
     const data: CreateHyperlinkInput = req.body;
 
     if (
+      !data.sourceMediaId ||
       data.page === undefined ||
       data.x === undefined ||
       data.y === undefined ||
@@ -423,10 +426,22 @@ export class CourseController {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
 
-    // Verify target media exists
+    const sourceMedia = await CourseModel.getMediaById(data.sourceMediaId);
+    if (!sourceMedia || sourceMedia.course_id !== id) {
+      return res.error("PPT 课件不存在", "VALIDATION_ERROR", 400);
+    }
+
+    if (sourceMedia.type !== "pptx") {
+      return res.error("超链接只能配置在 PPT 类型媒体上", "VALIDATION_ERROR", 400);
+    }
+
     const targetMedia = await CourseModel.getMediaById(data.targetMediaId);
-    if (!targetMedia) {
+    if (!targetMedia || targetMedia.course_id !== id) {
       return res.error("目标媒体资源不存在", "VALIDATION_ERROR", 400);
+    }
+
+    if (targetMedia.type === "pptx") {
+      return res.error("超链接目标必须是右侧实验媒体，不能选择 PPT", "VALIDATION_ERROR", 400);
     }
 
     const hyperlinkId = await CourseModel.createHyperlink(id, data);
@@ -449,11 +464,27 @@ export class CourseController {
       return res.error("超链接不存在", "NOT_FOUND", 404);
     }
 
-    // Verify target media if provided
+    const courseId = hyperlink.course_id;
+
+    if (data.sourceMediaId) {
+      const sourceMedia = await CourseModel.getMediaById(data.sourceMediaId);
+      if (!sourceMedia || sourceMedia.course_id !== courseId) {
+        return res.error("PPT 课件不存在", "VALIDATION_ERROR", 400);
+      }
+
+      if (sourceMedia.type !== "pptx") {
+        return res.error("超链接只能配置在 PPT 类型媒体上", "VALIDATION_ERROR", 400);
+      }
+    }
+
     if (data.targetMediaId) {
       const targetMedia = await CourseModel.getMediaById(data.targetMediaId);
-      if (!targetMedia) {
+      if (!targetMedia || targetMedia.course_id !== courseId) {
         return res.error("目标媒体资源不存在", "VALIDATION_ERROR", 400);
+      }
+
+      if (targetMedia.type === "pptx") {
+        return res.error("超链接目标必须是右侧实验媒体，不能选择 PPT", "VALIDATION_ERROR", 400);
       }
     }
 
