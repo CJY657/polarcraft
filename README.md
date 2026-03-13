@@ -137,6 +137,9 @@ npm run build        # 为生产环境构建
 - `COOKIE_SAME_SITE`：默认自动推断；若前后端分域部署，请显式设为 `none`
 - `COOKIE_SECURE`：默认生产环境启用；若 `COOKIE_SAME_SITE=none`，必须为 `true`
 - `COOKIE_DOMAIN`：需要跨子域共享 cookie 时可设置
+- `HTTP_KEEP_ALIVE_TIMEOUT_MS`：Node HTTP keep-alive 超时，默认 `120000`
+- `HTTP_HEADERS_TIMEOUT_MS`：Node headers 超时，默认比 keep-alive 大 `1000ms`
+- `HTTP_REQUEST_TIMEOUT_MS`：上传这类慢请求的总超时，默认 `600000`
 - `EMAIL_ENABLED=true` 后，还需要补齐 `EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USER`、`EMAIL_PASSWORD`、`EMAIL_FROM`
 
 ### 前后端分域部署说明
@@ -150,6 +153,8 @@ npm run build        # 为生产环境构建
 - 后端设置 `COOKIE_SECURE=true`
 
 否则浏览器在拖拽上传本地文件到 `/api/upload/:category` 时，常见现象就是直接报 `Failed to fetch`。
+
+如果你已经是单服务同域部署，错误里看到的还是相对路径（例如 `/api/upload/pptx`），这通常更像是 Render 上的服务连接被中断，而不是 `VITE_API_URL` 本身有问题。优先检查 Render 日志中是否有 `connection reset by peer`、实例重启或上传超时。
 
 ### 本地验证生产构建
 

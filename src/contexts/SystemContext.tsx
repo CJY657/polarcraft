@@ -7,6 +7,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { resolveApiBaseUrl } from '@/lib/api-base';
 
 // =====================================================
 // Types / 类型定义
@@ -63,10 +64,7 @@ const DEFAULT_HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
 // Match the main API client behavior:
 // - local dev can point to an explicit VITE_API_URL
 // - production single-service deployments (e.g. Render) should use same-origin /api
-const configuredApiBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
-const isLocalhostApi =
-  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl);
-const API_BASE_URL = import.meta.env.PROD && isLocalhostApi ? '' : configuredApiBaseUrl;
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
 // =====================================================
 // Provider Component / Provider 组件

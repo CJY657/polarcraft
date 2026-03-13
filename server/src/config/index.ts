@@ -11,6 +11,15 @@ loadEnv();
 
 type SameSiteMode = 'strict' | 'lax' | 'none';
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function parseOrigins(value: string | undefined, fallback: string[]): string[] {
   const candidates = (value || '')
     .split(',')
@@ -64,6 +73,18 @@ const cookieSameSite = parseSameSite(
 const cookieSecure =
   process.env.COOKIE_SECURE === 'true' ||
   (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || cookieSameSite === 'none'));
+const httpKeepAliveTimeoutMs = parsePositiveInt(
+  process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS,
+  120000
+);
+const httpHeadersTimeoutMs = Math.max(
+  parsePositiveInt(process.env.HTTP_HEADERS_TIMEOUT_MS, httpKeepAliveTimeoutMs + 1000),
+  httpKeepAliveTimeoutMs + 1000
+);
+const httpRequestTimeoutMs = parsePositiveInt(
+  process.env.HTTP_REQUEST_TIMEOUT_MS,
+  10 * 60 * 1000
+);
 
 // =====================================================
 // Server Configuration / 服务器配置
@@ -150,6 +171,13 @@ export const config = {
   logging: {
     level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
     enabled: process.env.LOG_ENABLED !== 'false',
+  },
+
+  // HTTP server / HTTP 服务配置
+  http: {
+    keepAliveTimeoutMs: httpKeepAliveTimeoutMs,
+    headersTimeoutMs: httpHeadersTimeoutMs,
+    requestTimeoutMs: httpRequestTimeoutMs,
   },
 } as const;
 

@@ -63,6 +63,7 @@ app.use((req, res, next) => {
   logger.debug(`${req.method} ${req.url}`, {
     ip: req.ip,
     userAgent: req.headers['user-agent'],
+    cfRay: req.headers['cf-ray'],
   });
   next();
 });
@@ -141,6 +142,16 @@ async function startServer() {
       logger.info(`📁 Uploads served from: ${appPaths.uploadRootDir}`);
       logger.info(`📊 Health check: http://localhost:${config.port}/api/health`);
       logger.info('='.repeat(50));
+    });
+
+    server.keepAliveTimeout = config.http.keepAliveTimeoutMs;
+    server.headersTimeout = config.http.headersTimeoutMs;
+    server.requestTimeout = config.http.requestTimeoutMs;
+
+    logger.info('HTTP server timeouts configured', {
+      keepAliveTimeoutMs: server.keepAliveTimeout,
+      headersTimeoutMs: server.headersTimeout,
+      requestTimeoutMs: server.requestTimeout,
     });
 
     const shutdown = async (signal: string) => {

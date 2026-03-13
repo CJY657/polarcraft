@@ -6,10 +6,10 @@
  * 认证通过 HTTP-only cookie 处理
  */
 
-const configuredApiBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
-const isLocalhostApi =
-  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredApiBaseUrl);
-const API_BASE_URL = import.meta.env.PROD && isLocalhostApi ? '' : configuredApiBaseUrl;
+import { describeApiBaseUrl, resolveApiBaseUrl } from './api-base';
+
+const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
+const API_TARGET = describeApiBaseUrl(API_BASE_URL);
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -45,8 +45,12 @@ function normalizeRequestError(error: unknown, url: string): Error {
     error instanceof TypeError &&
     (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))
   ) {
+    const sameOriginHint =
+      API_BASE_URL === ''
+        ? '当前是同域 /api 请求，请优先检查 Render 服务日志、实例重启和上传超时。'
+        : '';
     return new Error(
-      `无法连接到接口服务。请检查 VITE_API_URL、CORS、HTTPS，以及 Render API 服务是否在线。(${url})`
+      `无法连接到接口服务。请求: ${url}；API: ${API_TARGET}。请检查 VITE_API_URL、CORS、HTTPS，以及 Render API 服务是否在线。${sameOriginHint}`
     );
   }
 
