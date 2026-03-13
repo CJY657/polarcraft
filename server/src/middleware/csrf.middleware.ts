@@ -7,10 +7,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { createHMAC, verifyHMAC } from '../utils/crypto.util.js';
-import { config } from '../config/index.js';
+import { createHMAC } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import { sendError } from '../utils/response.util.js';
+import { createReadableCookieOptions } from '../utils/cookie-options.util.js';
 
 /**
  * CSRF token options
@@ -34,13 +34,9 @@ function generateCsrfToken(): string {
  * 设置 CSRF token cookie
  */
 function setCsrfCookie(res: Response, token: string): void {
-  res.cookie(CSRF_TOKEN_COOKIE_NAME, token, {
-    httpOnly: false, // Needs to be readable by JavaScript / 需要能被 JavaScript 读取
-    secure: config.isProduction,
-    sameSite: 'strict',
+  res.cookie(CSRF_TOKEN_COOKIE_NAME, token, createReadableCookieOptions({
     maxAge: CSRF_TOKEN_EXPIRY,
-    path: '/',
-  });
+  }));
 }
 
 /**

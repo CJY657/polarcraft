@@ -102,6 +102,7 @@ npm run build        # 为生产环境构建
 - Render 上只需要创建一个 Node Web Service。
 - 生产环境由 Express 同时提供 `/api`、`/uploads` 和前端 SPA 页面。
 - 上传文件建议挂载 Render Persistent Disk，否则实例重启后上传内容会丢失。
+- 如果采用这个单服务方案，前端不要额外设置 `VITE_API_URL`，保持同域 `/api` 即可。
 
 ### 关键文件
 
@@ -132,7 +133,23 @@ npm run build        # 为生产环境构建
 
 - `FRONTEND_URL`：如需自定义密码重置链接域名，可设置为站点公网地址
 - `API_URL`：如需覆盖默认公网地址，可手动设置
+- `CORS_ORIGIN`：允许的前端来源，支持逗号分隔多个域名
+- `COOKIE_SAME_SITE`：默认自动推断；若前后端分域部署，请显式设为 `none`
+- `COOKIE_SECURE`：默认生产环境启用；若 `COOKIE_SAME_SITE=none`，必须为 `true`
+- `COOKIE_DOMAIN`：需要跨子域共享 cookie 时可设置
 - `EMAIL_ENABLED=true` 后，还需要补齐 `EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USER`、`EMAIL_PASSWORD`、`EMAIL_FROM`
+
+### 前后端分域部署说明
+
+如果你没有使用上面的“单个 Render Web Service”方案，而是把前端和后端分别部署在不同域名：
+
+- 前端设置 `VITE_API_URL=https://你的后端域名`
+- 后端设置 `FRONTEND_URL=https://你的前端域名`
+- 后端设置 `CORS_ORIGIN=https://你的前端域名`
+- 后端设置 `COOKIE_SAME_SITE=none`
+- 后端设置 `COOKIE_SECURE=true`
+
+否则浏览器在拖拽上传本地文件到 `/api/upload/:category` 时，常见现象就是直接报 `Failed to fetch`。
 
 ### 本地验证生产构建
 
@@ -201,6 +218,8 @@ COOKIE_SECRET=<strong_random_string>
 FRONTEND_URL=https://你的域名
 CORS_ORIGIN=https://你的域名
 API_URL=https://你的域名
+COOKIE_SAME_SITE=strict
+COOKIE_SECURE=true
 
 UPLOAD_ROOT_DIR=/var/www/polarcraft/server/uploads
 LOG_LEVEL=info

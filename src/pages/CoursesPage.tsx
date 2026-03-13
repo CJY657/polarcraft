@@ -4,14 +4,12 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/utils/classNames";
 import { PersistentHeader } from "@/components/shared";
 import {
-  ArrowRight,
   BookOpenText,
   Clock,
   Layers,
@@ -126,8 +124,6 @@ export function CoursesPage() {
   void highlightedSections;
 
   const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null;
-  const primaryCourse = selectedUnitCourses[0] ?? null;
-
   useEffect(() => {
     if (!selectedUnit) {
       setSelectedUnitCourses([]);
@@ -748,94 +744,6 @@ export function CoursesPage() {
                   </section>
                 ) : (
                   <>
-                    <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
-                      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-                        <div
-                          className={cn(
-                            "overflow-hidden rounded-[1.5rem] border",
-                            theme === "dark" ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-slate-50",
-                          )}
-                        >
-                          {selectedUnit.coverImage ? (
-                            <img
-                              src={selectedUnit.coverImage}
-                              alt={getLabel(selectedUnit.title)}
-                              className="h-full min-h-[220px] w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex min-h-[220px] items-center justify-center">
-                              <Layers className="h-14 w-14" style={{ color: selectedUnit.color }} />
-                            </div>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                              style={{
-                                color: theme === "dark" ? "#f8fafc" : selectedUnit.color,
-                                backgroundColor: theme === "dark" ? `${selectedUnit.color}20` : `${selectedUnit.color}12`,
-                              }}
-                            >
-                              {isZh ? `单元 ${selectedUnit.sortOrder + 1}` : `Unit ${selectedUnit.sortOrder + 1}`}
-                            </span>
-                            <span className={pillClass}>
-                              {selectedUnit.courseCount || 0} {isZh ? "个实验" : "experiments"}
-                            </span>
-                            <span className={pillClass}>
-                              {selectedUnit.mainSlide
-                                ? isZh ? "主课件已就绪" : "Slides ready"
-                                : isZh ? "主课件待补充" : "Slides pending"}
-                            </span>
-                          </div>
-
-                          <h2 className="mt-4 text-3xl font-semibold tracking-tight">
-                            {getLabel(selectedUnit.title)}
-                          </h2>
-                          <p className={cn("mt-3 max-w-2xl text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
-                            {getLabel(selectedUnit.description)}
-                          </p>
-
-                          <div className="mt-6 flex flex-wrap items-center gap-4">
-                            {primaryCourse ? (
-                              <Link
-                                to={`/experiments/${primaryCourse.id}`}
-                                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                                style={{ backgroundColor: selectedUnit.color }}
-                              >
-                                {isZh ? "进入当前实验" : "Open experiment"}
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled
-                                className={cn(
-                                  "inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold",
-                                  theme === "dark"
-                                    ? "bg-slate-800 text-slate-400"
-                                    : "bg-slate-100 text-slate-500",
-                                )}
-                              >
-                                {selectedUnitCoursesLoading
-                                  ? isZh ? "实验加载中" : "Loading experiment"
-                                  : isZh ? "暂无实验" : "No experiment"}
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab("timeline")}
-                              className="text-sm font-semibold text-[#1d4ed8] transition-opacity hover:opacity-80"
-                            >
-                              {isZh ? "从时间线浏览" : "Browse the timeline"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
                     <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>

@@ -11,6 +11,7 @@ import { UserService } from '../services/user.service.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
+import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 
 export class UserController {
   /**
@@ -100,12 +101,7 @@ export class UserController {
 
     // Clear refresh token cookie
     // 清除刷新令牌 cookie
-    res.clearCookie('refresh_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+    res.clearCookie('refresh_token', createAuthCookieOptions());
 
     logger.info(`User ${req.user!.username} logged out from all sessions (${count} sessions)`);
     res.success(null, '已从所有设备登出');

@@ -22,6 +22,37 @@ interface ApiResponse<T = any> {
   };
 }
 
+async function parseApiResponse<T = any>(response: Response): Promise<ApiResponse<T>> {
+  const text = await response.text();
+
+  if (!text) {
+    return { success: response.ok };
+  }
+
+  try {
+    return JSON.parse(text) as ApiResponse<T>;
+  } catch {
+    throw new Error(
+      response.ok
+        ? 'Server returned an unexpected response'
+        : `Request failed with status ${response.status}`
+    );
+  }
+}
+
+function normalizeRequestError(error: unknown, url: string): Error {
+  if (
+    error instanceof TypeError &&
+    (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))
+  ) {
+    return new Error(
+      `无法连接到接口服务。请检查 VITE_API_URL、CORS、HTTPS，以及 Render API 服务是否在线。(${url})`
+    );
+  }
+
+  return error instanceof Error ? error : new Error('Unknown request error');
+}
+
 // Token refresh state management
 // Token 刷新状态管理
 let isRefreshing = false;
@@ -110,7 +141,7 @@ async function request<T = any>(
 
   try {
     const response = await makeRequest();
-    const data = await response.json();
+    const data = await parseApiResponse<T>(response);
 
     // Handle 401 error - attempt to refresh token
     // 处理 401 错误 - 尝试刷新 token
@@ -161,8 +192,9 @@ async function request<T = any>(
 
     return data;
   } catch (error) {
-    console.error('API request error:', error);
-    throw error;
+    const normalizedError = normalizeRequestError(error, url);
+    console.error('API request error:', normalizedError);
+    throw normalizedError;
   }
 }
 
@@ -206,20 +238,40 @@ export const api = {
       });
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-      // Don't set Content-Type - let browser set it with boundary
-    });
+    const makeUploadRequest = async (): Promise<Response> =>
+      fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        // Don't set Content-Type - let browser set it with boundary
+      });
 
-    const data = await response.json();
+    try {
+      const response = await makeUploadRequest();
+      const data = await parseApiResponse<T>(response);
 
-    if (!response.ok) {
-      throw new Error(data.error?.message || data.message || 'Upload failed');
+      if (response.status === 401 && !endpoint.includes('/auth/')) {
+        await refreshAccessToken();
+        const retryResponse = await makeUploadRequest();
+        const retryData = await parseApiResponse<T>(retryResponse);
+
+        if (!retryResponse.ok) {
+          throw new Error(retryData.error?.message || retryData.message || 'Upload failed');
+        }
+
+        return retryData;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.message || 'Upload failed');
+      }
+
+      return data;
+    } catch (error) {
+      const normalizedError = normalizeRequestError(error, url);
+      console.error('API upload error:', normalizedError);
+      throw normalizedError;
     }
-
-    return data;
   },
 
   // Token is managed via HTTP-only cookie, these are kept for compatibility

@@ -11,6 +11,10 @@ import { AuthService } from '../services/auth.service.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
+import {
+  createAuthCookieOptions,
+  createReadableCookieOptions,
+} from '../utils/cookie-options.util.js';
 
 export class AuthController {
   /**
@@ -25,12 +29,7 @@ export class AuthController {
 
     // Set tokens in HTTP-only cookies (session cookie by default)
     // 在 HTTP-only cookie 中设置令牌（默认为 session cookie）
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path: '/',
-    };
+    const cookieOptions = createAuthCookieOptions();
 
     res.cookie('access_token', result.tokens.accessToken, cookieOptions);
     res.cookie('refresh_token', result.tokens.refreshToken, cookieOptions);
@@ -58,28 +57,24 @@ export class AuthController {
 
     // Set tokens in HTTP-only cookies
     // 在 HTTP-only cookie 中设置令牌
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path: '/',
+    const cookieOptions = createAuthCookieOptions({
       // Only set maxAge for "remember me" - otherwise it's a session cookie
       // 只有"记住我"才设置 maxAge - 否则是 session cookie
       ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }), // 7 days / 7 天
-    };
+    });
 
     res.cookie('access_token', result.tokens.accessToken, cookieOptions);
     res.cookie('refresh_token', result.tokens.refreshToken, cookieOptions);
 
     // Set a non-httpOnly cookie to track "remember me" preference for refresh
     // 设置一个非 httpOnly cookie 来跟踪"记住我"偏好，用于刷新
-    res.cookie('remember_me', rememberMe ? '1' : '0', {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
-    });
+    res.cookie(
+      'remember_me',
+      rememberMe ? '1' : '0',
+      createReadableCookieOptions({
+        ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }),
+      })
+    );
 
     logger.info(`User logged in: ${username}`);
     res.success(result, '登录成功');
@@ -99,18 +94,8 @@ export class AuthController {
 
     // Clear all auth cookies
     // 清除所有认证 cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path: '/',
-    };
-
-    const nonHttpCookieOptions = {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path: '/',
-    };
+    const cookieOptions = createAuthCookieOptions();
+    const nonHttpCookieOptions = createReadableCookieOptions();
 
     res.clearCookie('access_token', cookieOptions);
     res.clearCookie('refresh_token', cookieOptions);
@@ -148,13 +133,9 @@ export class AuthController {
 
     // Update cookies with new tokens
     // 用新令牌更新 cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path: '/',
+    const cookieOptions = createAuthCookieOptions({
       ...(rememberMe && { maxAge: 7 * 24 * 60 * 60 * 1000 }), // 7 days / 7 天
-    };
+    });
 
     res.cookie('access_token', result.accessToken, cookieOptions);
     res.cookie('refresh_token', result.refreshToken, cookieOptions);

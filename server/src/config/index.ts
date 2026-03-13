@@ -9,17 +9,70 @@ import { PasswordPolicy } from '../types/auth.types.js';
 // Load environment variables
 loadEnv();
 
+type SameSiteMode = 'strict' | 'lax' | 'none';
+
+function parseOrigins(value: string | undefined, fallback: string[]): string[] {
+  const candidates = (value || '')
+    .split(',')
+    .map((item) => item.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  return candidates.length > 0 ? [...new Set(candidates)] : fallback;
+}
+
+function getOrigin(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function parseSameSite(value: string | undefined, fallback: SameSiteMode): SameSiteMode {
+  const normalized = value?.trim().toLowerCase();
+
+  if (normalized === 'strict' || normalized === 'lax' || normalized === 'none') {
+    return normalized;
+  }
+
+  return fallback;
+}
+
+const port = parseInt(process.env.PORT || '3001', 10);
+const defaultApiUrl =
+  process.env.API_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  `http://localhost:${process.env.PORT || '3001'}`;
+const defaultFrontendUrl =
+  process.env.FRONTEND_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.API_URL ||
+  'http://localhost:5173';
+const apiOrigin = getOrigin(defaultApiUrl);
+const frontendOrigin = getOrigin(defaultFrontendUrl);
+const corsOrigins = parseOrigins(process.env.CORS_ORIGIN, [
+  frontendOrigin || 'http://localhost:5173',
+]);
+const cookieSameSite = parseSameSite(
+  process.env.COOKIE_SAME_SITE,
+  apiOrigin && frontendOrigin && apiOrigin !== frontendOrigin ? 'none' : 'strict',
+);
+const cookieSecure =
+  process.env.COOKIE_SECURE === 'true' ||
+  (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || cookieSameSite === 'none'));
+
 // =====================================================
 // Server Configuration / 服务器配置
 // =====================================================
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '3001', 10),
-  apiUrl:
-    process.env.API_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
-    `http://localhost:${process.env.PORT || '3001'}`,
+  port,
+  apiUrl: defaultApiUrl,
   isDevelopment: process.env.NODE_ENV !== 'production',
   isProduction: process.env.NODE_ENV === 'production',
 
@@ -59,11 +112,7 @@ export const config = {
 
   // CORS / CORS 配置
   cors: {
-    origin:
-      process.env.CORS_ORIGIN ||
-      process.env.FRONTEND_URL ||
-      process.env.RENDER_EXTERNAL_URL ||
-      'http://localhost:5173',
+    origins: corsOrigins,
   },
 
   // CAPTCHA / 验证码配置
@@ -77,14 +126,13 @@ export const config = {
   security: {
     csrfSecret: process.env.CSRF_SECRET || 'your_csrf_secret_change_this',
     cookieSecret: process.env.COOKIE_SECRET || 'your_cookie_secret_change_this',
+    cookieSameSite,
+    cookieSecure,
+    cookieDomain: process.env.COOKIE_DOMAIN || undefined,
   },
 
   // Frontend URL / 前端 URL
-  frontendUrl:
-    process.env.FRONTEND_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
-    process.env.API_URL ||
-    'http://localhost:5173',
+  frontendUrl: defaultFrontendUrl,
 
   // Email / 邮件配置
   email: {
@@ -136,5 +184,9 @@ export function validateConfig(): void {
     throw new Error(
       `Missing required environment variables: ${missingVars.join(', ')}`
     );
+  }
+
+  if (config.security.cookieSameSite === 'none' && !config.security.cookieSecure) {
+    throw new Error('COOKIE_SAME_SITE=none requires COOKIE_SECURE=true');
   }
 }

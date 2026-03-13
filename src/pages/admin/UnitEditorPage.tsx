@@ -12,7 +12,19 @@ import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
 import { useCourseAdminStore } from "@/stores/courseAdminStore";
 import { UnitFormDialog } from "@/feature/admin/components/UnitFormDialog";
-import { ArrowLeft, Settings, BookOpen, Save, Plus, Edit, Loader2, X, Check, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Settings,
+  BookOpen,
+  Save,
+  Plus,
+  Edit,
+  Loader2,
+  X,
+  Check,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 
 type TabId = "settings" | "experiments";
 
@@ -39,7 +51,11 @@ export default function UnitEditorPage() {
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
-    if (requestedTab === "settings" || requestedTab === "experiments" || requestedTab === "courses") {
+    if (
+      requestedTab === "settings" ||
+      requestedTab === "experiments" ||
+      requestedTab === "courses"
+    ) {
       setActiveTab(requestedTab === "courses" ? "experiments" : requestedTab);
     }
   }, [searchParams]);
@@ -49,7 +65,7 @@ export default function UnitEditorPage() {
       <div
         className={cn(
           "min-h-screen flex items-center justify-center",
-          theme === "dark" ? "bg-slate-900" : "bg-gray-50"
+          theme === "dark" ? "bg-slate-900" : "bg-gray-50",
         )}
       >
         <div className="animate-pulse flex flex-col items-center gap-4">
@@ -65,24 +81,19 @@ export default function UnitEditorPage() {
       <div
         className={cn(
           "min-h-screen flex items-center justify-center",
-          theme === "dark" ? "bg-slate-900" : "bg-gray-50"
+          theme === "dark" ? "bg-slate-900" : "bg-gray-50",
         )}
       >
         <div className="text-center">
           <h2
             className={cn(
               "text-xl font-semibold mb-2",
-              theme === "dark" ? "text-white" : "text-gray-900"
+              theme === "dark" ? "text-white" : "text-gray-900",
             )}
           >
             单元未找到
           </h2>
-          <p
-            className={cn(
-              "mb-4",
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            )}
-          >
+          <p className={cn("mb-4", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
             您查找的单元不存在。
           </p>
           <button
@@ -97,19 +108,12 @@ export default function UnitEditorPage() {
   }
 
   return (
-    <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark" ? "bg-slate-900" : "bg-gray-50"
-      )}
-    >
+    <div className={cn("min-h-screen", theme === "dark" ? "bg-slate-900" : "bg-gray-50")}>
       {/* Header */}
       <div
         className={cn(
           "border-b",
-          theme === "dark"
-            ? "bg-slate-800 border-slate-700"
-            : "bg-white border-gray-200"
+          theme === "dark" ? "bg-slate-800 border-slate-700" : "bg-white border-gray-200",
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,7 +125,7 @@ export default function UnitEditorPage() {
                   "transition-colors",
                   theme === "dark"
                     ? "text-gray-400 hover:text-white"
-                    : "text-gray-600 hover:text-gray-900"
+                    : "text-gray-600 hover:text-gray-900",
                 )}
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -130,7 +134,7 @@ export default function UnitEditorPage() {
                 <h1
                   className={cn(
                     "text-xl font-semibold",
-                    theme === "dark" ? "text-white" : "text-gray-900"
+                    theme === "dark" ? "text-white" : "text-gray-900",
                   )}
                 >
                   {currentUnit?.title?.["zh-CN"] || "加载中..."}
@@ -143,7 +147,7 @@ export default function UnitEditorPage() {
                 "px-3 py-1.5 rounded-lg text-sm transition-colors",
                 theme === "dark"
                   ? "bg-slate-700 hover:bg-slate-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700",
               )}
             >
               编辑详情
@@ -164,7 +168,7 @@ export default function UnitEditorPage() {
                       : "text-cyan-600 border-cyan-600"
                     : theme === "dark"
                       ? "text-gray-400 border-transparent hover:text-gray-300"
-                      : "text-gray-500 border-transparent hover:text-gray-600"
+                      : "text-gray-500 border-transparent hover:text-gray-600",
                 )}
               >
                 {tab.icon}
@@ -183,14 +187,16 @@ export default function UnitEditorPage() {
               "p-4 rounded-lg flex items-center justify-between",
               theme === "dark"
                 ? "bg-red-500/10 border border-red-500/20"
-                : "bg-red-50 border border-red-200"
+                : "bg-red-50 border border-red-200",
             )}
           >
             <span className={cn(theme === "dark" ? "text-red-400" : "text-red-600")}>{error}</span>
             <button
               onClick={clearError}
               className={cn(
-                theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-600 hover:text-red-500"
+                theme === "dark"
+                  ? "text-red-400 hover:text-red-300"
+                  : "text-red-600 hover:text-red-500",
               )}
             >
               ×
@@ -202,10 +208,16 @@ export default function UnitEditorPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === "settings" && currentUnit && (
-          <SettingsTab unit={currentUnit} theme={theme} />
+          <SettingsTab
+            unit={currentUnit}
+            theme={theme}
+          />
         )}
         {activeTab === "experiments" && currentUnit && (
-          <ExperimentsTab unit={currentUnit} theme={theme} />
+          <ExperimentsTab
+            unit={currentUnit}
+            theme={theme}
+          />
         )}
       </div>
 
@@ -232,24 +244,20 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
       <div
         className={cn(
           "rounded-xl p-6 border",
-          theme === "dark"
-            ? "bg-slate-800 border-slate-700"
-            : "bg-white border-gray-200 shadow-sm"
+          theme === "dark" ? "bg-slate-800 border-slate-700" : "bg-white border-gray-200 shadow-sm",
         )}
       >
         <h3
           className={cn(
             "text-lg font-semibold mb-4",
-            theme === "dark" ? "text-white" : "text-gray-900"
+            theme === "dark" ? "text-white" : "text-gray-900",
           )}
         >
           单元信息
         </h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
-              主题色:
-            </span>
+            <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>主题色:</span>
             <div className="flex items-center gap-2 mt-1">
               <div
                 className="w-4 h-4 rounded"
@@ -297,7 +305,9 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
               <span className={theme === "dark" ? "text-gray-400" : "text-gray-500"}>
                 封面图片:
               </span>
-              <p className={cn("break-all mt-1", theme === "dark" ? "text-white" : "text-gray-900")}>
+              <p
+                className={cn("break-all mt-1", theme === "dark" ? "text-white" : "text-gray-900")}
+              >
                 {unit.coverImage}
               </p>
             </div>
@@ -309,15 +319,13 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
       <div
         className={cn(
           "rounded-xl p-6 border",
-          theme === "dark"
-            ? "bg-slate-800 border-slate-700"
-            : "bg-white border-gray-200 shadow-sm"
+          theme === "dark" ? "bg-slate-800 border-slate-700" : "bg-white border-gray-200 shadow-sm",
         )}
       >
         <h3
           className={cn(
             "text-lg font-semibold mb-4",
-            theme === "dark" ? "text-white" : "text-gray-900"
+            theme === "dark" ? "text-white" : "text-gray-900",
           )}
         >
           统计信息
@@ -326,25 +334,23 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
           <div
             className={cn(
               "text-center p-4 rounded-lg",
-              theme === "dark" ? "bg-slate-700/50" : "bg-gray-50"
+              theme === "dark" ? "bg-slate-700/50" : "bg-gray-50",
             )}
           >
             <p className="text-3xl font-bold text-cyan-400">
               {unit.courses?.length || unit.courseCount || 0}
             </p>
             <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}>
-                关联实验
+              关联实验
             </p>
           </div>
           <div
             className={cn(
               "text-center p-4 rounded-lg",
-              theme === "dark" ? "bg-slate-700/50" : "bg-gray-50"
+              theme === "dark" ? "bg-slate-700/50" : "bg-gray-50",
             )}
           >
-            <p className="text-3xl font-bold text-cyan-400">
-              {unit.sortOrder}
-            </p>
+            <p className="text-3xl font-bold text-cyan-400">{unit.sortOrder}</p>
             <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-500")}>
               排序
             </p>
@@ -358,7 +364,13 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
 // Experiments Tab Component
 function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
   const navigate = useNavigate();
-  const { courses, isLoading: coursesLoading, fetchCourses, updateCourse, createCourse } = useCourseAdminStore();
+  const {
+    courses,
+    isLoading: coursesLoading,
+    fetchCourses,
+    updateCourse,
+    createCourse,
+  } = useCourseAdminStore();
   const { fetchUnit } = useUnitAdminStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -386,10 +398,11 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
 
   // Courses available to add (not in this unit)
   const availableCourses = courses.filter(
-    (course) => !unitCourseIds.has(course.id) &&
-    (searchTerm === "" ||
-      course.title?.["zh-CN"]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.title?.["en-US"]?.toLowerCase().includes(searchTerm.toLowerCase()))
+    (course) =>
+      !unitCourseIds.has(course.id) &&
+      (searchTerm === "" ||
+        course.title?.["zh-CN"]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.title?.["en-US"]?.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const handleAddCourse = async (courseId: string) => {
@@ -438,7 +451,10 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
 
     // Swap courses
     const newOrder = [...currentCourses];
-    [newOrder[currentIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[currentIndex]];
+    [newOrder[currentIndex], newOrder[targetIndex]] = [
+      newOrder[targetIndex],
+      newOrder[currentIndex],
+    ];
 
     setUpdatingCourses((prev) => new Set(prev).add(courseId));
     try {
@@ -501,11 +517,11 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         <h3
           className={cn(
             "text-lg font-semibold flex items-center gap-2",
-            theme === "dark" ? "text-white" : "text-gray-900"
+            theme === "dark" ? "text-white" : "text-gray-900",
           )}
         >
           <BookOpen className="w-5 h-5" />
-          单元实验 ({currentCourses.length})
+          实验 ({currentCourses.length})
         </h3>
         <div className="flex items-center gap-2">
           <button
@@ -516,7 +532,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                 ? "bg-gray-500 text-white"
                 : theme === "dark"
                   ? "bg-slate-700 hover:bg-slate-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700",
             )}
           >
             <Plus className="w-4 h-4" />
@@ -539,13 +555,13 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
             "rounded-xl p-6 border",
             theme === "dark"
               ? "bg-slate-800 border-slate-700"
-              : "bg-white border-gray-200 shadow-sm"
+              : "bg-white border-gray-200 shadow-sm",
           )}
         >
           <h4
             className={cn(
               "text-md font-semibold mb-4",
-              theme === "dark" ? "text-white" : "text-gray-900"
+              theme === "dark" ? "text-white" : "text-gray-900",
             )}
           >
             创建新实验
@@ -554,7 +570,12 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
                   标题 (中文) *
                 </label>
                 <input
@@ -566,12 +587,17 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                     theme === "dark"
                       ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
                   )}
                 />
               </div>
               <div>
-                <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
                   标题 (英文)
                 </label>
                 <input
@@ -583,7 +609,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                     theme === "dark"
                       ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
                   )}
                 />
               </div>
@@ -591,7 +617,12 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
                   描述 (中文)
                 </label>
                 <textarea
@@ -603,12 +634,17 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none",
                     theme === "dark"
                       ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
                   )}
                 />
               </div>
               <div>
-                <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
                   描述 (英文)
                 </label>
                 <textarea
@@ -620,7 +656,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none",
                     theme === "dark"
                       ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
                   )}
                 />
               </div>
@@ -628,7 +664,12 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
 
             <div className="flex items-center gap-4">
               <div>
-                <label className={cn("block text-sm font-medium mb-2", theme === "dark" ? "text-gray-300" : "text-gray-700")}>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
                   主题色
                 </label>
                 <div className="flex items-center gap-2">
@@ -646,7 +687,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                       "px-2 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 w-24 text-sm",
                       theme === "dark"
                         ? "bg-slate-700 border-slate-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
+                        : "bg-white border-gray-300 text-gray-900",
                     )}
                   />
                 </div>
@@ -661,7 +702,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   newCourse.title_zh.trim() && !updatingCourses.has("new")
                     ? "bg-cyan-500 hover:bg-cyan-600 text-white"
-                    : "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-gray-400 cursor-not-allowed text-white",
                 )}
               >
                 {updatingCourses.has("new") ? (
@@ -677,7 +718,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   theme === "dark"
                     ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700",
                 )}
               >
                 取消
@@ -694,10 +735,15 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
             "rounded-xl p-8 border text-center",
             theme === "dark"
               ? "bg-slate-800 border-slate-700"
-              : "bg-white border-gray-200 shadow-sm"
+              : "bg-white border-gray-200 shadow-sm",
           )}
         >
-          <BookOpen className={cn("w-12 h-12 mx-auto mb-4", theme === "dark" ? "text-gray-600" : "text-gray-400")} />
+          <BookOpen
+            className={cn(
+              "w-12 h-12 mx-auto mb-4",
+              theme === "dark" ? "text-gray-600" : "text-gray-400",
+            )}
+          />
           <p className={cn("text-lg", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
             暂无实验，点击上方按钮添加
           </p>
@@ -711,14 +757,14 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                 "flex items-center gap-4 p-4 rounded-xl border transition-all",
                 theme === "dark"
                   ? "bg-slate-800 border-slate-700 hover:border-slate-500"
-                  : "bg-white border-gray-200 shadow-sm hover:shadow-md"
+                  : "bg-white border-gray-200 shadow-sm hover:shadow-md",
               )}
             >
               {/* Order Number */}
               <div
                 className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0",
-                  theme === "dark" ? "bg-slate-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                  theme === "dark" ? "bg-slate-700 text-gray-300" : "bg-gray-100 text-gray-600",
                 )}
               >
                 {index + 1}
@@ -738,7 +784,10 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <BookOpen className="w-6 h-6" style={{ color: course.color }} />
+                  <BookOpen
+                    className="w-6 h-6"
+                    style={{ color: course.color }}
+                  />
                 )}
               </div>
 
@@ -747,7 +796,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                 <h4
                   className={cn(
                     "font-semibold truncate",
-                    theme === "dark" ? "text-white" : "text-gray-900"
+                    theme === "dark" ? "text-white" : "text-gray-900",
                   )}
                 >
                   {course.title?.["zh-CN"] || "未命名实验"}
@@ -755,7 +804,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                 <p
                   className={cn(
                     "text-sm truncate",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    theme === "dark" ? "text-gray-400" : "text-gray-600",
                   )}
                 >
                   {course.description?.["zh-CN"] || "暂无描述"}
@@ -771,7 +820,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "p-1 rounded transition-colors",
                     theme === "dark"
                       ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
-                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30"
+                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
                   )}
                 >
                   <ChevronUp className="w-4 h-4" />
@@ -783,7 +832,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "p-1 rounded transition-colors",
                     theme === "dark"
                       ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
-                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30"
+                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
                   )}
                 >
                   <ChevronDown className="w-4 h-4" />
@@ -798,7 +847,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                     theme === "dark"
                       ? "bg-slate-700 hover:bg-slate-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700",
                   )}
                 >
                   <Edit className="w-3.5 h-3.5" />
@@ -812,7 +861,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                     theme === "dark"
                       ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
                       : "bg-red-50 hover:bg-red-100 text-red-600",
-                    updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed"
+                    updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   {updatingCourses.has(course.id) ? (
@@ -837,20 +886,20 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
           <div
             className={cn(
               "relative w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl overflow-hidden",
-              theme === "dark" ? "bg-slate-800" : "bg-white"
+              theme === "dark" ? "bg-slate-800" : "bg-white",
             )}
           >
             {/* Modal Header */}
             <div
               className={cn(
                 "flex items-center justify-between p-4 border-b",
-                theme === "dark" ? "border-slate-700" : "border-gray-200"
+                theme === "dark" ? "border-slate-700" : "border-gray-200",
               )}
             >
               <h3
                 className={cn(
                   "text-lg font-semibold",
-                  theme === "dark" ? "text-white" : "text-gray-900"
+                  theme === "dark" ? "text-white" : "text-gray-900",
                 )}
               >
                 选择要添加的实验
@@ -861,7 +910,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   "p-1 rounded-lg transition-colors",
                   theme === "dark"
                     ? "text-gray-400 hover:text-white hover:bg-slate-700"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
                 )}
               >
                 <X className="w-5 h-5" />
@@ -879,7 +928,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
                   theme === "dark"
                     ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
                 )}
               />
             </div>
@@ -905,7 +954,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                         "flex items-center justify-between p-3 rounded-lg border transition-colors",
                         theme === "dark"
                           ? "bg-slate-700/50 border-slate-600 hover:border-slate-500"
-                          : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                          : "bg-gray-50 border-gray-200 hover:border-gray-300",
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -913,13 +962,16 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center"
                           style={{ backgroundColor: `${course.color}30` }}
                         >
-                          <BookOpen className="w-5 h-5" style={{ color: course.color }} />
+                          <BookOpen
+                            className="w-5 h-5"
+                            style={{ color: course.color }}
+                          />
                         </div>
                         <div>
                           <p
                             className={cn(
                               "font-medium",
-                              theme === "dark" ? "text-white" : "text-gray-900"
+                              theme === "dark" ? "text-white" : "text-gray-900",
                             )}
                           >
                             {course.title?.["zh-CN"] || "未命名实验"}
@@ -927,7 +979,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                           <p
                             className={cn(
                               "text-sm",
-                              theme === "dark" ? "text-gray-400" : "text-gray-600"
+                              theme === "dark" ? "text-gray-400" : "text-gray-600",
                             )}
                           >
                             {course.description?.["zh-CN"] || "暂无描述"}
@@ -940,7 +992,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                         className={cn(
                           "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                           "bg-cyan-500 hover:bg-cyan-600 text-white",
-                          updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed"
+                          updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed",
                         )}
                       >
                         {updatingCourses.has(course.id) ? (
