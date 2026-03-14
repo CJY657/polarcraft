@@ -79,6 +79,14 @@ function transformCourseRowSimple(row: CourseRow) {
   };
 }
 
+function resolveCourseThumbnail(row: CourseRow, media: MediaRow[]) {
+  if (row.cover_image) {
+    return row.cover_image;
+  }
+
+  return media.find((item) => item.type === "image" && item.url)?.url;
+}
+
 export class UnitController {
   // ============================================================
   // Public API / 公开接口
@@ -167,11 +175,14 @@ export class UnitController {
     // Get additional data for each course
     const coursesWithData = await Promise.all(
       courses.map(async (course) => {
-        const mainSlide = await CourseModel.getMainSlide(course.id);
-        const media = await CourseModel.getMediaByCourse(course.id);
+        const [mainSlide, media] = await Promise.all([
+          CourseModel.getMainSlide(course.id),
+          CourseModel.getMediaByCourse(course.id),
+        ]);
 
         return {
           ...transformCourseRowSimple(course),
+          thumbnailImage: resolveCourseThumbnail(course, media),
           mainSlide: mainSlide
             ? {
                 id: mainSlide.id,
@@ -390,9 +401,11 @@ export class UnitController {
     // Get additional data for each course
     const coursesWithData = await Promise.all(
       courses.map(async (course) => {
-        const mainSlide = await CourseModel.getMainSlide(course.id);
-        const media = await CourseModel.getMediaByCourse(course.id);
-        const hyperlinks = await CourseModel.getHyperlinksByCourse(course.id);
+        const [mainSlide, media, hyperlinks] = await Promise.all([
+          CourseModel.getMainSlide(course.id),
+          CourseModel.getMediaByCourse(course.id),
+          CourseModel.getHyperlinksByCourse(course.id),
+        ]);
 
         return {
           ...transformCourseRowSimple(course),

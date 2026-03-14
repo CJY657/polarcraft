@@ -5,7 +5,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { BookOpenText, Layers, Loader2, type LucideIcon } from "lucide-react";
+import { BookOpenText, Home, Layers, Loader2, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -31,7 +32,12 @@ function EmptyWorkspace({
         className={cn("mb-4 h-12 w-12", theme === "dark" ? "text-slate-600" : "text-slate-400")}
       />
       <p className="text-lg font-semibold">{title}</p>
-      <p className={cn("mt-2 max-w-md text-sm", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
+      <p
+        className={cn(
+          "mt-2 max-w-md text-sm",
+          theme === "dark" ? "text-slate-400" : "text-slate-500",
+        )}
+      >
         {description}
       </p>
     </div>
@@ -109,7 +115,11 @@ export function CoursesPage() {
         setSelectedUnitCourses([]);
         setSelectedUnitCoursesLoading(false);
         setSelectedUnitCoursesError(
-          error instanceof Error ? error.message : isZh ? "实验加载失败" : "Failed to load experiments",
+          error instanceof Error
+            ? error.message
+            : isZh
+              ? "实验加载失败"
+              : "Failed to load experiments",
         );
       });
 
@@ -118,9 +128,8 @@ export function CoursesPage() {
     };
   }, [isZh, selectedUnit, selectedUnitCoursesReloadKey]);
 
-  const surfaceClass = theme === "dark"
-    ? "border-slate-800 bg-slate-950/80"
-    : "border-slate-200 bg-white";
+  const surfaceClass =
+    theme === "dark" ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-white";
   const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
   const subtleTextClass = theme === "dark" ? "text-slate-500" : "text-slate-500";
   const pillClass = cn(
@@ -132,10 +141,7 @@ export function CoursesPage() {
 
   return (
     <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark" ? "text-slate-100" : "text-slate-900",
-      )}
+      className={cn("min-h-screen", theme === "dark" ? "text-slate-100" : "text-slate-900")}
       style={{
         background:
           theme === "dark"
@@ -157,40 +163,39 @@ export function CoursesPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
                 Experiment Library
               </p>
-              <h1
-                className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                {t("page.courses.title")}
-              </h1>
-              <p className={cn("mt-2 text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
-                {isZh
-                  ? "按单元进入实验课件与媒体内容，不再和历史时间线混排。"
-                  : "Open experiments by unit without mixing in the historical timeline."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className={pillClass}>{units.length} {isZh ? "个单元" : "units"}</span>
-              <span className={pillClass}>
-                {selectedUnit?.courseCount || 0} {isZh ? "个实验" : "experiments"}
-              </span>
+              <div className="mt-2 flex items-center gap-4">
+                <h1
+                  className="text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  {t("page.courses.title")}
+                </h1>
+                <Link
+                  to="/"
+                  className={cn(
+                    "group inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95",
+                    theme === "dark"
+                      ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300 ring-4 ring-cyan-400/20"
+                      : "bg-cyan-600 text-white hover:bg-cyan-700 ring-4 ring-cyan-600/20",
+                  )}
+                >
+                  <Home className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                  <span>{isZh ? "返回主页" : "Back home"}</span>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
         <div className="mx-auto mt-2 grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-8">
           <aside className="lg:sticky lg:top-[108px] lg:self-start">
-            <section
-              className={cn(
-                "rounded-[1.75rem] border px-4 py-5",
-                surfaceClass,
-              )}
-            >
+            <section className={cn("rounded-[1.75rem] border px-4 py-5", surfaceClass)}>
               <div className="px-2 pb-3">
                 <h2 className="text-lg font-semibold">{isZh ? "实验单元" : "Units"}</h2>
                 <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
-                  {isZh ? "先选单元，再进入当前单元下的实验。" : "Choose a unit, then open one of its experiments."}
+                  {isZh
+                    ? "先选单元，再进入当前单元下的实验。"
+                    : "Choose a unit, then open one of its experiments."}
                 </p>
               </div>
 
@@ -208,7 +213,12 @@ export function CoursesPage() {
                   }
                 />
               ) : (
-                <div className={cn("mt-2 divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
+                <div
+                  className={cn(
+                    "mt-2 divide-y",
+                    theme === "dark" ? "divide-slate-800" : "divide-slate-200",
+                  )}
+                >
                   {units.map((unit) => {
                     const isSelected = selectedUnit?.id === unit.id;
 
@@ -224,7 +234,8 @@ export function CoursesPage() {
                         style={
                           isSelected
                             ? {
-                                backgroundColor: theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
+                                backgroundColor:
+                                  theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
                               }
                             : undefined
                         }
@@ -235,9 +246,28 @@ export function CoursesPage() {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{getLabel(unit.title)}</p>
-                          <p className={cn("mt-1 text-xs", subtleTextClass)}>
-                            {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`} · {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
-                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                theme === "dark"
+                                  ? "bg-slate-800 text-slate-300"
+                                  : "bg-slate-100 text-slate-600",
+                              )}
+                            >
+                              {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`}
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                theme === "dark"
+                                  ? "bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-400/20"
+                                  : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
+                              )}
+                            >
+                              {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
+                            </span>
+                          </div>
                         </div>
                       </button>
                     );
@@ -262,7 +292,9 @@ export function CoursesPage() {
                     icon={Layers}
                     title={isZh ? "暂无单元" : "No units"}
                     description={
-                      isZh ? "当前还没有可展示的实验单元。" : "No experiment units are available yet."
+                      isZh
+                        ? "当前还没有可展示的实验单元。"
+                        : "No experiment units are available yet."
                     }
                   />
                 </section>
@@ -270,14 +302,20 @@ export function CoursesPage() {
                 <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold">{isZh ? "本单元实验" : "Experiments in this unit"}</h3>
+                      <h3 className="text-xl font-semibold">
+                        {isZh ? "本单元实验" : "Experiments in this unit"}
+                      </h3>
                       <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
-                        {isZh ? "选择一个实验，直接进入课件与媒体内容。" : "Choose an experiment to open its slides and media."}
+                        {isZh
+                          ? "选择一个实验，直接进入课件与媒体内容。"
+                          : "Choose an experiment to open its slides and media."}
                       </p>
                     </div>
                     <span className={pillClass}>
                       {selectedUnitCoursesLoading
-                        ? isZh ? "实验加载中" : "Loading experiments"
+                        ? isZh
+                          ? "实验加载中"
+                          : "Loading experiments"
                         : `${selectedUnitCourses.length} ${isZh ? "个实验" : "experiments"}`}
                     </span>
                   </div>
@@ -289,7 +327,12 @@ export function CoursesPage() {
                       </div>
                     ) : selectedUnitCoursesError ? (
                       <div className="py-8 text-center">
-                        <p className={cn("text-sm", theme === "dark" ? "text-red-300" : "text-red-600")}>
+                        <p
+                          className={cn(
+                            "text-sm",
+                            theme === "dark" ? "text-red-300" : "text-red-600",
+                          )}
+                        >
                           {selectedUnitCoursesError}
                         </p>
                         <button

@@ -15,7 +15,7 @@ import { cn } from "@/utils/classNames";
 import { PersistentHeader } from "@/components/shared";
 import { WorksGrid } from "@/feature/gallery";
 import { getPrivateWorks } from "@/data/gallery";
-import { FlaskConical, Lock, MessageSquare, ArrowRight } from "lucide-react";
+import { FlaskConical, Lock, MessageSquare, ArrowRight, ChevronLeft } from "lucide-react";
 
 export function ExperimentsPage() {
   const { t } = useTranslation();
@@ -27,7 +27,7 @@ export function ExperimentsPage() {
   return (
     <div
       className={cn(
-        "min-h-screen",
+        "min-h-screen pb-12",
         theme === "dark"
           ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
           : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
@@ -42,105 +42,125 @@ export function ExperimentsPage() {
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className={cn(
-                "p-3 rounded-xl",
-                theme === "dark"
-                  ? "bg-amber-500/20 text-amber-400"
-                  : "bg-amber-100 text-amber-600"
-              )}
-            >
-              <FlaskConical className="w-6 h-6" />
-            </div>
-            <div>
-              <h1
+        {/* Back Button and Page Header Area */}
+        <div className="mb-10">
+          <Link
+            to="/"
+            className={cn(
+              "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:gap-3 mb-6",
+              theme === "dark"
+                ? "bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white border border-slate-700/50"
+                : "bg-white/50 text-slate-600 hover:bg-white hover:text-slate-900 border border-slate-200"
+            )}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {t("common.backToHome") || "返回首页"}
+          </Link>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div
                 className={cn(
-                  "text-3xl font-bold",
-                  theme === "dark" ? "text-white" : "text-gray-900"
+                  "p-4 rounded-2xl shadow-lg shadow-amber-500/10",
+                  theme === "dark"
+                    ? "bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-400 border border-amber-500/20"
+                    : "bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 border border-amber-200"
                 )}
               >
-                {t("lab.title")}
-              </h1>
+                <FlaskConical className="w-8 h-8" />
+              </div>
+              <div>
+                <h1
+                  className={cn(
+                    "text-4xl font-black tracking-tight",
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  )}
+                >
+                  {t("lab.title")}
+                </h1>
+                <p className={cn("text-lg mt-1 opacity-80", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+                  {t("lab.description")}
+                </p>
+              </div>
             </div>
           </div>
 
-          <p className={cn("text-lg mb-4", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-            {t("lab.description")}
-          </p>
-
           {/* Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div
               className={cn(
-                "p-4 rounded-xl border-2",
+                "p-5 rounded-2xl border transition-all hover:shadow-md",
                 theme === "dark"
-                  ? "bg-slate-800/50 border-slate-700"
-                  : "bg-white border-gray-200"
+                  ? "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60"
+                  : "bg-white border-gray-200 hover:border-amber-200 shadow-sm"
               )}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="w-5 h-5 text-amber-500" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Lock className="w-5 h-5 text-amber-500" />
+                </div>
                 <span
                   className={cn(
-                    "font-semibold",
+                    "font-bold text-lg",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
                   {t("lab.features.private.title")}
                 </span>
               </div>
-              <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+              <p className={cn("text-sm leading-relaxed", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
                 {t("lab.features.private.description")}
               </p>
             </div>
 
             <div
               className={cn(
-                "p-4 rounded-xl border-2",
+                "p-5 rounded-2xl border transition-all hover:shadow-md",
                 theme === "dark"
-                  ? "bg-slate-800/50 border-slate-700"
-                  : "bg-white border-gray-200"
+                  ? "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60"
+                  : "bg-white border-gray-200 hover:border-purple-200 shadow-sm"
               )}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="w-5 h-5 text-purple-500" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <MessageSquare className="w-5 h-5 text-purple-500" />
+                </div>
                 <span
                   className={cn(
-                    "font-semibold",
+                    "font-bold text-lg",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
                   {t("lab.features.discussion.title")}
                 </span>
               </div>
-              <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+              <p className={cn("text-sm leading-relaxed", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
                 {t("lab.features.discussion.description")}
               </p>
             </div>
 
             <div
               className={cn(
-                "p-4 rounded-xl border-2",
+                "p-5 rounded-2xl border transition-all hover:shadow-md",
                 theme === "dark"
-                  ? "bg-slate-800/50 border-slate-700"
-                  : "bg-white border-gray-200"
+                  ? "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60"
+                  : "bg-white border-gray-200 hover:border-blue-200 shadow-sm"
               )}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <FlaskConical className="w-5 h-5 text-blue-500" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <FlaskConical className="w-5 h-5 text-blue-500" />
+                </div>
                 <span
                   className={cn(
-                    "font-semibold",
+                    "font-bold text-lg",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
                   {t("lab.features.progress.title")}
                 </span>
               </div>
-              <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+              <p className={cn("text-sm leading-relaxed", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
                 {t("lab.features.progress.description")}
               </p>
             </div>

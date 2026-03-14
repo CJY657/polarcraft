@@ -987,6 +987,24 @@ a:focus-visible {
   opacity: 1;
 }
 
+/* Opt out of auto-hide for targeted scroll areas */
+.persistent-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+}
+
+.persistent-scrollbar::-webkit-scrollbar-thumb {
+  opacity: 1 !important;
+  background-color: rgba(148, 163, 184, 0.7);
+}
+
+.persistent-scrollbar:hover::-webkit-scrollbar-thumb,
+.persistent-scrollbar:focus-within::-webkit-scrollbar-thumb,
+.persistent-scrollbar:active::-webkit-scrollbar-thumb,
+.persistent-scrollbar:not(:hover)::-webkit-scrollbar-thumb {
+  opacity: 1 !important;
+}
+
 /* Firefox auto-hide scrollbar */
 @supports (scrollbar-width: thin) {
   * {
@@ -998,6 +1016,14 @@ a:focus-visible {
   *:focus-within,
   *:active {
     scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+
+  .persistent-scrollbar,
+  .persistent-scrollbar:hover,
+  .persistent-scrollbar:focus-within,
+  .persistent-scrollbar:active {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
   }
 }
 

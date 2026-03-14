@@ -59,4 +59,32 @@ describe("CourseSelector", () => {
 
     expect(screen.getByText("Course Viewer Page")).toBeDefined();
   });
+
+  it("renders thumbnail images from the resolved thumbnail field", () => {
+    render(
+      <MemoryRouter>
+        <CourseSelector
+          unitColor="#0ea5e9"
+          courses={[
+            {
+              id: "course1",
+              title: { "zh-CN": "冰洲石实验" },
+              description: { "zh-CN": "观察双折射现象" },
+              color: "#0ea5e9",
+              thumbnailImage: "/courses/unit1/ice-thumb.png",
+              mediaCount: 1,
+            },
+          ]}
+          showHeader={false}
+        />
+      </MemoryRouter>
+    );
+
+    const image = screen.getByRole("img", { name: "冰洲石实验" });
+
+    expect(image.getAttribute("src")).toBe("/courses/unit1/ice-thumb.png");
+    expect(image.getAttribute("loading")).toBe("lazy");
+    expect(screen.getByText("1 个媒体")).toBeDefined();
+    expect(screen.getByText("冰洲石实验").parentElement?.textContent).toContain("1 个媒体");
+  });
 });

@@ -121,111 +121,141 @@ export function CourseSelector({
 
       <div
         className={cn(
-          "overflow-hidden rounded-[1.5rem] border",
+          "overflow-hidden rounded-[1.25rem] border",
           theme === "dark"
             ? "border-slate-800 bg-slate-950/65"
             : "border-slate-200 bg-white/92",
         )}
       >
         <div className={cn("divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
-          {courses.map((course, index) => (
-            <Link
-              key={course.id}
-              to={getCourseHref(course.id)}
-              onPointerEnter={preloadCourseViewerRoute}
-              onFocus={preloadCourseViewerRoute}
-              onTouchStart={preloadCourseViewerRoute}
-              className={cn(
-                "group block px-4 py-4 transition-colors sm:px-5",
-                theme === "dark" ? "hover:bg-slate-900/85" : "hover:bg-slate-50/90",
-              )}
-            >
-              <div className={cn("flex flex-col gap-3", isSidebar ? "sm:gap-3" : "sm:gap-4")}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div
-                      className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                      style={{ backgroundColor: `${course.color}18` }}
-                    >
-                      {course.mainSlide ? (
-                        <FileText className="w-5 h-5" style={{ color: course.color }} />
-                      ) : (
-                        <BookOpen className="w-5 h-5" style={{ color: course.color }} />
-                      )}
+          {courses.map((course, index) => {
+            const thumbnailImage = course.thumbnailImage || course.coverImage;
+            const descriptionText = getLabel(course.description);
+
+            return (
+              <Link
+                key={course.id}
+                to={getCourseHref(course.id)}
+                onPointerEnter={preloadCourseViewerRoute}
+                onFocus={preloadCourseViewerRoute}
+                onTouchStart={preloadCourseViewerRoute}
+                className={cn(
+                  "group block px-3.5 py-3 transition-colors sm:px-4",
+                  theme === "dark" ? "hover:bg-slate-900/85" : "hover:bg-slate-50/90",
+                )}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <div
+                    className={cn(
+                      "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] border sm:w-32",
+                      theme === "dark"
+                        ? "border-slate-800 bg-slate-900/85"
+                        : "border-slate-200 bg-slate-50",
+                    )}
+                    style={!thumbnailImage ? { backgroundColor: `${course.color}12` } : undefined}
+                  >
+                    {thumbnailImage ? (
+                      <img
+                        src={thumbnailImage}
+                        alt={getLabel(course.title)}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <BookOpen className="h-8 w-8" style={{ color: course.color }} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p
+                          className={cn(
+                            "text-[11px] font-semibold uppercase tracking-[0.18em]",
+                            theme === "dark" ? "text-slate-500" : "text-slate-400",
+                          )}
+                        >
+                          {isZh
+                            ? `实验 ${String(index + 1).padStart(2, "0")}`
+                            : `Experiment ${String(index + 1).padStart(2, "0")}`}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <h4
+                            className={cn(
+                              "font-semibold",
+                              isSidebar ? "text-sm leading-5" : "text-[15px] leading-5",
+                              theme === "dark" ? "text-white" : "text-gray-900",
+                            )}
+                          >
+                            {getLabel(course.title)}
+                          </h4>
+                          {course.mediaCount !== undefined && course.mediaCount > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                              style={{
+                                color: theme === "dark" ? "#f8fafc" : course.color,
+                                backgroundColor: theme === "dark" ? `${course.color}20` : `${course.color}10`,
+                                borderColor: theme === "dark" ? `${course.color}36` : `${course.color}20`,
+                              }}
+                            >
+                              <Play className="h-3 w-3" />
+                              {course.mediaCount} {isZh ? "个媒体" : "media"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <span
+                        className="hidden shrink-0 items-center gap-1.5 text-[13px] font-semibold sm:inline-flex"
+                        style={{ color: course.color }}
+                      >
+                        {isZh ? "进入实验" : "Open"}
+                        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </div>
 
-                    <div className="min-w-0">
+                    {descriptionText ? (
                       <p
                         className={cn(
-                          "text-[11px] font-semibold uppercase tracking-[0.18em]",
-                          theme === "dark" ? "text-slate-500" : "text-slate-400",
-                        )}
-                      >
-                        {isZh ? `实验 ${String(index + 1).padStart(2, "0")}` : `Experiment ${String(index + 1).padStart(2, "0")}`}
-                      </p>
-                      <h4
-                        className={cn(
-                          "mt-1 font-semibold",
-                          isSidebar ? "text-sm leading-6" : "text-base leading-6",
-                          theme === "dark" ? "text-white" : "text-gray-900",
-                        )}
-                      >
-                        {getLabel(course.title)}
-                      </h4>
-                      <p
-                        className={cn(
-                          "mt-1 text-sm leading-6",
-                          isSidebar ? "line-clamp-3" : "line-clamp-2",
+                          "mt-1 text-sm leading-5",
+                          "line-clamp-2",
                           theme === "dark" ? "text-slate-400" : "text-slate-600",
                         )}
                       >
-                        {getLabel(course.description)}
+                        {descriptionText}
                       </p>
+                    ) : null}
+
+                    <div className={cn("mt-2 flex flex-wrap items-center gap-1.5", !course.mainSlide && "sm:mt-0")}>
+                      {course.mainSlide && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                            theme === "dark"
+                              ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                              : "border-slate-200 bg-slate-50 text-slate-600",
+                          )}
+                        >
+                          <FileText className="h-3.5 w-3.5" style={{ color: course.color }} />
+                          {isZh ? "实验课件" : "Slides"}
+                        </span>
+                      )}
+                      <span
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold sm:hidden"
+                        style={{ color: course.color }}
+                      >
+                        {isZh ? "进入实验" : "Open"}
+                        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </div>
                   </div>
-
-                  <span
-                    className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold"
-                    style={{ color: course.color }}
-                  >
-                    {isZh ? "进入实验" : "Open"}
-                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
                 </div>
-
-                {(course.mainSlide || course.mediaCount) && (
-                  <div className="flex flex-wrap gap-2">
-                    {course.mainSlide && (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
-                          theme === "dark"
-                            ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                            : "border-slate-200 bg-slate-50 text-slate-600",
-                        )}
-                      >
-                        <FileText className="w-3.5 h-3.5" style={{ color: course.color }} />
-                        {isZh ? "实验课件" : "Slides"}
-                      </span>
-                    )}
-                    {course.mediaCount !== undefined && course.mediaCount > 0 && (
-                      <span
-                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
-                        style={{
-                          color: theme === "dark" ? "#f8fafc" : course.color,
-                          backgroundColor: theme === "dark" ? `${course.color}20` : `${course.color}10`,
-                          borderColor: theme === "dark" ? `${course.color}36` : `${course.color}20`,
-                        }}
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        {course.mediaCount} {isZh ? "个媒体资源" : "media"}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@
  */
 
 import { api } from "./api";
-import type { LabelI18n, Course } from "./course.service";
+import type { LabelI18n } from "./course.service";
 
 // =====================================================
 // Types / 类型定义
@@ -38,6 +38,7 @@ export interface UnitCourse {
   title: LabelI18n;
   description: LabelI18n;
   coverImage?: string;
+  thumbnailImage?: string;
   color: string;
   mainSlide?: UnitMainSlide;
   mediaCount?: number;

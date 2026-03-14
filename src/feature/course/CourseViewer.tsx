@@ -6,6 +6,7 @@
 
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,7 +31,6 @@ const PdfViewer = lazy(() => import("./PdfViewer"));
 
 interface CourseViewerProps {
   course: CourseData;
-  onBack: () => void;
   theme: "dark" | "light";
 }
 
@@ -985,7 +985,7 @@ function ViewerModuleLoader({
   );
 }
 
-export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
+export function CourseViewer({ course, theme }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
 
@@ -1017,6 +1017,38 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
     ? selectedMedia ?? previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null
     : selectedMedia;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
+  const resourceSummaryChips = [
+    {
+      key: "pptx",
+      count: pptMediaList.length,
+      label: isZh ? "个PPT" : "PPT",
+      icon: <FileText className="h-3 w-3" />,
+      className:
+        theme === "dark"
+          ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
+          : "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    {
+      key: "video",
+      count: videoMediaList.length,
+      label: isZh ? "个视频" : "videos",
+      icon: <Play className="h-3 w-3" />,
+      className:
+        theme === "dark"
+          ? "border-rose-400/20 bg-rose-500/10 text-rose-200"
+          : "border-rose-200 bg-rose-50 text-rose-700",
+    },
+    {
+      key: "image",
+      count: imageMediaList.length,
+      label: isZh ? "张图片" : "images",
+      icon: <ImageIcon className="h-3 w-3" />,
+      className:
+        theme === "dark"
+          ? "border-violet-400/20 bg-violet-500/10 text-violet-200"
+          : "border-violet-200 bg-violet-50 text-violet-700",
+    },
+  ].filter((chip) => chip.count > 0);
   const resourceSections = [
     {
       id: "pptx",
@@ -1259,21 +1291,6 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
 
   return (
     <div className="w-full">
-      {/* 返回按钮 */}
-      <div className="px-4 py-3 xl:px-6">
-        <button
-          onClick={onBack}
-          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 transition-all duration-200 ${
-            theme === "dark"
-              ? "text-gray-400 hover:bg-slate-800 hover:text-white"
-              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          }`}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span>{t("page.courses.backtocourses")}</span>
-        </button>
-      </div>
-
       {/* 上方区域：主 PDF 永久显示 */}
       {!hasPptxLayout && mainSlide && (
         <div className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
@@ -1303,92 +1320,92 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
               : "border-slate-200 bg-white/50"
           }`}
         >
-          <div className="grid items-start xl:grid-cols-[280px_1.1fr_0.9fr] 2xl:grid-cols-[300px_1.15fr_0.85fr]">
+          <div className="grid items-start xl:grid-cols-[264px_1.12fr_0.88fr] 2xl:grid-cols-[284px_1.14fr_0.86fr]">
             <aside
-              className={`xl:h-[calc(100vh-80px)] border-r p-4 overflow-y-auto ${
+              className={`persistent-scrollbar xl:h-[calc(100vh-80px)] border-r p-4 overflow-y-auto ${
                 theme === "dark"
                   ? "border-slate-700/70 bg-slate-800/40"
                   : "border-slate-200 bg-slate-50/50"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p
-                    className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-                      theme === "dark" ? "text-amber-300/80" : "text-amber-700"
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div
+                        className={`h-1 w-6 rounded-full ${
+                          theme === "dark" ? "bg-amber-400/60" : "bg-amber-600/60"
+                        }`}
+                      />
+                      <p
+                        className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
+                          theme === "dark" ? "text-amber-300/90" : "text-amber-700"
+                        }`}
+                      >
+                        {isZh ? "资源总览" : "Resources"}
+                      </p>
+                    </div>
+                    <h2
+                      className={`text-xl font-bold leading-tight ${
+                        theme === "dark" ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      {course.title["zh-CN"] || course.title["en-US"]}
+                    </h2>
+                  </div>
+                  <Link
+                    to="/experiments"
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {isZh ? "资源总览" : "Resources"}
-                  </p>
-                  <h2
-                    className={`mt-2 text-lg font-semibold ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    {course.title["zh-CN"] || course.title["en-US"]}
-                  </h2>
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    {isZh ? "返回" : "Back"}
+                  </Link>
                 </div>
-                <div
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    theme === "dark" ? "bg-slate-700 text-slate-200" : "bg-white text-slate-600"
-                  }`}
-                >
-                  {mediaList.length} {isZh ? "项" : "items"}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {resourceSummaryChips.map((chip) => (
+                    <div
+                      key={chip.key}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm transition-all hover:scale-[1.03] ${chip.className}`}
+                    >
+                      <span className="opacity-80">{chip.icon}</span>
+                      <span>
+                        <span className="text-xs">{chip.count}</span> {chip.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div
-                  className={`rounded-2xl border px-3 py-3 ${
-                    theme === "dark"
-                      ? "border-amber-400/20 bg-amber-500/10"
-                      : "border-amber-200 bg-amber-50/80"
-                  }`}
-                >
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${theme === "dark" ? "text-amber-200/80" : "text-amber-700"}`}>
-                    {isZh ? "PPT" : "Decks"}
-                  </p>
-                  <p className={`mt-1 text-xl font-semibold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-                    {pptMediaList.length}
-                  </p>
-                </div>
-                <div
-                  className={`rounded-2xl border px-3 py-3 ${
-                    theme === "dark"
-                      ? "border-rose-400/20 bg-rose-500/10"
-                      : "border-rose-200 bg-rose-50/80"
-                  }`}
-                >
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${theme === "dark" ? "text-rose-200/80" : "text-rose-700"}`}>
-                    {isZh ? "视频" : "Videos"}
-                  </p>
-                  <p className={`mt-1 text-xl font-semibold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-                    {videoMediaList.length}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-2">
                 {resourceSections.map((section) => (
                   <div
                     key={section.id}
-                    className={`rounded-[22px] border p-3 ${
+                    className={`rounded-[16px] border p-2 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-900/55"
                         : "border-slate-200 bg-white/90"
                     }`}
                   >
-                    <div className="mb-3 flex items-start justify-between gap-2">
+                    <div className="mb-2.5 flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: section.accent }}>
+                        <p className="text-[13px] font-semibold" style={{ color: section.accent }}>
                           {section.title}
                         </p>
-                        <p className={`mt-1 text-[11px] leading-5 ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                        <p
+                          className={`mt-0.5 line-clamp-1 text-[10px] leading-4 ${
+                            theme === "dark" ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
                           {section.description}
                         </p>
                       </div>
                       <span
-                        className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         style={{
                           backgroundColor: `${section.accent}18`,
                           color: section.accent,
@@ -1398,7 +1415,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                       </span>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {section.items.map((media) => {
                         const isCurrentPpt = media.id === activePptMedia?.id;
                         const isCurrentPreview = media.id === activePreviewMedia?.id;
@@ -1408,19 +1425,19 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                           <button
                             key={media.id}
                             onClick={() => handleMediaSelect(media)}
-                            className={`w-full rounded-2xl border px-3 py-3 text-left transition-all duration-300 ${
+                            className={`w-full rounded-[14px] border px-2 py-2 text-left transition-all duration-300 ${
                               isActive
                                 ? theme === "dark"
-                                  ? "border-slate-500 bg-slate-700/80 shadow-lg shadow-slate-950/20"
+                                  ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/20"
                                   : "border-slate-300 bg-white shadow-sm"
                                 : theme === "dark"
                                   ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-800"
                                   : "border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white"
-                            } ${media.type !== "image" ? "hover:-translate-y-0.5 hover:shadow-lg" : "hover:shadow-md"}`}
+                            } ${media.type !== "image" ? "hover:-translate-y-0.5 hover:shadow-md" : "hover:shadow-sm"}`}
                           >
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-2">
                               <div
-                                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
                                 style={{
                                   backgroundColor: isActive
                                     ? `${MEDIA_TYPE_COLORS[media.type]}24`
@@ -1428,13 +1445,13 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                                   color: MEDIA_TYPE_COLORS[media.type],
                                 }}
                               >
-                                {MEDIA_TYPE_ICONS[media.type]}
+                                <span className="scale-90">{MEDIA_TYPE_ICONS[media.type]}</span>
                               </div>
 
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <p
-                                    className={`line-clamp-2 text-sm font-semibold ${
+                                    className={`line-clamp-2 text-[12px] font-semibold leading-[1.1rem] ${
                                       theme === "dark" ? "text-white" : "text-slate-900"
                                     }`}
                                   >
@@ -1442,9 +1459,9 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                                   </p>
                                 </div>
 
-                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                <div className="mt-1 flex flex-wrap items-center gap-1">
                                   <span
-                                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                    className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                                     style={{
                                       backgroundColor: `${MEDIA_TYPE_COLORS[media.type]}18`,
                                       color: MEDIA_TYPE_COLORS[media.type],
@@ -1454,7 +1471,7 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                                   </span>
                                   {media.duration && (
                                     <span
-                                      className={`inline-flex items-center gap-1 text-[11px] ${
+                                      className={`inline-flex items-center gap-1 text-[10px] ${
                                         theme === "dark" ? "text-slate-400" : "text-slate-500"
                                       }`}
                                     >
@@ -1465,18 +1482,13 @@ export function CourseViewer({ course, onBack, theme }: CourseViewerProps) {
                                   )}
                                 </div>
 
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {isCurrentPpt && (
-                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500">
-                                      {isZh ? "中间课件" : "Center deck"}
-                                    </span>
-                                  )}
-                                  {isCurrentPreview && (
-                                    <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-500">
+                                {isCurrentPreview && (
+                                  <div className="mt-1.5 flex flex-wrap gap-1">
+                                    <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-500">
                                       {isZh ? "右侧预览" : "Right preview"}
                                     </span>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </button>
