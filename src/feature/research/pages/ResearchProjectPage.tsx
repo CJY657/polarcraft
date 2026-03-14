@@ -14,8 +14,6 @@ import {
   ArrowLeft,
   Settings,
   Edit3,
-  Users,
-  Calendar,
   Loader2,
   Crown,
   Shield,
@@ -25,7 +23,6 @@ import {
   UserCheck,
   AlertCircle,
   UserMinus,
-  X,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -181,25 +178,6 @@ export function ResearchProjectPage() {
     return labels[role] || role;
   };
 
-  // Check if current user can remove a member
-  const canRemoveMember = (member: ProjectMember) => {
-    if (!user || !currentUserRole) return false;
-    // Cannot remove owner
-    if (member.role === "owner") return false;
-    // Owner can remove anyone except owner
-    if (currentUserRole === "owner") return true;
-    // Admin can remove editor and viewer
-    if (currentUserRole === "admin" && ["editor", "viewer"].includes(member.role)) return true;
-    // Members can remove themselves (leave project)
-    if (member.user_id === user.id) return true;
-    return false;
-  };
-
-  // Check if it's a self-removal (leaving project)
-  const isSelfRemoval = (member: ProjectMember) => {
-    return user && member.user_id === user.id;
-  };
-
   // Handle member removal
   const handleRemoveMember = async () => {
     if (!memberToRemove || !projectId) return;
@@ -223,20 +201,10 @@ export function ResearchProjectPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div
-        className={cn(
-          "min-h-screen flex items-center justify-center",
-          theme === "dark"
-            ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-            : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
-        )}
-      >
-        <Loader2
-          className={cn(
-            "w-8 h-8 animate-spin",
-            theme === "dark" ? "text-purple-400" : "text-purple-600"
-          )}
-        />
+      <div className="research-page flex min-h-screen items-center justify-center px-6">
+        <div className="research-panel flex min-w-[240px] items-center justify-center rounded-[1.8rem] px-8 py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--paper-accent)]" />
+        </div>
       </div>
     );
   }
@@ -244,26 +212,12 @@ export function ResearchProjectPage() {
   // Error state
   if (error && !isExampleProject) {
     return (
-      <div
-        className={cn(
-          "min-h-screen flex items-center justify-center",
-          theme === "dark"
-            ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-            : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
-        )}
-      >
-        <div className="text-center">
-          <p className={cn("text-lg mb-4", theme === "dark" ? "text-red-400" : "text-red-600")}>
-            {error}
-          </p>
+      <div className="research-page flex min-h-screen items-center justify-center px-6">
+        <div className="research-panel max-w-md rounded-[1.9rem] px-8 py-8 text-center">
+          <p className="text-lg text-[#b33d3d]">{error}</p>
           <Link
             to="/lab/projects"
-            className={cn(
-              "px-4 py-2 rounded-lg font-medium transition-colors",
-              theme === "dark"
-                ? "bg-purple-600 hover:bg-purple-500 text-white"
-                : "bg-purple-500 hover:bg-purple-600 text-white"
-            )}
+            className="glass-button glass-button-primary mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-semibold text-white"
           >
             返回课题列表
           </Link>
@@ -300,45 +254,33 @@ export function ResearchProjectPage() {
     : project!;
 
   const statusBadge = getStatusBadge(displayProject.status);
+  const primaryCanvasHref = `/lab/projects/${projectId}/canvases/${canvases[0]?.id || "main"}`;
+  const primaryCanvasState = isExampleProject
+    ? { exampleProjectId: exampleId }
+    : { readOnly: isReadOnlyMode };
+  const canManageProject = !isExampleProject && isOwnerOrAdmin && !isReadOnlyMode;
 
   return (
-    <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark"
-          ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-          : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
-      )}
-    >
+    <div className="research-page min-h-screen">
       <PersistentHeader
         moduleKey="labGroup"
         moduleNameKey={displayProject.name_zh}
         variant="glass"
-        className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
+        className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
         rightContent={
           <div className="flex items-center gap-2">
-            {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
+            {canManageProject && (
               <>
                 <button
                   onClick={() => setIsSettingsDialogOpen(true)}
-                  className={cn(
-                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    theme === "dark"
-                      ? "hover:bg-slate-800 text-gray-400 hover:text-white"
-                      : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
-                  )}
+                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
                 >
                   <Settings className="w-4 h-4" />
                   设置
                 </button>
                 <button
                   onClick={() => setIsEditDialogOpen(true)}
-                  className={cn(
-                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    theme === "dark"
-                      ? "hover:bg-slate-800 text-gray-400 hover:text-white"
-                      : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
-                  )}
+                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
                 >
                   <Edit3 className="w-4 h-4" />
                   编辑
@@ -347,12 +289,7 @@ export function ResearchProjectPage() {
             )}
             <Link
               to="/lab/projects"
-              className={cn(
-                "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                theme === "dark"
-                  ? "hover:bg-slate-800 text-gray-400 hover:text-white"
-                  : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
-              )}
+              className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               返回
@@ -361,51 +298,22 @@ export function ResearchProjectPage() {
         }
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="research-shell py-6 md:py-8">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div
-            className={cn(
-              "mb-6 p-4 rounded-lg flex items-center justify-between",
-              theme === "dark"
-                ? "bg-amber-900/20 border border-amber-800/50"
-                : "bg-amber-50 border border-amber-200"
-            )}
-          >
+          <div className="research-panel-soft mb-6 flex flex-col gap-4 rounded-[1.5rem] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <AlertCircle
-                className={cn(
-                  "w-5 h-5",
-                  theme === "dark" ? "text-amber-400" : "text-amber-600"
-                )}
-              />
+              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+                <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
+              </div>
               <div>
-                <p
-                  className={cn(
-                    "text-sm font-medium",
-                    theme === "dark" ? "text-amber-300" : "text-amber-700"
-                  )}
-                >
-                  只读模式
-                </p>
-                <p
-                  className={cn(
-                    "text-xs",
-                    theme === "dark" ? "text-amber-400/70" : "text-amber-600/70"
-                  )}
-                >
-                  您正在以访客身份浏览此课题，如需编辑请申请加入
-                </p>
+                <p className="text-sm font-semibold text-[var(--paper-foreground)]">你正在以只读模式浏览这个课题</p>
+                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">如果想编辑画布或参与协作，请先提交加入申请。</p>
               </div>
             </div>
             <button
               onClick={() => setIsApplicationFormOpen(true)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-amber-600 hover:bg-amber-500 text-white"
-                  : "bg-amber-500 hover:bg-amber-600 text-white"
-              )}
+              className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
             >
               申请加入
             </button>
@@ -413,127 +321,130 @@ export function ResearchProjectPage() {
         )}
 
         {/* Project Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1
-                  className={cn(
-                    "text-3xl font-bold",
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  )}
-                >
-                  {displayProject.name_zh}
-                </h1>
-                <span
-                  className={cn(
-                    "text-xs px-2 py-1 rounded-full",
-                    statusBadge.className
-                  )}
-                >
+        <section className="research-hero mb-8 rounded-[2.1rem] px-6 py-7 sm:px-8">
+          <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="research-kicker">Project Overview</span>
+                <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", statusBadge.className)}>
                   {statusBadge.label}
                 </span>
                 {settings?.is_recruiting && (
-                  <span
-                    className={cn(
-                      "text-xs px-2 py-1 rounded-full",
-                      theme === "dark"
-                        ? "bg-teal-500/20 text-teal-400"
-                        : "bg-teal-100 text-teal-600"
-                    )}
-                  >
+                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
                     招募中
                   </span>
                 )}
-              </div>
-              {displayProject.name_en && (
-                <p
-                  className={cn(
-                    "text-lg mb-2",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  {displayProject.name_en}
-                </p>
-              )}
-              {displayProject.description_zh && (
-                <p
-                  className={cn(
-                    "text-xl mb-4",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  {displayProject.description_zh}
-                </p>
-              )}
-              <div className="flex items-center gap-4 text-sm">
-                <div
-                  className={cn(
-                    "flex items-center gap-1",
-                    theme === "dark" ? "text-gray-500" : "text-gray-400"
-                  )}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>{displayProject.member_count} 成员</span>
-                </div>
-                <div
-                  className={cn(
-                    "flex items-center gap-1",
-                    theme === "dark" ? "text-gray-500" : "text-gray-400"
-                  )}
-                >
-                  <Grid3x3 className="w-4 h-4" />
-                  <span>{displayProject.canvas_count} 画布</span>
-                </div>
-                <div
-                  className={cn(
-                    "flex items-center gap-1",
-                    theme === "dark" ? "text-gray-500" : "text-gray-400"
-                  )}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>创建于 {formatDate(displayProject.created_at)}</span>
-                </div>
                 {displayProject.is_public && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-1",
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    )}
+                  <span className="research-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium">
+                    <Globe className="h-3.5 w-3.5" />
+                    公开课题
+                  </span>
+                )}
+              </div>
+
+              <h1
+                className="text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                {displayProject.name_zh}
+              </h1>
+
+              {displayProject.name_en && (
+                <p className="mt-2 text-base text-[var(--glass-text-muted)] sm:text-lg">{displayProject.name_en}</p>
+              )}
+
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+                {displayProject.description_zh || "这个课题还没有补充详细摘要，建议先进入画布查看当前研究结构。"}
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  to={primaryCanvasHref}
+                  state={primaryCanvasState}
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                  {isExampleProject ? "打开示例画布" : "进入主画布"}
+                </Link>
+
+                {isReadOnlyMode ? (
+                  <button
+                    onClick={() => setIsApplicationFormOpen(true)}
+                    className="glass-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium"
                   >
-                    <Globe className="w-4 h-4" />
-                    <span>公开</span>
-                  </div>
+                    申请加入课题
+                  </button>
+                ) : (
+                  canManageProject && (
+                    <>
+                      <button
+                        onClick={() => setIsEditDialogOpen(true)}
+                        className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                      >
+                        <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
+                        编辑信息
+                      </button>
+                      <button
+                        onClick={() => setIsSettingsDialogOpen(true)}
+                        className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                      >
+                        <Settings className="h-4 w-4 text-[var(--paper-link)]" />
+                        协作设置
+                      </button>
+                    </>
+                  )
                 )}
               </div>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:w-[26rem]">
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.member_count}</p>
+              </div>
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">画布</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.canvas_count}</p>
+              </div>
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">创建时间</p>
+                <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
+              </div>
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
+                <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
+                  {isReadOnlyMode ? "访客浏览" : settings?.is_recruiting ? "开放招募" : "组内协作"}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* Members Section */}
         {!isExampleProject && project && project.members.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className={cn(
-                  "text-xl font-semibold",
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                )}
-              >
-                研究团队
-              </h2>
+          <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="research-kicker mb-2">Research Team</div>
+                <h2
+                  className="text-2xl font-semibold text-[var(--paper-foreground)]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  研究团队
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  角色与权限先说明白，进入画布后协作会更顺。
+                </p>
+              </div>
+
               {isOwnerOrAdmin && !isReadOnlyMode && (
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    "relative inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium transition-all sm:self-auto",
                     pendingApplicationCount > 0
-                      ? theme === "dark"
-                        ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/25 animate-pulse"
-                        : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/25"
-                      : theme === "dark"
-                        ? "bg-purple-600 hover:bg-purple-500 text-white"
-                        : "bg-purple-500 hover:bg-purple-600 text-white"
+                      ? "glass-button glass-button-primary text-white"
+                      : "glass-button"
                   )}
                 >
                   <UserCheck className="w-4 h-4" />
@@ -549,7 +460,7 @@ export function ResearchProjectPage() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {project.members.map((member) => {
                 // 判断是否可以移除该成员
                 const isSelf = user?.id === member.user_id;
@@ -562,16 +473,11 @@ export function ResearchProjectPage() {
                 return (
                   <div
                     key={member.id}
-                    className={cn(
-                      "flex items-center gap-3 p-4 rounded-xl border transition-colors",
-                      theme === "dark"
-                        ? "bg-slate-800/50 border-slate-700"
-                        : "bg-white border-gray-200"
-                    )}
+                    className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
                   >
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
+                        "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
                         member.role === "owner"
                           ? "bg-amber-500/20 text-amber-500"
                           : theme === "dark"
@@ -583,34 +489,15 @@ export function ResearchProjectPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "font-medium truncate",
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                          )}
-                        >
-                          {member.username}
-                        </span>
+                        <span className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</span>
                         {getRoleIcon(member.role)}
                       </div>
-                      <span
-                        className={cn(
-                          "text-xs",
-                          theme === "dark" ? "text-gray-500" : "text-gray-400"
-                        )}
-                      >
-                        {getRoleLabel(member.role)}
-                      </span>
+                      <span className="text-xs text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
                     </div>
                     {canRemove && (
                       <button
                         onClick={() => setMemberToRemove(member)}
-                        className={cn(
-                          "p-2 rounded-lg transition-colors",
-                          theme === "dark"
-                            ? "hover:bg-red-500/20 text-red-400"
-                            : "hover:bg-red-100 text-red-500"
-                        )}
+                        className="glass-button rounded-full p-2 text-[#b33d3d]"
                         title={isSelfRemoval ? "退出课题组" : "移除成员"}
                       >
                         <UserMinus className="w-4 h-4" />
@@ -620,182 +507,122 @@ export function ResearchProjectPage() {
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Canvas Grid */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2
-            className={cn(
-              "text-xl font-semibold",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
-          >
-            研究画布
-          </h2>
-          {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
-            <button
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-purple-600 hover:bg-purple-500 text-white"
-                  : "bg-purple-500 hover:bg-purple-600 text-white"
-              )}
-            >
-              <Plus className="w-4 h-4" />
-              新建画布
-            </button>
-          )}
-        </div>
-
-        {/* Canvas Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Main Canvas */}
-          <Link
-            to={`/lab/projects/${projectId}/canvases/${canvases[0]?.id || 'main'}`}
-            state={isExampleProject ? { exampleProjectId: exampleId } : { readOnly: isReadOnlyMode }}
-            className={cn(
-              "group relative p-6 rounded-xl border-2 transition-all hover:shadow-lg",
-              theme === "dark"
-                ? "bg-slate-800/50 border-slate-700 hover:border-purple-500"
-                : "bg-white border-gray-200 hover:border-purple-400"
-            )}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div
-                className={cn(
-                  "p-3 rounded-lg",
-                  theme === "dark"
-                    ? "bg-purple-500/20 text-purple-400"
-                    : "bg-purple-100 text-purple-600"
-                )}
+        <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="research-kicker mb-2">Canvas</div>
+              <h2
+                className="text-2xl font-semibold text-[var(--paper-foreground)]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
               >
-                <Grid3x3 className="w-6 h-6" />
+                研究画布
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                进入画布前，你已经能在上面看清这个课题的状态、人员和协作方式。
+              </p>
+            </div>
+            {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
+              <button className="glass-button inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium sm:self-auto">
+                <Plus className="w-4 h-4 text-[var(--paper-link)]" />
+                新建画布
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Link
+              to={primaryCanvasHref}
+              state={primaryCanvasState}
+              className="research-panel-soft group rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+            >
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
+                  <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
+                </div>
+                <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+                  活跃入口
+                </span>
               </div>
-              <span
-                className={cn(
-                  "text-xs px-2 py-1 rounded-full",
-                  theme === "dark"
-                    ? "bg-green-500/20 text-green-400"
-                    : "bg-green-100 text-green-600"
-                )}
-              >
-                活跃
-              </span>
-            </div>
-            <h3
-              className={cn(
-                "text-lg font-semibold mb-2",
-                theme === "dark" ? "text-white" : "text-gray-900"
-              )}
-            >
-              主画布
-            </h3>
-            <p
-              className={cn(
-                "text-sm mb-4 line-clamp-2",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
-            >
-              {displayProject.description_zh || "课题主画布"}
-            </p>
-            <div
-              className={cn(
-                "text-xs",
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              )}
-            >
-              {isExampleProject
-                ? `${exampleProject?.nodes.length || 0} 个节点 · ${exampleProject?.edges.length || 0} 条关系`
-                : "点击进入画布"}
-            </div>
-          </Link>
-        </div>
 
-        {/* Getting Started Guide - 只读模式隐藏 */}
-        {!isReadOnlyMode && (
-          <div className="mt-12 p-6 rounded-xl border-2 border-dashed border-slate-600">
-            <h3
-              className={cn(
-                "text-lg font-semibold mb-4",
-                theme === "dark" ? "text-white" : "text-gray-900"
-              )}
-            >
-              开始使用
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <h3
+                className="text-lg font-semibold text-[var(--paper-foreground)]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                主画布
+              </h3>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                {displayProject.description_zh || "这里承载课题的问题节点、实验设计、文献引用与结论关系。"}
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className="research-chip inline-flex rounded-full px-3 py-1">
+                  {isExampleProject
+                    ? `${exampleProject?.nodes.length || 0} 个节点`
+                    : `${displayProject.canvas_count} 张画布`}
+                </span>
+                <span className="research-chip inline-flex rounded-full px-3 py-1">
+                  {isExampleProject
+                    ? `${exampleProject?.edges.length || 0} 条关系`
+                    : isReadOnlyMode
+                      ? "只读查看"
+                      : "可编辑"}
+                </span>
+              </div>
+
+              <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">进入画布开始工作</div>
+            </Link>
+          </div>
+
+          {/* Getting Started Guide - 只读模式隐藏 */}
+          {!isReadOnlyMode && (
+            <div className="research-panel-soft mt-8 rounded-[1.6rem] border border-dashed p-5 sm:p-6">
+              <h3
+                className="text-xl font-semibold text-[var(--paper-foreground)]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                开始使用
+              </h3>
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-sm font-semibold text-amber-500">
                   1
                 </div>
                 <div>
-                  <h4
-                    className={cn(
-                      "font-medium mb-1",
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    )}
-                  >
-                    创建画布
-                  </h4>
-                  <p
-                    className={cn(
-                      "text-sm",
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    )}
-                  >
-                    为您的研究创建一个新的画布
-                  </p>
+                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">先搭起主画布</h4>
+                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
+                      把当前研究问题作为主入口，避免一开始就把信息铺得过散。
+                    </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-sm font-semibold text-blue-500">
                   2
                 </div>
                 <div>
-                  <h4
-                    className={cn(
-                      "font-medium mb-1",
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    )}
-                  >
-                    添加节点
-                  </h4>
-                  <p
-                    className={cn(
-                      "text-sm",
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    )}
-                  >
-                    添加问题、实验、文献等节点
-                  </p>
+                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">再补问题与证据</h4>
+                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
+                      把问题、实验、文献和结论拆成节点，后续协作时会更容易分工。
+                    </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 text-sm font-semibold text-green-500">
                   3
                 </div>
                 <div>
-                  <h4
-                    className={cn(
-                      "font-medium mb-1",
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    )}
-                  >
-                    建立联系
-                  </h4>
-                  <p
-                    className={cn(
-                      "text-sm",
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    )}
-                  >
-                    用有向边连接节点，构建知识网络
-                  </p>
+                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">最后连接研究逻辑</h4>
+                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
+                      用关系边说明“为什么有关联”，这样画布才是研究结构，而不是便签堆积。
+                    </p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </section>
 
       </main>
 
@@ -852,6 +679,13 @@ export function ResearchProjectPage() {
             max_members: settings?.max_members ?? null,
             member_count: project.member_count,
             is_member: false,
+            owner_username: project.members.find((member) => member.role === "owner")?.username ?? null,
+            owner_avatar_url: project.members.find((member) => member.role === "owner")?.avatar_url ?? null,
+            members: project.members.map((member) => ({
+              username: member.username,
+              avatar_url: member.avatar_url,
+              role: member.role,
+            })),
             created_at: project.created_at,
             updated_at: project.updated_at,
           }}

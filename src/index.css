@@ -277,6 +277,138 @@ html {
     outline: none;
   }
 
+  .research-page {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(
+        960px 540px at -12% -12%,
+        color-mix(in srgb, var(--paper-accent) 14%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        860px 520px at 108% 6%,
+        color-mix(in srgb, var(--paper-link) 12%, transparent),
+        transparent 58%
+      ),
+      linear-gradient(
+        180deg,
+        var(--glass-page-start) 0%,
+        color-mix(in srgb, var(--glass-page-mid) 92%, white) 44%,
+        var(--glass-page-end) 100%
+      );
+    color: var(--paper-foreground);
+  }
+
+  .research-shell {
+    width: min(100%, 80rem);
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 2.4vw, 1.75rem);
+  }
+
+  .research-hero,
+  .research-panel,
+  .research-panel-soft,
+  .research-chip,
+  .research-input,
+  .research-metric {
+    color: var(--paper-foreground);
+  }
+
+  .research-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--glass-stroke-strong);
+    background: linear-gradient(
+      145deg,
+      var(--glass-panel-strong),
+      color-mix(in srgb, var(--glass-panel) 88%, var(--paper-accent-soft))
+    );
+    box-shadow: var(--glass-shadow-strong);
+    backdrop-filter: blur(18px);
+  }
+
+  .research-hero::after {
+    content: "";
+    position: absolute;
+    right: -5rem;
+    bottom: -7rem;
+    width: min(42vw, 22rem);
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--paper-accent) 22%, transparent),
+      transparent 68%
+    );
+    pointer-events: none;
+  }
+
+  .research-panel {
+    border: 1px solid var(--glass-stroke);
+    background: linear-gradient(
+      180deg,
+      var(--glass-panel),
+      color-mix(in srgb, var(--glass-panel-soft) 62%, transparent)
+    );
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .research-panel-soft {
+    border: 1px solid color-mix(in srgb, var(--glass-stroke) 88%, transparent);
+    background: color-mix(in srgb, var(--glass-panel-soft) 96%, transparent);
+  }
+
+  .research-chip {
+    border: 1px solid var(--glass-stroke);
+    background: color-mix(in srgb, var(--glass-chip) 88%, transparent);
+    color: var(--glass-text-muted);
+  }
+
+  .research-chip-accent {
+    border-color: color-mix(in srgb, var(--paper-accent) 28%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--paper-accent-soft) 92%, transparent);
+    color: var(--paper-accent-strong);
+  }
+
+  .research-kicker {
+    color: var(--paper-accent-strong);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .research-input {
+    border: 1px solid var(--glass-stroke-strong);
+    background: color-mix(in srgb, var(--paper-surface-strong) 88%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .research-input::placeholder {
+    color: var(--glass-text-muted);
+  }
+
+  .research-input:focus,
+  .research-input:focus-visible {
+    border-color: color-mix(in srgb, var(--paper-accent) 68%, white);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--paper-accent) 18%, transparent),
+      var(--glass-neon);
+    outline: none;
+  }
+
+  .research-metric {
+    border: 1px solid color-mix(in srgb, var(--glass-stroke) 88%, transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-panel-soft) 98%, transparent),
+      color-mix(in srgb, var(--paper-accent-soft) 24%, transparent)
+    );
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
   .tech-card {
     @apply bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)];
   }

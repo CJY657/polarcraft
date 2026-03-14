@@ -62,6 +62,13 @@ router.use(authenticate);
 router.get("/", requireAdmin, UnitController.getAllUnits);
 
 /**
+ * @route   PUT /api/units/reorder
+ * @desc    Reorder units
+ * @access  Private (Admin)
+ */
+router.put("/reorder", requireAdmin, UnitController.reorderUnits);
+
+/**
  * @route   GET /api/units/:id
  * @desc    Get unit by ID
  * @access  Private (Admin)
@@ -88,13 +95,6 @@ router.put("/:id", requireAdmin, UnitController.updateUnit);
  * @access  Private (Admin)
  */
 router.delete("/:id", requireAdmin, UnitController.deleteUnit);
-
-/**
- * @route   PUT /api/units/reorder
- * @desc    Reorder units
- * @access  Private (Admin)
- */
-router.put("/reorder", requireAdmin, UnitController.reorderUnits);
 
 /**
  * =====================================================

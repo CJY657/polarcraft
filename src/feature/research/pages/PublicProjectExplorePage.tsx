@@ -1,34 +1,27 @@
 /**
  * Public Project Explore Page
  * 公开课题浏览页面
- *
- * Displays public projects that users can apply to join
- * 显示用户可以申请加入的公开课题
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Search,
-  Filter,
-  Users,
+  AlertCircle,
   Clock,
   FlaskConical,
   Loader2,
   LogIn,
-  AlertCircle,
+  Search,
+  Users,
 } from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
-import { cn } from "@/utils/classNames";
 import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 export function PublicProjectExplorePage() {
-  const { theme } = useTheme();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isSystemHealthy } = useSystem();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
@@ -41,7 +34,6 @@ export function PublicProjectExplorePage() {
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
 
-  // Load public projects
   useEffect(() => {
     async function fetchProjects() {
       if (!isSystemHealthy) {
@@ -65,7 +57,6 @@ export function PublicProjectExplorePage() {
       }
     }
 
-    // Debounce search
     const timer = setTimeout(fetchProjects, 300);
     return () => clearTimeout(timer);
   }, [recruitingOnly, searchQuery, isSystemHealthy]);
@@ -79,12 +70,25 @@ export function PublicProjectExplorePage() {
     setIsApplicationFormOpen(true);
   };
 
-  const handleApplicationSuccess = () => {
-    // Optionally refresh the list or show a notification
+  const handleApplicationSuccess = async () => {
     setIsApplicationFormOpen(false);
+
+    try {
+      const data = await profileApi.getPublicProjects({
+        recruiting: recruitingOnly || undefined,
+        search: searchQuery || undefined,
+      });
+      setProjects(data);
+    } catch (err) {
+      console.error("Failed to refresh public projects:", err);
+    }
   };
 
-  // Format date
+  const recruitingCount = useMemo(
+    () => projects.filter((project) => project.is_recruiting).length,
+    [projects]
+  );
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("zh-CN", {
       year: "numeric",
@@ -94,374 +98,266 @@ export function PublicProjectExplorePage() {
   };
 
   return (
-    <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark"
-          ? "bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0a0a2a]"
-          : "bg-gradient-to-br from-[#fff5eb] via-[#fef3e2] to-[#fff5eb]"
-      )}
-    >
+    <div className="research-page min-h-screen">
       <PersistentHeader
         moduleKey="labGroup"
         moduleNameKey="发现课题"
         variant="glass"
-        className={cn("sticky top-0 z-40", theme === "dark" ? "bg-slate-900/80" : "bg-white/80")}
+        className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
         rightContent={
-          <Link
-            to="/lab"
-            className={cn(
-              "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              theme === "dark"
-                ? "hover:bg-slate-800 text-gray-400 hover:text-white"
-                : "hover:bg-gray-200 text-gray-600 hover:text-gray-900"
-            )}
-          >
-            我的课题
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/lab"
+              className="glass-button inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium"
+            >
+              工作台
+            </Link>
+            <Link
+              to="/lab/projects"
+              className="glass-button inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium"
+            >
+              我的课题
+            </Link>
+          </div>
         }
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div
-              className={cn(
-                "p-3 rounded-xl",
-                theme === "dark"
-                  ? "bg-teal-500/20 text-teal-400"
-                  : "bg-teal-100 text-teal-600"
-              )}
-            >
-              <Search className="w-6 h-6" />
-            </div>
-            <div>
+      <main className="research-shell py-6 md:py-8">
+        <section className="research-hero mb-8 rounded-[2.15rem] px-6 py-7 sm:px-8">
+          <div className="flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <div className="research-kicker mb-3">Explore Public Projects</div>
               <h1
-                className={cn(
-                  "text-3xl font-bold",
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                )}
+                className="text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
+                style={{ fontFamily: "var(--font-ui-display)" }}
               >
-                发现课题
+                先判断研究方向值不值得加入，再提交申请
               </h1>
-              <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-                浏览并申请加入公开的虚拟课题组
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+                这里收拢了所有公开课题。你可以按关键词和招募状态筛选，再看组长、要求和当前人数，快速判断是否适合加入。
               </p>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 xl:w-[28rem]">
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                  当前结果
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
+              </div>
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                  招募中
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{recruitingCount}</p>
+              </div>
+              <div className="research-metric rounded-[1.45rem] p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                  当前模式
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
+                  {searchQuery || recruitingOnly ? "已筛选" : "全部浏览"}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Filters */}
-        <div className="mb-6 flex flex-wrap items-center gap-4">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search
-              className={cn(
-                "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4",
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              )}
-            />
-            <input
-              type="text"
-              placeholder="搜索课题..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(
-                "w-full pl-10 pr-4 py-2 rounded-lg border transition-colors",
-                theme === "dark"
-                  ? "bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-teal-500"
-                  : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-teal-500"
-              )}
-            />
+        <section className="research-panel mb-6 rounded-[1.8rem] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                搜索课题
+              </label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--glass-text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="输入研究方向、方法或课题关键词"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="research-input w-full rounded-[1.15rem] px-12 py-3 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="research-chip inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={recruitingOnly}
+                  onChange={(e) => setRecruitingOnly(e.target.checked)}
+                  className="h-4 w-4 rounded"
+                />
+                仅看招募中
+              </label>
+              <span className="research-chip inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                共 {projects.length} 条结果
+              </span>
+            </div>
           </div>
+        </section>
 
-          {/* Recruiting Filter */}
-          <label
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors",
-              theme === "dark"
-                ? "bg-slate-800 hover:bg-slate-700"
-                : "bg-gray-100 hover:bg-gray-200"
-            )}
-          >
-            <input
-              type="checkbox"
-              checked={recruitingOnly}
-              onChange={(e) => setRecruitingOnly(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span
-              className={cn(
-                "text-sm font-medium",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}
-            >
-              <Filter className="w-4 h-4 inline mr-1" />
-              仅显示招募中
-            </span>
-          </label>
-        </div>
-
-        {/* Not authenticated notice */}
         {isSystemHealthy && !authLoading && !isAuthenticated && (
-          <div
-            className={cn(
-              "mb-6 p-4 rounded-lg flex items-center justify-between",
-              theme === "dark"
-                ? "bg-amber-900/20 border border-amber-800/50"
-                : "bg-amber-50 border border-amber-200"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <AlertCircle
-                className={cn(
-                  "w-5 h-5",
-                  theme === "dark" ? "text-amber-400" : "text-amber-600"
-                )}
-              />
-              <p
-                className={cn(
-                  "text-sm",
-                  theme === "dark" ? "text-amber-300" : "text-amber-700"
-                )}
-              >
-                登录后可以申请加入课题
-              </p>
+          <section className="research-panel-soft mb-6 flex flex-col gap-4 rounded-[1.55rem] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+                <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--paper-foreground)]">未登录时也可以先浏览课题详情</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  想申请加入或保存协作记录时，再登录即可。
+                </p>
+              </div>
             </div>
+
             <button
               onClick={() => openDialog("login")}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-amber-600 hover:bg-amber-500 text-white"
-                  : "bg-amber-500 hover:bg-amber-600 text-white"
-              )}
+              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
             >
-              <LogIn className="w-4 h-4" />
-              立即登录
+              <LogIn className="h-4 w-4" />
+              登录后申请
             </button>
-          </div>
+          </section>
         )}
 
-        {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2
-              className={cn(
-                "w-8 h-8 animate-spin",
-                theme === "dark" ? "text-teal-400" : "text-teal-600"
-              )}
-            />
-            <p
-              className={cn(
-                "mt-4 text-sm",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
-            >
-              加载课题中...
-            </p>
+          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.75rem] py-16">
+            <Loader2 className="h-7 w-7 animate-spin text-[var(--paper-accent)]" />
+            <p className="mt-4 text-sm text-[var(--glass-text-muted)]">正在检索公开课题…</p>
           </div>
         )}
 
-        {/* Error State */}
         {error && !isLoading && (
           <div
-            className={cn(
-              "rounded-lg p-4 mb-8",
-              theme === "dark"
-                ? "bg-red-900/20 border border-red-800"
-                : "bg-red-50 border border-red-200"
-            )}
+            className="mb-8 rounded-[1.55rem] p-4"
+            style={{
+              border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
+              background: "color-mix(in srgb, #d95b5b 10%, transparent)",
+              color: "#b33d3d",
+            }}
           >
-            <p className={theme === "dark" ? "text-red-400" : "text-red-600"}>{error}</p>
+            <p className="text-sm font-medium">{error}</p>
           </div>
         )}
 
-        {/* Projects Grid */}
         {!isLoading && !error && projects.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {projects.map((project) => (
-              <div
+              <article
                 key={project.id}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border-2 transition-all hover:shadow-xl",
-                  theme === "dark"
-                    ? "bg-slate-800 border-slate-700 hover:border-teal-500"
-                    : "bg-white border-gray-200 hover:border-teal-400"
-                )}
+                className="research-panel rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
-                {/* Content */}
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3
-                      className={cn(
-                        "text-xl font-bold line-clamp-2 group-hover:text-teal-400 transition-colors",
-                        theme === "dark" ? "text-white" : "text-gray-900"
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      {project.is_recruiting && (
+                        <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-[11px] font-semibold">
+                          招募中
+                        </span>
                       )}
+                      <span className="research-chip inline-flex rounded-full px-3 py-1 text-[11px] font-medium">
+                        {project.require_approval ? "需要审核" : "可直接加入"}
+                      </span>
+                    </div>
+
+                    <h2
+                      className="line-clamp-2 text-[1.35rem] font-semibold leading-tight text-[var(--paper-foreground)]"
+                      style={{ fontFamily: "var(--font-ui-display)" }}
                     >
                       {project.name_zh}
-                    </h3>
-                    {project.is_recruiting && (
-                      <span
-                        className={cn(
-                          "text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2",
-                          theme === "dark"
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-green-100 text-green-600"
-                        )}
-                      >
-                        招募中
-                      </span>
-                    )}
+                    </h2>
+
+                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                      {project.description_zh || "暂无课题简介，可先进入课题查看更完整的研究结构。"}
+                    </p>
                   </div>
 
-                  <p
-                    className={cn(
-                      "text-base line-clamp-3 mb-4",
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    )}
-                  >
-                    {project.description_zh || "暂无描述"}
-                  </p>
-
-                  {/* Recruitment Requirements */}
-                  {project.recruitment_requirements && (
-                    <div
-                      className={cn(
-                        "text-xs mb-4 p-2 rounded line-clamp-2",
-                        theme === "dark"
-                          ? "bg-blue-900/30 text-blue-300"
-                          : "bg-blue-50 text-blue-700"
-                      )}
-                    >
-                      <span className="font-medium">要求：</span>
-                      {project.recruitment_requirements}
-                    </div>
-                  )}
-
-                  {/* Owner */}
-                  {project.owner_username && (
-                    <div
-                      className={cn(
-                        "flex items-center gap-1 text-sm mb-3",
-                        theme === "dark" ? "text-gray-400" : "text-gray-500"
-                      )}
-                    >
-                      <span>组长：</span>
-                      <span className="font-medium">{project.owner_username}</span>
-                    </div>
-                  )}
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between text-xs mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          theme === "dark" ? "text-gray-500" : "text-gray-400"
-                        )}
-                      >
-                        <Users className="w-3 h-3" />
-                        <span>
-                          {project.member_count}
-                          {project.max_members && ` / ${project.max_members}`} 成员
-                        </span>
-                      </div>
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          theme === "dark" ? "text-gray-500" : "text-gray-400"
-                        )}
-                      >
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDate(project.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons - 并排显示两个按钮 */}
-                  <div className="flex gap-2">
-                    {/* 打开课题按钮 - 始终显示 */}
-                    <Link
-                      to={`/lab/projects/${project.id}`}
-                      state={{ readOnly: !project.is_member }}
-                      className={cn(
-                        "flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-center block",
-                        project.is_member
-                          ? theme === "dark"
-                            ? "bg-purple-600 hover:bg-purple-500 text-white"
-                            : "bg-purple-500 hover:bg-purple-600 text-white"
-                          : theme === "dark"
-                            ? "bg-slate-700 hover:bg-slate-600 text-gray-300 border border-slate-600"
-                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
-                      )}
-                    >
-                      {project.is_member ? "进入课题" : "打开课题"}
-                    </Link>
-
-                    {/* 申请加入按钮 - 仅非成员显示 */}
-                    {!project.is_member && (
-                      <button
-                        onClick={() => handleApplyClick(project)}
-                        className={cn(
-                          "flex-1 px-4 py-2 rounded-lg font-medium transition-colors",
-                          theme === "dark"
-                            ? "bg-teal-600 hover:bg-teal-500 text-white"
-                            : "bg-teal-500 hover:bg-teal-600 text-white"
-                        )}
-                      >
-                        {project.require_approval ? "申请加入" : "立即加入"}
-                      </button>
-                    )}
+                  <div className="research-chip flex h-11 w-11 items-center justify-center rounded-2xl">
+                    <FlaskConical className="h-5 w-5 text-[var(--paper-link)]" />
                   </div>
                 </div>
-              </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="research-panel-soft rounded-[1.2rem] p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">组长</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--paper-foreground)]">
+                      {project.owner_username || "暂未署名"}
+                    </p>
+                  </div>
+                  <div className="research-panel-soft rounded-[1.2rem] p-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">发布时间</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--paper-foreground)]">
+                      {formatDate(project.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                {project.recruitment_requirements && (
+                  <div className="mt-4 rounded-[1.2rem] border border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)] px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">招募要求</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
+                      {project.recruitment_requirements}
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {project.member_count}
+                    {project.max_members && ` / ${project.max_members}`} 位成员
+                  </span>
+                  <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    最近更新 {formatDate(project.updated_at)}
+                  </span>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                  <Link
+                    to={`/lab/projects/${project.id}`}
+                    state={{ readOnly: !project.is_member }}
+                    className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-medium"
+                  >
+                    {project.is_member ? "进入课题" : "查看详情"}
+                  </Link>
+
+                  {!project.is_member && (
+                    <button
+                      onClick={() => handleApplyClick(project)}
+                      className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      {project.require_approval ? "申请加入" : "立即加入"}
+                    </button>
+                  )}
+                </div>
+              </article>
             ))}
-          </div>
+          </section>
         )}
 
-        {/* Empty State */}
         {!isLoading && !error && projects.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div
-              className={cn(
-                "w-24 h-24 rounded-full flex items-center justify-center mb-4",
-                theme === "dark"
-                  ? "bg-slate-800/50 border-2 border-dashed border-slate-700"
-                  : "bg-gray-100 border-2 border-dashed border-gray-300"
-              )}
-            >
-              <FlaskConical
-                className={cn(
-                  "w-12 h-12",
-                  theme === "dark" ? "text-slate-600" : "text-gray-400"
-                )}
-              />
+          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.8rem] py-16 text-center">
+            <div className="research-chip flex h-16 w-16 items-center justify-center rounded-[1.8rem]">
+              <FlaskConical className="h-8 w-8 text-[var(--glass-text-muted)]" />
             </div>
             <h3
-              className={cn(
-                "text-xl font-semibold mb-2",
-                theme === "dark" ? "text-white" : "text-gray-900"
-              )}
+              className="mt-5 text-xl font-semibold text-[var(--paper-foreground)]"
+              style={{ fontFamily: "var(--font-ui-display)" }}
             >
-              没有找到课题
+              没有找到合适的课题
             </h3>
-            <p
-              className={cn(
-                "text-sm text-center max-w-md",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
-            >
+            <p className="mt-2 max-w-md text-sm leading-6 text-[var(--glass-text-muted)]">
               {searchQuery || recruitingOnly
-                ? "尝试调整筛选条件"
-                : "目前没有公开的课题，请稍后再来看看"}
+                ? "换一个关键词，或者取消筛选再试一次。"
+                : "当前还没有公开课题，稍后再回来看看。"}
             </p>
           </div>
         )}
       </main>
 
-      {/* Application Form Dialog */}
       <ProjectApplicationForm
         isOpen={isApplicationFormOpen}
         onClose={() => setIsApplicationFormOpen(false)}

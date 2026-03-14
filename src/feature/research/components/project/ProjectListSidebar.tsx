@@ -6,10 +6,8 @@
  * 以紧凑列表格式显示用户的研究课题
  */
 
-import { FlaskConical, Plus, Loader2, LogIn, ExternalLink } from "lucide-react";
+import { ExternalLink, FlaskConical, Loader2, LogIn, Plus, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTheme } from "@/contexts/ThemeContext";
-import { cn } from "@/utils/classNames";
 import type { ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectListItem } from "./ProjectListItem";
@@ -29,146 +27,127 @@ export function ProjectListSidebar({
   isAuthenticated,
   onCreateProject,
 }: ProjectListSidebarProps) {
-  const { theme } = useTheme();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
+  const activeProjects = projects.filter((project) => project.status === "active").length;
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border p-4",
-        theme === "dark"
-          ? "bg-slate-800/50 border-slate-700"
-          : "bg-white border-gray-200"
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "p-2 rounded-lg",
-              theme === "dark"
-                ? "bg-purple-500/20 text-purple-400"
-                : "bg-purple-100 text-purple-600"
-            )}
-          >
-            <FlaskConical className="w-4 h-4" />
-          </div>
+    <section className="research-panel rounded-[1.8rem] p-5 md:p-6">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="research-kicker mb-2">My Workspace</div>
           <h2
-            className={cn(
-              "font-semibold",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: "var(--font-ui-display)" }}
           >
-            我的研究课题
+            我的课题工作台
           </h2>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--glass-text-muted)]">
+            集中管理你参与的研究课题，先看进度，再决定继续推进还是扩展新方向。
+          </p>
         </div>
+
         <Link
           to="/lab/projects"
-          className={cn(
-            "flex items-center gap-1 text-xs font-medium transition-colors",
-            theme === "dark"
-              ? "text-purple-400 hover:text-purple-300"
-              : "text-purple-600 hover:text-purple-500"
-          )}
+          className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
         >
-          查看全部
-          <ExternalLink className="w-3 h-3" />
+          全部课题
+          <ExternalLink className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      {/* Create Button */}
-      {isAuthenticated && (
-        <button
-          onClick={onCreateProject}
-          className={cn(
-            "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors mb-4",
-            theme === "dark"
-              ? "bg-purple-600 hover:bg-purple-500 text-white"
-              : "bg-purple-500 hover:bg-purple-600 text-white"
-          )}
-        >
-          <Plus className="w-4 h-4" />
-          新建课题
-        </button>
+      <div className="mb-5 grid grid-cols-2 gap-3">
+        <div className="research-metric rounded-[1.35rem] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+            参与课题
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
+        </div>
+        <div className="research-metric rounded-[1.35rem] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+            进行中
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{activeProjects}</p>
+        </div>
+      </div>
+
+      {isAuthenticated ? (
+        <div className="mb-5 flex flex-wrap gap-3">
+          <button
+            onClick={onCreateProject}
+            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
+          >
+            <Plus className="h-4 w-4" />
+            新建课题
+          </button>
+          <Link
+            to="/lab/explore"
+            className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+          >
+            <Search className="h-4 w-4 text-[var(--paper-link)]" />
+            浏览公开课题
+          </Link>
+        </div>
+      ) : (
+        <div className="research-panel-soft mb-5 rounded-[1.45rem] p-4">
+          <div className="mb-3 flex items-start gap-3">
+            <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+              <LogIn className="h-4 w-4 text-[var(--paper-link)]" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--paper-foreground)]">登录后开启个人研究工作台</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                你可以保存画布、管理成员，并持续迭代自己的研究路线。
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => openDialog("login")}
+              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
+            >
+              <LogIn className="h-4 w-4" />
+              立即登录
+            </button>
+            <Link
+              to="/lab/explore"
+              className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+            >
+              <Search className="h-4 w-4 text-[var(--paper-link)]" />
+              先看公开课题
+            </Link>
+          </div>
+        </div>
       )}
 
-      {/* Content Area */}
-      <div className="space-y-2">
-        {/* Loading State */}
+      <div className="space-y-3">
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2
-              className={cn(
-                "w-6 h-6 animate-spin",
-                theme === "dark" ? "text-purple-400" : "text-purple-600"
-              )}
-            />
-            <p
-              className={cn(
-                "mt-2 text-sm",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
-            >
-              加载中...
-            </p>
+          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.45rem] py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--paper-accent)]" />
+            <p className="mt-3 text-sm text-[var(--glass-text-muted)]">正在整理你的课题列表…</p>
           </div>
         )}
 
-        {/* Error State */}
         {error && !isLoading && (
           <div
-            className={cn(
-              "rounded-lg p-3 text-sm",
-              theme === "dark"
-                ? "bg-red-900/20 text-red-400"
-                : "bg-red-50 text-red-600"
-            )}
+            className="rounded-[1.35rem] p-4 text-sm"
+            style={{
+              border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
+              background: "color-mix(in srgb, #d95b5b 10%, transparent)",
+              color: "#b33d3d",
+            }}
           >
             {error}
           </div>
         )}
 
-        {/* Not Authenticated */}
         {!isAuthenticated && !isLoading && (
-          <div
-            className={cn(
-              "rounded-lg p-4 text-center",
-              theme === "dark"
-                ? "bg-slate-800 border border-dashed border-slate-600"
-                : "bg-gray-50 border border-dashed border-gray-300"
-            )}
-          >
-            <LogIn
-              className={cn(
-                "w-8 h-8 mx-auto mb-2",
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              )}
-            />
-            <p
-              className={cn(
-                "text-sm mb-3",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
-            >
-              登录后查看您的课题
-            </p>
-            <button
-              onClick={() => openDialog("login")}
-              className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-purple-600 hover:bg-purple-500 text-white"
-                  : "bg-purple-500 hover:bg-purple-600 text-white"
-              )}
-            >
-              <LogIn className="w-4 h-4" />
-              立即登录
-            </button>
+          <div className="research-panel-soft rounded-[1.45rem] border border-dashed p-5 text-center">
+            <FlaskConical className="mx-auto h-9 w-9 text-[var(--glass-text-muted)]" />
+            <p className="mt-3 text-sm font-medium text-[var(--paper-foreground)]">课题列表会在登录后出现在这里</p>
+            <p className="mt-1 text-sm text-[var(--glass-text-muted)]">当前可以先从右侧公开课题里挑选感兴趣的方向。</p>
           </div>
         )}
 
-        {/* Projects List */}
         {isAuthenticated && !isLoading && !error && projects.length > 0 && (
           <div className="space-y-2">
             {projects.map((project) => (
@@ -177,41 +156,29 @@ export function ProjectListSidebar({
           </div>
         )}
 
-        {/* Empty State */}
         {isAuthenticated && !isLoading && !error && projects.length === 0 && (
-          <div
-            className={cn(
-              "rounded-lg p-4 text-center",
-              theme === "dark"
-                ? "bg-slate-800 border border-dashed border-slate-600"
-                : "bg-gray-50 border border-dashed border-gray-300"
-            )}
-          >
-            <FlaskConical
-              className={cn(
-                "w-8 h-8 mx-auto mb-2",
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              )}
-            />
-            <p
-              className={cn(
-                "text-sm",
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              )}
+          <div className="research-panel-soft rounded-[1.45rem] border border-dashed p-5">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+                <FlaskConical className="h-4 w-4 text-[var(--paper-accent)]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--paper-foreground)]">还没有自己的研究课题</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  先创建一个主课题，后续再把问题、实验和结论拆进画布里。
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onCreateProject}
+              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
             >
-              还没有研究课题
-            </p>
-            <p
-              className={cn(
-                "text-xs mt-1",
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              )}
-            >
-              点击上方按钮创建
-            </p>
+              <Plus className="h-4 w-4" />
+              创建第一个课题
+            </button>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

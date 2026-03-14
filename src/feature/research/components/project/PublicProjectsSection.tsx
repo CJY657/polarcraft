@@ -2,31 +2,20 @@
  * Public Projects Section Component
  * 公开课题区域组件
  *
- * Displays public projects that users can browse and apply to join
- * 显示用户可以浏览和申请加入的公开课题
+ * Displays a curated subset of public projects for the dashboard
+ * 在首页工作台中展示精选公开课题
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Search,
-  Filter,
-  Users,
-  Clock,
-  FlaskConical,
-  Loader2,
-  ArrowRight,
-} from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
+import { ArrowRight, Clock, FlaskConical, Loader2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
-import { cn } from "@/utils/classNames";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
 
 export function PublicProjectsSection() {
-  const { theme } = useTheme();
   const { isAuthenticated } = useAuth();
   const { isSystemHealthy } = useSystem();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
@@ -34,12 +23,9 @@ export function PublicProjectsSection() {
   const [projects, setProjects] = useState<PublicProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recruitingOnly, setRecruitingOnly] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
 
-  // Load public projects
   useEffect(() => {
     async function fetchProjects() {
       if (!isSystemHealthy) {
@@ -50,10 +36,7 @@ export function PublicProjectsSection() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await profileApi.getPublicProjects({
-          recruiting: recruitingOnly || undefined,
-          search: searchQuery || undefined,
-        });
+        const data = await profileApi.getPublicProjects();
         setProjects(data);
       } catch (err) {
         console.error("Failed to fetch public projects:", err);
@@ -63,10 +46,8 @@ export function PublicProjectsSection() {
       }
     }
 
-    // Debounce search
-    const timer = setTimeout(fetchProjects, 300);
-    return () => clearTimeout(timer);
-  }, [recruitingOnly, searchQuery, isSystemHealthy]);
+    fetchProjects();
+  }, [isSystemHealthy]);
 
   const handleApplyClick = (project: PublicProject) => {
     if (!isAuthenticated) {
@@ -77,381 +58,190 @@ export function PublicProjectsSection() {
     setIsApplicationFormOpen(true);
   };
 
-  const handleApplicationSuccess = () => {
+  const handleApplicationSuccess = async () => {
     setIsApplicationFormOpen(false);
-    // Refresh the list
-    async function refreshProjects() {
-      try {
-        const data = await profileApi.getPublicProjects({
-          recruiting: recruitingOnly || undefined,
-          search: searchQuery || undefined,
-        });
-        setProjects(data);
-      } catch (err) {
-        console.error("Failed to refresh projects:", err);
-      }
+
+    try {
+      const data = await profileApi.getPublicProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error("Failed to refresh projects:", err);
     }
-    refreshProjects();
   };
 
-  // Format date
+  const featuredProjects = useMemo(() => {
+    return [...projects]
+      .sort((a, b) => Number(b.is_recruiting) - Number(a.is_recruiting))
+      .slice(0, 4);
+  }, [projects]);
+
+  const recruitingCount = projects.filter((project) => project.is_recruiting).length;
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("zh-CN", {
-      year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border p-4",
-        theme === "dark"
-          ? "bg-slate-800/50 border-slate-700"
-          : "bg-white border-gray-200"
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "p-2 rounded-lg",
-              theme === "dark"
-                ? "bg-teal-500/20 text-teal-400"
-                : "bg-teal-100 text-teal-600"
-            )}
-          >
-            <Search className="w-4 h-4" />
-          </div>
+    <section className="research-panel rounded-[1.8rem] p-5 md:p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="research-kicker mb-2">Open Research</div>
           <h2
-            className={cn(
-              "font-semibold",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: "var(--font-ui-display)" }}
           >
-            发现课题
+            适合加入的公开课题
           </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
+            首页只保留最有加入价值的一小部分课题，先看方向和招募状态，再进入完整发现页深入筛选。
+          </p>
         </div>
+
         <Link
           to="/lab/explore"
-          className={cn(
-            "text-sm font-medium flex items-center gap-1 transition-colors",
-            theme === "dark"
-              ? "text-teal-400 hover:text-teal-300"
-              : "text-teal-600 hover:text-teal-500"
-          )}
+          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
         >
-          查看全部
-          <ArrowRight className="w-3 h-3" />
+          查看全部课题
+          <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[180px]">
-          <Search
-            className={cn(
-              "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4",
-              theme === "dark" ? "text-gray-500" : "text-gray-400"
-            )}
-          />
-          <input
-            type="text"
-            placeholder="搜索课题..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={cn(
-              "w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors",
-              theme === "dark"
-                ? "bg-slate-700 border-slate-600 text-white placeholder-gray-500 focus:border-teal-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-teal-500"
-            )}
-          />
-        </div>
-
-        {/* Recruiting Filter */}
-        <label
-          className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm",
-            theme === "dark"
-              ? "bg-slate-700 hover:bg-slate-600"
-              : "bg-gray-100 hover:bg-gray-200"
-          )}
-        >
-          <input
-            type="checkbox"
-            checked={recruitingOnly}
-            onChange={(e) => setRecruitingOnly(e.target.checked)}
-            className="w-4 h-4 rounded"
-          />
-          <span className={theme === "dark" ? "text-gray-300" : "text-gray-700"}>
-            <Filter className="w-3 h-3 inline mr-1" />
-            仅招募中
-          </span>
-        </label>
+      <div className="mb-5 flex flex-wrap gap-2 text-xs">
+        <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1.5 font-medium">
+          {recruitingCount} 个课题正在招募
+        </span>
+        <span className="research-chip inline-flex items-center rounded-full px-3 py-1.5 font-medium">
+          共 {projects.length} 个公开方向可浏览
+        </span>
       </div>
 
-      {/* Loading State */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2
-            className={cn(
-              "w-6 h-6 animate-spin",
-              theme === "dark" ? "text-teal-400" : "text-teal-600"
-            )}
-          />
-          <p
-            className={cn(
-              "mt-2 text-sm",
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            )}
-          >
-            加载课题中...
-          </p>
+        <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.55rem] py-14">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--paper-accent)]" />
+          <p className="mt-3 text-sm text-[var(--glass-text-muted)]">正在挑选值得关注的公开课题…</p>
         </div>
       )}
 
-      {/* Error State */}
       {error && !isLoading && (
         <div
-          className={cn(
-            "rounded-lg p-3 text-sm",
-            theme === "dark"
-              ? "bg-red-900/20 text-red-400"
-              : "bg-red-50 text-red-600"
-          )}
+          className="rounded-[1.4rem] p-4 text-sm"
+          style={{
+            border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
+            background: "color-mix(in srgb, #d95b5b 10%, transparent)",
+            color: "#b33d3d",
+          }}
         >
           {error}
         </div>
       )}
 
-      {/* Projects Grid */}
-      {!isLoading && !error && projects.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map((project) => (
-            <div
+      {!isLoading && !error && featuredProjects.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {featuredProjects.map((project) => (
+            <article
               key={project.id}
-              className={cn(
-                "group rounded-lg border overflow-hidden transition-all",
-                theme === "dark"
-                  ? "bg-slate-800 border-slate-700 hover:border-teal-500"
-                  : "bg-gray-50 border-gray-200 hover:border-teal-400"
-              )}
+              className="research-panel-soft flex h-full flex-col rounded-[1.55rem] p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
             >
-              {/* Content */}
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3
-                    className={cn(
-                      "font-semibold text-lg line-clamp-1 group-hover:text-teal-400 transition-colors",
-                      theme === "dark" ? "text-white" : "text-gray-900"
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {project.is_recruiting && (
+                      <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-[11px] font-semibold">
+                        招募中
+                      </span>
                     )}
+                    <span className="research-chip inline-flex rounded-full px-3 py-1 text-[11px] font-medium">
+                      {project.require_approval ? "申请审核" : "可直接加入"}
+                    </span>
+                  </div>
+
+                  <h3
+                    className="line-clamp-2 text-lg font-semibold leading-tight text-[var(--paper-foreground)]"
+                    style={{ fontFamily: "var(--font-ui-display)" }}
                   >
                     {project.name_zh}
                   </h3>
-                  {project.is_recruiting && (
-                    <span
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2",
-                        theme === "dark"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-green-100 text-green-600"
-                      )}
-                    >
-                      招募中
-                    </span>
-                  )}
                 </div>
 
-                <p
-                  className={cn(
-                    "text-sm line-clamp-3 mb-3",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  )}
-                >
-                  {project.description_zh || "暂无描述"}
-                </p>
-
-                {/* Owner */}
-                {project.owner_username && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-1 text-xs mb-2",
-                      theme === "dark" ? "text-gray-400" : "text-gray-500"
-                    )}
-                  >
-                    <span>组长：</span>
-                    <span className="font-medium">{project.owner_username}</span>
-                  </div>
-                )}
-
-                {/* Members */}
-                {project.members && project.members.filter((m) => m.role !== "owner").length > 0 && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-1 text-xs mb-2",
-                      theme === "dark" ? "text-gray-400" : "text-gray-500"
-                    )}
-                  >
-                    <span>成员：</span>
-                    <div className="flex items-center -space-x-1">
-                      {project.members
-                        .filter((m) => m.role !== "owner")
-                        .slice(0, 5)
-                        .map((member, index) => (
-                          <div
-                            key={index}
-                            className="relative group/member"
-                          >
-                            <div
-                              className={cn(
-                                "w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-medium cursor-pointer transition-transform hover:scale-110 hover:z-10",
-                                theme === "dark"
-                                  ? "border-slate-700 bg-slate-600 text-white"
-                                  : "border-gray-200 bg-gray-200 text-gray-700"
-                              )}
-                            >
-                              {member.avatar_url ? (
-                                <img
-                                  src={member.avatar_url}
-                                  alt={member.username}
-                                  className="w-full h-full rounded-full object-cover"
-                                />
-                              ) : (
-                                member.username?.charAt(0).toUpperCase()
-                              )}
-                            </div>
-                            {/* Tooltip */}
-                            <div
-                              className={cn(
-                                "absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap opacity-0 invisible group-hover/member:opacity-100 group-hover/member:visible transition-all z-20",
-                                theme === "dark"
-                                  ? "bg-slate-700 text-white"
-                                  : "bg-gray-800 text-white"
-                              )}
-                            >
-                              {member.username}
-                            </div>
-                          </div>
-                        ))}
-                      {project.members.filter((m) => m.role !== "owner").length > 5 && (
-                        <div
-                          className={cn(
-                            "w-5 h-5 rounded-full border flex items-center justify-center text-[10px]",
-                            theme === "dark"
-                              ? "border-slate-700 bg-slate-600 text-gray-300"
-                              : "border-gray-200 bg-gray-300 text-gray-600"
-                          )}
-                        >
-                          +{project.members.filter((m) => m.role !== "owner").length - 5}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Stats */}
-                <div className="flex items-center gap-3 text-xs mb-3">
-                  <div
-                    className={cn(
-                      "flex items-center gap-1",
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    )}
-                  >
-                    <Users className="w-3 h-3" />
-                    <span>
-                      {project.member_count}
-                      {project.max_members && ` / ${project.max_members}`}
-                    </span>
-                  </div>
-                  <div
-                    className={cn(
-                      "flex items-center gap-1",
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    )}
-                  >
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDate(project.created_at)}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Link
-                    to={`/lab/projects/${project.id}`}
-                    state={{ readOnly: !project.is_member }}
-                    className={cn(
-                      "flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-center block",
-                      project.is_member
-                        ? theme === "dark"
-                          ? "bg-purple-600 hover:bg-purple-500 text-white"
-                          : "bg-purple-500 hover:bg-purple-600 text-white"
-                        : theme === "dark"
-                          ? "bg-slate-700 hover:bg-slate-600 text-gray-300"
-                          : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    )}
-                  >
-                    {project.is_member ? "进入" : "查看"}
-                  </Link>
-
-                  {!project.is_member && (
-                    <button
-                      onClick={() => handleApplyClick(project)}
-                      className={cn(
-                        "flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                        theme === "dark"
-                          ? "bg-teal-600 hover:bg-teal-500 text-white"
-                          : "bg-teal-500 hover:bg-teal-600 text-white"
-                      )}
-                    >
-                      {project.require_approval ? "申请" : "加入"}
-                    </button>
-                  )}
+                <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+                  <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
                 </div>
               </div>
-            </div>
+
+              <p className="line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                {project.description_zh || "课题简介待补充，可以先进入查看结构和成员情况。"}
+              </p>
+
+              {(project.owner_username || project.recruitment_requirements) && (
+                <div className="mt-4 space-y-2">
+                  {project.owner_username && (
+                    <p className="text-xs text-[var(--glass-text-muted)]">
+                      组长 <span className="font-semibold text-[var(--paper-foreground)]">{project.owner_username}</span>
+                    </p>
+                  )}
+                  {project.recruitment_requirements && (
+                    <p
+                      className="rounded-[1rem] px-3 py-2 text-xs leading-5 text-[var(--paper-foreground)]"
+                      style={{ background: "color-mix(in srgb, var(--paper-link) 8%, transparent)" }}
+                    >
+                      {project.recruitment_requirements}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
+                  <Users className="h-3.5 w-3.5" />
+                  {project.member_count}
+                  {project.max_members && ` / ${project.max_members}`} 位成员
+                </span>
+                <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  发布于 {formatDate(project.created_at)}
+                </span>
+              </div>
+
+              <div className="mt-5 flex gap-2">
+                <Link
+                  to={`/lab/projects/${project.id}`}
+                  state={{ readOnly: !project.is_member }}
+                  className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-medium"
+                >
+                  {project.is_member ? "进入课题" : "查看详情"}
+                </Link>
+
+                {!project.is_member && (
+                  <button
+                    onClick={() => handleApplyClick(project)}
+                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    {project.require_approval ? "提交申请" : "立即加入"}
+                  </button>
+                )}
+              </div>
+            </article>
           ))}
         </div>
       )}
 
-      {/* Empty State */}
-      {!isLoading && !error && projects.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <FlaskConical
-            className={cn(
-              "w-12 h-12 mb-3",
-              theme === "dark" ? "text-gray-600" : "text-gray-300"
-            )}
-          />
-          <p
-            className={cn(
-              "text-sm font-medium mb-1",
-              theme === "dark" ? "text-gray-400" : "text-gray-600"
-            )}
-          >
-            没有找到课题
-          </p>
-          <p
-            className={cn(
-              "text-xs",
-              theme === "dark" ? "text-gray-500" : "text-gray-400"
-            )}
-          >
-            {searchQuery || recruitingOnly ? "尝试调整筛选条件" : "目前没有公开的课题"}
-          </p>
+      {!isLoading && !error && featuredProjects.length === 0 && (
+        <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.55rem] py-14 text-center">
+          <FlaskConical className="h-10 w-10 text-[var(--glass-text-muted)]" />
+          <p className="mt-4 text-sm font-semibold text-[var(--paper-foreground)]">暂时还没有公开课题</p>
+          <p className="mt-1 text-sm text-[var(--glass-text-muted)]">稍后再来看看，或者先创建自己的研究方向。</p>
         </div>
       )}
 
-      {/* Application Form Dialog */}
       <ProjectApplicationForm
         isOpen={isApplicationFormOpen}
         onClose={() => setIsApplicationFormOpen(false)}
         project={selectedProject}
         onSuccess={handleApplicationSuccess}
       />
-    </div>
+    </section>
   );
 }

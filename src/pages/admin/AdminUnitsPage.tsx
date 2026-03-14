@@ -6,14 +6,31 @@
  * 列出所有单元并提供增删改查操作
  */
 
-import { useEffect, useState } from "react";
+import { Reorder, useDragControls } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
+import type { Unit } from "@/lib/unit.service";
 import { UnitFormDialog } from "@/feature/admin/components/UnitFormDialog";
 import { PersistentHeader } from "@/components/shared";
-import { Plus, Pencil, Trash2, FileText, BookOpen } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  GripVertical,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+
+function areUnitsInSameOrder(left: Unit[], right: Unit[]) {
+  return (
+    left.length === right.length &&
+    left.every((unit, index) => unit.id === right[index]?.id)
+  );
+}
 
 export default function AdminUnitsPage() {
   const navigate = useNavigate();
@@ -24,11 +41,16 @@ export default function AdminUnitsPage() {
     error,
     fetchUnits,
     deleteUnit,
+    reorderUnits,
     clearError,
   } = useUnitAdminStore();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [orderedUnits, setOrderedUnits] = useState<Unit[]>([]);
+  const [draggingUnitId, setDraggingUnitId] = useState<string | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const orderedUnitsRef = useRef<Unit[]>([]);
 
   useEffect(() => {
     fetchUnits();
@@ -45,6 +67,40 @@ export default function AdminUnitsPage() {
 
   // Ensure units is always an array
   const unitList = units || [];
+
+  useEffect(() => {
+    if (!isSavingOrder) {
+      setOrderedUnits(unitList);
+    }
+  }, [isSavingOrder, unitList]);
+
+  useEffect(() => {
+    orderedUnitsRef.current = orderedUnits;
+  }, [orderedUnits]);
+
+  const handleUnitsReorder = (nextUnits: Unit[]) => {
+    orderedUnitsRef.current = nextUnits;
+    setOrderedUnits(nextUnits);
+  };
+
+  const handlePersistOrder = async () => {
+    const nextUnits = orderedUnitsRef.current;
+    setDraggingUnitId(null);
+
+    if (isSavingOrder || areUnitsInSameOrder(nextUnits, unitList)) {
+      return;
+    }
+
+    setIsSavingOrder(true);
+    try {
+      await reorderUnits(nextUnits.map((unit) => unit.id));
+    } catch (err) {
+      console.error("Failed to reorder units:", err);
+      setOrderedUnits(unitList);
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   if (isLoading && unitList.length === 0) {
     return (
@@ -121,8 +177,21 @@ export default function AdminUnitsPage() {
               theme === "dark" ? "text-gray-400" : "text-gray-600"
             )}
           >
-            管理实验单元及其下的实验
+            拖动左侧把手调整单元顺序，松手后自动保存
           </p>
+          {isSavingOrder && (
+            <div
+              className={cn(
+                "mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm",
+                theme === "dark"
+                  ? "bg-slate-800 text-cyan-300"
+                  : "bg-cyan-50 text-cyan-700"
+              )}
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              正在保存顺序
+            </div>
+          )}
         </div>
 
         {/* Error Message */}
@@ -136,92 +205,29 @@ export default function AdminUnitsPage() {
         )}
 
         {/* Unit List */}
-        <div className="grid gap-4">
-          {unitList.map((unit) => (
-            <div
+        <Reorder.Group
+          axis="y"
+          as="div"
+          values={orderedUnits}
+          onReorder={handleUnitsReorder}
+          className={cn(
+            "flex flex-col gap-4",
+            isSavingOrder && "pointer-events-none opacity-80"
+          )}
+        >
+          {orderedUnits.map((unit, index) => (
+            <AdminUnitCard
               key={unit.id}
-              className={cn(
-                "rounded-xl p-6 border transition-colors",
-                theme === "dark"
-                  ? "bg-slate-800 border-slate-700 hover:border-slate-600"
-                  : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
-              )}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 flex-1">
-                  {/* Color indicator */}
-                  <div
-                    className="w-2 h-full min-h-[80px] rounded-full flex-shrink-0"
-                    style={{ backgroundColor: unit.color || "#3B82F6" }}
-                  />
-
-                  {/* Unit info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3
-                        className={cn(
-                          "text-xl font-semibold",
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        )}
-                      >
-                        {unit.title?.["zh-CN"] || unit.title_zh}
-                      </h3>
-                    </div>
-
-                    {unit.description?.["zh-CN"] && (
-                      <p
-                        className={cn(
-                          "text-sm mb-4 line-clamp-2",
-                          theme === "dark" ? "text-gray-300" : "text-gray-700"
-                        )}
-                      >
-                        {unit.description["zh-CN"]}
-                      </p>
-                    )}
-
-                    {/* Stats */}
-                    <div
-                      className={cn(
-                        "flex items-center gap-4 text-sm",
-                        theme === "dark" ? "text-gray-400" : "text-gray-600"
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <FileText className="w-4 h-4" />
-                        <span>{unit.mainSlide ? "PDF" : "无 PDF"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{unit.courseCount || 0} 个实验</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => navigate(`/admin/units/${unit.id}`)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                      theme === "dark"
-                        ? "bg-slate-700 hover:bg-slate-600 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    )}
-                  >
-                    <Pencil className="w-4 h-4" />
-                    编辑
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(unit.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    删除
-                  </button>
-                </div>
-              </div>
-            </div>
+              index={index}
+              unit={unit}
+              theme={theme}
+              isDragging={draggingUnitId === unit.id}
+              isSavingOrder={isSavingOrder}
+              onDragStart={() => setDraggingUnitId(unit.id)}
+              onDragEnd={handlePersistOrder}
+              onEdit={() => navigate(`/admin/units/${unit.id}`)}
+              onDelete={() => setDeleteConfirmId(unit.id)}
+            />
           ))}
 
           {unitList.length === 0 && !isLoading && (
@@ -242,7 +248,7 @@ export default function AdminUnitsPage() {
               </button>
             </div>
           )}
-        </div>
+        </Reorder.Group>
       </div>
 
       {/* Create Dialog */}
@@ -302,5 +308,157 @@ export default function AdminUnitsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+interface AdminUnitCardProps {
+  index: number;
+  unit: Unit;
+  theme: string;
+  isDragging: boolean;
+  isSavingOrder: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function AdminUnitCard({
+  index,
+  unit,
+  theme,
+  isDragging,
+  isSavingOrder,
+  onDragStart,
+  onDragEnd,
+  onEdit,
+  onDelete,
+}: AdminUnitCardProps) {
+  const dragControls = useDragControls();
+  const unitTitle = unit.title?.["zh-CN"] || "未命名单元";
+  const unitDescription = unit.description?.["zh-CN"];
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={unit}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      whileDrag={{
+        scale: 1.01,
+        boxShadow: "0 18px 40px rgba(15, 23, 42, 0.18)",
+      }}
+      className={cn(
+        "rounded-xl border p-4 sm:p-5 transition-[border-color,box-shadow]",
+        theme === "dark"
+          ? "bg-slate-800 border-slate-700"
+          : "bg-white border-gray-200 shadow-sm",
+        isDragging &&
+          (theme === "dark"
+            ? "border-cyan-400 shadow-lg shadow-cyan-950/30"
+            : "border-cyan-400 shadow-lg shadow-cyan-100")
+      )}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+          <button
+            type="button"
+            aria-label={`拖动排序 ${unitTitle}`}
+            onPointerDown={(event) => {
+              if (!isSavingOrder) {
+                dragControls.start(event);
+              }
+            }}
+            className={cn(
+              "mt-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg transition-colors touch-none",
+              theme === "dark"
+                ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+              !isSavingOrder && "cursor-grab active:cursor-grabbing"
+            )}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+
+          <div
+            className={cn(
+              "mt-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
+              theme === "dark"
+                ? "bg-slate-700/80 text-slate-200"
+                : "bg-gray-100 text-gray-600"
+            )}
+          >
+            {index + 1}
+          </div>
+
+          <div
+            className="w-1.5 min-h-[92px] flex-shrink-0 rounded-full"
+            style={{ backgroundColor: unit.color || "#3B82F6" }}
+          />
+
+          <div className="min-w-0 flex-1">
+            <h3
+              className={cn(
+                "text-xl font-semibold",
+                theme === "dark" ? "text-white" : "text-gray-900"
+              )}
+            >
+              {unitTitle}
+            </h3>
+
+            {unitDescription && (
+              <p
+                className={cn(
+                  "mt-1 line-clamp-2 text-sm",
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                )}
+              >
+                {unitDescription}
+              </p>
+            )}
+
+            <div
+              className={cn(
+                "mt-4 flex flex-wrap items-center gap-4 text-sm",
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4" />
+                <span>{unit.mainSlide ? "有 PDF" : "无 PDF"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span>{unit.courseCount || 0} 个实验</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:pl-14 lg:pl-0">
+          <button
+            onClick={onEdit}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              theme === "dark"
+                ? "bg-slate-700 hover:bg-slate-600 text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            )}
+          >
+            <Pencil className="h-4 w-4" />
+            编辑
+          </button>
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
+          >
+            <Trash2 className="h-4 w-4" />
+            删除
+          </button>
+        </div>
+      </div>
+    </Reorder.Item>
   );
 }
