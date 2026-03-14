@@ -17,6 +17,7 @@ interface FooterLink {
 
 const LEARN_LINKS: FooterLink[] = [
   { label: "实验总览", path: "/experiments" },
+  { label: "历史时间线", path: "/chronicles" },
   { label: "实验单元", path: "/units" },
   { label: "交互模拟", path: "/demos" },
 ];
@@ -99,7 +100,7 @@ export function Footer() {
             </div>
 
             <p className="max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">
-              用实验内容、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
+              用实验内容、历史时间线、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
             </p>
 
             <div className="flex flex-wrap gap-3">

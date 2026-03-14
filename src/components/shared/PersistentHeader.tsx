@@ -37,6 +37,7 @@ const MODULE_THEMES: Record<
 const NAV_ITEMS = [
   { label: "首页", path: "/" },
   { label: "单元", path: "/units" },
+  { label: "历史时间线", path: "/chronicles" },
   { label: "模拟", path: "/demos" },
   { label: "成果", path: "/gallery" },
   { label: "研究", path: "/lab" },

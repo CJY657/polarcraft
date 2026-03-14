@@ -31,6 +31,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // Module 1: 实验内容
 // 科学原理 × 历史故事
 const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
+const TimelinePage = lazy(() => import("@/pages/TimelinePage"));
 
 // Module 1b: 实验课单元
 // 单元列表（旧单元详情页已收敛为课程入口）
@@ -205,6 +206,14 @@ function AppRouterContent() {
           <Route
             path="/experiments/:experimentId"
             element={<CourseViewerPage />}
+          />
+          <Route
+            path="/chronicles"
+            element={<TimelinePage />}
+          />
+          <Route
+            path="/timeline"
+            element={<Navigate to="/chronicles" replace />}
           />
           <Route
             path="/courses"
