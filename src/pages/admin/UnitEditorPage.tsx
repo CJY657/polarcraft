@@ -385,7 +385,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
   const currentCourses = unit.courses || [];
 
   const handleRemoveCourse = async (courseId: string) => {
-    if (!confirm("确定要永久删除此实验吗？删除后其主课件、媒体和超链接也会一并删除。")) {
+    if (!confirm("确定要永久删除此实验吗？删除后其主课件、媒体和超链接记录会一并删除，系统也会尝试回收不再被引用的上传文件。")) {
       return;
     }
 

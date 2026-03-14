@@ -9,6 +9,7 @@
 import { Request, Response } from "express";
 import { CourseModel } from "../models/course.model.js";
 import { asyncHandler } from "../middleware/error.middleware.js";
+import { ManagedUploadCleanupService } from "../services/managed-upload-cleanup.service.js";
 import { logger } from "../utils/logger.js";
 import type {
   CourseRow,
@@ -196,6 +197,9 @@ export class CourseController {
     }
 
     await CourseModel.updateCourse(id, data);
+    await ManagedUploadCleanupService.cleanupUrls([course.cover_image], {
+      reason: `course.update:${id}`,
+    });
     const updatedCourse = await CourseModel.getCourseById(id);
 
     logger.info(`Course updated by ${req.user!.username}: ${id}`);
@@ -214,7 +218,11 @@ export class CourseController {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
 
+    const cleanupUrls = await ManagedUploadCleanupService.collectCourseResourceUrls(id);
     await CourseModel.deleteCourse(id);
+    await ManagedUploadCleanupService.cleanupUrls(cleanupUrls, {
+      reason: `course.delete:${id}`,
+    });
 
     logger.info(`Course deleted by ${req.user!.username}: ${id}`);
     res.success(null, "课程删除成功");
@@ -256,7 +264,11 @@ export class CourseController {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
 
+    const existingMainSlide = await CourseModel.getMainSlide(id);
     await CourseModel.upsertMainSlide(id, data);
+    await ManagedUploadCleanupService.cleanupUrls([existingMainSlide?.url], {
+      reason: `course.main-slide.upsert:${id}`,
+    });
     const mainSlide = await CourseModel.getMainSlide(id);
 
     logger.info(`Main slide upserted by ${req.user!.username} for course: ${id}`);
@@ -270,7 +282,11 @@ export class CourseController {
   static deleteMainSlide = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const existingMainSlide = await CourseModel.getMainSlide(id);
     await CourseModel.deleteMainSlide(id);
+    await ManagedUploadCleanupService.cleanupUrls([existingMainSlide?.url], {
+      reason: `course.main-slide.delete:${id}`,
+    });
 
     logger.info(`Main slide deleted by ${req.user!.username} for course: ${id}`);
     res.success(null, "主课件删除成功");
@@ -344,6 +360,9 @@ export class CourseController {
     }
 
     await CourseModel.updateMedia(mediaId, data);
+    await ManagedUploadCleanupService.cleanupUrls([media.url, media.preview_pdf_url], {
+      reason: `course.media.update:${mediaId}`,
+    });
     const updatedMedia = await CourseModel.getMediaById(mediaId);
 
     logger.info(`Media updated by ${req.user!.username}: ${mediaId}`);
@@ -363,6 +382,9 @@ export class CourseController {
     }
 
     await CourseModel.deleteMedia(mediaId);
+    await ManagedUploadCleanupService.cleanupUrls([media.url, media.preview_pdf_url], {
+      reason: `course.media.delete:${mediaId}`,
+    });
 
     logger.info(`Media deleted by ${req.user!.username}: ${mediaId}`);
     res.success(null, "媒体资源删除成功");

@@ -283,7 +283,7 @@ export default function AdminUnitsPage() {
                 theme === "dark" ? "text-gray-400" : "text-gray-600"
               )}
             >
-              这将永久删除该单元，以及该单元下的全部实验、主课件、媒体和超链接。此操作无法撤销。
+              这将永久删除该单元及其下全部实验、主课件、媒体和超链接记录，系统也会尝试回收不再被引用的上传文件。此操作无法撤销。
             </p>
             <div className="flex justify-end gap-3">
               <button

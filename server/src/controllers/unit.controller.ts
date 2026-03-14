@@ -10,6 +10,7 @@ import { Request, Response } from "express";
 import { UnitModel } from "../models/unit.model.js";
 import { CourseModel } from "../models/course.model.js";
 import { asyncHandler } from "../middleware/error.middleware.js";
+import { ManagedUploadCleanupService } from "../services/managed-upload-cleanup.service.js";
 import { logger } from "../utils/logger.js";
 import type {
   UnitRow,
@@ -283,6 +284,9 @@ export class UnitController {
     }
 
     await UnitModel.updateUnit(id, data);
+    await ManagedUploadCleanupService.cleanupUrls([unit.cover_image], {
+      reason: `unit.update:${id}`,
+    });
     const updatedUnit = await UnitModel.getUnitById(id);
 
     logger.info(`Unit updated by ${req.user!.username}: ${id}`);
@@ -301,7 +305,11 @@ export class UnitController {
       return res.error("单元不存在", "NOT_FOUND", 404);
     }
 
+    const cleanupUrls = await ManagedUploadCleanupService.collectUnitResourceUrls(id);
     await UnitModel.deleteUnit(id);
+    await ManagedUploadCleanupService.cleanupUrls(cleanupUrls, {
+      reason: `unit.delete:${id}`,
+    });
 
     logger.info(`Unit deleted by ${req.user!.username}: ${id}`);
     res.success(null, "单元删除成功");
@@ -360,7 +368,11 @@ export class UnitController {
       return res.error("单元不存在", "NOT_FOUND", 404);
     }
 
+    const existingMainSlide = await UnitModel.getMainSlide(id);
     await UnitModel.upsertMainSlide(id, data);
+    await ManagedUploadCleanupService.cleanupUrls([existingMainSlide?.url], {
+      reason: `unit.main-slide.upsert:${id}`,
+    });
     const mainSlide = await UnitModel.getMainSlide(id);
 
     logger.info(`Unit main slide upserted by ${req.user!.username} for unit: ${id}`);
@@ -374,7 +386,11 @@ export class UnitController {
   static deleteMainSlide = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const existingMainSlide = await UnitModel.getMainSlide(id);
     await UnitModel.deleteMainSlide(id);
+    await ManagedUploadCleanupService.cleanupUrls([existingMainSlide?.url], {
+      reason: `unit.main-slide.delete:${id}`,
+    });
 
     logger.info(`Unit main slide deleted by ${req.user!.username} for unit: ${id}`);
     res.success(null, "主课件删除成功");
