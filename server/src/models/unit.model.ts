@@ -7,6 +7,7 @@ import { getCollection } from '../database/connection.js';
 import { normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
+import { CourseModel } from './course.model.js';
 import type {
   UnitRow,
   UnitMainSlideRow,
@@ -101,16 +102,18 @@ export class UnitModel {
    * 删除单元
    */
   static async deleteUnit(unitId: string): Promise<boolean> {
-    const result = await unitsCollection().deleteOne({ id: unitId });
-    if (result.deletedCount === 0) {
+    const existingUnit = await unitsCollection().findOne({ id: unitId }, { projection: { id: 1 } });
+    if (!existingUnit) {
       return false;
     }
 
-    await unitMainSlidesCollection().deleteMany({ unit_id: unitId });
-    await coursesCollection().updateMany(
-      { unit_id: unitId },
-      { $set: { unit_id: null, updated_at: new Date() } }
+    const relatedCourses = normalizeDocuments<Pick<CourseRow, 'id'>>(
+      await coursesCollection().find({ unit_id: unitId }, { projection: { id: 1 } }).toArray()
     );
+
+    await unitMainSlidesCollection().deleteMany({ unit_id: unitId });
+    await CourseModel.deleteCoursesByIds(relatedCourses.map((course) => course.id));
+    await unitsCollection().deleteOne({ id: unitId });
 
     logger.info(`Unit deleted: ${unitId}`);
     return true;

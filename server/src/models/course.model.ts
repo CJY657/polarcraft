@@ -28,6 +28,25 @@ const courseHyperlinksCollection = () => getCollection('course_hyperlinks');
 
 export class CourseModel {
   /**
+   * Delete courses and all related course resources
+   * 删除课程及其所有关联资源
+   */
+  static async deleteCoursesByIds(courseIds: string[]): Promise<number> {
+    if (courseIds.length === 0) {
+      return 0;
+    }
+
+    await courseMainSlidesCollection().deleteMany({ course_id: { $in: courseIds } });
+    await courseMediaCollection().deleteMany({ course_id: { $in: courseIds } });
+    await courseHyperlinksCollection().deleteMany({ course_id: { $in: courseIds } });
+
+    const result = await coursesCollection().deleteMany({ id: { $in: courseIds } });
+
+    logger.info(`Courses deleted in batch: ${result.deletedCount}`);
+    return result.deletedCount;
+  }
+
+  /**
    * Get all courses
    * 获取所有课程
    */
@@ -77,7 +96,7 @@ export class CourseModel {
    */
   static async updateCourse(courseId: string, data: UpdateCourseInput): Promise<boolean> {
     const updateDoc = pickDefined({
-      unit_id: data.unitId === '' ? null : data.unitId,
+      unit_id: data.unitId,
       title_zh: data.title_zh,
       title_en: data.title_en,
       description_zh: data.description_zh,
@@ -105,17 +124,9 @@ export class CourseModel {
    * 删除课程
    */
   static async deleteCourse(courseId: string): Promise<boolean> {
-    const result = await coursesCollection().deleteOne({ id: courseId });
-    if (result.deletedCount === 0) {
-      return false;
-    }
-
-    await courseMainSlidesCollection().deleteMany({ course_id: courseId });
-    await courseMediaCollection().deleteMany({ course_id: courseId });
-    await courseHyperlinksCollection().deleteMany({ course_id: courseId });
-
+    const deletedCount = await this.deleteCoursesByIds([courseId]);
     logger.info(`Course deleted: ${courseId}`);
-    return true;
+    return deletedCount > 0;
   }
 
   /**

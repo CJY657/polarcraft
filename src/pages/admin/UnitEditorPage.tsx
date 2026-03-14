@@ -20,8 +20,7 @@ import {
   Plus,
   Edit,
   Loader2,
-  X,
-  Check,
+  Trash2,
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
@@ -365,17 +364,13 @@ function SettingsTab({ unit, theme }: { unit: any; theme: string }) {
 function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
   const navigate = useNavigate();
   const {
-    courses,
-    isLoading: coursesLoading,
-    fetchCourses,
     updateCourse,
+    deleteCourse,
     createCourse,
   } = useCourseAdminStore();
   const { fetchUnit } = useUnitAdminStore();
 
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [updatingCourses, setUpdatingCourses] = useState<Set<string>>(new Set());
   const [newCourse, setNewCourse] = useState({
     title_zh: "",
@@ -385,52 +380,19 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
     color: "#06b6d4",
   });
 
-  // Fetch all courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
-
   if (!unit) return null;
 
-  // Courses currently in this unit
-  const unitCourseIds = new Set(unit.courses?.map((c: any) => c.id) || []);
   const currentCourses = unit.courses || [];
 
-  // Courses available to add (not in this unit)
-  const availableCourses = courses.filter(
-    (course) =>
-      !unitCourseIds.has(course.id) &&
-      (searchTerm === "" ||
-        course.title?.["zh-CN"]?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.title?.["en-US"]?.toLowerCase().includes(searchTerm.toLowerCase())),
-  );
-
-  const handleAddCourse = async (courseId: string) => {
-    setUpdatingCourses((prev) => new Set(prev).add(courseId));
-    try {
-      await updateCourse(courseId, { unitId: unit.id });
-      // Refresh unit data to show updated course list
-      fetchUnit(unit.id);
-    } catch (error) {
-      // Error handled in store
-    } finally {
-      setUpdatingCourses((prev) => {
-        const next = new Set(prev);
-        next.delete(courseId);
-        return next;
-      });
-    }
-  };
-
   const handleRemoveCourse = async (courseId: string) => {
-    if (!confirm("确定要将此实验从单元中移除吗？")) return;
+    if (!confirm("确定要永久删除此实验吗？删除后其主课件、媒体和超链接也会一并删除。")) {
+      return;
+    }
 
     setUpdatingCourses((prev) => new Set(prev).add(courseId));
     try {
-      // Set unitId to empty to remove from unit
-      await updateCourse(courseId, { unitId: "" });
-      // Refresh unit data
-      fetchUnit(unit.id);
+      await deleteCourse(courseId);
+      await fetchUnit(unit.id);
     } catch (error) {
       // Error handled in store
     } finally {
@@ -537,13 +499,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
           >
             <Plus className="w-4 h-4" />
             新建实验
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-cyan-500 hover:bg-cyan-600 text-white"
-          >
-            <BookOpen className="w-4 h-4" />
-            添加现有实验
           </button>
         </div>
       </div>
@@ -745,7 +700,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
             )}
           />
           <p className={cn("text-lg", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-            暂无实验，点击上方按钮添加
+            暂无实验，点击上方按钮新建
           </p>
         </div>
       ) : (
@@ -857,7 +812,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   onClick={() => handleRemoveCourse(course.id)}
                   disabled={updatingCourses.has(course.id)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                     theme === "dark"
                       ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
                       : "bg-red-50 hover:bg-red-100 text-red-600",
@@ -867,149 +822,15 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   {updatingCourses.has(course.id) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <X className="w-4 h-4" />
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      删除
+                    </>
                   )}
                 </button>
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Add Course Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setShowAddModal(false)}
-          />
-          <div
-            className={cn(
-              "relative w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl overflow-hidden",
-              theme === "dark" ? "bg-slate-800" : "bg-white",
-            )}
-          >
-            {/* Modal Header */}
-            <div
-              className={cn(
-                "flex items-center justify-between p-4 border-b",
-                theme === "dark" ? "border-slate-700" : "border-gray-200",
-              )}
-            >
-              <h3
-                className={cn(
-                  "text-lg font-semibold",
-                  theme === "dark" ? "text-white" : "text-gray-900",
-                )}
-              >
-                选择要添加的实验
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className={cn(
-                  "p-1 rounded-lg transition-colors",
-                  theme === "dark"
-                    ? "text-gray-400 hover:text-white hover:bg-slate-700"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
-                )}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Search */}
-            <div className="p-4">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="搜索实验..."
-                className={cn(
-                  "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                  theme === "dark"
-                    ? "bg-slate-700 border-slate-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
-                )}
-              />
-            </div>
-
-            {/* Course List */}
-            <div className="p-4 pt-0 overflow-y-auto max-h-[50vh]">
-              {coursesLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-cyan-500" />
-                </div>
-              ) : availableCourses.length === 0 ? (
-                <div className="text-center py-10">
-                  <p className={cn(theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-                    {searchTerm ? "没有找到匹配的实验" : "所有实验已添加到此单元"}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {availableCourses.map((course) => (
-                    <div
-                      key={course.id}
-                      className={cn(
-                        "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                        theme === "dark"
-                          ? "bg-slate-700/50 border-slate-600 hover:border-slate-500"
-                          : "bg-gray-50 border-gray-200 hover:border-gray-300",
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ backgroundColor: `${course.color}30` }}
-                        >
-                          <BookOpen
-                            className="w-5 h-5"
-                            style={{ color: course.color }}
-                          />
-                        </div>
-                        <div>
-                          <p
-                            className={cn(
-                              "font-medium",
-                              theme === "dark" ? "text-white" : "text-gray-900",
-                            )}
-                          >
-                            {course.title?.["zh-CN"] || "未命名实验"}
-                          </p>
-                          <p
-                            className={cn(
-                              "text-sm",
-                              theme === "dark" ? "text-gray-400" : "text-gray-600",
-                            )}
-                          >
-                            {course.description?.["zh-CN"] || "暂无描述"}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleAddCourse(course.id)}
-                        disabled={updatingCourses.has(course.id)}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                          "bg-cyan-500 hover:bg-cyan-600 text-white",
-                          updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed",
-                        )}
-                      >
-                        {updatingCourses.has(course.id) ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4" />
-                            添加
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -75,7 +75,6 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
         await createCourse(input);
       } else if (course) {
         const input: UpdateCourseInput = {
-          unitId: formData.unitId,
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
           description_zh: formData.description_zh || undefined,
@@ -111,20 +110,30 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Unit ID */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              单元 ID *
-            </label>
-            <input
-              type="text"
-              value={formData.unitId}
-              onChange={(e) => setFormData({ ...formData, unitId: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="例如: unit-1"
-              required
-            />
-          </div>
+          {mode === 'create' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                单元 ID *
+              </label>
+              <input
+                type="text"
+                value={formData.unitId}
+                onChange={(e) => setFormData({ ...formData, unitId: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                placeholder="例如: unit-1"
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                所属单元
+              </label>
+              <div className="w-full px-3 py-2 bg-slate-700/70 border border-slate-600 rounded-lg text-white">
+                {formData.unitId}
+              </div>
+            </div>
+          )}
 
           {/* Title (Chinese) */}
           <div>

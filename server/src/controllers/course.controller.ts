@@ -158,7 +158,11 @@ export class CourseController {
    * 创建课程
    */
   static createCourse = asyncHandler(async (req: Request, res: Response) => {
-    const data: CreateCourseInput = req.body;
+    const data: CreateCourseInput = {
+      ...req.body,
+      unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
+      title_zh: typeof req.body.title_zh === "string" ? req.body.title_zh.trim() : req.body.title_zh,
+    };
 
     if (!data.unitId || !data.title_zh) {
       return res.error("缺少必要字段", "VALIDATION_ERROR", 400);
@@ -177,11 +181,18 @@ export class CourseController {
    */
   static updateCourse = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data: UpdateCourseInput = req.body;
+    const data: UpdateCourseInput = {
+      ...req.body,
+      unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
+    };
 
     const course = await CourseModel.getCourseById(id);
     if (!course) {
       return res.error("课程不存在", "NOT_FOUND", 404);
+    }
+
+    if (typeof data.unitId === "string" && data.unitId.length === 0) {
+      return res.error("实验必须归属于一个单元", "VALIDATION_ERROR", 400);
     }
 
     await CourseModel.updateCourse(id, data);
