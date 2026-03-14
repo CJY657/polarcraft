@@ -361,6 +361,7 @@ export function CoursesPage() {
                         showHeader={false}
                       />
                     )}
+                    
                   </div>
                 </section>
               )}
