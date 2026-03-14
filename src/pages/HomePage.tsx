@@ -1,7 +1,7 @@
 import { type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, BookOpenText, Library } from "lucide-react";
+import { ArrowRight, BookOpenText, Library, Sparkles, Globe, Users, Rocket } from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { PersistentHeader } from "@/components/shared";
@@ -261,6 +261,154 @@ export function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Platform Narrative / Mission Section */}
+        <section className="relative overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)]/40 p-10 sm:p-16 text-center"
+          style={{
+            borderColor: theme === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+          }}
+        >
+          {/* Subtle Background Elements */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[var(--paper-link)]/5 blur-[120px] rounded-full" />
+          
+          <div className="relative max-w-4xl mx-auto space-y-8">
+            <div className="flex flex-col items-center gap-6">
+              <img 
+                src={theme === "dark" ? "/images/combined-logo-white.png" : "/images/combined-logo.png"} 
+                alt="PolarCraft Logo" 
+                className="h-12 w-auto object-contain opacity-90"
+              />
+              <div className="h-px w-12 bg-[var(--paper-border)]" />
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--paper-foreground)]" 
+                  style={{ fontFamily: "var(--font-ui-display)" }}>
+                {t("home.hero.title")}
+              </h2>
+              <p className="text-lg md:text-xl font-medium text-[var(--paper-link)] tracking-wide opacity-90">
+                {t("home.hero.subtitle")}
+              </p>
+            </div>
+
+            <div className="mx-auto max-w-3xl">
+              <p className="text-lg md:text-xl leading-loose text-[var(--glass-text-muted)] font-light italic">
+                “{t("home.hero.platformIntro")}”
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-4 pt-4">
+              <div className="px-4 py-1 rounded-full border border-[var(--paper-link)]/20 bg-[var(--paper-link)]/5 text-xs font-semibold text-[var(--paper-link)] tracking-widest uppercase">
+                X-Institute Course
+              </div>
+              <div className="px-4 py-1 rounded-full border border-[var(--paper-border)] bg-[var(--paper-surface-strong)] text-xs font-semibold text-[var(--glass-text-muted)] tracking-widest uppercase">
+                Research Learning
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Promotion Section */}
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Zero-One Academy */}
+          <section
+            className="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] p-8 transition-all hover:shadow-[0_40px_80px_-40px_rgba(30,58,138,0.25)]"
+            style={{
+              borderColor: theme === "dark" ? "rgba(30, 58, 138, 0.3)" : "rgba(30, 58, 138, 0.15)",
+              background: theme === "dark"
+                ? "linear-gradient(145deg, rgba(30, 58, 138, 0.12) 0%, rgba(30, 58, 138, 0.02) 100%)"
+                : "linear-gradient(145deg, rgba(30, 58, 138, 0.05) 0%, rgba(255, 255, 255, 0.5) 100%)",
+            }}
+          >
+            <div className="relative">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1E3A8A15] text-[#1E3A8A]">
+                  <Globe className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#1E3A8A] opacity-70">X-Institute</p>
+                  <h3 className="text-2xl font-bold">深圳零一学院</h3>
+                </div>
+              </div>
+              <p className="mt-6 text-base leading-relaxed text-[var(--glass-text-muted)]">
+                由清华大学钱学森力学班创办，致力于发掘和培养极具创新潜质的青少年。
+                通过挑战性问题驱动的学习（Problem-based Learning），连接创意与智能的未来。
+              </p>
+              <div className="mt-6 flex flex-wrap gap-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  <Users className="h-4 w-4" />
+                  <span>汇聚顶尖导师与极客</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  <Sparkles className="h-4 w-4" />
+                  <span>颠覆式创新教育</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 flex items-center justify-between">
+              <a
+                href="https://www.x-institute.org.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group/link inline-flex items-center gap-2 text-sm font-bold text-[#1E3A8A] transition-colors"
+              >
+                了解更多关于零一学院
+                <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
+              </a>
+            </div>
+            {/* Background Decoration */}
+            <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-[#1E3A8A08] blur-3xl transition-transform group-hover:scale-150" />
+          </section>
+
+          {/* PolarCraft (Open Wisdom Lab) */}
+          <section
+            className="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] p-8 transition-all hover:shadow-[0_40px_80px_-40px_rgba(217,70,160,0.2)]"
+            style={{
+              borderColor: theme === "dark" ? "rgba(217, 70, 160, 0.3)" : "rgba(217, 70, 160, 0.15)",
+              background: theme === "dark"
+                ? "linear-gradient(145deg, rgba(217, 70, 160, 0.12) 0%, rgba(217, 70, 160, 0.02) 100%)"
+                : "linear-gradient(145deg, rgba(217, 70, 160, 0.05) 0%, rgba(255, 255, 255, 0.5) 100%)",
+            }}
+          >
+            <div className="relative">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D946A015] text-[#D946A0]">
+                  <Rocket className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#D946A0] opacity-70">Open Wisdom Lab</p>
+                  <h3 className="text-2xl font-bold">PolarCraft 数字化实验室</h3>
+                </div>
+              </div>
+              <p className="mt-6 text-base leading-relaxed text-[var(--glass-text-muted)]">
+                一个基于物理仿真的交互式偏振光学学习平台。
+                我们通过数字化手段，将抽象的光学原理转化为直观的可视化体验，让科学探索变得更有趣、更高效。
+              </p>
+              <div className="mt-6 flex flex-wrap gap-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  <BookOpenText className="h-4 w-4" />
+                  <span>沉浸式实验体验</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  <Library className="h-4 w-4" />
+                  <span>丰富的学术资源</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => navigate("/about")}
+                className="group/link inline-flex items-center gap-2 text-sm font-bold text-[#D946A0] transition-colors"
+              >
+                探索平台的使命与愿景
+                <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
+              </button>
+            </div>
+             {/* Background Decoration */}
+             <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-[#D946A008] blur-3xl transition-transform group-hover:scale-150" />
+          </section>
+        </div>
 
         <section
           className="relative overflow-hidden rounded-[2rem] border bg-[color:var(--paper-surface-strong)] p-6 sm:p-8"
