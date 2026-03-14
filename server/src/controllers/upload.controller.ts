@@ -64,9 +64,23 @@ export class UploadController {
       unitId,
     };
 
-    logger.info(
-      `File uploaded by ${req.user!.username}: ${req.file.filename} (${category}, ${(req.file.size / 1024).toFixed(1)}KB)`
-    );
+    const durationMs =
+      typeof res.locals.uploadStartedAt === 'number'
+        ? Date.now() - res.locals.uploadStartedAt
+        : undefined;
+
+    logger.info('Upload request completed', {
+      user: req.user?.username,
+      category,
+      unitId,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+      durationMs,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+    });
 
     res.status(201).json({
       success: true,

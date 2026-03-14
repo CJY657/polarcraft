@@ -27,6 +27,7 @@ export function errorHandler(
     url: req.url,
     method: req.method,
     ip: req.ip,
+    cfRay: req.headers['cf-ray'],
   });
 
   // Handle known authentication errors

@@ -84,7 +84,22 @@ export const createUploadMiddleware = (category: FileCategory) => {
 // Error handling wrapper
 // 错误处理包装器
 export const handleUploadError = (err: any, req: Request, res: any, next: any) => {
+  const durationMs =
+    typeof res?.locals?.uploadStartedAt === 'number'
+      ? Date.now() - res.locals.uploadStartedAt
+      : undefined;
+  const logContext = {
+    category: req.params.category,
+    unitId: typeof req.body?.unitId === 'string' ? req.body.unitId : undefined,
+    user: req.user?.username,
+    ip: req.ip,
+    cfRay: req.headers['cf-ray'],
+    contentLength: req.headers['content-length'],
+    durationMs,
+  };
+
   if (err instanceof multer.MulterError) {
+    logger.warn(`Upload rejected by multer: ${err.code}`, logContext);
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
@@ -98,6 +113,10 @@ export const handleUploadError = (err: any, req: Request, res: any, next: any) =
   }
 
   if (err) {
+    logger.error('Upload request failed', {
+      ...logContext,
+      error: err.message,
+    });
     return res.status(400).json({
       success: false,
       error: { code: 'UPLOAD_ERROR', message: err.message },

@@ -109,6 +109,7 @@ npm run build        # 为生产环境构建
 - `render.yaml`：Render Blueprint 配置
 - `server/src/index.ts`：生产环境下托管前端构建产物
 - `server/src/config/paths.ts`：统一前端构建目录与上传目录
+- `GET /api/health`：检查数据库和上传目录（`checks.uploads`）是否正常
 
 ### 部署前准备
 
@@ -155,6 +156,12 @@ npm run build        # 为生产环境构建
 否则浏览器在拖拽上传本地文件到 `/api/upload/:category` 时，常见现象就是直接报 `Failed to fetch`。
 
 如果你已经是单服务同域部署，错误里看到的还是相对路径（例如 `/api/upload/pptx`），这通常更像是 Render 上的服务连接被中断，而不是 `VITE_API_URL` 本身有问题。优先检查 Render 日志中是否有 `connection reset by peer`、实例重启或上传超时。
+
+部署后如果首页能打开，但管理员上传 PPT 时报 `Failed to fetch`：
+
+- 先访问 `/api/health`，确认返回的 `checks.uploads.status` 为 `up`
+- 如果 `checks.uploads.status` 为 `down`，优先检查 Render Persistent Disk 是否挂载到 `/var/data`
+- 查看 Render 日志中的 `Upload request started`、`Upload request completed`、`Upload request failed`，可结合 `cfRay` 定位具体请求
 
 ### 本地验证生产构建
 

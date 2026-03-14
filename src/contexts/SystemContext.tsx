@@ -22,6 +22,12 @@ export interface SystemHealthData {
   checks: {
     database: { status: 'up' | 'down'; latency?: number };
     server: { status: 'up' };
+    uploads?: {
+      status: 'up' | 'down';
+      writable: boolean;
+      path: string;
+      error?: string;
+    };
   } | null;
   lastChecked: Date | null;
   error: string | null;

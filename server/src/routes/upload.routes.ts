@@ -12,6 +12,7 @@ import {
   handleUploadError,
 } from '../middleware/upload.middleware.js';
 import { FileCategory } from '../config/upload.config.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -41,6 +42,15 @@ router.post(
       });
       return;
     }
+
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Upload request started', {
+      category,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
 
     const upload = createUploadMiddleware(category);
     upload.single('file')(req, res, (err) => {

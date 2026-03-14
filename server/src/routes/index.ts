@@ -19,6 +19,8 @@ import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
 import { testConnection } from '../database/connection.js';
 import { logger } from '../utils/logger.js';
+import { uploadConfig } from '../config/upload.config.js';
+import { getDirectoryHealth } from '../utils/storage-health.util.js';
 
 const router = Router();
 
@@ -45,6 +47,11 @@ router.get('/health', async (req: Request, res: Response) => {
     checks: {
       database: { status: 'down' as 'up' | 'down', latency: 0 },
       server: { status: 'up' as 'up' },
+      uploads: {
+        status: 'down' as 'up' | 'down',
+        writable: false,
+        path: uploadConfig.uploadDir,
+      },
     },
   };
 
@@ -66,6 +73,13 @@ router.get('/health', async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Health check database error:', error);
     healthStatus.checks.database = { status: 'down', latency: 0 };
+    healthStatus.status = 'unhealthy';
+  }
+
+  const uploadHealth = await getDirectoryHealth(uploadConfig.uploadDir);
+  healthStatus.checks.uploads = uploadHealth;
+
+  if (uploadHealth.status !== 'up') {
     healthStatus.status = 'unhealthy';
   }
 

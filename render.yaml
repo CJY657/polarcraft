@@ -28,6 +28,12 @@ services:
         generateValue: true
       - key: UPLOAD_ROOT_DIR
         value: /var/data/uploads
+      - key: HTTP_KEEP_ALIVE_TIMEOUT_MS
+        value: 120000
+      - key: HTTP_HEADERS_TIMEOUT_MS
+        value: 121000
+      - key: HTTP_REQUEST_TIMEOUT_MS
+        value: 600000
       - key: LOG_LEVEL
         value: info
       - key: LOG_ENABLED

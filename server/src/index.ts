@@ -15,10 +15,12 @@ import path from 'path';
 import { config, validateConfig } from './config/index.js';
 import { appPaths } from './config/paths.js';
 import { logger } from './utils/logger.js';
+import { ensureDirectoryWritable } from './utils/storage-health.util.js';
 import { connectDatabase, testConnection, closeDatabase } from './database/connection.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { apiRateLimiter } from './middleware/rate-limit.middleware.js';
+import { uploadConfig } from './config/upload.config.js';
 
 const shouldServeFrontend = config.isProduction && fs.existsSync(appPaths.frontendIndexFile);
 
@@ -121,6 +123,14 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
+    logger.info('Preparing upload storage...', {
+      path: uploadConfig.uploadDir,
+    });
+    await ensureDirectoryWritable(uploadConfig.uploadDir);
+    logger.info('Upload storage is writable', {
+      path: uploadConfig.uploadDir,
+    });
+
     logger.info('Testing MongoDB connection...');
     const dbConnected = await testConnection();
     if (!dbConnected) {
@@ -147,11 +157,13 @@ async function startServer() {
     server.keepAliveTimeout = config.http.keepAliveTimeoutMs;
     server.headersTimeout = config.http.headersTimeoutMs;
     server.requestTimeout = config.http.requestTimeoutMs;
+    server.timeout = config.http.requestTimeoutMs;
 
     logger.info('HTTP server timeouts configured', {
       keepAliveTimeoutMs: server.keepAliveTimeout,
       headersTimeoutMs: server.headersTimeout,
       requestTimeoutMs: server.requestTimeout,
+      socketTimeoutMs: server.timeout,
     });
 
     const shutdown = async (signal: string) => {

@@ -47,7 +47,7 @@ function normalizeRequestError(error: unknown, url: string): Error {
   ) {
     const sameOriginHint =
       API_BASE_URL === ''
-        ? '当前是同域 /api 请求，请优先检查 Render 服务日志、实例重启和上传超时。'
+        ? '当前是同域 /api 请求，请优先检查 Render 服务日志、实例重启、上传目录挂载，以及 /api/health 返回中的 checks.uploads 和上传超时。'
         : '';
     return new Error(
       `无法连接到接口服务。请求: ${url}；API: ${API_TARGET}。请检查 VITE_API_URL、CORS、HTTPS，以及 Render API 服务是否在线。${sameOriginHint}`
@@ -234,13 +234,14 @@ export const api = {
   ): Promise<ApiResponse<T>> => {
     const url = `${API_BASE_URL}${endpoint}`;
     const formData = new FormData();
-    formData.append('file', file);
 
     if (additionalData) {
       Object.entries(additionalData).forEach(([key, value]) => {
         formData.append(key, value);
       });
     }
+
+    formData.append('file', file);
 
     const makeUploadRequest = async (): Promise<Response> =>
       fetch(url, {
