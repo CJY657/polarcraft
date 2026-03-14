@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { BookOpenText, Layers, Loader2, type LucideIcon } from "lucide-react";
 
-import { LearningSectionNav, PersistentHeader } from "@/components/shared";
+import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
 import { unitApi, type UnitCourse } from "@/lib/unit.service";
 import { useUnitStore } from "@/stores/unitStore";
@@ -177,15 +177,13 @@ export function CoursesPage() {
               </span>
             </div>
           </div>
-
-          <LearningSectionNav />
         </section>
 
-        <div className="mt-2 grid gap-6 lg:grid-cols-[292px_minmax(0,1fr)]">
+        <div className="mx-auto mt-2 grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[292px_minmax(0,1fr)] lg:px-8">
           <aside className="lg:sticky lg:top-[108px] lg:self-start">
             <section
               className={cn(
-                "mx-4 rounded-[1.75rem] border px-4 py-5 sm:mx-6 lg:mx-0 lg:rounded-l-none lg:border-l-0",
+                "rounded-[1.75rem] border px-4 py-5",
                 surfaceClass,
               )}
             >
