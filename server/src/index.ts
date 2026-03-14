@@ -13,7 +13,7 @@ import cookieParser from 'cookie-parser';
 import fs from 'fs';
 import path from 'path';
 import { config, validateConfig } from './config/index.js';
-import { appPaths } from './config/paths.js';
+import { appPaths, uploadPathResolution } from './config/paths.js';
 import { logger } from './utils/logger.js';
 import { ensureDirectoryWritable } from './utils/storage-health.util.js';
 import { connectDatabase, testConnection, closeDatabase } from './database/connection.js';
@@ -31,6 +31,15 @@ try {
 } catch (error) {
   logger.error('Configuration validation failed:', error);
   process.exit(1);
+}
+
+if (uploadPathResolution.fallbackActive) {
+  logger.warn('Configured upload directory is unavailable, using fallback storage', {
+    requestedPath: uploadPathResolution.requestedUploadRootDir,
+    effectivePath: uploadPathResolution.effectiveUploadRootDir,
+    reason: uploadPathResolution.fallbackReason,
+    persistent: !uploadPathResolution.effectiveUploadRootDir.startsWith('/tmp/'),
+  });
 }
 
 app.use(helmet({
@@ -140,11 +149,11 @@ async function startServer() {
 
     await connectDatabase();
 
-    const server = app.listen(config.port, () => {
+    const server = app.listen(config.port, '0.0.0.0', () => {
       logger.info('='.repeat(50));
       logger.info('🚀 PolarCraft Authentication API Server');
       logger.info(`📝 Environment: ${config.env}`);
-      logger.info(`🌐 Server running on: http://localhost:${config.port}`);
+      logger.info(`🌐 Server running on: http://0.0.0.0:${config.port}`);
       logger.info(`🔒 API Base URL: ${config.apiUrl}`);
       if (shouldServeFrontend) {
         logger.info(`🖥️  Frontend served from: ${appPaths.frontendDistDir}`);
