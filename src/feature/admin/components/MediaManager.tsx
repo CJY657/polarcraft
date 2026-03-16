@@ -206,6 +206,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         courseId={courseId}
+        unitId={unitId}
         mode="create"
       />
 
@@ -223,6 +224,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
           isOpen={true}
           onClose={() => setEditingMedia(null)}
           media={editingMedia}
+          unitId={unitId}
           mode="edit"
         />
       )}

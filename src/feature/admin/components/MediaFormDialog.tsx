@@ -17,6 +17,7 @@ interface MediaFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   courseId?: string;
+  unitId?: string;
   mode: 'create' | 'edit';
   media?: CourseMedia;
 }
@@ -40,6 +41,7 @@ export function MediaFormDialog({
   isOpen,
   onClose,
   courseId,
+  unitId,
   mode,
   media,
 }: MediaFormDialogProps) {
@@ -153,7 +155,7 @@ export function MediaFormDialog({
             <label className="block text-sm font-medium text-gray-300 mb-1">媒体文件 *</label>
             <FileUpload
               category={getUploadCategory(formData.type)}
-              unitId={courseId}
+              unitId={unitId}
               value={formData.url}
               onChange={(url) => setFormData({ ...formData, url })}
               onDurationChange={
@@ -172,7 +174,7 @@ export function MediaFormDialog({
               </label>
               <FileUpload
                 category="pdf"
-                unitId={courseId}
+                unitId={unitId}
                 value={formData.previewPdfUrl}
                 onChange={(url) => setFormData({ ...formData, previewPdfUrl: url })}
                 preview={false}

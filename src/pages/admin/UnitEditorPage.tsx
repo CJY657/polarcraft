@@ -705,132 +705,136 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {currentCourses.map((course: any, index: number) => (
-            <div
-              key={course.id}
-              className={cn(
-                "flex items-center gap-4 p-4 rounded-xl border transition-all",
-                theme === "dark"
-                  ? "bg-slate-800 border-slate-700 hover:border-slate-500"
-                  : "bg-white border-gray-200 shadow-sm hover:shadow-md",
-              )}
-            >
-              {/* Order Number */}
+          {currentCourses.map((course: any, index: number) => {
+            const thumbnailImage = course.thumbnailImage || course.coverImage;
+
+            return (
               <div
+                key={course.id}
                 className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0",
-                  theme === "dark" ? "bg-slate-700 text-gray-300" : "bg-gray-100 text-gray-600",
+                  "flex items-center gap-4 p-4 rounded-xl border transition-all",
+                  theme === "dark"
+                    ? "bg-slate-800 border-slate-700 hover:border-slate-500"
+                    : "bg-white border-gray-200 shadow-sm hover:shadow-md",
                 )}
               >
-                {index + 1}
-              </div>
+                {/* Order Number */}
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0",
+                    theme === "dark" ? "bg-slate-700 text-gray-300" : "bg-gray-100 text-gray-600",
+                  )}
+                >
+                  {index + 1}
+                </div>
 
-              {/* Course Cover */}
-              <div
-                className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center"
-                style={{
-                  backgroundColor: course.coverImage ? undefined : `${course.color}30`,
-                }}
-              >
-                {course.coverImage ? (
-                  <img
-                    src={course.coverImage}
-                    alt={course.title?.["zh-CN"] || ""}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <BookOpen
-                    className="w-6 h-6"
-                    style={{ color: course.color }}
-                  />
-                )}
-              </div>
-
-              {/* Course Info */}
-              <div className="flex-1 min-w-0">
-                <h4
-                  className={cn(
-                    "font-semibold truncate",
-                    theme === "dark" ? "text-white" : "text-gray-900",
-                  )}
+                {/* Course Cover */}
+                <div
+                  className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center"
+                  style={{
+                    backgroundColor: thumbnailImage ? undefined : `${course.color}30`,
+                  }}
                 >
-                  {course.title?.["zh-CN"] || "未命名实验"}
-                </h4>
-                <p
-                  className={cn(
-                    "text-sm truncate",
-                    theme === "dark" ? "text-gray-400" : "text-gray-600",
-                  )}
-                >
-                  {course.description?.["zh-CN"] || "暂无描述"}
-                </p>
-              </div>
-
-              {/* Reorder Buttons */}
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => handleMoveCourse(course.id, "up")}
-                  disabled={index === 0 || updatingCourses.has(course.id)}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    theme === "dark"
-                      ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
-                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
-                  )}
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleMoveCourse(course.id, "down")}
-                  disabled={index === currentCourses.length - 1 || updatingCourses.has(course.id)}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    theme === "dark"
-                      ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
-                      : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
-                  )}
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate(`/admin/experiments/${course.id}`)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    theme === "dark"
-                      ? "bg-slate-700 hover:bg-slate-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700",
-                  )}
-                >
-                  <Edit className="w-3.5 h-3.5" />
-                  编辑
-                </button>
-                <button
-                  onClick={() => handleRemoveCourse(course.id)}
-                  disabled={updatingCourses.has(course.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    theme === "dark"
-                      ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
-                      : "bg-red-50 hover:bg-red-100 text-red-600",
-                    updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  {updatingCourses.has(course.id) ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  {thumbnailImage ? (
+                    <img
+                      src={thumbnailImage}
+                      alt={course.title?.["zh-CN"] || ""}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      删除
-                    </>
+                    <BookOpen
+                      className="w-6 h-6"
+                      style={{ color: course.color }}
+                    />
                   )}
-                </button>
+                </div>
+
+                {/* Course Info */}
+                <div className="flex-1 min-w-0">
+                  <h4
+                    className={cn(
+                      "font-semibold truncate",
+                      theme === "dark" ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    {course.title?.["zh-CN"] || "未命名实验"}
+                  </h4>
+                  <p
+                    className={cn(
+                      "text-sm truncate",
+                      theme === "dark" ? "text-gray-400" : "text-gray-600",
+                    )}
+                  >
+                    {course.description?.["zh-CN"] || "暂无描述"}
+                  </p>
+                </div>
+
+                {/* Reorder Buttons */}
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => handleMoveCourse(course.id, "up")}
+                    disabled={index === 0 || updatingCourses.has(course.id)}
+                    className={cn(
+                      "p-1 rounded transition-colors",
+                      theme === "dark"
+                        ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
+                        : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
+                    )}
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveCourse(course.id, "down")}
+                    disabled={index === currentCourses.length - 1 || updatingCourses.has(course.id)}
+                    className={cn(
+                      "p-1 rounded transition-colors",
+                      theme === "dark"
+                        ? "hover:bg-slate-700 text-gray-400 hover:text-white disabled:opacity-30"
+                        : "hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-30",
+                    )}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/admin/experiments/${course.id}`)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                      theme === "dark"
+                        ? "bg-slate-700 hover:bg-slate-600 text-white"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700",
+                    )}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleRemoveCourse(course.id)}
+                    disabled={updatingCourses.has(course.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                      theme === "dark"
+                        ? "bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                        : "bg-red-50 hover:bg-red-100 text-red-600",
+                      updatingCourses.has(course.id) && "opacity-50 cursor-not-allowed",
+                    )}
+                  >
+                    {updatingCourses.has(course.id) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        删除
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

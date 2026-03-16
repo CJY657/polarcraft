@@ -88,6 +88,29 @@ function resolveCourseThumbnail(row: CourseRow, media: MediaRow[]) {
   return media.find((item) => item.type === "image" && item.url)?.url;
 }
 
+async function buildUnitCourseSummary(course: CourseRow) {
+  const [mainSlide, media] = await Promise.all([
+    CourseModel.getMainSlide(course.id),
+    CourseModel.getMediaByCourse(course.id),
+  ]);
+
+  return {
+    ...transformCourseRowSimple(course),
+    thumbnailImage: resolveCourseThumbnail(course, media),
+    mainSlide: mainSlide
+      ? {
+          id: mainSlide.id,
+          url: mainSlide.url,
+          title: {
+            "zh-CN": mainSlide.title_zh || undefined,
+            "en-US": mainSlide.title_en || undefined,
+          },
+        }
+      : undefined,
+    mediaCount: media.length,
+  };
+}
+
 export class UnitController {
   // ============================================================
   // Public API / 公开接口
@@ -174,30 +197,7 @@ export class UnitController {
     const courses = await UnitModel.getCoursesByUnit(id);
 
     // Get additional data for each course
-    const coursesWithData = await Promise.all(
-      courses.map(async (course) => {
-        const [mainSlide, media] = await Promise.all([
-          CourseModel.getMainSlide(course.id),
-          CourseModel.getMediaByCourse(course.id),
-        ]);
-
-        return {
-          ...transformCourseRowSimple(course),
-          thumbnailImage: resolveCourseThumbnail(course, media),
-          mainSlide: mainSlide
-            ? {
-                id: mainSlide.id,
-                url: mainSlide.url,
-                title: {
-                  "zh-CN": mainSlide.title_zh || undefined,
-                  "en-US": mainSlide.title_en || undefined,
-                },
-              }
-            : undefined,
-          mediaCount: media.length,
-        };
-      })
-    );
+    const coursesWithData = await Promise.all(courses.map(buildUnitCourseSummary));
 
     res.success(coursesWithData);
   });
@@ -245,10 +245,12 @@ export class UnitController {
     const mainSlide = await UnitModel.getMainSlide(id);
     const courses = await UnitModel.getCoursesByUnit(id);
 
+    const coursesWithData = await Promise.all(courses.map(buildUnitCourseSummary));
+
     res.success({
       ...transformUnitRow(unit),
       mainSlide: mainSlide ? transformUnitMainSlideRow(mainSlide) : undefined,
-      courses: courses.map(transformCourseRowSimple),
+      courses: coursesWithData,
     });
   });
 
