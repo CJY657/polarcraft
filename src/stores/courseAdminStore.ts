@@ -61,6 +61,41 @@ const initialState = {
   error: null,
 };
 
+function normalizeCourse(course: Course): Course {
+  return {
+    ...course,
+    media: Array.isArray(course.media) ? course.media : [],
+    hyperlinks: Array.isArray(course.hyperlinks) ? course.hyperlinks : [],
+  };
+}
+
+function mergeCourse(existingCourse: Course, incomingCourse: Course): Course {
+  const mergedCourse = {
+    ...existingCourse,
+    ...incomingCourse,
+  };
+  const hasMedia = Object.prototype.hasOwnProperty.call(incomingCourse, 'media');
+  const hasHyperlinks = Object.prototype.hasOwnProperty.call(incomingCourse, 'hyperlinks');
+
+  return {
+    ...mergedCourse,
+    media: hasMedia
+      ? Array.isArray(incomingCourse.media)
+        ? incomingCourse.media
+        : []
+      : Array.isArray(existingCourse.media)
+        ? existingCourse.media
+        : [],
+    hyperlinks: hasHyperlinks
+      ? Array.isArray(incomingCourse.hyperlinks)
+        ? incomingCourse.hyperlinks
+        : []
+      : Array.isArray(existingCourse.hyperlinks)
+        ? existingCourse.hyperlinks
+        : [],
+  };
+}
+
 export const useCourseAdminStore = create<CourseAdminState>((set) => ({
   ...initialState,
 
@@ -72,7 +107,7 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const courses = await courseApi.getAllCourses();
-      set({ courses, isLoading: false });
+      set({ courses: courses.map(normalizeCourse), isLoading: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '获取课程列表失败',
@@ -85,7 +120,7 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const course = await courseApi.getCourse(id);
-      set({ currentCourse: course, isLoading: false });
+      set({ currentCourse: normalizeCourse(course), isLoading: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '获取课程详情失败',
@@ -98,11 +133,12 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const course = await courseApi.createCourse(data);
+      const normalizedCourse = normalizeCourse(course);
       set((state) => ({
-        courses: [course, ...state.courses],
+        courses: [normalizedCourse, ...state.courses],
         isLoading: false,
       }));
-      return course;
+      return normalizedCourse;
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '创建课程失败',
@@ -117,11 +153,16 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
     try {
       const course = await courseApi.updateCourse(id, data);
       set((state) => ({
-        courses: state.courses.map((c) => (c.id === id ? course : c)),
-        currentCourse: state.currentCourse?.id === id ? course : state.currentCourse,
+        courses: state.courses.map((courseItem) =>
+          courseItem.id === id ? mergeCourse(courseItem, course) : courseItem
+        ),
+        currentCourse:
+          state.currentCourse?.id === id
+            ? mergeCourse(state.currentCourse, course)
+            : state.currentCourse,
         isLoading: false,
       }));
-      return course;
+      return normalizeCourse(course);
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '更新课程失败',
@@ -208,10 +249,11 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       const media = await courseApi.createMedia(courseId, data);
       set((state) => {
         if (state.currentCourse?.id === courseId) {
+          const currentMedia = state.currentCourse.media ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              media: [...state.currentCourse.media, media],
+              media: [...currentMedia, media],
             },
             isLoading: false,
           };
@@ -234,10 +276,11 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       const media = await courseApi.updateMedia(mediaId, data);
       set((state) => {
         if (state.currentCourse) {
+          const currentMedia = state.currentCourse.media ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              media: state.currentCourse.media.map((m) =>
+              media: currentMedia.map((m) =>
                 m.id === mediaId ? media : m
               ),
             },
@@ -262,11 +305,13 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       await courseApi.deleteMedia(mediaId);
       set((state) => {
         if (state.currentCourse) {
+          const currentMedia = state.currentCourse.media ?? [];
+          const currentHyperlinks = state.currentCourse.hyperlinks ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              media: state.currentCourse.media.filter((m) => m.id !== mediaId),
-              hyperlinks: state.currentCourse.hyperlinks.filter(
+              media: currentMedia.filter((m) => m.id !== mediaId),
+              hyperlinks: currentHyperlinks.filter(
                 (h) => h.targetMediaId !== mediaId && h.sourceMediaId !== mediaId
               ),
             },
@@ -290,7 +335,8 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       await courseApi.reorderMedia(courseId, mediaIds);
       set((state) => {
         if (state.currentCourse?.id === courseId) {
-          const mediaMap = new Map(state.currentCourse.media.map((m) => [m.id, m]));
+          const currentMedia = state.currentCourse.media ?? [];
+          const mediaMap = new Map(currentMedia.map((m) => [m.id, m]));
           const reorderedMedia = mediaIds
             .map((id) => mediaMap.get(id))
             .filter((m): m is CourseMedia => !!m)
@@ -321,10 +367,11 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       const hyperlink = await courseApi.createHyperlink(courseId, data);
       set((state) => {
         if (state.currentCourse?.id === courseId) {
+          const currentHyperlinks = state.currentCourse.hyperlinks ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              hyperlinks: [...state.currentCourse.hyperlinks, hyperlink],
+              hyperlinks: [...currentHyperlinks, hyperlink],
             },
             isLoading: false,
           };
@@ -347,10 +394,11 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       const hyperlink = await courseApi.updateHyperlink(hyperlinkId, data);
       set((state) => {
         if (state.currentCourse) {
+          const currentHyperlinks = state.currentCourse.hyperlinks ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              hyperlinks: state.currentCourse.hyperlinks.map((h) =>
+              hyperlinks: currentHyperlinks.map((h) =>
                 h.id === hyperlinkId ? hyperlink : h
               ),
             },
@@ -375,10 +423,11 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
       await courseApi.deleteHyperlink(hyperlinkId);
       set((state) => {
         if (state.currentCourse) {
+          const currentHyperlinks = state.currentCourse.hyperlinks ?? [];
           return {
             currentCourse: {
               ...state.currentCourse,
-              hyperlinks: state.currentCourse.hyperlinks.filter(
+              hyperlinks: currentHyperlinks.filter(
                 (h) => h.id !== hyperlinkId
               ),
             },
@@ -404,5 +453,6 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
 
   reset: () => set(initialState),
 
-  setCurrentCourse: (course: Course | null) => set({ currentCourse: course }),
+  setCurrentCourse: (course: Course | null) =>
+    set({ currentCourse: course ? normalizeCourse(course) : null }),
 }));

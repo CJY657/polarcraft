@@ -103,8 +103,10 @@ export function HyperlinkEditor({
   hyperlinks,
 }: HyperlinkEditorProps) {
   const { deleteHyperlink, updateMedia, isLoading, error, clearError } = useCourseAdminStore();
-  const pptMedia = media.filter((item) => item.type === 'pptx');
-  const targetMedia = media.filter((item) => item.type !== 'pptx');
+  const mediaList = Array.isArray(media) ? media : [];
+  const hyperlinkList = Array.isArray(hyperlinks) ? hyperlinks : [];
+  const pptMedia = mediaList.filter((item) => item.type === 'pptx');
+  const targetMedia = mediaList.filter((item) => item.type !== 'pptx');
   const hasSinglePpt = pptMedia.length === 1;
 
   // PDF state
@@ -132,9 +134,9 @@ export function HyperlinkEditor({
   const [previewPdfUrl, setPreviewPdfUrl] = useState('');
   const [isCheckingPreview, setIsCheckingPreview] = useState(false);
   const activePptMedia = pptMedia.find((item) => item.id === selectedPptId) ?? pptMedia[0] ?? null;
-  const legacyHyperlinks = hyperlinks.filter((hyperlink) => !hyperlink.sourceMediaId);
+  const legacyHyperlinks = hyperlinkList.filter((hyperlink) => !hyperlink.sourceMediaId);
   const currentPptHyperlinks = activePptMedia
-    ? hyperlinks.filter((hyperlink) => {
+    ? hyperlinkList.filter((hyperlink) => {
         if (hyperlink.sourceMediaId) {
           return hyperlink.sourceMediaId === activePptMedia.id;
         }
@@ -361,7 +363,7 @@ export function HyperlinkEditor({
 
   // Get media title for hyperlink
   const getMediaTitle = (mediaId: string) => {
-    const m = media.find((m) => m.id === mediaId);
+    const m = mediaList.find((item) => item.id === mediaId);
     return m?.title['zh-CN'] || mediaId;
   };
 

@@ -149,8 +149,8 @@ export default function CourseEditorPage() {
         {activeTab === 'hyperlinks' && currentCourse && (
           <HyperlinkEditor
             courseId={currentCourse.id}
-            media={currentCourse.media}
-            hyperlinks={currentCourse.hyperlinks}
+            media={currentCourse.media ?? []}
+            hyperlinks={currentCourse.hyperlinks ?? []}
           />
         )}
       </div>

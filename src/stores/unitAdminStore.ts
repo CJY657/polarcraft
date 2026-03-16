@@ -45,7 +45,21 @@ const initialState = {
   error: null,
 };
 
-export const useUnitAdminStore = create<UnitAdminState>((set, get) => ({
+function mergeUnit(existingUnit: Unit, incomingUnit: Unit): Unit {
+  const mergedUnit = {
+    ...existingUnit,
+    ...incomingUnit,
+  };
+
+  return {
+    ...mergedUnit,
+    mainSlide: incomingUnit.mainSlide ?? existingUnit.mainSlide,
+    courses: Array.isArray(incomingUnit.courses) ? incomingUnit.courses : existingUnit.courses,
+    courseCount: incomingUnit.courseCount ?? existingUnit.courseCount,
+  };
+}
+
+export const useUnitAdminStore = create<UnitAdminState>((set) => ({
   ...initialState,
 
   // =====================================================
@@ -101,8 +115,11 @@ export const useUnitAdminStore = create<UnitAdminState>((set, get) => ({
     try {
       const unit = await unitApi.updateUnit(id, data);
       set((state) => ({
-        units: state.units.map((u) => (u.id === id ? unit : u)),
-        currentUnit: state.currentUnit?.id === id ? unit : state.currentUnit,
+        units: state.units.map((unitItem) =>
+          unitItem.id === id ? mergeUnit(unitItem, unit) : unitItem
+        ),
+        currentUnit:
+          state.currentUnit?.id === id ? mergeUnit(state.currentUnit, unit) : state.currentUnit,
         isLoading: false,
       }));
       return unit;
