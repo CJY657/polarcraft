@@ -73,7 +73,7 @@ export interface CreateCourseInput {
   title_en?: string;
   description_zh?: string;
   description_en?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   color?: string;
 }
 
@@ -83,7 +83,7 @@ export interface UpdateCourseInput {
   title_en?: string;
   description_zh?: string;
   description_en?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   color?: string;
   sortOrder?: number;
 }

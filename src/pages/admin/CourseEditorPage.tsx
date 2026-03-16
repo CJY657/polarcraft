@@ -194,8 +194,8 @@ function SettingsTab({ course }: { course: Course }) {
     setCoverError(null);
   }, [course.id, course.coverImage]);
 
-  const persistCoverImage = async (nextUrl: string) => {
-    const normalizedUrl = nextUrl.trim();
+  const persistCoverImage = async (nextUrl: string | null) => {
+    const normalizedUrl = typeof nextUrl === 'string' ? nextUrl.trim() : '';
     const previousUrl = course.coverImage || '';
 
     setDraftCoverImage(normalizedUrl);
@@ -204,7 +204,7 @@ function SettingsTab({ course }: { course: Course }) {
 
     try {
       await updateCourse(course.id, {
-        coverImage: normalizedUrl || undefined,
+        coverImage: normalizedUrl || null,
       });
     } catch (error) {
       setDraftCoverImage(previousUrl);
@@ -310,7 +310,15 @@ function SettingsTab({ course }: { course: Course }) {
                 <button
                   type="button"
                   onClick={() => {
-                    void persistCoverImage('');
+                    if (
+                      !confirm(
+                        '确定要删除这张独立封面吗？删除后会从当前实验移除，并在服务器 disk 中永久删除未被其他内容引用的文件。'
+                      )
+                    ) {
+                      return;
+                    }
+
+                    void persistCoverImage(null);
                   }}
                   disabled={!draftCoverImage || isSavingCover}
                   className={cn(

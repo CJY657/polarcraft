@@ -99,6 +99,23 @@ function transformHyperlinkRow(row: HyperlinkRow) {
   };
 }
 
+function normalizeCoverImageInput(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export class CourseController {
   // ============================================================
   // Courses / 课程
@@ -159,10 +176,16 @@ export class CourseController {
    * 创建课程
    */
   static createCourse = asyncHandler(async (req: Request, res: Response) => {
+    const normalizedCoverImage = normalizeCoverImageInput(req.body.coverImage);
+    if (req.body.coverImage !== undefined && normalizedCoverImage === undefined) {
+      return res.error("封面图地址格式无效", "VALIDATION_ERROR", 400);
+    }
+
     const data: CreateCourseInput = {
       ...req.body,
       unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
       title_zh: typeof req.body.title_zh === "string" ? req.body.title_zh.trim() : req.body.title_zh,
+      coverImage: normalizedCoverImage,
     };
 
     if (!data.unitId || !data.title_zh) {
@@ -182,9 +205,19 @@ export class CourseController {
    */
   static updateCourse = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const hasCoverImage = Object.prototype.hasOwnProperty.call(req.body, "coverImage");
+    const normalizedCoverImage = hasCoverImage
+      ? normalizeCoverImageInput(req.body.coverImage)
+      : undefined;
+
+    if (hasCoverImage && normalizedCoverImage === undefined) {
+      return res.error("封面图地址格式无效", "VALIDATION_ERROR", 400);
+    }
+
     const data: UpdateCourseInput = {
       ...req.body,
       unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
+      ...(hasCoverImage ? { coverImage: normalizedCoverImage } : {}),
     };
 
     const course = await CourseModel.getCourseById(id);
@@ -196,10 +229,14 @@ export class CourseController {
       return res.error("实验必须归属于一个单元", "VALIDATION_ERROR", 400);
     }
 
+    const coverImageChanged = hasCoverImage && normalizedCoverImage !== course.cover_image;
+
     await CourseModel.updateCourse(id, data);
-    await ManagedUploadCleanupService.cleanupUrls([course.cover_image], {
-      reason: `course.update:${id}`,
-    });
+    if (coverImageChanged) {
+      await ManagedUploadCleanupService.cleanupUrls([course.cover_image], {
+        reason: `course.update:${id}`,
+      });
+    }
     const updatedCourse = await CourseModel.getCourseById(id);
 
     logger.info(`Course updated by ${req.user!.username}: ${id}`);

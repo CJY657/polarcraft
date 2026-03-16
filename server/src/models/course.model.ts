@@ -77,7 +77,7 @@ export class CourseModel {
       title_en: data.title_en || null,
       description_zh: data.description_zh || null,
       description_en: data.description_en || null,
-      cover_image: data.coverImage || null,
+      cover_image: data.coverImage ?? null,
       color: data.color || '#C9A227',
       sort_order: 0,
       created_at: now,
