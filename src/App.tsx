@@ -11,9 +11,11 @@ import {
 } from "react-router-dom"; // React Router 组件
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"; // 错误边界组件
 import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
+import { useAuth } from "@/contexts/AuthContext";
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
+import { capturePostHogPageview, syncPostHogUser } from "@/lib/posthog";
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 import CourseViewerPage from "@/pages/CourseViewerPage";
@@ -178,11 +180,39 @@ function ScrollToTopOnRouteChange() {
   return null;
 }
 
+function AnalyticsBridge() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    capturePostHogPageview({
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+    });
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    syncPostHogUser(user);
+  }, [
+    user?.id,
+    user?.username,
+    user?.email,
+    user?.role,
+    user?.email_verified,
+    user?.created_at,
+    user?.last_login_at,
+  ]);
+
+  return null;
+}
+
 function AppRouterContent() {
   const location = useLocation();
 
   return (
     <>
+      <AnalyticsBridge />
       <ScrollToTopOnRouteChange />
       <Suspense
         key={`${location.pathname}${location.search}`}
@@ -411,8 +441,8 @@ export function App() {
             <AuthDialog />
             <Footer />
           </BrowserRouter>
-      </AuthProvider>
-    </SystemProvider>
-  </ErrorBoundary>
+        </AuthProvider>
+      </SystemProvider>
+    </ErrorBoundary>
   );
 }

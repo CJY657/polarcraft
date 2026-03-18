@@ -29,6 +29,7 @@
     "i18next": "^25.8.0",
     "katex": "^0.16.8",
     "pdfjs-dist": "5.4.296",
+    "posthog-js": "^1.361.1",
     "pptx-preview": "^1.0.7",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
