@@ -44,6 +44,19 @@ export interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
 }
 
+export interface ProjectDiscussionComment {
+  id: string;
+  project_id: string;
+  user_id: string;
+  parent_comment_id: string | null;
+  content: string;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+  username: string;
+  avatar_url: string | null;
+}
+
 export interface CreateProjectInput {
   name_zh: string;
   name_en?: string;
@@ -288,6 +301,44 @@ export const researchApi = {
     const response = await api.delete(`/api/research/projects/${projectId}/members/${userId}`);
     if (!response.success) {
       throw new Error(response.error?.message || '移除成员失败');
+    }
+  },
+
+  /**
+   * Get project discussion comments
+   * 获取课题讨论评论
+   */
+  getProjectDiscussionComments: async (projectId: string): Promise<ProjectDiscussionComment[]> => {
+    const response = await api.get<ProjectDiscussionComment[]>(`/api/research/projects/${projectId}/discussion-comments`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '获取课题讨论失败');
+  },
+
+  /**
+   * Add project discussion comment
+   * 发布课题讨论评论
+   */
+  addProjectDiscussionComment: async (
+    projectId: string,
+    input: { content: string; parentCommentId?: string }
+  ): Promise<{ id: string }> => {
+    const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/discussion-comments`, input);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '发布讨论留言失败');
+  },
+
+  /**
+   * Delete project discussion comment
+   * 删除课题讨论评论
+   */
+  deleteProjectDiscussionComment: async (commentId: string): Promise<void> => {
+    const response = await api.delete(`/api/research/discussion-comments/${commentId}`);
+    if (!response.success) {
+      throw new Error(response.error?.message || '删除讨论留言失败');
     }
   },
 

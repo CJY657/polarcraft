@@ -35,6 +35,7 @@ import { ApplicationManagementDialog } from "../components/project/ApplicationMa
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
+import { ProjectDiscussionSection } from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
 
 interface ProjectWithMembers extends ResearchProject {
@@ -259,6 +260,9 @@ export function ResearchProjectPage() {
     ? { exampleProjectId: exampleId }
     : { readOnly: isReadOnlyMode };
   const canManageProject = !isExampleProject && isOwnerOrAdmin && !isReadOnlyMode;
+  const canParticipateInDiscussion = !isExampleProject && Boolean(
+    user && (currentUserRole || displayProject.is_public || displayProject.allow_guest_comments)
+  );
 
   return (
     <div className="research-page min-h-screen">
@@ -508,6 +512,15 @@ export function ResearchProjectPage() {
               })}
             </div>
           </section>
+        )}
+
+        {!isExampleProject && projectId && (
+          <ProjectDiscussionSection
+            projectId={projectId}
+            currentUserId={user?.id}
+            canModerate={isOwnerOrAdmin}
+            canParticipate={canParticipateInDiscussion}
+          />
         )}
 
         <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">

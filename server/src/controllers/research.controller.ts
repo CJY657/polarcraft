@@ -434,6 +434,113 @@ export class ResearchController {
     res.success(null, '评论删除成功');
   });
 
+  /**
+   * Get project discussion comments
+   * 获取课题讨论评论
+   */
+  static getProjectDiscussionComments = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const project = await ResearchModel.getProjectById(projectId);
+
+    if (!project) {
+      return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    const comments = await ResearchModel.getProjectDiscussionComments(projectId);
+    res.success(comments);
+  });
+
+  /**
+   * Add project discussion comment
+   * 添加课题讨论评论
+   */
+  static addProjectDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const currentUserId = req.user!.sub;
+    const rawContent = typeof req.body.content === 'string' ? req.body.content : '';
+    const content = rawContent.trim();
+    const parentCommentId = typeof req.body.parentCommentId === 'string' && req.body.parentCommentId.trim().length > 0
+      ? req.body.parentCommentId.trim()
+      : null;
+
+    if (!content) {
+      return res.error('评论内容不能为空', 'INVALID_COMMENT_CONTENT', 400);
+    }
+
+    if (content.length > 2000) {
+      return res.error('评论内容不能超过 2000 字', 'COMMENT_TOO_LONG', 400);
+    }
+
+    const project = await ResearchModel.getProjectById(projectId);
+    if (!project) {
+      return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    const members = await ResearchModel.getProjectMembers(projectId);
+    const isMember = members.some((member: any) => member.user_id === currentUserId);
+    const canParticipate = isMember || project.is_public || project.allow_guest_comments;
+
+    if (!canParticipate) {
+      return res.error('无权参与该课题讨论', 'FORBIDDEN', 403);
+    }
+
+    if (parentCommentId) {
+      const parentComment = await ResearchModel.getProjectDiscussionCommentById(parentCommentId);
+      if (!parentComment || parentComment.project_id !== projectId) {
+        return res.error('回复的评论不存在', 'PARENT_COMMENT_NOT_FOUND', 404);
+      }
+
+      if (parentComment.is_deleted) {
+        return res.error('该评论已删除，无法继续回复', 'PARENT_COMMENT_DELETED', 400);
+      }
+    }
+
+    const commentId = await ResearchModel.addProjectDiscussionComment(
+      projectId,
+      currentUserId,
+      content,
+      parentCommentId
+    );
+
+    await ResearchModel.logActivity(
+      projectId,
+      currentUserId,
+      'add_comment',
+      'project_comment',
+      commentId,
+      { parent_comment_id: parentCommentId }
+    );
+
+    logger.info(`Project discussion comment added by user ${req.user!.username}: ${commentId}`);
+    res.success({ id: commentId }, '讨论留言发布成功', 201);
+  });
+
+  /**
+   * Delete project discussion comment
+   * 删除课题讨论评论
+   */
+  static deleteProjectDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const currentUserId = req.user!.sub;
+
+    const comment = await ResearchModel.getProjectDiscussionCommentById(id);
+    if (!comment) {
+      return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
+    }
+
+    const members = await ResearchModel.getProjectMembers(comment.project_id);
+    const currentMember = members.find((member: any) => member.user_id === currentUserId);
+    const canModerate = currentMember && ['owner', 'admin'].includes(currentMember.role);
+
+    if (comment.user_id !== currentUserId && !canModerate) {
+      return res.error('无权删除该评论', 'FORBIDDEN', 403);
+    }
+
+    await ResearchModel.deleteProjectDiscussionComment(id);
+    logger.info(`Project discussion comment deleted by user ${req.user!.username}: ${id}`);
+    res.success(null, '讨论留言删除成功');
+  });
+
   // ============================================================
   // Activity / 活动日志
   // ============================================================

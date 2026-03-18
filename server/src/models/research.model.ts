@@ -14,6 +14,7 @@ const canvasesCollection = () => getCollection('research_canvases');
 const nodesCollection = () => getCollection('research_nodes');
 const edgesCollection = () => getCollection('research_edges');
 const commentsCollection = () => getCollection('research_node_comments');
+const projectCommentsCollection = () => getCollection('research_project_comments');
 const activityLogCollection = () => getCollection('research_activity_log');
 const usersCollection = () => getCollection('users');
 const projectSettingsCollection = () => getCollection('research_project_settings');
@@ -213,6 +214,7 @@ export class ResearchModel {
       edgesCollection().deleteMany(canvasIds.length > 0 ? { canvas_id: { $in: canvasIds } } : { canvas_id: '__none__' }),
       nodesCollection().deleteMany(canvasIds.length > 0 ? { canvas_id: { $in: canvasIds } } : { canvas_id: '__none__' }),
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
+      projectCommentsCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),
       creatorProfilesCollection().deleteMany({ project_id: projectId }),
@@ -688,6 +690,109 @@ export class ResearchModel {
     const result = await commentsCollection().deleteOne({ id: commentId });
     logger.info(`Comment deleted: ${commentId}`);
     return result.deletedCount > 0;
+  }
+
+  /**
+   * Get project discussion comments
+   * 获取课题讨论评论
+   */
+  static async getProjectDiscussionComments(projectId: string): Promise<any[]> {
+    const comments = normalizeDocuments<any>(
+      await projectCommentsCollection().find({ project_id: projectId }).sort({ created_at: 1 }).toArray()
+    );
+    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+
+    return comments.map((comment) => ({
+      ...comment,
+      username: userMap.get(comment.user_id)?.username || '',
+      avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
+    }));
+  }
+
+  /**
+   * Get project discussion comment by ID
+   * 获取课题讨论评论详情
+   */
+  static async getProjectDiscussionCommentById(commentId: string): Promise<any | null> {
+    return normalizeDocument<any>(await projectCommentsCollection().findOne({ id: commentId }));
+  }
+
+  /**
+   * Add project discussion comment
+   * 添加课题讨论评论
+   */
+  static async addProjectDiscussionComment(
+    projectId: string,
+    userId: string,
+    content: string,
+    parentCommentId: string | null = null
+  ): Promise<string> {
+    const now = new Date();
+    const commentId = generateId();
+
+    await projectCommentsCollection().insertOne({
+      id: commentId,
+      project_id: projectId,
+      user_id: userId,
+      parent_comment_id: parentCommentId,
+      content,
+      is_deleted: false,
+      created_at: now,
+      updated_at: now,
+    });
+
+    logger.info(`Project discussion comment added: ${commentId} in project ${projectId}`);
+    return commentId;
+  }
+
+  private static async pruneDeletedProjectDiscussionAncestor(commentId: string | null): Promise<void> {
+    if (!commentId) {
+      return;
+    }
+
+    const comment = await this.getProjectDiscussionCommentById(commentId);
+    if (!comment?.is_deleted) {
+      return;
+    }
+
+    const childCount = await projectCommentsCollection().countDocuments({ parent_comment_id: commentId });
+    if (childCount > 0) {
+      return;
+    }
+
+    await projectCommentsCollection().deleteOne({ id: commentId });
+    await this.pruneDeletedProjectDiscussionAncestor(comment.parent_comment_id ?? null);
+  }
+
+  /**
+   * Delete project discussion comment
+   * 删除课题讨论评论
+   */
+  static async deleteProjectDiscussionComment(commentId: string): Promise<boolean> {
+    const comment = await this.getProjectDiscussionCommentById(commentId);
+    if (!comment) {
+      return false;
+    }
+
+    const childCount = await projectCommentsCollection().countDocuments({ parent_comment_id: commentId });
+
+    if (childCount > 0) {
+      const result = await projectCommentsCollection().updateOne(
+        { id: commentId },
+        { $set: { is_deleted: true, content: '', updated_at: new Date() } }
+      );
+      logger.info(`Project discussion comment soft deleted: ${commentId}`);
+      return result.matchedCount > 0;
+    }
+
+    const result = await projectCommentsCollection().deleteOne({ id: commentId });
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    await this.pruneDeletedProjectDiscussionAncestor(comment.parent_comment_id ?? null);
+    logger.info(`Project discussion comment deleted: ${commentId}`);
+    return true;
   }
 
   /**

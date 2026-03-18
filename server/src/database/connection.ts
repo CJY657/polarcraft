@@ -148,6 +148,15 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
+    name: 'research_project_comments',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, created_at: 1 }, name: 'idx_project_created' },
+      { key: { parent_comment_id: 1, created_at: 1 }, name: 'idx_parent_created' },
+      { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
+    ],
+  },
+  {
     name: 'research_activity_log',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

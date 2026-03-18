@@ -218,6 +218,27 @@ router.put('/comments/:id', ResearchController.updateComment);
 router.delete('/comments/:id', ResearchController.deleteComment);
 
 /**
+ * @route   GET /api/research/projects/:projectId/discussion-comments
+ * @desc    List project discussion comments
+ * @access  Private
+ */
+router.get('/projects/:projectId/discussion-comments', ResearchController.getProjectDiscussionComments);
+
+/**
+ * @route   POST /api/research/projects/:projectId/discussion-comments
+ * @desc    Add project discussion comment
+ * @access  Private
+ */
+router.post('/projects/:projectId/discussion-comments', ResearchController.addProjectDiscussionComment);
+
+/**
+ * @route   DELETE /api/research/discussion-comments/:id
+ * @desc    Delete project discussion comment
+ * @access  Private
+ */
+router.delete('/discussion-comments/:id', ResearchController.deleteProjectDiscussionComment);
+
+/**
  * =====================================================
  * Activity Routes / 活动日志路由
  * =====================================================
