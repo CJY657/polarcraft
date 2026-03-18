@@ -11,6 +11,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { uploadConfig, FileCategory } from '../config/upload.config.js';
 import { logger } from '../utils/logger.js';
 
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${Number(value.toFixed(value >= 10 || exponent === 0 ? 0 : 1))} ${units[exponent]}`;
+}
+
 // Ensure upload directory exists
 // 确保上传目录存在
 function ensureUploadDir(dir: string): void {
@@ -101,9 +109,15 @@ export const handleUploadError = (err: any, req: Request, res: any, next: any) =
   if (err instanceof multer.MulterError) {
     logger.warn(`Upload rejected by multer: ${err.code}`, logContext);
     if (err.code === 'LIMIT_FILE_SIZE') {
+      const category = req.params.category as FileCategory;
+      const limit =
+        uploadConfig.maxFileSize[category] || uploadConfig.maxFileSize.default;
       return res.status(400).json({
         success: false,
-        error: { code: 'FILE_TOO_LARGE', message: '文件大小超出限制' },
+        error: {
+          code: 'FILE_TOO_LARGE',
+          message: `文件大小超出限制，当前类别最大允许 ${formatFileSize(limit)}`,
+        },
       });
     }
     return res.status(400).json({

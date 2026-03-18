@@ -6,13 +6,14 @@
  * 支持拖拽上传的可复用文件上传组件
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, File, Image, Video, FileText, Loader2 } from 'lucide-react';
 import {
   uploadApi,
   getFileCategory,
   getAcceptString,
   FileCategory,
+  formatFileSize,
 } from '@/lib/upload.service';
 import { cn } from '@/utils/classNames';
 
@@ -52,10 +53,33 @@ export function FileUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [maxFileSize, setMaxFileSize] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const Icon = ICON_MAP[category];
   const acceptTypes = accept || getAcceptString(category);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    uploadApi
+      .getUploadConfig()
+      .then((config) => {
+        const size = config.maxFileSize[category];
+        if (!cancelled && typeof size === 'number') {
+          setMaxFileSize(size);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMaxFileSize(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
 
   /**
    * Read video duration from file
@@ -100,6 +124,11 @@ export function FileUpload({
         return;
       }
 
+      if (maxFileSize !== null && file.size > maxFileSize) {
+        setError(`文件大小超出限制，当前类别最大允许 ${formatFileSize(maxFileSize)}`);
+        return;
+      }
+
       setIsUploading(true);
       setError(null);
 
@@ -118,7 +147,7 @@ export function FileUpload({
         setIsUploading(false);
       }
     },
-    [category, unitId, onChange, readVideoDuration, onDurationChange]
+    [category, maxFileSize, unitId, onChange, readVideoDuration, onDurationChange]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,7 +222,10 @@ export function FileUpload({
           </div>
         )}
 
-        <p className="text-xs text-gray-500 mt-1">Accepted: {acceptTypes}</p>
+        <p className="text-xs text-gray-500 mt-1">
+          Accepted: {acceptTypes}
+          {maxFileSize !== null ? ` · Max ${formatFileSize(maxFileSize)}` : ''}
+        </p>
       </div>
 
       {/* Current Value Preview */}

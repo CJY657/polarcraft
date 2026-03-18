@@ -20,7 +20,7 @@ export const uploadConfig = {
   // 文件大小限制（字节）
   maxFileSize: {
     pdf: 100 * 1024 * 1024,      // 100MB for PDFs
-    image: 10 * 1024 * 1024,     // 10MB for images
+    image: 25 * 1024 * 1024,     // 25MB for images
     video: 500 * 1024 * 1024,    // 500MB for videos
     pptx: 100 * 1024 * 1024,     // 100MB for PowerPoint
     default: 50 * 1024 * 1024,   // 50MB default
