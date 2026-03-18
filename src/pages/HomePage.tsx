@@ -107,12 +107,12 @@ const MODULES: ModuleConfig[] = [
   {
     id: "lab",
     i18nNamespace: "home.modules.lab",
-    path: "/lab",
+    path: "/lab/explore",
     IconComponent: LabModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.lab.link1", path: "/lab" },
+      { labelKey: "home.modules.lab.link1", path: "/lab/explore" },
       { labelKey: "home.modules.lab.link2", path: "/lab/explore" },
-      { labelKey: "home.modules.lab.link3", path: "/lab" },
+      { labelKey: "home.modules.lab.link3", path: "/lab/explore" },
     ],
     workspaceLabel: "研究协作",
     accent: "#0f9b74",
@@ -133,7 +133,7 @@ const LEARNING_PATH = [
   {
     title: "最后做项目实践",
     description: "从作品、挑战和研究协作中验证自己的理解。",
-    path: "/lab",
+    path: "/lab/explore",
   },
 ];
 

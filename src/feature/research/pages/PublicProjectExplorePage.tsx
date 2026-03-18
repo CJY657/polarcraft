@@ -7,10 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
-  Clock,
   FlaskConical,
   Loader2,
   LogIn,
+  Plus,
   Search,
   Users,
 } from "lucide-react";
@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
+import { CreateProjectWizard } from "../components/project/CreateProjectWizard";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
@@ -33,6 +34,7 @@ export function PublicProjectExplorePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
+  const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -89,12 +91,34 @@ export function PublicProjectExplorePage() {
     [projects]
   );
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const handleCreateProject = () => {
+    if (!isAuthenticated) {
+      openDialog("login");
+      return;
+    }
+
+    if (!isSystemHealthy) {
+      return;
+    }
+
+    setIsCreateWizardOpen(true);
+  };
+
+  const getMemberSummary = (project: PublicProject) => {
+    const members = project.members
+      .filter((member) => member.role !== "owner")
+      .map((member) => member.username)
+      .filter(Boolean);
+
+    if (members.length > 0) {
+      return members.join("、");
+    }
+
+    if (project.member_count > 1) {
+      return `当前共 ${project.member_count} 位成员`;
+    }
+
+    return "暂无其他成员";
   };
 
   return (
@@ -107,17 +131,19 @@ export function PublicProjectExplorePage() {
         rightContent={
           <div className="flex items-center gap-2">
             <Link
-              to="/lab"
-              className="glass-button inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium"
-            >
-              工作台
-            </Link>
-            <Link
               to="/lab/projects"
               className="glass-button inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium"
             >
               我的课题
             </Link>
+            <button
+              onClick={handleCreateProject}
+              disabled={!isSystemHealthy}
+              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              新建课题
+            </button>
           </div>
         }
       />
@@ -131,10 +157,10 @@ export function PublicProjectExplorePage() {
                 className="text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
               >
-                先判断研究方向值不值得加入，再提交申请
+                进入虚拟课题组后，先直接看到现有课题
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
-                这里收拢了所有公开课题。你可以按关键词和招募状态筛选，再看组长、要求和当前人数，快速判断是否适合加入。
+                这里统一列出已有课题的名称、简介、组长和成员。看完现有方向后，如果没有合适的，就直接新建课题。
               </p>
             </div>
 
@@ -205,21 +231,43 @@ export function PublicProjectExplorePage() {
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">未登录时也可以先浏览课题详情</p>
+                <p className="text-sm font-semibold text-[var(--paper-foreground)]">未登录时也可以先浏览现有课题</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  想申请加入或保存协作记录时，再登录即可。
+                  想加入课题或新建课题时，再登录即可。
                 </p>
               </div>
             </div>
 
-            <button
-              onClick={() => openDialog("login")}
-              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
-            >
-              <LogIn className="h-4 w-4" />
-              登录后申请
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => openDialog("login")}
+                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
+              >
+                <LogIn className="h-4 w-4" />
+                登录后申请
+              </button>
+              <button
+                onClick={() => openDialog("login")}
+                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium sm:self-auto"
+              >
+                <Plus className="h-4 w-4 text-[var(--paper-link)]" />
+                登录后新建
+              </button>
+            </div>
           </section>
+        )}
+
+        {!isSystemHealthy && !isLoading && (
+          <div
+            className="mb-8 rounded-[1.55rem] p-4"
+            style={{
+              border: "1px solid color-mix(in srgb, #d7994c 28%, var(--glass-stroke))",
+              background: "color-mix(in srgb, #d7994c 10%, transparent)",
+              color: "#a45a13",
+            }}
+          >
+            <p className="text-sm font-medium">研究服务暂时不可用，当前无法加载课题列表或新建课题。</p>
+          </div>
         )}
 
         {isLoading && (
@@ -249,70 +297,46 @@ export function PublicProjectExplorePage() {
                 key={project.id}
                 className="research-panel rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      {project.is_recruiting && (
-                        <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-[11px] font-semibold">
-                          招募中
-                        </span>
-                      )}
-                      <span className="research-chip inline-flex rounded-full px-3 py-1 text-[11px] font-medium">
-                        {project.require_approval ? "需要审核" : "可直接加入"}
-                      </span>
-                    </div>
-
                     <h2
-                      className="line-clamp-2 text-[1.35rem] font-semibold leading-tight text-[var(--paper-foreground)]"
+                      className="text-[1.35rem] font-semibold leading-tight text-[var(--paper-foreground)]"
                       style={{ fontFamily: "var(--font-ui-display)" }}
                     >
                       {project.name_zh}
                     </h2>
-
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
-                      {project.description_zh || "暂无课题简介，可先进入课题查看更完整的研究结构。"}
-                    </p>
                   </div>
-
-                  <div className="research-chip flex h-11 w-11 items-center justify-center rounded-2xl">
+                  <div className="research-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
                     <FlaskConical className="h-5 w-5 text-[var(--paper-link)]" />
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="research-panel-soft rounded-[1.2rem] p-3">
+                <div className="mt-4 space-y-3">
+                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">简介</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
+                      {project.description_zh || "暂无课题简介。"}
+                    </p>
+                  </div>
+                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">组长</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--paper-foreground)]">
+                    <p className="mt-2 text-sm font-semibold text-[var(--paper-foreground)]">
                       {project.owner_username || "暂未署名"}
                     </p>
                   </div>
-                  <div className="research-panel-soft rounded-[1.2rem] p-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">发布时间</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--paper-foreground)]">
-                      {formatDate(project.created_at)}
-                    </p>
-                  </div>
-                </div>
-
-                {project.recruitment_requirements && (
-                  <div className="mt-4 rounded-[1.2rem] border border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">招募要求</p>
+                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
+                      <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs">
+                        <Users className="h-3.5 w-3.5" />
+                        {project.member_count}
+                        {project.max_members && ` / ${project.max_members}`} 人
+                      </span>
+                    </div>
                     <p className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
-                      {project.recruitment_requirements}
+                      {getMemberSummary(project)}
                     </p>
                   </div>
-                )}
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {project.member_count}
-                    {project.max_members && ` / ${project.max_members}`} 位成员
-                  </span>
-                  <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    最近更新 {formatDate(project.updated_at)}
-                  </span>
                 </div>
 
                 <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -354,9 +378,49 @@ export function PublicProjectExplorePage() {
                 ? "换一个关键词，或者取消筛选再试一次。"
                 : "当前还没有公开课题，稍后再回来看看。"}
             </p>
+            <button
+              onClick={handleCreateProject}
+              disabled={!isSystemHealthy}
+              className="glass-button glass-button-primary mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              新建课题
+            </button>
           </div>
         )}
+
+        {!isLoading && !error && projects.length > 0 && (
+          <section className="research-panel mt-6 rounded-[1.8rem] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="research-kicker mb-2">Create Project</div>
+                <h2
+                  className="text-xl font-semibold text-[var(--paper-foreground)]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  现有课题不匹配时，直接新建一个
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
+                  看完现有课题后，如果没有匹配方向，就直接从这里发起新的课题。
+                </p>
+              </div>
+              <button
+                onClick={handleCreateProject}
+                disabled={!isSystemHealthy}
+                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+              >
+                <Plus className="h-4 w-4" />
+                新建课题
+              </button>
+            </div>
+          </section>
+        )}
       </main>
+
+      <CreateProjectWizard
+        isOpen={isCreateWizardOpen}
+        onClose={() => setIsCreateWizardOpen(false)}
+      />
 
       <ProjectApplicationForm
         isOpen={isApplicationFormOpen}

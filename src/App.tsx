@@ -58,10 +58,9 @@ const WorkDetailPage = lazy(() => import("@/feature/gallery/detail").then(m => (
 
 // Module 6: 虚拟课题
 // 开放研究 × 课题实践
-// Note: /lab route now uses ResearchProjectList directly
+// Note: /lab route redirects to public project discovery
 
 // Research System Routes / 虚拟课题组系统路由
-const ResearchProjectList = lazy(() => import("@/feature/research/components/project/ProjectList").then(m => ({ default: m.ProjectList })));
 const ResearchProjectPage = lazy(() => import("@/feature/research/pages/ResearchProjectPage").then(m => ({ default: m.ResearchProjectPage })));
 const ResearchCanvas = lazy(() => import("@/feature/research/components/canvas/ResearchCanvas").then(m => ({ default: m.ResearchCanvas })));
 const PublicProjectExplorePage = lazy(() => import("@/feature/research/pages/PublicProjectExplorePage").then(m => ({ default: m.PublicProjectExplorePage })));
@@ -286,7 +285,7 @@ function AppRouterContent() {
           {/* Research System / 虚拟课题组系统 */}
           <Route
             path="/lab"
-            element={<ResearchProjectList />}
+            element={<Navigate to="/lab/explore" replace />}
           />
           <Route
             path="/lab/projects"
