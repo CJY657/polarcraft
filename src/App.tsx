@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
-import { capturePostHogPageview, syncPostHogUser } from "@/lib/posthog";
+import { capturePostHogEventOnce, capturePostHogPageview, syncPostHogUser } from "@/lib/posthog";
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 import CourseViewerPage from "@/pages/CourseViewerPage";
@@ -191,6 +191,25 @@ function AnalyticsBridge() {
       hash: location.hash,
     });
   }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (location.pathname === "/games/escape") {
+      capturePostHogEventOnce(`game_opened:${location.key}:escape`, "game_opened", {
+        game_id: "escape",
+        game_name: "escape",
+        route: location.pathname,
+      });
+      return;
+    }
+
+    if (location.pathname === "/games/minecraft") {
+      capturePostHogEventOnce(`game_opened:${location.key}:minecraft`, "game_opened", {
+        game_id: "minecraft",
+        game_name: "minecraft",
+        route: location.pathname,
+      });
+    }
+  }, [location.key, location.pathname]);
 
   useEffect(() => {
     syncPostHogUser(user);

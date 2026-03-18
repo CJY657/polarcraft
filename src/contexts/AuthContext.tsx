@@ -12,6 +12,7 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { authApi, UserProfile } from '@/lib/auth.service';
 import { useSystem } from '@/contexts/SystemContext';
+import { capturePostHogEvent } from '@/lib/posthog';
 
 // Token refresh configuration
 // Token 刷新配置
@@ -130,11 +131,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string, rememberMe = false) => {
     const response = await authApi.login({ username, password, rememberMe });
+    capturePostHogEvent('auth_login_success', {
+      user_id: response.user.id,
+      username: response.user.username,
+      role: response.user.role,
+      has_email: Boolean(response.user.email),
+      remember_me: rememberMe,
+    });
     setUser(response.user);
   };
 
   const register = async (username: string, password: string, email?: string) => {
     const response = await authApi.register({ username, password, email });
+    capturePostHogEvent('auth_register_success', {
+      user_id: response.user.id,
+      username: response.user.username,
+      role: response.user.role,
+      has_email: Boolean(response.user.email),
+      email_provided: Boolean(email),
+    });
     setUser(response.user);
   };
 

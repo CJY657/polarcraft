@@ -6,7 +6,7 @@
  */
 
 import { Suspense, lazy, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
 
@@ -15,6 +15,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCourseDetailStore } from "@/stores/courseStore";
 import { loadCourseViewerModule } from "@/lib/routePreload";
+import { capturePostHogEventOnce } from "@/lib/posthog";
 
 const CourseViewer = lazy(() =>
   loadCourseViewerModule().then((module) => ({ default: module.CourseViewer }))
@@ -35,6 +36,7 @@ export default function CourseViewerPage() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { i18n } = useTranslation();
+  const location = useLocation();
   const navigate = useNavigate();
   const resolvedExperimentId = experimentId || courseId;
 
@@ -56,6 +58,20 @@ export default function CourseViewerPage() {
 
   const courseTitle = getLabel(course?.title) || (isZh ? "实验详情" : "Experiment");
   const backLabel = isZh ? "返回实验总览" : "Back to experiments";
+
+  useEffect(() => {
+    if (!course) {
+      return;
+    }
+
+    capturePostHogEventOnce(`experiment_opened:${location.key}:${course.id}`, "experiment_opened", {
+      experiment_id: course.id,
+      experiment_title_zh: course.title["zh-CN"] || undefined,
+      experiment_title_en: course.title["en-US"] || undefined,
+      unit_id: course.unitId,
+      route: location.pathname,
+    });
+  }, [course, location.key, location.pathname]);
 
   const courseData = course
     ? {

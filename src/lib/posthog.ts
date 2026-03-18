@@ -10,6 +10,7 @@ const SESSION_RECORDING_ENABLED = import.meta.env.VITE_PUBLIC_POSTHOG_SESSION_RE
 let isInitialized = false;
 let identifiedUserId: string | null = null;
 let lastCapturedRoute: string | null = null;
+const capturedEventKeys = new Set<string>();
 
 function isPostHogEnabled(): boolean {
   return typeof window !== 'undefined' && POSTHOG_KEY.length > 0;
@@ -102,4 +103,28 @@ export function syncPostHogUser(user: UserProfile | null): void {
     last_login_at: user.last_login_at ?? undefined,
   });
   identifiedUserId = user.id;
+}
+
+export function capturePostHogEvent(
+  event: string,
+  properties?: Record<string, unknown>
+): void {
+  if (!initPostHog()) {
+    return;
+  }
+
+  posthog.capture(event, properties);
+}
+
+export function capturePostHogEventOnce(
+  eventKey: string,
+  event: string,
+  properties?: Record<string, unknown>
+): void {
+  if (capturedEventKeys.has(eventKey)) {
+    return;
+  }
+
+  capturePostHogEvent(event, properties);
+  capturedEventKeys.add(eventKey);
 }

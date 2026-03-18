@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, PublicProject } from '@/lib/profile.service';
+import { capturePostHogEvent } from '@/lib/posthog';
 
 interface ProjectApplicationFormProps {
   isOpen: boolean;
@@ -117,6 +118,16 @@ export function ProjectApplicationForm({
         research_experience: formData.research_experience || undefined,
         expertise: formData.expertise || undefined,
         motivation: formData.motivation || undefined,
+      });
+
+      capturePostHogEvent('project_application_submitted', {
+        project_id: project.id,
+        project_name_zh: project.name_zh,
+        project_name_en: project.name_en || undefined,
+        require_approval: project.require_approval,
+        organization: formData.organization,
+        has_education_id: Boolean(formData.education_id),
+        used_profile_education: formData.useProfile,
       });
 
       setSuccess(true);
