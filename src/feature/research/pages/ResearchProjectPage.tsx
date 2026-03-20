@@ -30,26 +30,35 @@ import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject, type ProjectMember, type ResearchCanvas } from "@/lib/research.service";
-import { profileApi, type ProjectSettings, type ProjectApplication } from "@/lib/profile.service";
+import {
+  profileApi,
+  type ProjectSettings,
+  type ProjectApplication,
+  type PublicProjectDetail,
+  type PublicProjectMember,
+} from "@/lib/profile.service";
 import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import { ProjectDiscussionSection } from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
+import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
+}
+
+function isProjectMember(member: ProjectMember | PublicProjectMember): member is ProjectMember {
+  return "user_id" in member && "id" in member;
 }
 
 export function ResearchProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
   const { theme } = useTheme();
-  const { user } = useAuth();
-
-  // 检查是否为只读模式（从导航状态获取）
-  const isReadOnlyMode = location.state?.readOnly === true && !projectId?.startsWith("example-");
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const openDialog = useAuthDialogStore((state) => state.openDialog);
 
   // Check if this is an example project
   const isExampleProject = projectId?.startsWith("example-");
@@ -58,6 +67,7 @@ export function ResearchProjectPage() {
 
   // State for real projects
   const [project, setProject] = useState<ProjectWithMembers | null>(null);
+  const [publicProject, setPublicProject] = useState<PublicProjectDetail | null>(null);
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [canvases, setCanvases] = useState<ResearchCanvas[]>([]);
   const [isLoading, setIsLoading] = useState(!isExampleProject);
@@ -77,6 +87,11 @@ export function ResearchProjectPage() {
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
 
+  const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
+  const isReadOnlyMode =
+    !projectId?.startsWith("example-") && (location.state?.readOnly === true || isPublicGuestMode);
+  const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
+
   // Fetch project data
   useEffect(() => {
     if (isExampleProject || !projectId) {
@@ -84,21 +99,43 @@ export function ResearchProjectPage() {
       return;
     }
 
+    if (authLoading) {
+      return;
+    }
+
     async function fetchProjectData() {
+      const targetProjectId = projectId;
+
+      if (!targetProjectId) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
+        setProject(null);
+        setPublicProject(null);
+        setSettings(null);
+        setCanvases([]);
+        setPendingApplicationCount(0);
+
+        if (!isAuthenticated) {
+          const publicProjectData = await profileApi.getPublicProjectById(targetProjectId);
+          setPublicProject(publicProjectData);
+          return;
+        }
+
         const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
-          researchApi.getProject(projectId!),
-          profileApi.getProjectSettings(projectId!).catch(() => null),
-          researchApi.getProjectCanvases(projectId!).catch(() => []),
-          profileApi.getProjectApplications(projectId!).catch(() => [] as ProjectApplication[]),
+          researchApi.getProject(targetProjectId),
+          profileApi.getProjectSettings(targetProjectId).catch(() => null),
+          researchApi.getProjectCanvases(targetProjectId).catch(() => []),
+          profileApi.getProjectApplications(targetProjectId).catch(() => [] as ProjectApplication[]),
         ]);
         setProject(projectData);
         setSettings(settingsData);
         setCanvases(canvasesData);
-        // Count pending applications
-        const pending = applicationsData.filter((a: ProjectApplication) => a.status === 'pending').length;
+        const pending = applicationsData.filter((a: ProjectApplication) => a.status === "pending").length;
         setPendingApplicationCount(pending);
       } catch (err) {
         console.error("Failed to fetch project:", err);
@@ -109,7 +146,7 @@ export function ResearchProjectPage() {
     }
 
     fetchProjectData();
-  }, [projectId, isExampleProject]);
+  }, [projectId, isAuthenticated, authLoading, isExampleProject]);
 
   // Get current user's role in project
   const currentUserRole = useMemo(() => {
@@ -228,8 +265,8 @@ export function ResearchProjectPage() {
   }
 
   // Not found state
-  if (!isExampleProject && !project) {
-    return <Navigate to="/lab/projects" replace />;
+  if (!isExampleProject && !project && !publicProject) {
+    return <Navigate to={backHref} replace />;
   }
 
   // Get display data
@@ -252,7 +289,13 @@ export function ResearchProjectPage() {
         default_canvas_id: null,
         members: [],
       }
-    : project!;
+    : publicProject || project!;
+
+  const displayMembers: Array<ProjectMember | PublicProjectMember> = project?.members || publicProject?.members || [];
+  const displayIsRecruiting = settings?.is_recruiting ?? publicProject?.is_recruiting ?? false;
+  const displayRequireApproval = settings?.require_approval ?? publicProject?.require_approval ?? true;
+  const displayRecruitmentRequirements =
+    settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
 
   const statusBadge = getStatusBadge(displayProject.status);
   const primaryCanvasHref = `/lab/projects/${projectId}/canvases/${canvases[0]?.id || "main"}`;
@@ -263,6 +306,13 @@ export function ResearchProjectPage() {
   const canParticipateInDiscussion = !isExampleProject && Boolean(
     user && (currentUserRole || displayProject.is_public || displayProject.allow_guest_comments)
   );
+  const canEnterCanvas = isExampleProject || (isAuthenticated && !!canvases[0]?.id);
+
+  const handleCanvasCtaClick = () => {
+    if (!isAuthenticated) {
+      openDialog("login");
+    }
+  };
 
   return (
     <div className="research-page min-h-screen">
@@ -292,7 +342,7 @@ export function ResearchProjectPage() {
               </>
             )}
             <Link
-              to="/lab/projects"
+              to={backHref}
               className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -311,15 +361,21 @@ export function ResearchProjectPage() {
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">你正在以只读模式浏览这个课题</p>
-                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">如果想编辑画布或参与协作，请先提交加入申请。</p>
+                <p className="text-sm font-semibold text-[var(--paper-foreground)]">
+                  {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
+                </p>
+                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                  {isPublicGuestMode
+                    ? "未登录时可以先看课题信息和成员，想进入画布或申请加入时再登录。"
+                    : "如果想编辑画布或参与协作，请先提交加入申请。"}
+                </p>
               </div>
             </div>
             <button
-              onClick={() => setIsApplicationFormOpen(true)}
+              onClick={() => (isPublicGuestMode ? openDialog("login") : setIsApplicationFormOpen(true))}
               className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
             >
-              申请加入
+              {isPublicGuestMode ? "登录后加入" : "申请加入"}
             </button>
           </div>
         )}
@@ -333,7 +389,7 @@ export function ResearchProjectPage() {
                 <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", statusBadge.className)}>
                   {statusBadge.label}
                 </span>
-                {settings?.is_recruiting && (
+                {displayIsRecruiting && (
                   <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
                     招募中
                   </span>
@@ -362,21 +418,31 @@ export function ResearchProjectPage() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  to={primaryCanvasHref}
-                  state={primaryCanvasState}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                  {isExampleProject ? "打开示例画布" : "进入主画布"}
-                </Link>
+                {canEnterCanvas ? (
+                  <Link
+                    to={primaryCanvasHref}
+                    state={primaryCanvasState}
+                    className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                    {isExampleProject ? "打开示例画布" : "进入主画布"}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleCanvasCtaClick}
+                    className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                    登录后进入画布
+                  </button>
+                )}
 
                 {isReadOnlyMode ? (
                   <button
-                    onClick={() => setIsApplicationFormOpen(true)}
+                    onClick={() => (isPublicGuestMode ? openDialog("login") : setIsApplicationFormOpen(true))}
                     className="glass-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium"
                   >
-                    申请加入课题
+                    {isPublicGuestMode ? "登录后申请加入" : "申请加入课题"}
                   </button>
                 ) : (
                   canManageProject && (
@@ -417,7 +483,7 @@ export function ResearchProjectPage() {
               <div className="research-metric rounded-[1.45rem] p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
                 <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
-                  {isReadOnlyMode ? "访客浏览" : settings?.is_recruiting ? "开放招募" : "组内协作"}
+                  {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
                 </p>
               </div>
             </div>
@@ -425,7 +491,7 @@ export function ResearchProjectPage() {
         </section>
 
         {/* Members Section */}
-        {!isExampleProject && project && project.members.length > 0 && (
+        {!isExampleProject && displayMembers.length > 0 && (
           <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -465,18 +531,20 @@ export function ResearchProjectPage() {
               )}
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {project.members.map((member) => {
+              {displayMembers.map((member) => {
                 // 判断是否可以移除该成员
-                const isSelf = user?.id === member.user_id;
+                const isActualProjectMember = isProjectMember(member);
+                const isSelf = isActualProjectMember && user?.id === member.user_id;
                 const isSelfRemoval = isSelf && member.role !== 'owner';
-                const canRemove = !isReadOnlyMode && (
+                const canRemove = !!project && isActualProjectMember && !isReadOnlyMode && (
                   isSelfRemoval || // 成员可以移除自己（退出）
                   (isOwnerOrAdmin && member.role !== 'owner' && !isSelf) // owner/admin 可以移除非 owner 成员
                 );
+                const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
 
                 return (
                   <div
-                    key={member.id}
+                    key={memberKey}
                     className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
                   >
                     <div
@@ -500,7 +568,11 @@ export function ResearchProjectPage() {
                     </div>
                     {canRemove && (
                       <button
-                        onClick={() => setMemberToRemove(member)}
+                        onClick={() => {
+                          if (isActualProjectMember) {
+                            setMemberToRemove(member);
+                          }
+                        }}
                         className="glass-button rounded-full p-2 text-[#b33d3d]"
                         title={isSelfRemoval ? "退出课题组" : "移除成员"}
                       >
@@ -514,7 +586,7 @@ export function ResearchProjectPage() {
           </section>
         )}
 
-        {!isExampleProject && projectId && (
+        {!isExampleProject && projectId && project && isAuthenticated && (
           <ProjectDiscussionSection
             projectId={projectId}
             currentUserId={user?.id}
@@ -546,47 +618,83 @@ export function ResearchProjectPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Link
-              to={primaryCanvasHref}
-              state={primaryCanvasState}
-              className="research-panel-soft group rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
-            >
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
-                  <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
-                </div>
-                <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
-                  活跃入口
-                </span>
-              </div>
-
-              <h3
-                className="text-lg font-semibold text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
+            {canEnterCanvas ? (
+              <Link
+                to={primaryCanvasHref}
+                state={primaryCanvasState}
+                className="research-panel-soft group rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
-                主画布
-              </h3>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
-                {displayProject.description_zh || "这里承载课题的问题节点、实验设计、文献引用与结论关系。"}
-              </p>
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
+                    <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
+                  </div>
+                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+                    活跃入口
+                  </span>
+                </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <span className="research-chip inline-flex rounded-full px-3 py-1">
-                  {isExampleProject
-                    ? `${exampleProject?.nodes.length || 0} 个节点`
-                    : `${displayProject.canvas_count} 张画布`}
-                </span>
-                <span className="research-chip inline-flex rounded-full px-3 py-1">
-                  {isExampleProject
-                    ? `${exampleProject?.edges.length || 0} 条关系`
-                    : isReadOnlyMode
-                      ? "只读查看"
-                      : "可编辑"}
-                </span>
-              </div>
+                <h3
+                  className="text-lg font-semibold text-[var(--paper-foreground)]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  主画布
+                </h3>
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  {displayProject.description_zh || "这里承载课题的问题节点、实验设计、文献引用与结论关系。"}
+                </p>
 
-              <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">进入画布开始工作</div>
-            </Link>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="research-chip inline-flex rounded-full px-3 py-1">
+                    {isExampleProject
+                      ? `${exampleProject?.nodes.length || 0} 个节点`
+                      : `${displayProject.canvas_count} 张画布`}
+                  </span>
+                  <span className="research-chip inline-flex rounded-full px-3 py-1">
+                    {isExampleProject
+                      ? `${exampleProject?.edges.length || 0} 条关系`
+                      : isReadOnlyMode
+                        ? "只读查看"
+                        : "可编辑"}
+                  </span>
+                </div>
+
+                <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">进入画布开始工作</div>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCanvasCtaClick}
+                className="research-panel-soft group text-left rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
+                    <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
+                  </div>
+                  <span className="research-chip inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+                    需登录
+                  </span>
+                </div>
+
+                <h3
+                  className="text-lg font-semibold text-[var(--paper-foreground)]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  主画布
+                </h3>
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  公开详情可直接浏览，进入主画布前需要先登录并加入课题。
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="research-chip inline-flex rounded-full px-3 py-1">
+                    {displayProject.canvas_count} 张画布
+                  </span>
+                  <span className="research-chip inline-flex rounded-full px-3 py-1">登录后进入</span>
+                </div>
+
+                <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">登录后继续</div>
+              </button>
+            )}
           </div>
 
           {/* Getting Started Guide - 只读模式隐藏 */}
@@ -686,9 +794,9 @@ export function ResearchProjectPage() {
             thumbnail: project.thumbnail,
             status: project.status,
             visibility: 'public' as const,
-            require_approval: settings?.require_approval ?? true,
-            recruitment_requirements: settings?.recruitment_requirements ?? null,
-            is_recruiting: settings?.is_recruiting ?? false,
+            require_approval: displayRequireApproval,
+            recruitment_requirements: displayRecruitmentRequirements,
+            is_recruiting: displayIsRecruiting,
             max_members: settings?.max_members ?? null,
             member_count: project.member_count,
             is_member: false,

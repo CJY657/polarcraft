@@ -12,6 +12,7 @@ const router = Router();
 // Public routes (no authentication required)
 // 公开路由（无需认证）
 router.get("/public-projects", optionalAuth, ProfileController.getPublicProjects);
+router.get("/public-projects/:id", optionalAuth, ProfileController.getPublicProject);
 
 // All other profile routes require authentication
 // 其他个人资料路由需要认证

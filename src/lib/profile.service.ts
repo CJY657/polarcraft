@@ -165,6 +165,14 @@ export interface PublicProject {
   updated_at: string;
 }
 
+export interface PublicProjectDetail extends PublicProject {
+  is_public: boolean;
+  allow_guest_comments: boolean;
+  enable_task_board: boolean;
+  default_canvas_id: string | null;
+  canvas_count: number;
+}
+
 // =====================================================
 // Profile API Methods / 个人资料 API 方法
 // =====================================================
@@ -393,5 +401,17 @@ export const profileApi = {
       return response.data;
     }
     throw new Error(response.error?.message || '获取公开课题失败');
+  },
+
+  /**
+   * Get public project detail
+   * 获取公开课题详情
+   */
+  getPublicProjectById: async (projectId: string): Promise<PublicProjectDetail> => {
+    const response = await api.get<PublicProjectDetail>(`/api/profile/public-projects/${projectId}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '获取公开课题详情失败');
   },
 };

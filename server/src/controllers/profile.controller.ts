@@ -229,4 +229,34 @@ export class ProfileController {
       });
     }
   }
+
+  /**
+   * Get a single public project
+   * 获取单个公开项目详情
+   * GET /api/profile/public-projects/:id
+   */
+  static async getPublicProject(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.sub;
+
+      const project = await ProfileModel.getPublicProjectById(id, userId);
+
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          error: { code: "PROJECT_NOT_FOUND", message: "公开课题不存在或暂未开放" },
+        });
+        return;
+      }
+
+      res.json({ success: true, data: project });
+    } catch (error) {
+      logger.error("Get public project error:", error);
+      res.status(500).json({
+        success: false,
+        error: { code: "SERVER_ERROR", message: "获取公开项目详情失败" },
+      });
+    }
+  }
 }

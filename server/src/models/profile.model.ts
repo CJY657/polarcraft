@@ -562,4 +562,13 @@ export class ProfileModel {
       };
     });
   }
+
+  /**
+   * Get a single public project by ID
+   * 获取单个公开项目详情
+   */
+  static async getPublicProjectById(projectId: string, userId?: string): Promise<any | null> {
+    const projects = await this.getPublicProjects({}, userId);
+    return projects.find((project) => project.id === projectId) || null;
+  }
 }
