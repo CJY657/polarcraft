@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import ReactFlow, {
   Background,
-  Controls,
   MiniMap,
   BackgroundVariant,
   useNodesState,
@@ -32,9 +31,12 @@ import { NodeDetailsPanel } from '../panels/NodeDetailsPanel';
 import { cn } from '@/utils/classNames';
 import { getExampleProjectById } from '@/data/researchExampleProjects';
 import { PersistentHeader } from '@/components/shared';
-import { ArrowLeft, Save, Loader2, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertCircle, Grab } from 'lucide-react';
 import { researchApi } from '@/lib/research.service';
 import { nodeToApiFormat, edgeToApiFormat, apiToNodeFormat, apiToEdgeFormat, isTemporaryId } from '../../utils/canvasDataConverter';
+import { CanvasSidebar } from './CanvasSidebar';
+import { CanvasToolbar } from './CanvasToolbar';
+import type { ResearchNode } from '@/types/research';
 import type {
   ProblemNodeData,
   ExperimentNodeData,
@@ -146,7 +148,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       if (isReadOnly) {
         // Only allow selection changes in read-only mode
         const allowedChanges = changes.filter(
-          (change) => change.type === 'select' || change.type === 'reset' || change.type === 'setDimensions'
+          (change) => change.type === 'select' || change.type === 'reset' || (change.type as string) === 'dimensions'
         );
         if (allowedChanges.length > 0) {
           onNodesChange(allowedChanges);
@@ -363,7 +365,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         const nodeData = nodeToApiFormat(node);
         if (isTemporaryId(node.id)) {
           // Create new node
-          const created = await researchApi.createNode(targetCanvasId, nodeData);
+          const created = await researchApi.createNode(targetCanvasId, nodeData as any);
           // Update the node ID with the server-generated ID
           if (created?.id) {
             nodeIdMap.set(oldId, created.id);
@@ -373,7 +375,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           }
         } else {
           // Update existing node
-          await researchApi.updateNode(node.id, nodeData);
+          await researchApi.updateNode(node.id, nodeData as any);
         }
         // Small delay between requests (100ms) to avoid rate limiting
         if (i < updatedNodes.length - 1) {
@@ -404,7 +406,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
 
         if (isTemporaryId(edge.id)) {
           // Create new edge
-          const created = await researchApi.createEdge(targetCanvasId, edgeData);
+          const created = await researchApi.createEdge(targetCanvasId, edgeData as any);
           // Update the edge ID with the server-generated ID
           if (created?.id) {
             updatedEdges[i] = { ...edge, id: created.id, source: sourceId, target: targetId };
@@ -415,7 +417,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
           }
         } else {
           // Update existing edge
-          await researchApi.updateEdge(edge.id, edgeData);
+          await researchApi.updateEdge(edge.id, edgeData as any);
           // Update source and target references in case they changed
           updatedEdges[i] = { ...edge, source: sourceId, target: targetId };
         }
@@ -509,6 +511,7 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
         data: { edgeType: 'relatedTo' },
       };
       setFlowEdges((eds) => addEdge(newEdge, eds));
+      setHasUnsavedChanges(true);
     },
     [setFlowEdges, isReadOnly]
   );
@@ -541,27 +544,31 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
   }, [nodeColorMap]);
 
   // Create a new node with proper type-specific data
-  const createNode = useCallback((type: string) => {
+  const createNode = useCallback((type: string, position?: { x: number; y: number }) => {
     const now = Date.now();
     const nodeId = `${type}-${now}`;
 
-    // Get current viewport center
-    const { getViewport } = reactFlowInstance;
-    const viewport = getViewport();
+    let pos = position;
 
-    // Get container dimensions for accurate center calculation
-    const containerRect = reactFlowWrapper.current?.getBoundingClientRect();
-    const containerWidth = containerRect?.width || window.innerWidth;
-    const containerHeight = containerRect?.height || window.innerHeight;
+    if (!pos) {
+      // Get current viewport center
+      const { getViewport } = reactFlowInstance;
+      const viewport = getViewport();
 
-    const centerX = (-viewport.x + containerWidth / 2) / viewport.zoom;
-    const centerY = (-viewport.y + containerHeight / 2) / viewport.zoom;
+      // Get container dimensions for accurate center calculation
+      const containerRect = reactFlowWrapper.current?.getBoundingClientRect();
+      const containerWidth = containerRect?.width || window.innerWidth;
+      const containerHeight = containerRect?.height || window.innerHeight;
 
-    // Add small random offset to avoid stacking
-    const pos = {
-      x: centerX + (Math.random() - 0.5) * 50,
-      y: centerY + (Math.random() - 0.5) * 50,
-    };
+      const centerX = (-viewport.x + containerWidth / 2) / viewport.zoom;
+      const centerY = (-viewport.y + containerHeight / 2) / viewport.zoom;
+
+      // Add small random offset to avoid stacking
+      pos = {
+        x: centerX + (Math.random() - 0.5) * 50,
+        y: centerY + (Math.random() - 0.5) * 50,
+      };
+    }
 
     // Base fields for all nodes
     const baseFields = {
@@ -639,11 +646,12 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
       id: nodeId,
       type: type as 'problem' | 'experiment' | 'conclusion' | 'discussion' | 'media' | 'note',
       position: pos,
-      data: nodeData,
+      data: nodeData as any as ResearchNode,
     };
     // Update both the store and React Flow state
     addNode(newNode);
     setFlowNodes((nds) => [...nds, newNode]);
+    setHasUnsavedChanges(true);
   }, [addNode, setFlowNodes, reactFlowInstance]);
 
   function getNodeDefaultTitle(type: string): string {
@@ -657,6 +665,81 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     };
     return titles[type] || '新节点';
   }
+
+  // Drag and Drop handlers
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      // check if the dropped element is valid
+      if (typeof type === 'undefined' || !type) {
+        return;
+      }
+
+      // Get drop position relative to canvas
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (!reactFlowBounds) return;
+
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      createNode(type, position);
+    },
+    [reactFlowInstance, createNode]
+  );
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Delete key to remove selected nodes/edges
+      if ((event.key === 'Delete' || event.key === 'Backspace') && !isReadOnly) {
+        // Only if not in an input/textarea
+        const target = event.target as HTMLElement;
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+          const selectedNodes = flowNodes.filter(n => n.selected);
+          const selectedEdges = flowEdges.filter(e => e.selected);
+
+          if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+            selectedNodes.forEach(n => removeNode(n.id));
+            selectedEdges.forEach(e => removeEdge(e.id));
+            setHasUnsavedChanges(true);
+          }
+        }
+      }
+
+      // Ctrl + S to save
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSave(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [flowNodes, flowEdges, removeNode, removeEdge, isReadOnly, handleSave]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (isReadOnly) return;
+    const selectedNodes = flowNodes.filter(n => n.selected);
+    const selectedEdges = flowEdges.filter(e => e.selected);
+
+    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+      if (confirm(`确定要删除选中的 ${selectedNodes.length} 个节点和 ${selectedEdges.length} 条连线吗？`)) {
+        selectedNodes.forEach(n => removeNode(n.id));
+        selectedEdges.forEach(e => removeEdge(e.id));
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [flowNodes, flowEdges, removeNode, removeEdge, isReadOnly]);
 
   // Handle export to JSON
   const handleExport = (format: 'json' | 'markdown' | 'csv') => {
@@ -776,276 +859,216 @@ function ResearchCanvasInner({ projectId, canvasId, theme = 'dark' }: ResearchCa
     }
   };
 
+  const selectedCount = flowNodes.filter(n => n.selected).length + flowEdges.filter(e => e.selected).length;
+
   return (
-    <div className="h-screen w-full flex flex-col">
+    <div className="h-screen w-full flex flex-col overflow-hidden">
       {/* Persistent Header */}
       <PersistentHeader
         moduleKey="labGroup"
         moduleName={getProjectTitle()}
         variant="glass"
+        compact={true}
         className={cn(
-          "flex-shrink-0",
-          theme === "dark" ? "bg-slate-900/80" : "bg-white/80"
+          "flex-shrink-0 border-b",
+          theme === "dark" ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
         )}
         centerContent={
-          <div className="text-xs text-gray-500">
-            课题: {projectId} | {flowNodes.length} 节点 · {flowEdges.length} 关系
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-slate-500 font-mono">
+              ID: {projectId}
+            </div>
+            <div className={cn(
+              "h-4 w-px",
+              theme === 'dark' ? "bg-slate-800" : "bg-slate-200"
+            )} />
+            <div className="flex items-center gap-1.5">
+              <div className={cn("w-2 h-2 rounded-full", hasUnsavedChanges ? "bg-amber-500" : "bg-emerald-500")} />
+              <span className="text-xs text-slate-400">
+                {hasUnsavedChanges ? '未保存' : '已同步'}
+              </span>
+            </div>
           </div>
         }
         rightContent={
           <div className="flex items-center gap-2">
             {/* Save status indicator - 只读模式隐藏 */}
             {!isExampleProject && !isReadOnly && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mr-2">
                 {saveError ? (
                   <span className="flex items-center gap-1 text-xs text-red-400">
                     <AlertCircle className="w-3 h-3" />
-                    保存失败
+                    错误
                   </span>
                 ) : isLoadingCanvas ? (
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    加载中...
-                  </span>
-                ) : canvasError ? (
-                  <span className="flex items-center gap-1 text-xs text-yellow-500">
-                    <AlertCircle className="w-3 h-3" />
-                    {canvasError}
-                  </span>
-                ) : hasUnsavedChanges ? (
-                  <span className="text-xs text-yellow-400">有未保存的更改</span>
-                ) : lastSavedAt ? (
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
-                    <Check className="w-3 h-3" />
-                    已保存 {formatRelativeTime(lastSavedAt)}
+                  <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                ) : lastSavedAt && !hasUnsavedChanges ? (
+                  <span className="text-[10px] text-slate-500">
+                    保存于 {formatRelativeTime(lastSavedAt)}
                   </span>
                 ) : null}
 
-                {/* Save button */}
                 <button
                   onClick={() => handleSave(true)}
                   disabled={isSaving || !hasUnsavedChanges}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors",
+                    "flex items-center gap-2 px-3 py-1 text-xs rounded-full font-medium transition-all",
                     hasUnsavedChanges
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "bg-slate-700 text-gray-500 cursor-not-allowed"
+                      ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-slate-800 text-slate-500 cursor-not-allowed"
                   )}
-                  title="保存画布"
                 >
                   {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
-                    <Save className="w-4 h-4" />
+                    <Save className="w-3 h-3" />
                   )}
                   保存
                 </button>
               </div>
             )}
 
-            {/* Import button - 只读模式隐藏 */}
-            {!isReadOnly && (
-            <>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg border border-slate-600 text-gray-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="导入 JSON 文件"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m0-16H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12h16m-8 0l-4 4m4-4l4 4" />
-              </svg>
-              导入
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImport}
-              className="hidden"
-            />
-            </>
-            )}
-
-            {/* Export button */}
-            <div className="relative" ref={exportMenuRef}>
-              <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg border border-slate-600 text-gray-400 hover:text-white hover:bg-slate-800 transition-colors"
-                title="导出"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m0-16H8a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12H4" />
-                </svg>
-                导出
-                <svg className={`w-3 h-3 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Export dropdown menu */}
-              {showExportMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 min-w-[120px] z-50">
-                  <button
-                    onClick={() => handleExport('json')}
-                    className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-slate-700 transition-colors"
-                  >
-                    导出为 JSON
-                  </button>
-                  <button
-                    onClick={() => handleExport('markdown')}
-                    className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-slate-700 transition-colors"
-                  >
-                    导出为 Markdown
-                  </button>
-                  <button
-                    onClick={() => handleExport('csv')}
-                    className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:text-white hover:bg-slate-700 transition-colors"
-                  >
-                    导出为 CSV
-                  </button>
-                </div>
+            <div className="flex items-center bg-slate-800/50 rounded-full p-0.5 border border-slate-700/50">
+               {/* Import button */}
+              {!isReadOnly && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                  title="导入"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                </button>
               )}
+
+              {/* Export button */}
+              <div className="relative" ref={exportMenuRef}>
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                  title="导出"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M8 12l4 4m0 0l4-4m-4 4V4" />
+                  </svg>
+                </button>
+
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1 min-w-[140px] z-[60]">
+                    <button onClick={() => handleExport('json')} className="w-full text-left px-4 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">JSON 格式</button>
+                    <button onClick={() => handleExport('markdown')} className="w-full text-left px-4 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">Markdown 格式</button>
+                    <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">CSV 格式</button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Back button */}
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+
             <Link
               to="/lab/projects"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 text-gray-400 hover:text-white"
+              className="ml-2 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all border border-slate-700/50"
             >
-              <ArrowLeft className="w-4 h-4" />
-              返回
+              <ArrowLeft className="w-3.5 h-3.5" />
+              退出
             </Link>
           </div>
         }
       />
 
-      {/* Canvas Area */}
-      <div className="flex-1 flex min-h-0">
-        {/* Main Canvas Area */}
-        <div ref={reactFlowWrapper} className="flex-1 relative bg-slate-900">
-        <ReactFlow
-          nodes={flowNodes}
-          edges={edgesWithCallbacks}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={handleEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          fitView
-          minZoom={0.1}
-          maxZoom={8}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          className={cn(
-            "bg-slate-900",
-            theme === 'dark' ? "dark" : "light"
+      {/* Main Layout Area */}
+      <div className="flex-1 flex min-h-0 bg-slate-950">
+        {/* Left Sidebar */}
+        {!isReadOnly && <CanvasSidebar theme={theme} />}
+
+        {/* Canvas Area */}
+        <div ref={reactFlowWrapper} className="flex-1 relative overflow-hidden group/canvas">
+          <ReactFlow
+            nodes={flowNodes}
+            edges={edgesWithCallbacks}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            fitView
+            minZoom={0.05}
+            maxZoom={4}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+            className={cn(
+              theme === 'dark' ? "bg-slate-950" : "bg-slate-50"
+            )}
+            snapToGrid={true}
+            snapGrid={[16, 16]}
+          >
+            <Background
+              variant={BackgroundVariant.Lines}
+              gap={32}
+              size={1}
+              color={theme === 'dark' ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)"}
+              className="bg-slate-950"
+            />
+            <Background
+              variant={BackgroundVariant.Lines}
+              gap={160}
+              size={1}
+              color={theme === 'dark' ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"}
+              id="major-grid"
+            />
+
+            {/* Custom Toolbar */}
+            <CanvasToolbar
+              theme={theme}
+              onDelete={handleDeleteSelected}
+              selectedCount={selectedCount}
+            />
+
+            <MiniMap
+              nodeColor={nodeColorClassName}
+              maskColor={theme === 'dark' ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"}
+              className={cn(
+                "rounded-xl border shadow-2xl transition-all duration-300 opacity-0 group-hover/canvas:opacity-100",
+                theme === 'dark' ? "bg-slate-900 border-slate-700" : "bg-white border-slate-200"
+              )}
+              style={{ bottom: 20, right: 20, width: 150, height: 100 }}
+              pannable
+              zoomable
+            />
+          </ReactFlow>
+
+          {/* Floating Instructions */}
+          {flowNodes.length === 0 && !isReadOnly && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="text-center space-y-4 animate-in fade-in zoom-in duration-700">
+                <div className="w-16 h-16 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto">
+                  <Grab className="w-8 h-8 text-blue-500/50" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-slate-200 font-medium">准备好开始了吗？</h3>
+                  <p className="text-slate-500 text-sm">从左侧边栏拖拽组件到此处开始建模</p>
+                </div>
+              </div>
+            </div>
           )}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={16}
-            size={1}
-            color="rgba(100, 150, 255, 0.1)"
-          />
-          <Controls />
-          <MiniMap
-            nodeColor={nodeColorClassName}
-            maskColor="rgba(0, 0, 0, 0.6)"
-            className="bg-slate-800"
-            pannable
-            zoomable
-          />
-        </ReactFlow>
-
-        {/* Canvas Info */}
-        <div className="absolute top-4 left-4 px-3 py-2 bg-slate-800/80 rounded-lg border border-slate-700">
-          <div className="text-xs text-gray-400">
-            课题: {projectId} | 画布: {canvasId}
-            {isReadOnly && <span className="ml-2 text-amber-400">(只读)</span>}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            节点: {flowNodes.length} | 关系: {flowEdges.length}
-          </div>
         </div>
 
-        {/* Add Node Toolbar - 只读模式隐藏 */}
-        {!isReadOnly && (
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <button
-            className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg border border-amber-500 transition-colors"
-            onClick={() => createNode('problem')}
-          >
-            + 问题
-          </button>
-          <button
-            className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg border border-blue-500 transition-colors"
-            onClick={() => createNode('experiment')}
-          >
-            + 实验
-          </button>
-          <button
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg border border-purple-500 transition-colors"
-            onClick={() => createNode('conclusion')}
-          >
-            + 结论
-          </button>
-          <button
-            className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg border border-cyan-500 transition-colors"
-            onClick={() => createNode('discussion')}
-          >
-            + 讨论
-          </button>
-          <button
-            className="px-3 py-2 bg-pink-600 hover:bg-pink-500 text-white text-sm rounded-lg border border-pink-500 transition-colors"
-            onClick={() => createNode('media')}
-          >
-            + 媒体
-          </button>
-          <button
-            className="px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-white text-sm rounded-lg border border-yellow-400 transition-colors"
-            onClick={() => createNode('note')}
-          >
-            + 便签
-          </button>
-        </div>
-        )}
-
-        {/* Instructions */}
-        {flowNodes.length === 0 && !isReadOnly && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-            <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-600 p-8 max-w-md">
-              <h3 className="text-white text-lg font-semibold mb-4">开始您的探索</h3>
-              <p className="text-gray-400 text-sm mb-4">
-                点击右上角的按钮创建节点，通过拖拽节点右侧的点创建节点之间的连接
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Read-only empty state */}
-        {flowNodes.length === 0 && isReadOnly && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-            <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl border border-slate-600 p-8 max-w-md">
-              <h3 className="text-white text-lg font-semibold mb-4">画布为空</h3>
-              <p className="text-gray-400 text-sm mb-4">
-                此课题暂无画布内容
-              </p>
-            </div>
-          </div>
-        )}
-        </div>
-
-        {/* Side Panel for Node Details */}
-        <div className="w-80 border-l border-slate-700 bg-slate-800/50 flex flex-col">
+        {/* Right Panel - Property Editor */}
+        <div className={cn(
+          "w-80 flex-shrink-0 border-l flex flex-col transition-all duration-300 shadow-2xl z-10",
+          theme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+        )}>
           <NodeDetailsPanel theme={theme} onUpdateNode={updateNode} onRemoveNode={removeNode} readOnly={isReadOnly} />
         </div>
       </div>
     </div>
   );
 }
+
 
 /**
  * Research Canvas with React Flow Provider

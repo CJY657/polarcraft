@@ -8,7 +8,7 @@
 
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Image, Video, ExternalLink, Maximize2, X } from 'lucide-react';
+import { Image, Video, ExternalLink, Maximize2, Play, FileText } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { CompactMarkdown } from '../shared/MarkdownRenderer';
 import type { MediaNodeData } from '../../types/node-data.types';
@@ -23,147 +23,112 @@ export const MediaNode = memo(({ data, selected }: NodeProps) => {
   const url = mediaData.url || '';
   const thumbnail = mediaData.thumbnail || url;
 
-  // Auto-detect media type from URL if not specified
-  const detectedType: MediaType = url.toLowerCase().match(/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i)
-    ? 'video'
-    : 'image';
-
-  const displayType = mediaType || detectedType;
-
-  const renderMedia = (isPreview = false) => {
-    if (!url) {
-      return (
-        <div className="flex items-center justify-center bg-slate-900 rounded">
-          <div className="text-center p-4">
-            {displayType === 'image' ? (
-              <Image className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-            ) : (
-              <Video className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-            )}
-            <span className="text-xs text-gray-500">
-              {displayType === 'image' ? '暂无图片' : '暂无视频'}
-            </span>
-          </div>
-        </div>
-      );
-    }
-
-    if (displayType === 'video') {
-      return (
-        <div className={cn('relative bg-slate-900 rounded overflow-hidden', isPreview ? 'h-32' : 'h-full')}>
-          <video
-            src={url}
-            controls={!isPreview}
-            className="w-full h-full object-cover"
-            poster={thumbnail}
-          />
-          {isPreview && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <Video className="w-8 h-8 text-white" />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Image
-    return (
-      <div className={cn('relative bg-slate-900 rounded overflow-hidden', isPreview ? 'h-32' : 'h-full')}>
-        <img
-          src={url}
-          alt={data.title?.zh || data.title?.['zh-CN'] || data.title?.en || '媒体'}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    );
-  };
-
   return (
     <div
       className={cn(
-        'px-4 py-3 rounded-lg border-2 bg-slate-800 transition-all',
-        selected ? 'border-pink-500 shadow-lg shadow-pink-500/20' : 'border-pink-600',
-        isExpanded && 'min-w-[500px] min-h-[400px]'
+        'group relative transition-all duration-300',
+        selected ? 'scale-[1.02]' : 'hover:scale-[1.01]',
+        isExpanded ? 'w-[400px]' : 'w-[280px]'
       )}
     >
-      {/* Input Handle */}
+      {/* Selection Glow */}
+      {selected && (
+        <div className="absolute -inset-0.5 bg-pink-500/30 blur-md rounded-2xl -z-10 animate-pulse" />
+      )}
+
+      <div className={cn(
+        'relative bg-slate-900 border-2 rounded-2xl overflow-hidden shadow-2xl transition-all',
+        selected ? 'border-pink-500 shadow-pink-500/20' : 'border-slate-800 hover:border-slate-700'
+      )}>
+        {/* Accent Bar */}
+        <div className="h-1.5 w-full bg-pink-500" />
+
+        <div className="p-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500 shrink-0">
+                {mediaType === 'video' ? <Video className="w-4 h-4" /> : <Image className="w-4 h-4" />}
+              </div>
+              <h3 className="text-sm font-bold text-slate-100 truncate leading-tight">
+                {data.title?.zh || data.title?.['zh-CN'] || data.title?.en || (mediaType === 'video' ? '研究视频' : '研究图片')}
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
+               <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-1 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors"
+                >
+                  <Maximize2 className="w-3 h-3" />
+                </button>
+                {url && (
+                  <a
+                    href={url} target="_blank" rel="noopener noreferrer"
+                    className="p-1 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+            </div>
+          </div>
+
+          {/* Media Container */}
+          <div className={cn(
+            "relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 group/media",
+            isExpanded ? "aspect-video" : "aspect-[4/3]"
+          )}>
+            {url ? (
+              mediaType === 'video' ? (
+                <div className="w-full h-full relative">
+                  <video src={url} className="w-full h-full object-cover" poster={thumbnail} />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-100 group-hover/media:bg-black/20 transition-all">
+                     <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/40">
+                        <Play className="w-5 h-5 text-white fill-current" />
+                     </div>
+                  </div>
+                </div>
+              ) : (
+                <img src={url} alt="Media" className="w-full h-full object-cover transition-transform duration-500 group-hover/media:scale-105" />
+              )
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-600">
+                <FileText className="w-8 h-8 opacity-20" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">暂无媒体内容</span>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {mediaData.description && (
+            <div className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed italic border-l-2 border-pink-500/30 pl-3">
+              <CompactMarkdown
+                content={mediaData.description?.zh || mediaData.description?.['zh-CN'] || mediaData.description?.en || ''}
+              />
+            </div>
+          )}
+
+          {/* Footer Metadata */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+               {mediaType === 'video' ? 'MP4 / WEBM' : 'JPG / PNG / GIF'}
+             </span>
+             <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+               Media Source
+             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Handles */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-pink-500 !border-2 !border-pink-400"
+        className="!w-3 !h-3 !bg-slate-900 !border-2 !border-pink-500 !-top-1.5 hover:!scale-125 transition-transform"
       />
-
-      {/* Node Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {displayType === 'image' ? (
-            <Image className="w-5 h-5 text-pink-400" />
-          ) : (
-            <Video className="w-5 h-5 text-pink-400" />
-          )}
-          <span className="font-semibold text-white text-sm truncate">
-            {data.title?.zh || data.title?.['zh-CN'] || data.title?.en || (displayType === 'image' ? '图片' : '视频')}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          {url && (
-            <>
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1 text-gray-400 hover:text-white transition-colors"
-                title={isExpanded ? '收起' : '展开'}
-              >
-                {isExpanded ? (
-                  <X className="w-3 h-3" />
-                ) : (
-                  <Maximize2 className="w-3 h-3" />
-                )}
-              </button>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1 text-gray-400 hover:text-white transition-colors"
-                title="在新窗口打开"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Media Preview/Display */}
-      <div className={cn(
-        'mb-2 rounded overflow-hidden',
-        isExpanded ? 'h-80' : 'h-32'
-      )}>
-        {renderMedia(!isExpanded)}
-      </div>
-
-      {/* Description - Markdown rendered */}
-      {mediaData.description && !isExpanded && (
-        <div className="text-xs text-gray-400">
-          <CompactMarkdown
-            content={mediaData.description?.zh || mediaData.description?.['zh-CN'] || mediaData.description?.en || ''}
-          />
-        </div>
-      )}
-
-      {/* URL Display */}
-      {url && (
-        <div className="mt-2">
-          <div className="text-xs text-gray-500 truncate" title={url}>
-            {url}
-          </div>
-        </div>
-      )}
-
-      {/* Output Handle */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-pink-500 !border-2 !border-pink-400"
+        className="!w-3 !h-3 !bg-pink-500 !border-2 !border-slate-900 !-bottom-1.5 hover:!scale-125 transition-transform shadow-lg"
       />
     </div>
   );

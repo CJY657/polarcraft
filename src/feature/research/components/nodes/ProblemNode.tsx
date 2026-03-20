@@ -8,106 +8,97 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { HelpCircle, Circle } from 'lucide-react';
+import { HelpCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { CompactMarkdown } from '../shared/MarkdownRenderer';
 
 export const ProblemNode = memo(({ data, selected }: NodeProps) => {
   const priorityColors = {
-    low: 'bg-gray-500/20 text-gray-400 border-gray-500',
-    medium: 'bg-amber-500/20 text-amber-400 border-amber-500',
-    high: 'bg-red-500/20 text-red-400 border-red-500',
+    low: 'text-slate-400',
+    medium: 'text-amber-500',
+    high: 'text-rose-500',
   };
 
-  const statusIcons = {
-    open: <Circle className="w-3 h-3 text-gray-400" />,
-    investigating: <HelpCircle className="w-3 h-3 text-blue-400 animate-pulse" />,
-    answered: <Circle className="w-3 h-3 text-green-400 fill-green-400" />,
+  const statusLabels = {
+    open: '待解决',
+    investigating: '调查中',
+    answered: '已解答',
   };
 
   const getDescriptionText = () => {
     return data.description?.zh || data.description?.['zh-CN'] || data.description?.en || '';
   };
 
-  const getHypothesisText = () => {
-    return data.hypothesis?.zh || data.hypothesis?.['zh-CN'] || data.hypothesis?.en || '';
-  };
-
   return (
     <div
       className={cn(
-        'px-4 py-3 rounded-lg border-2 min-w-[200px] bg-slate-800 transition-all',
-        selected ? 'border-amber-500 shadow-lg shadow-amber-500/20' : 'border-amber-600'
+        'group relative min-w-[240px] max-w-[300px] transition-all duration-300',
+        selected ? 'scale-[1.02]' : 'hover:scale-[1.01]'
       )}
     >
-      {/* Input Handle */}
+      {/* Selection Glow */}
+      {selected && (
+        <div className="absolute -inset-0.5 bg-amber-500/30 blur-md rounded-2xl -z-10 animate-pulse" />
+      )}
+
+      <div className={cn(
+        'relative bg-slate-900 border-2 rounded-2xl overflow-hidden shadow-2xl transition-all',
+        selected ? 'border-amber-500 shadow-amber-500/20' : 'border-slate-800 hover:border-slate-700'
+      )}>
+        {/* Accent Bar */}
+        <div className="h-1.5 w-full bg-amber-500" />
+
+        <div className="p-4 space-y-3">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                <HelpCircle className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-100 truncate leading-tight">
+                {data.title?.zh || data.title?.['zh-CN'] || data.title?.en || '研究问题'}
+              </h3>
+            </div>
+            <div className={cn(
+              "shrink-0 p-1 rounded-full",
+              priorityColors[data.priority as keyof typeof priorityColors] || priorityColors.medium
+            )}>
+              <AlertCircle className="w-3.5 h-3.5 fill-current opacity-20" />
+            </div>
+          </div>
+
+          {/* Description */}
+          {getDescriptionText() ? (
+            <div className="text-[11px] text-slate-400 line-clamp-3 leading-relaxed">
+              <CompactMarkdown content={getDescriptionText()} />
+            </div>
+          ) : (
+             <div className="text-[10px] text-slate-600 italic">暂无描述...</div>
+          )}
+
+          {/* Footer Metadata */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+            <span className={cn(
+              "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md",
+              data.status === 'answered' ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"
+            )}>
+              {statusLabels[data.status as keyof typeof statusLabels] || '待处理'}
+            </span>
+            <span className="text-[9px] text-slate-600 font-mono">#{data.id?.slice(-4) || 'NODE'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Handles */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-amber-500 !border-2 !border-amber-400"
+        className="!w-3 !h-3 !bg-slate-900 !border-2 !border-amber-500 !-top-1.5 hover:!scale-125 transition-transform"
       />
-
-      {/* Node Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <HelpCircle className="w-5 h-5 text-amber-400" />
-        <span className="font-semibold text-white text-sm truncate">
-          {data.title?.zh || data.title?.['zh-CN'] || data.title?.en || '问题'}
-        </span>
-        {data.status && statusIcons[data.status as keyof typeof statusIcons]}
-      </div>
-
-      {/* Problem Description - Markdown rendered */}
-      {getDescriptionText() && (
-        <div className="mb-2">
-          <CompactMarkdown content={getDescriptionText()} />
-        </div>
-      )}
-
-      {/* Hypothesis - Markdown rendered */}
-      {data.hypothesis && getHypothesisText() && (
-        <div className="p-2 bg-slate-900/50 rounded mb-2">
-          <div className="text-xs text-blue-400 mb-1">假设</div>
-          <div className="text-xs text-gray-300">
-            <CompactMarkdown content={getHypothesisText()} />
-          </div>
-        </div>
-      )}
-
-      {/* Priority Badge */}
-      {data.priority && (
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              'text-xs px-2 py-0.5 rounded-full border',
-              priorityColors[data.priority as keyof typeof priorityColors]
-            )}
-          >
-            {data.priority === 'low' && '低优先级'}
-            {data.priority === 'medium' && '中优先级'}
-            {data.priority === 'high' && '高优先级'}
-          </span>
-
-          {/* Tags */}
-          {data.tags && data.tags.length > 0 && (
-            <div className="flex gap-1">
-              {data.tags.slice(0, 2).map((tag: string, i: number) => (
-                <span key={i} className="text-xs px-1.5 py-0.5 bg-slate-700 rounded text-gray-300">
-                  {tag}
-                </span>
-              ))}
-              {data.tags.length > 2 && (
-                <span className="text-xs text-gray-500">+{data.tags.length - 2}</span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Output Handle */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-amber-500 !border-2 !border-amber-400"
+        className="!w-3 !h-3 !bg-amber-500 !border-2 !border-slate-900 !-bottom-1.5 hover:!scale-125 transition-transform shadow-lg"
       />
     </div>
   );

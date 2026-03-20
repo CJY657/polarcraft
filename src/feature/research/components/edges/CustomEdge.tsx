@@ -7,8 +7,9 @@
  */
 
 import { memo } from "react";
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from "reactflow";
-import { X } from "lucide-react";
+import { EdgeProps, getBezierPath, EdgeLabelRenderer, getSmoothStepPath } from "reactflow";
+import { X, ArrowRight } from "lucide-react";
+import { cn } from "@/utils/classNames";
 
 interface CustomEdgeProps extends EdgeProps {
   onDelete?: (edgeId: string) => void;
@@ -19,37 +20,31 @@ const edgeTypeConfig = {
   derivesTo: {
     color: "#f59e0b", // amber
     label: "推导出",
-    icon: "→",
     dashArray: "",
   },
   verifies: {
-    color: "#22c55e", // green
+    color: "#10b981", // emerald
     label: "验证",
-    icon: "✓",
     dashArray: "",
   },
   refutes: {
-    color: "#ef4444", // red
+    color: "#f43f5e", // rose
     label: "反驳",
-    icon: "✕",
-    dashArray: "5,5",
+    dashArray: "6,4",
   },
   cites: {
     color: "#3b82f6", // blue
     label: "引用",
-    icon: "📖",
     dashArray: "",
   },
   basedOn: {
-    color: "#a855f7", // purple
+    color: "#8b5cf6", // violet
     label: "基于",
-    icon: "◇",
-    dashArray: "2,2",
+    dashArray: "3,3",
   },
   relatedTo: {
     color: "#64748b", // slate
     label: "关联",
-    icon: "~",
     dashArray: "10,5",
   },
 };
@@ -71,19 +66,16 @@ export const CustomEdge = memo(
     const config =
       edgeTypeConfig[edgeType as keyof typeof edgeTypeConfig] || edgeTypeConfig.relatedTo;
 
-    // Calculate bezier path
-    const [edgePath] = getBezierPath({
+    // Use SmoothStep path for a more technical look
+    const [edgePath, labelX, labelY] = getSmoothStepPath({
       sourceX,
       sourceY,
       sourcePosition,
       targetX,
       targetY,
       targetPosition,
+      borderRadius: 20,
     });
-
-    // Calculate midpoint for delete button
-    const midX = (sourceX + targetX) / 2;
-    const midY = (sourceY + targetY) / 2;
 
     const handleDelete = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -93,82 +85,93 @@ export const CustomEdge = memo(
       }
     };
 
+    const colorId = config.color.replace("#", "");
+
     return (
       <>
+        <defs>
+          <marker
+            id={`arrow-${colorId}`}
+            markerWidth="12"
+            markerHeight="12"
+            refX="10"
+            refY="6"
+            orient="auto"
+          >
+            <path
+              d="M2,2 L10,6 L2,10 L4,6 Z"
+              fill={config.color}
+              className="transition-all"
+            />
+          </marker>
+        </defs>
+
         <g className="group">
-          {/* Main edge line */}
+          {/* Background interactive path */}
           <path
-            id={id}
             d={edgePath}
-            stroke={selected ? config.color : `${config.color}80`}
-            strokeWidth={selected ? 3 : 2}
-            strokeDasharray={config.dashArray || undefined}
             fill="none"
-            className="transition-all duration-200"
+            stroke="transparent"
+            strokeWidth={20}
+            className="cursor-pointer"
           />
 
           {/* Selection glow */}
           {selected && (
             <path
               d={edgePath}
+              fill="none"
               stroke={config.color}
               strokeWidth={6}
-              strokeOpacity={0.3}
-              fill="none"
-              className="animate-pulse"
+              strokeOpacity={0.2}
+              className="animate-in fade-in zoom-in duration-300"
             />
           )}
 
-          {/* Arrow marker at target */}
-          <defs>
-            <marker
-              id={`arrow-${config.color.replace("#", "")}`}
-              markerWidth="10"
-              markerHeight="10"
-              refX="9"
-              refY="3"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path
-                d="M0,0 L0,6 L9,3 z"
-                fill={config.color}
-              />
-            </marker>
-          </defs>
-
-          {/* Arrow path */}
+          {/* Main edge line */}
           <path
+            id={id}
             d={edgePath}
-            stroke="none"
             fill="none"
-            markerEnd={`url(#arrow-${config.color.replace("#", "")})`}
-            style={{ pointerEvents: "none" }}
+            stroke={selected ? config.color : `${config.color}90`}
+            strokeWidth={selected ? 3 : 2}
+            strokeDasharray={config.dashArray || undefined}
+            markerEnd={`url(#arrow-${colorId})`}
+            className={cn(
+              "transition-all duration-300",
+              !selected && "group-hover:stroke-slate-400 group-hover:stroke-[3px]"
+            )}
           />
         </g>
 
-        {/* Delete button - shown on hover or selection */}
+        {/* Floating Label and Controls */}
         <EdgeLabelRenderer>
           <div
             style={{
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${midX}px,${midY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
             }}
-            className={`transition-opacity duration-200 ${
-              selected || document.querySelector(`[data-edgeid="${id}"]`)?.matches(":hover")
-                ? "opacity-100"
-                : "opacity-0 group-hover:opacity-100"
-            }`}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-full border shadow-xl transition-all duration-300",
+              selected
+                ? "scale-110 opacity-100 bg-slate-900 border-slate-700"
+                : "scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100 bg-slate-900/80 border-slate-800"
+            )}
           >
-            <button
-              data-edgeid={id}
-              onClick={handleDelete}
-              className="flex items-center justify-center w-6 h-6 bg-red-500 hover:bg-red-400 text-white rounded-full shadow-lg border-2 border-red-600 transition-colors"
-              title="删除关联"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-300">
+              {config.label}
+            </span>
+
+            {selected && (
+              <button
+                onClick={handleDelete}
+                className="p-1 rounded-full bg-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
+                title="删除关联"
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            )}
           </div>
         </EdgeLabelRenderer>
       </>

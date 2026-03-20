@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Save, Trash2, Loader2 } from 'lucide-react';
+import { X, Save, Trash2, Loader2, Info, Palette, Settings2, Calendar, User, Fingerprint } from 'lucide-react';
 import { useCanvasStore, selectSelectedNode } from '../../stores/canvasStore';
 import { cn } from '@/utils/classNames';
 import type { ResearchNode } from '@/types/research';
@@ -17,15 +17,10 @@ import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 import { api } from '@/lib/api';
 import type {
   ProblemNodeData,
-  ExperimentNodeData,
-  ConclusionNodeData,
-  DiscussionNodeData,
-  MediaNodeData,
   NoteNodeData,
   BaseNodeData,
 } from '../../types/node-data.types';
 import { getNodeField } from '../../types/node-data.types';
-import type { LabelI18n } from '@/types/i18n';
 
 interface NodeDetailsPanelProps {
   theme?: 'dark' | 'light';
@@ -56,10 +51,14 @@ interface FormData {
   pinned?: boolean;
 }
 
+type TabType = 'properties' | 'appearance' | 'advanced';
+
 export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, readOnly = false }: NodeDetailsPanelProps) {
   const selectedNode = useCanvasStore(selectSelectedNode) as Node<ResearchNode> | null;
   const storeUpdateNode = useCanvasStore((state) => state.updateNode);
   const storeRemoveNode = useCanvasStore((state) => state.removeNode);
+
+  const [activeTab, setActiveTab] = useState<TabType>('properties');
 
   // Use passed functions if available, otherwise fall back to store functions
   const updateNode = onUpdateNode || storeUpdateNode;
@@ -77,22 +76,22 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
       const data = selectedNode.data as BaseNodeData;
       setFormData({
         title: data.title,
-        summary: getNodeField(data, 'summary') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        description: getNodeField(data, 'description') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        status: getNodeField(data, 'status') as string,
-        priority: getNodeField(data, 'priority') as string,
-        hypothesis: getNodeField(data, 'hypothesis') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        statement: getNodeField(data, 'statement') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        limitations: getNodeField(data, 'limitations') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        futureWork: getNodeField(data, 'futureWork') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        confidence: getNodeField(data, 'confidence') as number,
-        topic: getNodeField(data, 'topic') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        participants: getNodeField(data, 'participants') as string[],
-        url: getNodeField(data, 'url') as string,
-        mediaType: getNodeField(data, 'mediaType') as 'image' | 'video',
-        content: getNodeField(data, 'content') as { 'zh-CN'?: string; zh?: string; en?: string } | undefined,
-        color: getNodeField(data, 'color') as 'yellow' | 'green' | 'blue' | 'pink' | 'purple',
-        pinned: getNodeField(data, 'pinned') as boolean,
+        summary: getNodeField(data, 'summary' as any) as any,
+        description: getNodeField(data, 'description' as any) as any,
+        status: getNodeField(data, 'status' as any) as string,
+        priority: getNodeField(data, 'priority' as any) as string,
+        hypothesis: getNodeField(data, 'hypothesis' as any) as any,
+        statement: getNodeField(data, 'statement' as any) as any,
+        limitations: getNodeField(data, 'limitations' as any) as any,
+        futureWork: getNodeField(data, 'futureWork' as any) as any,
+        confidence: getNodeField(data, 'confidence' as any) as number,
+        topic: getNodeField(data, 'topic' as any) as any,
+        participants: getNodeField(data, 'participants' as any) as string[],
+        url: getNodeField(data, 'url' as any) as string,
+        mediaType: getNodeField(data, 'mediaType' as any) as 'image' | 'video',
+        content: getNodeField(data, 'content' as any) as any,
+        color: getNodeField(data, 'color' as any) as 'yellow' | 'green' | 'blue' | 'pink' | 'purple',
+        pinned: getNodeField(data, 'pinned' as any) as boolean,
       });
       setEditing(false);
     }
@@ -147,17 +146,19 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
 
   if (!selectedNode) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="p-4 border-b border-slate-700">
-          <h3 className={cn('text-sm font-semibold', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-            节点属性
-          </h3>
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+        <div className={cn(
+          "w-16 h-16 rounded-3xl mb-4 flex items-center justify-center border transition-colors",
+          theme === 'dark' ? "bg-slate-800 border-slate-700 text-slate-500" : "bg-slate-100 border-slate-200 text-slate-400"
+        )}>
+          <Info className="w-8 h-8" />
         </div>
-        <div className="flex-1 flex items-center justify-center p-4">
-          <p className={cn('text-sm text-center', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-            点击节点查看属性
-          </p>
-        </div>
+        <h3 className={cn("text-sm font-medium mb-1", theme === 'dark' ? "text-slate-300" : "text-slate-700")}>
+          未选中节点
+        </h3>
+        <p className={cn("text-xs", theme === 'dark' ? "text-slate-500" : "text-slate-400")}>
+          在画布上点击任意节点以查看并编辑其详细属性
+        </p>
       </div>
     );
   }
@@ -185,627 +186,340 @@ export function NodeDetailsPanel({ theme = 'dark', onUpdateNode, onRemoveNode, r
   // Type-safe data access helper
   const getData = () => selectedNode?.data as BaseNodeData;
 
+  const TabButton = ({ id, label, icon: Icon }: { id: TabType; label: string; icon: any }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={cn(
+        "flex-1 flex flex-col items-center gap-1.5 py-3 border-b-2 transition-all",
+        activeTab === id
+          ? (theme === 'dark' ? "border-blue-500 text-blue-400" : "border-blue-600 text-blue-600")
+          : (theme === 'dark' ? "border-transparent text-slate-500 hover:text-slate-300" : "border-transparent text-slate-400 hover:text-slate-600")
+      )}
+    >
+      <Icon className="w-4 h-4" />
+      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+    </button>
+  );
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-        <h3 className={cn('text-sm font-semibold', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-          节点属性
-        </h3>
+      <div className={cn(
+        "px-4 py-4 border-b flex items-center justify-between",
+        theme === 'dark' ? "border-slate-800" : "border-slate-200"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "w-8 h-8 rounded-lg flex items-center justify-center",
+            nodeType === 'problem' && "bg-amber-500/20 text-amber-500",
+            nodeType === 'experiment' && "bg-blue-500/20 text-blue-500",
+            nodeType === 'conclusion' && "bg-emerald-500/20 text-emerald-500",
+            nodeType === 'discussion' && "bg-cyan-500/20 text-cyan-500",
+            nodeType === 'media' && "bg-pink-500/20 text-pink-500",
+            nodeType === 'note' && "bg-indigo-500/20 text-indigo-500",
+          )}>
+            <Info className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className={cn('text-sm font-bold', theme === 'dark' ? 'text-white' : 'text-slate-900')}>
+              {nodeTypeLabels[nodeType] || '属性'}
+            </h3>
+            <p className="text-[10px] text-slate-500 font-mono">ID: {selectedNode.id.slice(0, 12)}</p>
+          </div>
+        </div>
         <button
           onClick={() => useCanvasStore.getState().clearSelection()}
           className={cn(
-            'p-1 rounded hover:bg-slate-700 transition-colors',
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            'p-1.5 rounded-full transition-colors',
+            theme === 'dark' ? 'text-slate-500 hover:bg-slate-800 hover:text-slate-300' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
           )}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Node Type Badge */}
-        <div>
-          <span className={cn('text-xs text-gray-500', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-            类型
-          </span>
-          <div className={cn(
-            'mt-1 inline-block px-2 py-1 rounded text-xs font-medium',
-            theme === 'dark' ? 'bg-slate-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-          )}>
-            {nodeTypeLabels[nodeType] || nodeType}
-          </div>
-        </div>
+      {/* Tabs */}
+      <div className={cn(
+        "flex border-b",
+        theme === 'dark' ? "border-slate-800" : "border-slate-200"
+      )}>
+        <TabButton id="properties" label="属性" icon={Info} />
+        <TabButton id="appearance" label="样式" icon={Palette} />
+        <TabButton id="advanced" label="高级" icon={Settings2} />
+      </div>
 
-        {/* Title */}
-        <div>
-          <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-            标题
-          </label>
-          {editing ? (
-            <input
-              type="text"
-              value={formData.title?.zh || formData.title?.['zh-CN'] || ''}
-              onChange={(e) => setFormData({ ...formData, title: { 'zh-CN': e.target.value, zh: e.target.value, en: e.target.value } })}
-              className={cn(
-                'w-full px-2 py-1.5 rounded text-sm',
-                theme === 'dark'
-                  ? 'bg-slate-700 border border-slate-600 text-white focus:border-purple-500'
-                  : 'bg-white border border-gray-300 text-gray-900 focus:border-purple-400'
-              )}
-            />
-          ) : (
-            <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-              {selectedNode.data.title?.zh || selectedNode.data.title?.['zh-CN'] || selectedNode.data.title?.en || '-'}
-            </div>
-          )}
-        </div>
-
-        {/* Description (only for nodes that have it) */}
-        {hasDescription && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              描述
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.description?.zh || formData.description?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, description: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={5}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {getData().description?.zh || getData().description?.['zh-CN'] || getData().description?.en ? (
-                  <MarkdownRenderer content={getData().description?.zh || getData().description?.['zh-CN'] || getData().description?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Summary for literature nodes */}
-        {nodeType === 'literature' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              摘要
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.summary?.zh || formData.summary?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, summary: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={5}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(getNodeField(getData(), 'summary') as LabelI18n)?.zh || (getNodeField(getData(), 'summary') as LabelI18n)?.['zh-CN'] || (getNodeField(getData(), 'summary') as LabelI18n)?.en ? (
-                  <MarkdownRenderer content={(getNodeField(getData(), 'summary') as LabelI18n)?.zh || (getNodeField(getData(), 'summary') as LabelI18n)?.['zh-CN'] || (getNodeField(getData(), 'summary') as LabelI18n)?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Hypothesis for problem nodes */}
-        {nodeType === 'problem' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              假设
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.hypothesis?.zh || formData.hypothesis?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, hypothesis: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={3}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {getData().hypothesis?.zh || getData().hypothesis?.['zh-CN'] || getData().hypothesis?.en ? (
-                  <MarkdownRenderer content={getData().hypothesis?.zh || getData().hypothesis?.['zh-CN'] || getData().hypothesis?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Statement for conclusion nodes */}
-        {nodeType === 'conclusion' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              结论陈述
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.statement?.zh || formData.statement?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, statement: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={4}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {getData().statement?.zh || getData().statement?.['zh-CN'] || getData().statement?.en ? (
-                  <MarkdownRenderer content={getData().statement?.zh || getData().statement?.['zh-CN'] || getData().statement?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Confidence for conclusion nodes */}
-        {nodeType === 'conclusion' && (() => {
-          const currentConfidence = formData.confidence !== undefined
-            ? formData.confidence
-            : getData().confidence !== undefined
-              ? getData().confidence as number
-              : 0.5;
-          return (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className={cn('text-xs text-gray-500', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-                  可信度
-                </label>
-                <span className={cn('text-xs font-medium', theme === 'dark' ? 'text-purple-400' : 'text-purple-600')}>
-                  {Math.round(currentConfidence * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={currentConfidence}
-                onChange={(e) => {
-                  const newConfidence = parseFloat(e.target.value);
-                  setFormData({ ...formData, confidence: newConfidence });
-                  // Immediately update the node without requiring save
-                  updateNode(selectedNode.id, {
-                    data: {
-                      ...getData(),
-                      confidence: newConfidence,
-                    } as ResearchNode,
-                  });
-                }}
-                className={cn(
-                  'w-full h-2 rounded-lg appearance-none cursor-pointer',
-                  theme === 'dark'
-                    ? 'bg-slate-700 accent-purple-500'
-                    : 'bg-gray-200 accent-purple-600'
-                )}
-              />
-              <div className="flex justify-between mt-1">
-                <span className={cn('text-xs', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>低</span>
-                <span className={cn('text-xs', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>高</span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Limitations for conclusion nodes */}
-        {nodeType === 'conclusion' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              局限性
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.limitations?.zh || formData.limitations?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, limitations: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={3}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {getData().limitations?.zh || getData().limitations?.['zh-CN'] || getData().limitations?.en ? (
-                  <MarkdownRenderer content={getData().limitations?.zh || getData().limitations?.['zh-CN'] || getData().limitations?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Future Work for conclusion nodes */}
-        {nodeType === 'conclusion' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              后续工作
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.futureWork?.zh || formData.futureWork?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, futureWork: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={3}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-32 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {getData().futureWork?.zh || getData().futureWork?.['zh-CN'] || getData().futureWork?.en ? (
-                  <MarkdownRenderer content={getData().futureWork?.zh || getData().futureWork?.['zh-CN'] || getData().futureWork?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Status (for nodes that have status) */}
-        {hasStatus && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              状态
-            </label>
-            {editing ? (
-              <select
-                value={formData.status || getData().status || ''}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className={cn(
-                  'w-full px-2 py-1.5 rounded text-sm',
-                  theme === 'dark'
-                    ? 'bg-slate-700 border border-slate-600 text-white focus:border-purple-500'
-                    : 'bg-white border border-gray-300 text-gray-900 focus:border-purple-400'
-                )}
-              >
-                <option value="open">开放</option>
-                <option value="investigating">调查中</option>
-                <option value="answered">已解答</option>
-                <option value="pending">待执行</option>
-                <option value="running">运行中</option>
-                <option value="completed">已完成</option>
-                <option value="active">进行中</option>
-                <option value="closed">已结束</option>
-              </select>
-            ) : (
-              <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {getData().status as string}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Priority (for problem nodes) */}
-        {nodeType === 'problem' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              优先级
-            </label>
-            {editing ? (
-              <select
-                value={formData.priority || (getData() as ProblemNodeData).priority || 'medium'}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className={cn(
-                  'w-full px-2 py-1.5 rounded text-sm',
-                  theme === 'dark'
-                    ? 'bg-slate-700 border border-slate-600 text-white focus:border-purple-500'
-                    : 'bg-white border border-gray-300 text-gray-900 focus:border-purple-400'
-                )}
-              >
-                <option value="low">低优先级</option>
-                <option value="medium">中优先级</option>
-                <option value="high">高优先级</option>
-              </select>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {activeTab === 'properties' && (
+          <div className="p-5 space-y-6">
+            {/* Title */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">标题</label>
+              {editing ? (
+                <input
+                  type="text"
+                  value={formData.title?.zh || formData.title?.['zh-CN'] || ''}
+                  onChange={(e) => setFormData({ ...formData, title: { 'zh-CN': e.target.value, zh: e.target.value, en: e.target.value } })}
                   className={cn(
-                    'text-xs px-2 py-0.5 rounded-full border',
-                    (getData() as ProblemNodeData).priority === 'low' && 'bg-gray-500/20 text-gray-400 border-gray-500',
-                    (getData() as ProblemNodeData).priority === 'medium' && 'bg-amber-500/20 text-amber-400 border-amber-500',
-                    (getData() as ProblemNodeData).priority === 'high' && 'bg-red-500/20 text-red-400 border-red-500',
-                    !(getData() as ProblemNodeData).priority && 'bg-gray-500/20 text-gray-400 border-gray-500'
+                    'w-full px-3 py-2 rounded-lg text-sm transition-all focus:ring-2 outline-none',
+                    theme === 'dark'
+                      ? 'bg-slate-800 border border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+                      : 'bg-white border border-slate-200 text-slate-900 focus:border-blue-400 focus:ring-blue-400/20'
                   )}
-                >
-                  {(getData() as ProblemNodeData).priority === 'low' && '低优先级'}
-                  {(getData() as ProblemNodeData).priority === 'medium' && '中优先级'}
-                  {(getData() as ProblemNodeData).priority === 'high' && '高优先级'}
-                  {!(getData() as ProblemNodeData).priority && '中优先级'}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+                  placeholder="输入节点标题..."
+                />
+              ) : (
+                <div className={cn('text-sm font-medium leading-relaxed', theme === 'dark' ? 'text-slate-200' : 'text-slate-800')}>
+                  {selectedNode.data.title?.zh || selectedNode.data.title?.['zh-CN'] || selectedNode.data.title?.en || '-'}
+                </div>
+              )}
+            </div>
 
-        {/* Topic for discussion nodes */}
-        {nodeType === 'discussion' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              讨论主题
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.topic?.zh || formData.topic?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, topic: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={4}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-40 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(getData() as DiscussionNodeData).topic?.zh || (getData() as DiscussionNodeData).topic?.['zh-CN'] || (getData() as DiscussionNodeData).topic?.en ? (
-                  <MarkdownRenderer content={(getData() as DiscussionNodeData).topic?.zh || (getData() as DiscussionNodeData).topic?.['zh-CN'] || (getData() as DiscussionNodeData).topic?.en || ''} className="prose-sm" />
+            {/* Description / Content */}
+            {(hasDescription || nodeType === 'note') && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  {nodeType === 'note' ? '内容' : '描述'}
+                </label>
+                {editing ? (
+                  <MarkdownEditor
+                    value={
+                      nodeType === 'note'
+                        ? (formData.content?.zh || formData.content?.['zh-CN'] || '')
+                        : (formData.description?.zh || formData.description?.['zh-CN'] || '')
+                    }
+                    onChange={(value) =>
+                      nodeType === 'note'
+                        ? setFormData({ ...formData, content: { 'zh-CN': value, zh: value, en: value } })
+                        : setFormData({ ...formData, description: { 'zh-CN': value, zh: value, en: value } })
+                    }
+                    placeholder="支持 Markdown 语法..."
+                    rows={8}
+                    theme={theme}
+                  />
                 ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
+                  <div className={cn(
+                    'p-3 rounded-xl border text-sm max-h-60 overflow-y-auto prose prose-invert prose-slate',
+                    theme === 'dark' ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  )}>
+                    {nodeType === 'note' ? (
+                      (getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] ? (
+                        <MarkdownRenderer content={(getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] || ''} className="prose-sm" />
+                      ) : <span className="text-slate-600 italic">暂无内容</span>
+                    ) : (
+                      (getData() as any).description?.zh || (getData() as any).description?.['zh-CN'] ? (
+                        <MarkdownRenderer content={(getData() as any).description?.zh || (getData() as any).description?.['zh-CN'] || ''} className="prose-sm" />
+                      ) : <span className="text-slate-600 italic">暂无描述</span>
+                    )}
+                  </div>
                 )}
+              </div>
+            )}
+
+            {/* Specific Fields per Node Type */}
+            {nodeType === 'problem' && (
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">状态</label>
+                    <select
+                      disabled={!editing}
+                      value={formData.status || (getData() as any).status || ''}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className={cn(
+                        'w-full px-2 py-1.5 rounded-lg text-xs appearance-none',
+                        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+                      )}
+                    >
+                      <option value="open">开放</option>
+                      <option value="investigating">调查中</option>
+                      <option value="answered">已解答</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">优先级</label>
+                    <select
+                      disabled={!editing}
+                      value={formData.priority || (getData() as ProblemNodeData).priority || 'medium'}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className={cn(
+                        'w-full px-2 py-1.5 rounded-lg text-xs appearance-none',
+                        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+                      )}
+                    >
+                      <option value="low">低</option>
+                      <option value="medium">中</option>
+                      <option value="high">高</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {nodeType === 'conclusion' && (
+              <div className="space-y-6 pt-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">可信度</label>
+                    <span className="text-xs font-mono text-blue-500">{Math.round((formData.confidence || (getData() as any).confidence as number || 0.5) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range" min="0" max="1" step="0.05"
+                    disabled={!editing}
+                    value={formData.confidence || (getData() as any).confidence as number || 0.5}
+                    onChange={(e) => setFormData({ ...formData, confidence: parseFloat(e.target.value) })}
+                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Media URL for media nodes */}
-        {nodeType === 'media' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              媒体链接
-            </label>
-            {editing ? (
-              <input
-                type="text"
-                value={formData.url || (getData() as MediaNodeData).url || ''}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                placeholder="输入图片或视频URL..."
-                className={cn(
-                  'w-full px-2 py-1.5 rounded text-sm',
-                  theme === 'dark'
-                    ? 'bg-slate-700 border border-slate-600 text-white focus:border-purple-500 focus:outline-none'
-                    : 'bg-white border border-gray-300 text-gray-900 focus:border-purple-400 focus:outline-none'
-                )}
-              />
-            ) : (
-              <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {(getData() as MediaNodeData).url || '-'}
+        {activeTab === 'appearance' && (
+          <div className="p-5 space-y-6">
+            {nodeType === 'note' && (
+              <div className="space-y-4">
+                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">颜色方案</label>
+                 <div className="grid grid-cols-5 gap-3">
+                   {[
+                    { value: 'yellow', color: '#fbbf24' },
+                    { value: 'green', color: '#4ade80' },
+                    { value: 'blue', color: '#60a5fa' },
+                    { value: 'pink', color: '#f472b6' },
+                    { value: 'purple', color: '#a78bfa' },
+                   ].map((c) => (
+                     <button
+                        key={c.value}
+                        onClick={() => {
+                          setFormData({ ...formData, color: c.value as any });
+                          updateNode(selectedNode.id, { data: { ...getData(), color: c.value } as any });
+                        }}
+                        className={cn(
+                          "aspect-square rounded-full border-4 transition-all hover:scale-110",
+                          (formData.color || (getData() as NoteNodeData).color) === c.value
+                            ? "border-white shadow-lg"
+                            : "border-transparent opacity-60"
+                        )}
+                        style={{ backgroundColor: c.color }}
+                     />
+                   ))}
+                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Media Type for media nodes */}
-        {nodeType === 'media' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              媒体类型
-            </label>
-            {editing ? (
-              <select
-                value={formData.mediaType || (getData() as MediaNodeData).mediaType || 'image'}
-                onChange={(e) => setFormData({ ...formData, mediaType: e.target.value as 'image' | 'video' })}
-                className={cn(
-                  'w-full px-2 py-1.5 rounded text-sm',
-                  theme === 'dark'
-                    ? 'bg-slate-700 border border-slate-600 text-white focus:border-purple-500 focus:outline-none'
-                    : 'bg-white border border-gray-300 text-gray-900 focus:border-purple-400 focus:outline-none'
-                )}
-              >
-                <option value="image">图片</option>
-                <option value="video">视频</option>
-              </select>
-            ) : (
-              <div className={cn('text-sm', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-                {(getData() as MediaNodeData).mediaType === 'video' ? '视频' : '图片'}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Content for note nodes */}
-        {nodeType === 'note' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-1', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              内容
-            </label>
-            {editing ? (
-              <MarkdownEditor
-                value={formData.content?.zh || formData.content?.['zh-CN'] || ''}
-                onChange={(value) => setFormData({ ...formData, content: { 'zh-CN': value, zh: value, en: value } })}
-                placeholder="支持 Markdown 语法..."
-                rows={6}
-                theme={theme}
-              />
-            ) : (
-              <div className={cn('p-2 rounded border text-sm max-h-48 overflow-y-auto', theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-gray-50 border-gray-200')}>
-                {(getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] || (getData() as NoteNodeData).content?.en ? (
-                  <MarkdownRenderer content={(getData() as NoteNodeData).content?.zh || (getData() as NoteNodeData).content?.['zh-CN'] || (getData() as NoteNodeData).content?.en || ''} className="prose-sm" />
-                ) : (
-                  <span className={cn('text-gray-500', theme === 'dark' ? 'text-gray-600' : '')}>-</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Color picker for note nodes */}
-        {nodeType === 'note' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-2', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              颜色
-            </label>
-            <div className="flex gap-2">
-              {[
-                { value: 'yellow', label: '黄色', bgClass: 'bg-yellow-400', borderClass: 'ring-yellow-500' },
-                { value: 'green', label: '绿色', bgClass: 'bg-green-400', borderClass: 'ring-green-500' },
-                { value: 'blue', label: '蓝色', bgClass: 'bg-blue-400', borderClass: 'ring-blue-500' },
-                { value: 'pink', label: '粉色', bgClass: 'bg-pink-400', borderClass: 'ring-pink-500' },
-                { value: 'purple', label: '紫色', bgClass: 'bg-purple-400', borderClass: 'ring-purple-500' },
-              ].map((colorOption) => {
-                const currentColor = formData.color || (getData() as NoteNodeData).color || 'yellow';
-                const isSelected = currentColor === colorOption.value;
-                return (
+            <div className="space-y-4">
+               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">常用选项</label>
+               <div className="space-y-2">
                   <button
-                    key={colorOption.value}
-                    type="button"
+                    disabled={!editing && nodeType !== 'note'}
                     onClick={() => {
-                      const newColor = colorOption.value as 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
-                      setFormData({ ...formData, color: newColor });
-                      // Immediately update the node
-                      updateNode(selectedNode.id, {
-                        data: {
-                          ...getData(),
-                          color: newColor,
-                        } as ResearchNode,
-                      });
+                       const newPinned = !(formData.pinned ?? (getData() as NoteNodeData).pinned ?? false);
+                       setFormData({ ...formData, pinned: newPinned });
+                       updateNode(selectedNode.id, { data: { ...getData(), pinned: newPinned } as any });
                     }}
                     className={cn(
-                      'w-8 h-8 rounded-full transition-all',
-                      colorOption.bgClass,
-                      isSelected ? `ring-2 ${colorOption.borderClass} ring-offset-2` : 'hover:scale-110',
-                      theme === 'dark' ? 'ring-offset-slate-800' : 'ring-offset-white'
+                      "w-full flex items-center justify-between p-3 rounded-xl border transition-all text-sm",
+                      (formData.pinned ?? (getData() as NoteNodeData).pinned)
+                        ? "bg-amber-500/10 border-amber-500/50 text-amber-500"
+                        : "bg-slate-800/40 border-slate-700/50 text-slate-400 hover:bg-slate-800"
                     )}
-                    title={colorOption.label}
-                  />
-                );
-              })}
+                  >
+                    <span>固定在最前端</span>
+                    <div className={cn(
+                      "w-8 h-4 rounded-full relative transition-colors",
+                      (formData.pinned ?? (getData() as NoteNodeData).pinned) ? "bg-amber-500" : "bg-slate-700"
+                    )}>
+                      <div className={cn(
+                        "w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all",
+                        (formData.pinned ?? (getData() as NoteNodeData).pinned) ? "left-4.5" : "left-0.5"
+                      )} />
+                    </div>
+                  </button>
+               </div>
             </div>
           </div>
         )}
 
-        {/* Pinned toggle for note nodes */}
-        {nodeType === 'note' && (
-          <div>
-            <label className={cn('text-xs text-gray-500 block mb-2', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-              置顶
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                const newPinned = !(formData.pinned ?? (getData() as NoteNodeData).pinned ?? false);
-                setFormData({ ...formData, pinned: newPinned });
-                // Immediately update the node
-                updateNode(selectedNode.id, {
-                  data: {
-                    ...getData(),
-                    pinned: newPinned,
-                  } as ResearchNode,
-                });
-              }}
-              className={cn(
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                (formData.pinned ?? (getData() as NoteNodeData).pinned ?? false)
-                  ? 'bg-yellow-500'
-                  : theme === 'dark' ? 'bg-slate-600' : 'bg-gray-300'
-              )}
-            >
-              <span
-                className={cn(
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  (formData.pinned ?? (getData() as NoteNodeData).pinned ?? false)
-                    ? 'translate-x-6'
-                    : 'translate-x-1'
-                )}
-              />
-            </button>
-            <span className={cn('ml-2 text-xs', theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}>
-              {(formData.pinned ?? (getData() as NoteNodeData).pinned ?? false) ? '已置顶' : '未置顶'}
-            </span>
+        {activeTab === 'advanced' && (
+          <div className="p-5 space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 text-slate-500" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">创建时间</p>
+                  <p className="text-xs text-slate-300">{new Date(selectedNode.data.createdAt || Date.now()).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-slate-500" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">创建者</p>
+                  <p className="text-xs text-slate-300">{selectedNode.data.createdBy || '系统系统'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Fingerprint className="w-4 h-4 text-slate-500" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold">唯一标识符</p>
+                  <p className="text-[10px] text-slate-500 font-mono break-all">{selectedNode.id}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800">
+               <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-all text-sm font-medium"
+               >
+                 {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                 永久删除节点
+               </button>
+            </div>
           </div>
         )}
-
-        {/* Error Message */}
-        {error && (
-          <div className={cn(
-            'p-3 rounded text-sm',
-            theme === 'dark' ? 'bg-red-900/30 text-red-400 border border-red-700' : 'bg-red-50 text-red-600 border border-red-200'
-          )}>
-            {error}
-          </div>
-        )}
-
-        {/* Created Info */}
-        <div className="pt-4 border-t border-slate-700">
-          <div className={cn('text-xs', theme === 'dark' ? 'text-gray-500' : 'text-gray-400')}>
-            <div>创建时间: {new Date(selectedNode.data.createdAt || Date.now()).toLocaleString('zh-CN')}</div>
-            <div className="mt-1">节点ID: {selectedNode.id.slice(0, 8)}...</div>
-          </div>
-        </div>
       </div>
 
       {/* Footer Actions - 只读模式隐藏 */}
       {!readOnly && (
-      <div className="p-4 border-t border-slate-700 flex gap-2">
+      <div className={cn(
+        "p-4 border-t flex gap-2",
+        theme === 'dark' ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-white"
+      )}>
         {editing ? (
           <>
             <button
               onClick={handleSave}
               disabled={saving}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                theme === 'dark'
-                  ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-              )}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/20 transition-all"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  保存
-                </>
-              )}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              保存修改
             </button>
             <button
               onClick={() => setEditing(false)}
-              className={cn(
-                'px-3 py-2 rounded text-sm font-medium transition-colors',
-                theme === 'dark'
-                  ? 'bg-slate-700 hover:bg-slate-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-              )}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all text-sm font-medium"
             >
               取消
             </button>
           </>
         ) : (
-          <>
-            <button
-              onClick={() => setEditing(true)}
-              className={cn(
-                'flex-1 px-3 py-2 rounded text-sm font-medium transition-colors',
-                theme === 'dark'
-                  ? 'bg-slate-700 hover:bg-slate-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-              )}
-            >
-              编辑
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className={cn(
-                'px-3 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                theme === 'dark'
-                  ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50'
-                  : 'bg-red-100 hover:bg-red-200 text-red-600 border border-red-300'
-              )}
-            >
-              {deleting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </button>
-          </>
+          <button
+            onClick={() => setEditing(true)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all text-sm font-bold border border-slate-700/50"
+          >
+            编辑节点信息
+          </button>
         )}
       </div>
+      )}
+
+      {error && (
+        <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[11px] flex items-center gap-2">
+          <X className="w-3 h-3 shrink-0" />
+          {error}
+        </div>
       )}
     </div>
   );
