@@ -115,7 +115,7 @@ npm run build        # 为生产环境构建
 
 1. 确保代码已推送到 GitHub。
 2. 准备一个 MongoDB 连接串，推荐 MongoDB Atlas。
-3. 如果需要密码重置邮件，再准备 SMTP 账号；不需要则保持 `EMAIL_ENABLED=false`。
+3. 如果需要密码重置邮件或反馈邮件转发，再准备 SMTP 账号；不需要则保持 `EMAIL_ENABLED=false`。
 
 ### 在 Render 中部署
 
@@ -142,6 +142,9 @@ npm run build        # 为生产环境构建
 - `HTTP_HEADERS_TIMEOUT_MS`：Node headers 超时，默认比 keep-alive 大 `1000ms`
 - `HTTP_REQUEST_TIMEOUT_MS`：上传这类慢请求的总超时，默认 `600000`
 - `EMAIL_ENABLED=true` 后，还需要补齐 `EMAIL_HOST`、`EMAIL_PORT`、`EMAIL_USER`、`EMAIL_PASSWORD`、`EMAIL_FROM`
+- `FEEDBACK_EMAIL_TO`：默认反馈接收邮箱
+- `FEEDBACK_EXPERIMENT_EMAIL_TO`：实验反馈接收邮箱，未设置时回退到 `FEEDBACK_EMAIL_TO`
+- `FEEDBACK_PRODUCT_EMAIL_TO`：软件建议接收邮箱，未设置时回退到 `FEEDBACK_EMAIL_TO`
 
 ### 前后端分域部署说明
 
@@ -237,6 +240,9 @@ UPLOAD_ROOT_DIR=/var/www/polarcraft/server/uploads
 LOG_LEVEL=info
 LOG_ENABLED=true
 EMAIL_ENABLED=false
+FEEDBACK_EMAIL_TO=
+FEEDBACK_EXPERIMENT_EMAIL_TO=
+FEEDBACK_PRODUCT_EMAIL_TO=
 ```
 
 > 说明：生产环境下必须配置 `MONGODB_URI`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`，否则服务启动会失败。

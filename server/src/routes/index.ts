@@ -15,6 +15,7 @@ import courseRoutes from './course.routes.js';
 import unitRoutes from './unit.routes.js';
 import uploadRoutes from './upload.routes.js';
 import notificationRoutes from './notification.routes.js';
+import feedbackRoutes from './feedback.routes.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
 import { testConnection } from '../database/connection.js';
@@ -24,19 +25,13 @@ import { getDirectoryHealth } from '../utils/storage-health.util.js';
 
 const router = Router();
 
-// Setup response helpers for all routes
-// 为所有路由设置响应辅助函数
 router.use((req: Request, res: Response, next: NextFunction) => {
   setupResponseHelpers(res);
   next();
 });
 
-// CSRF token for all routes (generate new token for each request)
-// 为所有路由设置 CSRF token（为每个请求生成新 token）
 router.use(csrfToken);
 
-// Health check endpoint
-// 健康检查端点
 router.get('/health', async (req: Request, res: Response) => {
   const startTime = Date.now();
 
@@ -55,8 +50,6 @@ router.get('/health', async (req: Request, res: Response) => {
     },
   };
 
-  // Check database connection
-  // 检查数据库连接
   try {
     const dbStart = Date.now();
     const dbConnected = await testConnection();
@@ -95,8 +88,6 @@ router.get('/health', async (req: Request, res: Response) => {
   });
 });
 
-// API routes
-// API 路由
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/research', researchRoutes);
@@ -105,5 +96,6 @@ router.use('/courses', courseRoutes);
 router.use('/units', unitRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/feedback', feedbackRoutes);
 
 export default router;

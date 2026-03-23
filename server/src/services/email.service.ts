@@ -17,6 +17,10 @@ import { logger } from '../utils/logger.js';
 export class EmailService {
   private static transporter: nodemailer.Transporter | null = null;
 
+  static isEnabled(): boolean {
+    return config.email.enabled;
+  }
+
   /**
    * Initialize email transporter
    * 初始化邮件传输器
@@ -58,6 +62,7 @@ export class EmailService {
     subject: string;
     text?: string;
     html?: string;
+    replyTo?: string;
   }): Promise<boolean> {
     const transporter = this.getTransporter();
 
@@ -73,6 +78,7 @@ export class EmailService {
         subject: options.subject,
         text: options.text,
         html: options.html,
+        replyTo: options.replyTo,
       });
 
       logger.info(`Email sent: ${info.messageId}`);

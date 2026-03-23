@@ -56,8 +56,8 @@ export const apiRateLimiter = rateLimit({
  * 认证速率限制器（严格）
  */
 export const authRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute / 1 分钟
-  max: 10, // 10 attempts / 10 次尝试
+  windowMs: 60 * 1000,
+  max: 10,
   message: {
     success: false,
     error: {
@@ -71,7 +71,7 @@ export const authRateLimiter = rateLimit({
   handler: (req: Request, res: Response) => {
     sendError(res, '登录尝试次数过多，请稍后再试', 'RATE_LIMIT_EXCEEDED', 429);
   },
-  skipSuccessfulRequests: false, // Count all requests, not just failed ones / 计算所有请求，而不仅仅是失败的请求
+  skipSuccessfulRequests: false,
 });
 
 /**
@@ -79,8 +79,8 @@ export const authRateLimiter = rateLimit({
  * 注册速率限制器
  */
 export const registerRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour / 1 小时
-  max: 5, // 5 registrations per hour / 每小时 5 次注册
+  windowMs: 60 * 60 * 1000,
+  max: 5,
   message: {
     success: false,
     error: {
@@ -101,8 +101,8 @@ export const registerRateLimiter = rateLimit({
  * 密码重置速率限制器
  */
 export const passwordResetRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour / 1 小时
-  max: 3, // 3 requests per hour / 每小时 3 次请求
+  windowMs: 60 * 60 * 1000,
+  max: 3,
   message: {
     success: false,
     error: {
@@ -119,12 +119,34 @@ export const passwordResetRateLimiter = rateLimit({
 });
 
 /**
+ * Feedback rate limiter
+ * 反馈提交速率限制器
+ */
+export const feedbackRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: '反馈提交过于频繁，请稍后再试',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => getClientIp(req),
+  handler: (req: Request, res: Response) => {
+    sendError(res, '反馈提交过于频繁，请稍后再试', 'RATE_LIMIT_EXCEEDED', 429);
+  },
+});
+
+/**
  * CAPTCHA rate limiter
  * 验证码速率限制器
  */
 export const captchaRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute / 1 分钟
-  max: 60, // 60 CAPTCHAs per minute / 每分钟 60 个验证码
+  windowMs: 60 * 1000,
+  max: 60,
   message: {
     success: false,
     error: {
@@ -146,8 +168,8 @@ export const captchaRateLimiter = rateLimit({
  * Token 刷新速率限制器
  */
 export const tokenRefreshRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute / 1 分钟
-  max: 20, // 20 refreshes per minute / 每分钟 20 次刷新
+  windowMs: 60 * 1000,
+  max: 20,
   message: {
     success: false,
     error: {

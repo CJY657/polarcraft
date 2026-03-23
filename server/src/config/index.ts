@@ -75,15 +75,15 @@ const cookieSecure =
   (process.env.COOKIE_SECURE !== 'false' && (process.env.NODE_ENV === 'production' || cookieSameSite === 'none'));
 const httpKeepAliveTimeoutMs = parsePositiveInt(
   process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS,
-  120000
+  120000,
 );
 const httpHeadersTimeoutMs = Math.max(
   parsePositiveInt(process.env.HTTP_HEADERS_TIMEOUT_MS, httpKeepAliveTimeoutMs + 1000),
-  httpKeepAliveTimeoutMs + 1000
+  httpKeepAliveTimeoutMs + 1000,
 );
 const httpRequestTimeoutMs = parsePositiveInt(
   process.env.HTTP_REQUEST_TIMEOUT_MS,
-  10 * 60 * 1000
+  10 * 60 * 1000,
 );
 
 // =====================================================
@@ -103,7 +103,7 @@ export const config = {
     name: process.env.MONGODB_DB_NAME || process.env.DB_NAME || 'polarcraft',
     maxPoolSize: parseInt(
       process.env.DB_MAX_POOL_SIZE || process.env.DB_CONNECTION_LIMIT || '10',
-      10
+      10,
     ),
   },
 
@@ -167,6 +167,15 @@ export const config = {
     fromName: process.env.EMAIL_FROM_NAME || 'PolarCraft',
   },
 
+  // Feedback routing / 反馈投递配置
+  feedback: {
+    defaultRecipient: process.env.FEEDBACK_EMAIL_TO || '',
+    experimentRecipient:
+      process.env.FEEDBACK_EXPERIMENT_EMAIL_TO || process.env.FEEDBACK_EMAIL_TO || '',
+    productRecipient:
+      process.env.FEEDBACK_PRODUCT_EMAIL_TO || process.env.FEEDBACK_EMAIL_TO || '',
+  },
+
   // Logging / 日志配置
   logging: {
     level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
@@ -210,7 +219,7 @@ export function validateConfig(): void {
 
   if (missingVars.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missingVars.join(', ')}`
+      `Missing required environment variables: ${missingVars.join(', ')}`,
     );
   }
 

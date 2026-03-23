@@ -46,3 +46,9 @@ services:
         value: true
       - key: EMAIL_ENABLED
         value: false
+      - key: FEEDBACK_EMAIL_TO
+        sync: false
+      - key: FEEDBACK_EXPERIMENT_EMAIL_TO
+        sync: false
+      - key: FEEDBACK_PRODUCT_EMAIL_TO
+        sync: false
