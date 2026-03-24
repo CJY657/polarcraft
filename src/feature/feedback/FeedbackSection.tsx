@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   feedbackApi,
   type FeedbackCategory,
-  type FeedbackEmailStatus,
 } from "@/lib/feedback.service";
 
 interface FeedbackSectionProps {
@@ -59,18 +58,6 @@ function getSearchValue(searchParams: URLSearchParams, key: string): string {
 
 function parseCategory(value: string): FeedbackCategory {
   return value === "experiment" ? "experiment" : "product";
-}
-
-function getEmailStatusCopy(emailStatus: FeedbackEmailStatus): string {
-  if (emailStatus === "sent") {
-    return "反馈已提交，并已发送到对应邮箱。";
-  }
-
-  if (emailStatus === "failed") {
-    return "反馈已提交，但邮件转发失败。内容已保存在后台。";
-  }
-
-  return "反馈已提交，但当前没有启用邮件转发。内容已保存在后台。";
 }
 
 function isValidEmail(value: string): boolean {
@@ -179,7 +166,7 @@ export function FeedbackSection({ isDark }: FeedbackSectionProps) {
       });
 
       setSubmissionId(result.id);
-      setNotice({ tone: "success", text: getEmailStatusCopy(result.emailStatus) });
+      setNotice({ tone: "success", text: "反馈已提交，管理员可在后台反馈面板查看。" });
       setForm((current) => ({
         ...current,
         subject: "",
@@ -220,7 +207,7 @@ export function FeedbackSection({ isDark }: FeedbackSectionProps) {
             把使用过程里的问题，直接送回对应的人手里。
           </h2>
           <p className="mt-4 text-base leading-8 text-[var(--glass-text-muted)] sm:text-lg">
-            这里区分两类反馈：一类是具体实验的问题与建议，另一类是针对平台本身的功能建议。系统会根据你选择的类型，把内容路由到对应的反馈邮箱。
+            这里区分两类反馈：一类是具体实验的问题与建议，另一类是针对平台本身的功能建议。提交后内容会保存到后台，只有管理员账户可以在管理员面板查看。
           </p>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-2">
@@ -288,8 +275,8 @@ export function FeedbackSection({ isDark }: FeedbackSectionProps) {
                 </p>
                 <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
                   {form.category === "experiment"
-                    ? "这条反馈会优先发送到实验反馈邮箱；如果没有单独配置，会退回到默认反馈邮箱。"
-                    : "这条反馈会优先发送到软件建议邮箱；如果没有单独配置，会退回到默认反馈邮箱。"}
+                    ? "这条反馈会归档到后台的实验反馈列表，便于管理员按实验问题集中处理。"
+                    : "这条反馈会归档到后台的软件建议列表，便于管理员集中查看和跟进。"}
                 </p>
                 {originPath ? (
                   <p className="mt-3 text-xs leading-6 text-[var(--glass-text-muted)]">
@@ -471,7 +458,7 @@ export function FeedbackSection({ isDark }: FeedbackSectionProps) {
 
             <div className="flex flex-col gap-3 border-t border-[var(--paper-border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm leading-7 text-[var(--glass-text-muted)]">
-                提交后会先保存反馈，再尝试转发到对应邮箱。
+                提交后内容会直接保存到后台反馈面板，仅管理员账户可见。
               </p>
               <button
                 type="submit"

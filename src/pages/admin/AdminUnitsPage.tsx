@@ -20,6 +20,7 @@ import {
   FileText,
   GripVertical,
   Loader2,
+  MessageSquareText,
   Pencil,
   Plus,
   Trash2,
@@ -150,13 +151,27 @@ export default function AdminUnitsPage() {
             : "bg-white/80 border-b border-gray-200"
         )}
         rightContent={
-          <button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            新建单元
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/admin/feedback")}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                theme === "dark"
+                  ? "bg-slate-800 text-slate-100 hover:bg-slate-700"
+                  : "bg-white text-slate-700 hover:bg-slate-100"
+              )}
+            >
+              <MessageSquareText className="w-4 h-4" />
+              反馈意见
+            </button>
+            <button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              新建单元
+            </button>
+          </div>
         }
       />
 

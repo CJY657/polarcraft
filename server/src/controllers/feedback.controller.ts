@@ -37,4 +37,27 @@ export class FeedbackController {
       res.error('提交反馈失败，请稍后再试', 'SERVER_ERROR', 500);
     }
   }
+
+  static async list(req: Request, res: Response): Promise<void> {
+    try {
+      const category =
+        req.query.category === 'experiment' || req.query.category === 'product'
+          ? req.query.category
+          : undefined;
+      const limit =
+        typeof req.query.limit === 'string'
+          ? Number.parseInt(req.query.limit, 10)
+          : undefined;
+
+      const result = await FeedbackService.listFeedback({
+        category,
+        limit,
+      });
+
+      res.success(result);
+    } catch (error) {
+      logger.error('List feedback error:', error);
+      res.error('获取反馈列表失败，请稍后再试', 'SERVER_ERROR', 500);
+    }
+  }
 }

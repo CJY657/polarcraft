@@ -1,7 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getCollection } from '../database/connection.js';
 import { normalizeDocument } from '../database/mongo.util.js';
-import type { FeedbackEmailStatus, FeedbackSubmission } from '../types/feedback.types.js';
+import type {
+  FeedbackCategory,
+  FeedbackEmailStatus,
+  FeedbackSubmission,
+} from '../types/feedback.types.js';
 
 const feedbackCollection = () => getCollection('feedback_submissions');
 
@@ -41,5 +45,26 @@ export class FeedbackModel {
     return normalizeDocument<FeedbackSubmission>(
       await feedbackCollection().findOne({ id }),
     );
+  }
+
+  static async list(options: {
+    category?: FeedbackCategory;
+    limit: number;
+  }): Promise<FeedbackSubmission[]> {
+    const query = options.category ? { category: options.category } : {};
+    const documents = await feedbackCollection()
+      .find(query)
+      .sort({ created_at: -1 })
+      .limit(options.limit)
+      .toArray();
+
+    return documents
+      .map((document) => normalizeDocument<FeedbackSubmission>(document))
+      .filter((document): document is FeedbackSubmission => document !== null);
+  }
+
+  static async count(category?: FeedbackCategory): Promise<number> {
+    const query = category ? { category } : {};
+    return feedbackCollection().countDocuments(query);
   }
 }

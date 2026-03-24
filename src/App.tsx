@@ -121,6 +121,7 @@ const AboutPage = lazy(() => import("@/pages/AboutPage"));
 // Admin Pages - 管理员页面
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
 const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
+const AdminFeedbackPage = lazy(() => import("@/pages/admin/AdminFeedbackPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
 const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => ({ default: m.AdminRoute })));
 
@@ -384,6 +385,14 @@ function AppRouterContent() {
             element={
               <AdminRoute>
                 <UnitEditorPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/feedback"
+            element={
+              <AdminRoute>
+                <AdminFeedbackPage />
               </AdminRoute>
             }
           />

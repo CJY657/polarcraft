@@ -182,7 +182,7 @@ export default function CourseViewerPage() {
                       theme === "dark" ? "text-amber-100/80" : "text-amber-700"
                     }`}
                   >
-                    表单会自动带上当前实验信息，便于把意见发到对应邮箱。
+                    表单会自动带上当前实验信息，便于管理员在后台定位和查看这条反馈。
                   </p>
                 </div>
                 <Link

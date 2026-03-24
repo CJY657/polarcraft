@@ -20,6 +20,7 @@ import {
   Layers,
   FolderKanban,
   Bell,
+  MessageSquareText,
 } from 'lucide-react';
 
 interface UserDropdownProps {
@@ -153,6 +154,12 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       label: t('admin.unitsAndExperiments', '单元与实验'),
       icon: Layers,
       href: '/admin/units',
+    },
+    {
+      id: 'feedback',
+      label: '反馈意见',
+      icon: MessageSquareText,
+      href: '/admin/feedback',
     },
   ];
 

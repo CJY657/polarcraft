@@ -1,7 +1,6 @@
 import { api } from "./api";
 
 export type FeedbackCategory = "experiment" | "product";
-export type FeedbackEmailStatus = "sent" | "not_configured" | "failed";
 
 export interface CreateFeedbackInput {
   category: FeedbackCategory;
@@ -17,7 +16,30 @@ export interface CreateFeedbackInput {
 
 export interface FeedbackSubmissionResult {
   id: string;
-  emailStatus: FeedbackEmailStatus;
+}
+
+export interface FeedbackAdminItem {
+  id: string;
+  category: FeedbackCategory;
+  subject: string;
+  content: string;
+  course_id: string | null;
+  course_title: string | null;
+  source_page: string | null;
+  page_path: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  user_id: string | null;
+  username: string | null;
+  user_role: "user" | "admin" | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export interface FeedbackListResult {
+  items: FeedbackAdminItem[];
+  total: number;
 }
 
 export const feedbackApi = {
@@ -28,5 +50,28 @@ export const feedbackApi = {
     }
 
     throw new Error(response.error?.message || "提交反馈失败");
+  },
+
+  async list(params?: {
+    category?: FeedbackCategory | "all";
+    limit?: number;
+  }): Promise<FeedbackListResult> {
+    const search = new URLSearchParams();
+
+    if (params?.category && params.category !== "all") {
+      search.set("category", params.category);
+    }
+
+    if (typeof params?.limit === "number") {
+      search.set("limit", String(params.limit));
+    }
+
+    const query = search.toString();
+    const response = await api.get<FeedbackListResult>(`/api/feedback${query ? `?${query}` : ""}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || "获取反馈列表失败");
   },
 };

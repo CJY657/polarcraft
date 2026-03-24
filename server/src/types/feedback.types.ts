@@ -44,5 +44,14 @@ export interface FeedbackSubmission {
 
 export interface FeedbackSubmissionResult {
   id: string;
-  emailStatus: FeedbackEmailStatus;
+}
+
+export interface ListFeedbackOptions {
+  category?: FeedbackCategory;
+  limit?: number;
+}
+
+export interface FeedbackListResult {
+  items: FeedbackSubmission[];
+  total: number;
 }
