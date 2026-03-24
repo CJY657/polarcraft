@@ -212,3 +212,10 @@ export const validateCreateFeedback = validate(
     .withMessage('联系邮箱格式不正确')
     .normalizeEmail(),
 );
+
+export const validateCreateCourseDiscussionComment = validate(
+  body('content')
+    .trim()
+    .isLength({ min: 1, max: 2000 })
+    .withMessage('评论内容长度必须在 1-2000 个字符之间'),
+);

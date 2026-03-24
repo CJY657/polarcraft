@@ -87,6 +87,14 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
+    name: 'course_discussion_comments',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { course_id: 1, created_at: -1 }, name: 'idx_course_created' },
+      { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
+    ],
+  },
+  {
     name: 'user_notifications',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

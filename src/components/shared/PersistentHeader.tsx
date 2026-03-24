@@ -41,6 +41,7 @@ const NAV_ITEMS = [
   { label: "模拟", path: "/demos" },
   { label: "成果", path: "/gallery" },
   { label: "研究", path: "/lab/explore" },
+  { label: "反馈", path: "/feedback" },
   { label: "关于", path: "/about" },
 ];
 

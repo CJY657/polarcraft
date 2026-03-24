@@ -141,6 +141,31 @@ export const feedbackRateLimiter = rateLimit({
 });
 
 /**
+ * Discussion comment rate limiter
+ * 讨论留言速率限制器
+ */
+export const discussionRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: '讨论留言提交过于频繁，请稍后再试',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => {
+    const userId = req.user?.sub;
+    return userId ? `user:${userId}` : getClientIp(req);
+  },
+  handler: (req: Request, res: Response) => {
+    sendError(res, '讨论留言提交过于频繁，请稍后再试', 'RATE_LIMIT_EXCEEDED', 429);
+  },
+});
+
+/**
  * CAPTCHA rate limiter
  * 验证码速率限制器
  */

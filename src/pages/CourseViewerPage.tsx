@@ -8,7 +8,7 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2, MessageSquarePlus, Upload } from "lucide-react";
+import { Loader2, MessageSquarePlus, MessageSquare, Upload } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -160,87 +160,96 @@ export default function CourseViewerPage() {
         </div>
       ) : (
         <div>
-          <div className="mb-4 w-full px-4 pt-4 xl:px-6">
-            <div className="space-y-3">
+          {user?.role === "admin" && (
+            <div className="mb-4 w-full px-4 pt-4 xl:px-6">
               <div
                 className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
                   theme === "dark"
-                    ? "border-amber-500/30 bg-amber-500/10"
-                    : "border-amber-200 bg-amber-50"
+                    ? "border-cyan-500/30 bg-cyan-500/10"
+                    : "border-cyan-200 bg-cyan-50"
                 }`}
               >
                 <div>
                   <p
                     className={`text-sm font-medium ${
-                      theme === "dark" ? "text-amber-100" : "text-amber-900"
+                      theme === "dark" ? "text-cyan-200" : "text-cyan-900"
                     }`}
                   >
-                    如果这个实验有问题、缺少说明，或者你有改进建议，可以直接提交反馈。
+                    仅管理员可上传实验媒体资源
                   </p>
                   <p
                     className={`text-xs ${
-                      theme === "dark" ? "text-amber-100/80" : "text-amber-700"
+                      theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
                     }`}
                   >
-                    表单会自动带上当前实验信息，便于管理员在后台定位和查看这条反馈。
+                    使用实验管理页上传视频、图片和 PPT 相关资源。
                   </p>
                 </div>
-                <Link
-                  to={`/about?${feedbackSearch}#feedback`}
+                <button
+                  onClick={() => navigate(`/admin/experiments/${course.id}?tab=media`)}
                   className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
                     theme === "dark"
-                      ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
-                      : "bg-amber-500 text-white hover:bg-amber-600"
+                      ? "bg-cyan-500 text-white hover:bg-cyan-400"
+                      : "bg-cyan-600 text-white hover:bg-cyan-700"
                   }`}
                 >
-                  <MessageSquarePlus className="h-4 w-4" />
-                  提交实验反馈
-                </Link>
+                  <Upload className="h-4 w-4" />
+                  上传资源
+                </button>
               </div>
-
-              {user?.role === "admin" && (
-                <div
-                  className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                    theme === "dark"
-                      ? "border-cyan-500/30 bg-cyan-500/10"
-                      : "border-cyan-200 bg-cyan-50"
-                  }`}
-                >
-                  <div>
-                    <p
-                      className={`text-sm font-medium ${
-                        theme === "dark" ? "text-cyan-200" : "text-cyan-900"
-                      }`}
-                    >
-                      仅管理员可上传实验媒体资源
-                    </p>
-                    <p
-                      className={`text-xs ${
-                        theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
-                      }`}
-                    >
-                      使用实验管理页上传视频、图片和 PPT 相关资源。
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/admin/experiments/${course.id}?tab=media`)}
-                    className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
-                      theme === "dark"
-                        ? "bg-cyan-500 text-white hover:bg-cyan-400"
-                        : "bg-cyan-600 text-white hover:bg-cyan-700"
-                    }`}
-                  >
-                    <Upload className="h-4 w-4" />
-                    上传资源
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           <Suspense fallback={<ViewerLoader theme={theme} />}>
             <CourseViewer course={courseData} theme={theme} />
           </Suspense>
+
+          <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
+            <Link
+              to={`/feedback?${feedbackSearch}#feedback`}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-[0_14px_36px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.24)] sm:px-4 ${
+                theme === "dark"
+                  ? "border-amber-300/30 bg-slate-950/88 text-amber-100 hover:border-amber-300/50 hover:bg-slate-900"
+                  : "border-amber-200 bg-white/92 text-amber-900 hover:border-amber-300 hover:bg-white"
+              }`}
+              aria-label={isZh ? "提交实验反馈" : "Submit experiment feedback"}
+            >
+              <span
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+                  theme === "dark"
+                    ? "bg-amber-300/18 text-amber-200"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                <MessageSquarePlus className="h-4 w-4" />
+              </span>
+              <span className="hidden sm:inline">{isZh ? "实验反馈" : "Feedback"}</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                const discussionElement = document.getElementById("experiment-discussion");
+                discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-[0_14px_36px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.24)] sm:px-4 ${
+                theme === "dark"
+                  ? "border-indigo-300/30 bg-indigo-950/88 text-indigo-100 hover:border-indigo-300/50 hover:bg-indigo-900"
+                  : "border-indigo-200 bg-white/92 text-indigo-900 hover:border-indigo-300 hover:bg-white"
+              }`}
+              aria-label={isZh ? "跳转至实验讨论" : "Go to discussion"}
+            >
+              <span
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+                  theme === "dark"
+                    ? "bg-indigo-300/18 text-indigo-200"
+                    : "bg-indigo-100 text-indigo-700"
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+              </span>
+              <span className="hidden sm:inline">{isZh ? "参与讨论" : "Discussion"}</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

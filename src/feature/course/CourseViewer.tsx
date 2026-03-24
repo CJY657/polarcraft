@@ -18,6 +18,7 @@ import {
   Minimize2,
   Clock,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import type { CourseData, MediaResource, MediaType, PdfHyperlink } from "@/data/courses";
 import {
@@ -25,6 +26,7 @@ import {
   extractReferenceKeysFromText,
   normalizeMediaReferenceText,
 } from "./mediaReference";
+import { ExperimentDiscussionSection } from "./ExperimentDiscussionSection";
 import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
@@ -988,6 +990,8 @@ function ViewerModuleLoader({
 export function CourseViewer({ course, theme }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
+  const courseTitle =
+    course.title[i18n.language] || course.title["zh-CN"] || course.title["en-US"] || "";
 
   // 当前选中的媒体（用于下方预览区）
   const [selectedMedia, setSelectedMedia] = useState<MediaResource | null>(null);
@@ -1314,7 +1318,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
       {hasPptxLayout && (
         <div
-          className={`min-h-[calc(100vh-80px)] border-t ${
+          className={`min-h-[calc(100vh-140px)] border-t transition-all duration-300 ${
             theme === "dark"
               ? "border-slate-700/70 bg-slate-900/40"
               : "border-slate-200 bg-white/50"
@@ -1322,7 +1326,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
         >
           <div className="grid items-start xl:grid-cols-[264px_1.12fr_0.88fr] 2xl:grid-cols-[284px_1.14fr_0.86fr]">
             <aside
-              className={`persistent-scrollbar xl:h-[calc(100vh-80px)] border-r p-4 overflow-y-auto ${
+              className={`persistent-scrollbar xl:h-[calc(100vh-140px)] border-r p-4 overflow-y-auto transition-all duration-300 ${
                 theme === "dark"
                   ? "border-slate-700/70 bg-slate-800/40"
                   : "border-slate-200 bg-slate-50/50"
@@ -1350,7 +1354,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      {course.title["zh-CN"] || course.title["en-US"]}
+                      {courseTitle}
                     </h2>
                   </div>
                   <Link
@@ -1381,23 +1385,23 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-4">
                 {resourceSections.map((section) => (
                   <div
                     key={section.id}
-                    className={`rounded-[16px] border p-2 ${
+                    className={`rounded-[20px] border p-2.5 transition-all duration-300 ${
                       theme === "dark"
-                        ? "border-slate-700/80 bg-slate-900/55"
-                        : "border-slate-200 bg-white/90"
+                        ? "border-slate-700/80 bg-slate-900/55 hover:border-slate-600/80 shadow-lg shadow-black/10"
+                        : "border-slate-200 bg-white/90 hover:border-slate-300 shadow-sm"
                     }`}
                   >
-                    <div className="mb-2.5 flex items-start justify-between gap-2">
+                    <div className="mb-2.5 flex items-start justify-between gap-2 px-1">
                       <div>
-                        <p className="text-[13px] font-semibold" style={{ color: section.accent }}>
+                        <p className="text-[13px] font-bold" style={{ color: section.accent }}>
                           {section.title}
                         </p>
                         <p
-                          className={`mt-0.5 line-clamp-1 text-[10px] leading-4 ${
+                          className={`mt-0.5 line-clamp-1 text-[10px] leading-4 font-medium ${
                             theme === "dark" ? "text-slate-400" : "text-slate-500"
                           }`}
                         >
@@ -1405,7 +1409,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         </p>
                       </div>
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        className="rounded-full px-2 py-0.5 text-[10px] font-bold"
                         style={{
                           backgroundColor: `${section.accent}18`,
                           color: section.accent,
@@ -1415,7 +1419,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       </span>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {section.items.map((media) => {
                         const isCurrentPpt = media.id === activePptMedia?.id;
                         const isCurrentPreview = media.id === activePreviewMedia?.id;
@@ -1425,23 +1429,23 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           <button
                             key={media.id}
                             onClick={() => handleMediaSelect(media)}
-                            className={`w-full rounded-[14px] border px-2 py-2 text-left transition-all duration-300 ${
+                            className={`w-full rounded-[14px] border px-2 py-2.5 text-left transition-all duration-300 group relative ${
                               isActive
                                 ? theme === "dark"
-                                  ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/20"
-                                  : "border-slate-300 bg-white shadow-sm"
+                                  ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/40"
+                                  : "border-slate-300 bg-white shadow-md shadow-slate-200/50"
                                 : theme === "dark"
-                                  ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-800"
-                                  : "border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white"
-                            } ${media.type !== "image" ? "hover:-translate-y-0.5 hover:shadow-md" : "hover:shadow-sm"}`}
+                                  ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-750"
+                                  : "border-slate-100 bg-white/60 hover:border-slate-200 hover:bg-white"
+                            } hover:-translate-y-0.5`}
                           >
-                            <div className="flex items-start gap-2">
+                            <div className="flex items-start gap-2.5">
                               <div
-                                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+                                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
                                 style={{
                                   backgroundColor: isActive
                                     ? `${MEDIA_TYPE_COLORS[media.type]}24`
-                                    : `${MEDIA_TYPE_COLORS[media.type]}16`,
+                                    : `${MEDIA_TYPE_COLORS[media.type]}12`,
                                   color: MEDIA_TYPE_COLORS[media.type],
                                 }}
                               >
@@ -1451,7 +1455,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <p
-                                    className={`line-clamp-2 text-[12px] font-semibold leading-[1.1rem] ${
+                                    className={`line-clamp-2 text-[12px] font-bold leading-[1.2rem] ${
                                       theme === "dark" ? "text-white" : "text-slate-900"
                                     }`}
                                   >
@@ -1459,9 +1463,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                   </p>
                                 </div>
 
-                                <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                   <span
-                                    className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                                     style={{
                                       backgroundColor: `${MEDIA_TYPE_COLORS[media.type]}18`,
                                       color: MEDIA_TYPE_COLORS[media.type],
@@ -1471,7 +1475,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                   </span>
                                   {media.duration && (
                                     <span
-                                      className={`inline-flex items-center gap-1 text-[10px] ${
+                                      className={`inline-flex items-center gap-1 text-[10px] font-medium ${
                                         theme === "dark" ? "text-slate-400" : "text-slate-500"
                                       }`}
                                     >
@@ -1483,9 +1487,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                 </div>
 
                                 {isCurrentPreview && (
-                                  <div className="mt-1.5 flex flex-wrap gap-1">
-                                    <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-500">
-                                      {isZh ? "右侧预览" : "Right preview"}
+                                  <div className="mt-1.5">
+                                    <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-500 uppercase tracking-wider">
+                                      {isZh ? "正在预览" : "Previewing"}
                                     </span>
                                   </div>
                                 )}
@@ -1497,28 +1501,57 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     </div>
                   </div>
                 ))}
+
+                <button
+                  onClick={() => {
+                    const discussionElement = document.getElementById("experiment-discussion");
+                    discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className={`w-full rounded-[20px] border p-4 text-left transition-all duration-300 hover:-translate-y-1 ${
+                    theme === "dark"
+                      ? "border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20"
+                      : "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 shadow-sm"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className={`text-[13px] font-bold ${theme === "dark" ? "text-indigo-200" : "text-indigo-900"}`}>
+                        {isZh ? "参与讨论" : "Join Discussion"}
+                      </p>
+                      <p className={`text-[10px] font-medium opacity-80 ${theme === "dark" ? "text-indigo-300" : "text-indigo-700"}`}>
+                        {isZh ? "与同学老师实时互动" : "Discuss with classmates"}
+                      </p>
+                    </div>
+                  </div>
+                </button>
               </div>
             </aside>
 
             <section
-              className={`p-4 xl:h-[calc(100vh-80px)] overflow-y-auto ${
+              className={`p-4 xl:h-[calc(100vh-140px)] overflow-y-auto transition-all duration-300 ${
                 theme === "dark"
-                  ? "border-r border-slate-700/70"
-                  : "border-r border-slate-200"
+                  ? "border-r border-slate-700/70 bg-slate-900/20"
+                  : "border-r border-slate-200 bg-white/30"
               }`}
             >
               <div className="mx-auto flex h-full w-full flex-col">
-                <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="mb-4 flex items-start justify-between gap-3 px-1">
                   <div>
-                    <p
-                      className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-                        theme === "dark" ? "text-amber-300/80" : "text-amber-700"
-                      }`}
-                    >
-                      {isZh ? "课件演示" : "Presentation"}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <p
+                        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                          theme === "dark" ? "text-amber-300/80" : "text-amber-700"
+                        }`}
+                      >
+                        {isZh ? "核心课件演示" : "Core Presentation"}
+                      </p>
+                    </div>
                     <h3
-                      className={`mt-2 text-xl font-semibold ${
+                      className={`text-xl font-bold tracking-tight ${
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
@@ -1529,10 +1562,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   {activePptMedia && (
                     <button
                       onClick={() => window.open(activePptMedia.url, "_blank")}
-                      className={`rounded-xl p-2 transition-colors ${
+                      className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                         theme === "dark"
-                          ? "text-slate-300 hover:bg-slate-700"
-                          : "text-slate-600 hover:bg-white"
+                          ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                          : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
                       }`}
                       title={t("page.courses.download")}
                     >
@@ -1542,10 +1575,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 </div>
 
                 <div
-                  className={`min-h-[400px] flex-1 overflow-hidden rounded-[22px] border ${
+                  className={`flex-1 overflow-hidden rounded-[28px] border transition-all duration-500 ${
                     theme === "dark"
-                      ? "border-slate-700 bg-slate-950/70"
-                      : "border-slate-200 bg-white"
+                      ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                      : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
                   }`}
                 >
                   {activePptMedia ? (
@@ -1563,10 +1596,13 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       activeMediaId={activePreviewMedia?.id}
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <p className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>
-                        {isZh ? "当前课程没有可播放的 PPT 课件" : "No presentation available"}
-                      </p>
+                    <div className="flex h-full items-center justify-center p-12 text-center">
+                      <div>
+                        <FileText className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`} />
+                        <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                          {isZh ? "当前课程没有可播放的 PPT 课件" : "No presentation available"}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1574,28 +1610,33 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
             </section>
 
             <section
-              className="p-4 xl:h-[calc(100vh-80px)] overflow-y-auto"
+              className={`p-4 xl:h-[calc(100vh-140px)] overflow-y-auto transition-all duration-300 ${
+                theme === "dark" ? "bg-slate-900/10" : "bg-white/20"
+              }`}
             >
               <div className="mx-auto flex h-full w-full flex-col">
-                <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="mb-4 flex items-start justify-between gap-3 px-1">
                   <div>
-                    <p
-                      className={`text-xs font-semibold uppercase tracking-[0.18em] ${
-                        theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
-                      }`}
-                    >
-                      {isZh ? "对应资源" : "Preview"}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                      <p
+                        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                          theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
+                        }`}
+                      >
+                        {isZh ? "对应实验资源" : "Associated Resources"}
+                      </p>
+                    </div>
                     <h3
-                      className={`mt-2 text-lg font-semibold ${
+                      className={`text-lg font-bold tracking-tight ${
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
                       {activePreviewMedia
                         ? getMediaTitle(activePreviewMedia)
                         : isZh
-                          ? "从左侧选择视频或图片"
-                          : "Select a video or image"}
+                          ? "请从左侧选择资源"
+                          : "Select from left"}
                     </h3>
                   </div>
 
@@ -1603,10 +1644,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={toggleFullscreen}
-                        className={`rounded-xl p-2 transition-colors ${
+                        className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                           theme === "dark"
-                            ? "text-slate-300 hover:bg-slate-700"
-                            : "text-slate-600 hover:bg-white"
+                            ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                            : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
                         }`}
                         title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
                       >
@@ -1614,10 +1655,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       </button>
                       <button
                         onClick={() => window.open(activePreviewMedia.url, "_blank")}
-                        className={`rounded-xl p-2 transition-colors ${
+                        className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                           theme === "dark"
-                            ? "text-slate-300 hover:bg-slate-700"
-                            : "text-slate-600 hover:bg-white"
+                            ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                            : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
                         }`}
                         title={t("page.courses.download")}
                       >
@@ -1628,58 +1669,78 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 </div>
 
                 <div
-                  className={`min-h-[300px] flex-1 overflow-hidden rounded-[22px] border ${
+                  className={`flex-1 overflow-hidden rounded-[28px] border transition-all duration-500 ${
                     theme === "dark"
-                      ? "border-slate-700 bg-slate-950/70"
-                      : "border-slate-200 bg-white"
+                      ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                      : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
                   }`}
                 >
                   {activePreviewMedia ? (
                     renderMedia(activePreviewMedia)
                   ) : (
-                    <div className="flex h-full items-center justify-center px-6 text-center">
-                      <p className={theme === "dark" ? "text-slate-400" : "text-slate-500"}>
-                        {isZh
-                          ? "左侧选择任意视频或图片后，会在这里同步播放。"
-                          : "Pick a video or image from the left to preview it here."}
-                      </p>
+                    <div className="flex h-full items-center justify-center px-12 text-center">
+                      <div className="max-w-[240px]">
+                        <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}>
+                          <Play className="h-8 w-8" />
+                        </div>
+                        <p className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                          {isZh
+                            ? "在左侧选择视频或图片，实验细节将在这里同步呈现。"
+                            : "Select a video or image from the left to view experiment details."}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <div
-                  className={`mt-4 rounded-[20px] border px-4 py-3 ${
+                  className={`mt-4 rounded-[22px] border px-5 py-4 transition-all duration-300 ${
                     theme === "dark"
-                      ? "border-slate-700 bg-slate-900/70"
-                      : "border-slate-200 bg-white/90"
+                      ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
+                      : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
                   }`}
                 >
                   {activePreviewMedia ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className="rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={{
-                          backgroundColor: `${MEDIA_TYPE_COLORS[activePreviewMedia.type]}18`,
-                          color: MEDIA_TYPE_COLORS[activePreviewMedia.type],
-                        }}
-                      >
-                        {getMediaTypeLabel(activePreviewMedia.type)}
-                      </span>
-                      {activePreviewMedia.duration && (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center gap-1 text-xs ${
-                            theme === "dark" ? "text-slate-400" : "text-slate-500"
-                          }`}
+                          className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                          style={{
+                            backgroundColor: `${MEDIA_TYPE_COLORS[activePreviewMedia.type]}18`,
+                            color: MEDIA_TYPE_COLORS[activePreviewMedia.type],
+                          }}
                         >
-                          <Clock className="h-3.5 w-3.5" />
-                          {Math.floor(activePreviewMedia.duration / 60)}:
-                          {(activePreviewMedia.duration % 60).toString().padStart(2, "0")}
+                          {getMediaTypeLabel(activePreviewMedia.type)}
                         </span>
-                      )}
+                        {activePreviewMedia.duration && (
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                              theme === "dark" ? "text-slate-400" : "text-slate-500"
+                            }`}
+                          >
+                            <Clock className="h-3.5 w-3.5" />
+                            {Math.floor(activePreviewMedia.duration / 60)}:
+                            {(activePreviewMedia.duration % 60).toString().padStart(2, "0")}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <button 
+                        onClick={() => {
+                          const discussionElement = document.getElementById("experiment-discussion");
+                          discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
+                          theme === "dark" ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-700"
+                        }`}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {isZh ? "对此资源提问" : "Ask about this"}
+                      </button>
                     </div>
                   ) : (
-                    <p className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                      {isZh ? "当前没有右侧预览资源。" : "No preview media selected."}
+                    <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                      {isZh ? "未选中任何预览资源。" : "No preview media selected."}
                     </p>
                   )}
                 </div>
@@ -1832,6 +1893,15 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
           </div>
         </div>
       )}
+
+      <div id="experiment-discussion" className="scroll-mt-20">
+        <ExperimentDiscussionSection
+          courseId={course.id}
+          courseTitle={courseTitle}
+          theme={theme}
+          accentColor={course.color}
+        />
+      </div>
     </div>
   );
 }

@@ -60,6 +60,17 @@ export interface Course {
   updatedAt: string;
 }
 
+export interface CourseDiscussionComment {
+  id: string;
+  courseId: string;
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // =====================================================
 // Input Types / 输入类型
 // =====================================================
@@ -127,6 +138,10 @@ export interface UpdateHyperlinkInput {
   width?: number;
   height?: number;
   targetMediaId?: string;
+}
+
+export interface CreateCourseDiscussionCommentInput {
+  content: string;
 }
 
 // =====================================================
@@ -202,6 +217,20 @@ export const courseApi = {
       return response.data;
     }
     throw new Error(response.error?.message || "Failed to fetch hyperlinks");
+  },
+
+  /**
+   * Get public discussion comments for a course
+   * 获取课程公开讨论评论
+   */
+  async getPublicDiscussionComments(courseId: string): Promise<CourseDiscussionComment[]> {
+    const response = await api.get<CourseDiscussionComment[]>(
+      `/api/courses/public/${courseId}/discussion-comments`
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || "Failed to fetch discussion comments");
   },
 
   // =====================================================
@@ -311,6 +340,35 @@ export const courseApi = {
     const response = await api.delete<null>(`/api/courses/${courseId}/main-slide`);
     if (!response.success) {
       throw new Error(response.error?.message || "Failed to delete main slide");
+    }
+  },
+
+  /**
+   * Add discussion comment for a course
+   * 添加课程讨论评论
+   */
+  async addDiscussionComment(
+    courseId: string,
+    data: CreateCourseDiscussionCommentInput
+  ): Promise<{ id: string }> {
+    const response = await api.post<{ id: string }>(
+      `/api/courses/${courseId}/discussion-comments`,
+      data
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || "Failed to add discussion comment");
+  },
+
+  /**
+   * Delete discussion comment
+   * 删除课程讨论评论
+   */
+  async deleteDiscussionComment(commentId: string): Promise<void> {
+    const response = await api.delete<null>(`/api/courses/discussion-comments/${commentId}`);
+    if (!response.success) {
+      throw new Error(response.error?.message || "Failed to delete discussion comment");
     }
   },
 

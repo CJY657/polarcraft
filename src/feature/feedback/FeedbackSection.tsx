@@ -159,7 +159,7 @@ export function FeedbackSection({ isDark }: FeedbackSectionProps) {
         content,
         courseId: form.category === "experiment" ? courseId || undefined : undefined,
         courseTitle: form.category === "experiment" ? courseTitle || undefined : undefined,
-        sourcePage: originPage || "about-page",
+        sourcePage: originPage || "feedback-page",
         pagePath: originPath || `${location.pathname}${location.search}`,
         contactName: contactName || undefined,
         contactEmail: contactEmail || undefined,

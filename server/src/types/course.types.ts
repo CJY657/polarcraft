@@ -133,6 +133,10 @@ export interface UpdateHyperlinkInput {
   targetMediaId?: string;
 }
 
+export interface CreateCourseDiscussionCommentInput {
+  content: string;
+}
+
 // =====================================================
 // Database Row Types / 数据库行类型
 // =====================================================
@@ -185,6 +189,15 @@ export interface HyperlinkRow {
   width: number;
   height: number;
   target_media_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CourseDiscussionCommentRow {
+  id: string;
+  course_id: string;
+  user_id: string;
+  content: string;
   created_at: Date;
   updated_at: Date;
 }

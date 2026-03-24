@@ -16,6 +16,7 @@ import type {
   MainSlideRow,
   MediaRow,
   HyperlinkRow,
+  CourseDiscussionCommentRow,
   CreateCourseInput,
   UpdateCourseInput,
   CreateMainSlideInput,
@@ -96,6 +97,24 @@ function transformHyperlinkRow(row: HyperlinkRow) {
     width: row.width,
     height: row.height,
     targetMediaId: row.target_media_id,
+  };
+}
+
+function transformDiscussionCommentRow(
+  row: CourseDiscussionCommentRow & {
+    username: string;
+    avatar_url: string | null;
+  }
+) {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    userId: row.user_id,
+    username: row.username,
+    avatarUrl: row.avatar_url,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -327,6 +346,72 @@ export class CourseController {
 
     logger.info(`Main slide deleted by ${req.user!.username} for course: ${id}`);
     res.success(null, "主课件删除成功");
+  });
+
+  /**
+   * Get discussion comments
+   * 获取实验讨论评论
+   */
+  static getDiscussionComments = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const course = await CourseModel.getCourseById(id);
+    if (!course) {
+      return res.error("课程不存在", "NOT_FOUND", 404);
+    }
+
+    const comments = await CourseModel.getDiscussionComments(id);
+    res.success(comments.map(transformDiscussionCommentRow));
+  });
+
+  /**
+   * Add discussion comment
+   * 添加实验讨论评论
+   */
+  static addDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
+
+    if (!content) {
+      return res.error("评论内容不能为空", "INVALID_COMMENT_CONTENT", 400);
+    }
+
+    if (content.length > 2000) {
+      return res.error("评论内容不能超过 2000 字", "COMMENT_TOO_LONG", 400);
+    }
+
+    const course = await CourseModel.getCourseById(id);
+    if (!course) {
+      return res.error("课程不存在", "NOT_FOUND", 404);
+    }
+
+    const commentId = await CourseModel.addDiscussionComment(id, req.user!.sub, content);
+
+    logger.info(`Course discussion comment added by ${req.user!.username}: ${commentId}`);
+    res.success({ id: commentId }, "讨论留言发布成功", 201);
+  });
+
+  /**
+   * Delete discussion comment
+   * 删除实验讨论评论
+   */
+  static deleteDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
+    const { commentId } = req.params;
+
+    const comment = await CourseModel.getDiscussionCommentById(commentId);
+    if (!comment) {
+      return res.error("评论不存在", "COMMENT_NOT_FOUND", 404);
+    }
+
+    const canDelete = comment.user_id === req.user!.sub || req.user!.role === "admin";
+    if (!canDelete) {
+      return res.error("无权删除该评论", "FORBIDDEN", 403);
+    }
+
+    await CourseModel.deleteDiscussionComment(commentId);
+
+    logger.info(`Course discussion comment deleted by ${req.user!.username}: ${commentId}`);
+    res.success(null, "讨论留言删除成功");
   });
 
   // ============================================================

@@ -12,6 +12,7 @@ import type {
   MainSlideRow,
   MediaRow,
   HyperlinkRow,
+  CourseDiscussionCommentRow,
   CreateCourseInput,
   UpdateCourseInput,
   CreateMainSlideInput,
@@ -25,6 +26,23 @@ const coursesCollection = () => getCollection('courses');
 const courseMainSlidesCollection = () => getCollection('course_main_slides');
 const courseMediaCollection = () => getCollection('course_media');
 const courseHyperlinksCollection = () => getCollection('course_hyperlinks');
+const courseDiscussionCommentsCollection = () => getCollection('course_discussion_comments');
+const usersCollection = () => getCollection('users');
+
+async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
+  if (userIds.length === 0) {
+    return new Map();
+  }
+
+  const users = normalizeDocuments<{ id: string; username: string; avatar_url: string | null }>(
+    await usersCollection()
+      .find({ id: { $in: [...new Set(userIds)] } })
+      .project({ _id: 0, id: 1, username: 1, avatar_url: 1 })
+      .toArray()
+  );
+
+  return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
+}
 
 export class CourseModel {
   /**
@@ -39,6 +57,7 @@ export class CourseModel {
     await courseMainSlidesCollection().deleteMany({ course_id: { $in: courseIds } });
     await courseMediaCollection().deleteMany({ course_id: { $in: courseIds } });
     await courseHyperlinksCollection().deleteMany({ course_id: { $in: courseIds } });
+    await courseDiscussionCommentsCollection().deleteMany({ course_id: { $in: courseIds } });
 
     const result = await coursesCollection().deleteMany({ id: { $in: courseIds } });
 
@@ -187,6 +206,72 @@ export class CourseModel {
   static async deleteMainSlide(courseId: string): Promise<boolean> {
     const result = await courseMainSlidesCollection().deleteOne({ course_id: courseId });
     logger.info(`Main slide deleted for course: ${courseId}`);
+    return result.deletedCount > 0;
+  }
+
+  /**
+   * Get course discussion comments
+   * 获取实验讨论评论
+   */
+  static async getDiscussionComments(courseId: string): Promise<Array<CourseDiscussionCommentRow & {
+    username: string;
+    avatar_url: string | null;
+  }>> {
+    const comments = normalizeDocuments<CourseDiscussionCommentRow>(
+      await courseDiscussionCommentsCollection()
+        .find({ course_id: courseId })
+        .sort({ created_at: -1 })
+        .toArray()
+    );
+    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+
+    return comments.map((comment) => ({
+      ...comment,
+      username: userMap.get(comment.user_id)?.username || '',
+      avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
+    }));
+  }
+
+  /**
+   * Get course discussion comment by ID
+   * 获取实验讨论评论详情
+   */
+  static async getDiscussionCommentById(commentId: string): Promise<CourseDiscussionCommentRow | null> {
+    return normalizeDocument<CourseDiscussionCommentRow>(
+      await courseDiscussionCommentsCollection().findOne({ id: commentId })
+    );
+  }
+
+  /**
+   * Add course discussion comment
+   * 添加实验讨论评论
+   */
+  static async addDiscussionComment(courseId: string, userId: string, content: string): Promise<string> {
+    const now = new Date();
+    const commentId = generateId();
+
+    const comment: CourseDiscussionCommentRow = {
+      id: commentId,
+      course_id: courseId,
+      user_id: userId,
+      content,
+      created_at: now,
+      updated_at: now,
+    };
+
+    await courseDiscussionCommentsCollection().insertOne(comment as unknown as Record<string, unknown>);
+
+    logger.info(`Course discussion comment created: ${commentId}`);
+    return commentId;
+  }
+
+  /**
+   * Delete course discussion comment
+   * 删除实验讨论评论
+   */
+  static async deleteDiscussionComment(commentId: string): Promise<boolean> {
+    const result = await courseDiscussionCommentsCollection().deleteOne({ id: commentId });
+    logger.info(`Course discussion comment deleted: ${commentId}`);
     return result.deletedCount > 0;
   }
 

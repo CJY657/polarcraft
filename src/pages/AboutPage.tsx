@@ -8,6 +8,7 @@ import {
   LibraryBig,
   Orbit,
   Telescope,
+  MessageSquarePlus,
   Users,
   Workflow,
   type LucideIcon,
@@ -15,7 +16,6 @@ import {
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
-import { FeedbackSection } from "@/feature/feedback/FeedbackSection";
 
 interface AccentConfig {
   color: string;
@@ -381,7 +381,81 @@ export default function AboutPage() {
           </aside>
         </section>
 
-        <FeedbackSection isDark={isDark} />
+        <section className="relative overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8 sm:px-8 sm:py-10" style={sectionStyle}>
+          <div className="pointer-events-none absolute inset-y-0 left-8 w-px bg-gradient-to-b from-transparent via-[rgba(184,92,56,0.28)] to-transparent" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(280px,0.92fr)] lg:items-center">
+            <div className="pl-4 sm:pl-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b85c38]">Feedback Desk</p>
+              <h2 className="mt-3 text-3xl font-semibold text-[var(--paper-foreground)] sm:text-4xl" style={{ fontFamily: "var(--font-ui-display)" }}>
+                反馈现在有独立入口，不再挂在关于页末尾。
+              </h2>
+              <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--glass-text-muted)]">
+                如果你想提交实验问题或平台建议，现在可以直接进入独立反馈页面。实验页跳转会自动带上实验上下文，平台级建议则会进入单独的产品改进列表。
+              </p>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link
+                  to="/feedback"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#b85c38] px-5 py-3 text-sm font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5"
+                >
+                  <MessageSquarePlus className="h-4 w-4" />
+                  打开反馈页面
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link to="/experiments" className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-[var(--paper-link)]">
+                  从实验入口开始
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {[
+                {
+                  title: "实验反馈",
+                  description: "适合指出具体实验中的问题、缺失材料、说明不清或内容建议。",
+                  detail: "从实验页跳转时，系统会自动附带实验编号、实验名称和来源路径。",
+                  accent: "#1865f2",
+                  soft: "rgba(24, 101, 242, 0.14)",
+                  Icon: FlaskConical,
+                },
+                {
+                  title: "平台建议",
+                  description: "适合反馈导航结构、交互流程、界面信息组织和性能体验。",
+                  detail: "它现在被提升为一级反馈入口，不需要再从关于页内部寻找表单。",
+                  accent: "#b85c38",
+                  soft: "rgba(184, 92, 56, 0.12)",
+                  Icon: Workflow,
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-[1.8rem] border px-5 py-5"
+                  style={{
+                    borderColor: isDark ? "rgba(148, 163, 184, 0.18)" : "rgba(148, 163, 184, 0.14)",
+                    background: isDark
+                      ? "linear-gradient(180deg, rgba(13, 19, 24, 0.84), rgba(17, 24, 30, 0.94))"
+                      : "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,250,252,0.94))",
+                    boxShadow: "0 22px 46px -38px rgba(34, 24, 18, 0.18)",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: item.soft, color: item.accent }}>
+                      <item.Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">{item.description}</p>
+                      <p className="mt-3 text-sm leading-7" style={{ color: item.accent }}>
+                        {item.detail}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className="relative overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8 sm:px-8 sm:py-10" style={sectionStyle}>
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--paper-link)]/35 to-transparent" />

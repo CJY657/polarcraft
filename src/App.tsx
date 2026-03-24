@@ -117,6 +117,7 @@ function LegacyAdminCourseEditorRedirect() {
 
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 
 // Admin Pages - 管理员页面
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
@@ -357,6 +358,10 @@ function AppRouterContent() {
           <Route
             path="/about"
             element={<AboutPage />}
+          />
+          <Route
+            path="/feedback"
+            element={<FeedbackPage />}
           />
 
           {/* Profile - 个人中心 */}

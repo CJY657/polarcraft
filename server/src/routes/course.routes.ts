@@ -6,7 +6,9 @@
 import { Router } from "express";
 import { CourseController } from "../controllers/course.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
+import { discussionRateLimiter } from "../middleware/rate-limit.middleware.js";
 import { requireAdmin } from "../middleware/rbac.middleware.js";
+import { validateCreateCourseDiscussionComment } from "../middleware/validation.middleware.js";
 
 const router = Router();
 
@@ -51,9 +53,44 @@ router.get("/public/:id/media", CourseController.getMediaList);
  */
 router.get("/public/:id/hyperlinks", CourseController.getHyperlinks);
 
+/**
+ * @route   GET /api/courses/public/:id/discussion-comments
+ * @desc    Get discussion comments for a course (public)
+ * @access  Public
+ */
+router.get("/public/:id/discussion-comments", CourseController.getDiscussionComments);
+
 // All remaining course routes require authentication
 // 所有剩余课程路由需要认证
 router.use(authenticate);
+
+/**
+ * =====================================================
+ * Discussion Routes / 讨论区路由
+ * =====================================================
+ */
+
+/**
+ * @route   POST /api/courses/:id/discussion-comments
+ * @desc    Add a discussion comment for a course
+ * @access  Private
+ */
+router.post(
+  "/:id/discussion-comments",
+  discussionRateLimiter,
+  validateCreateCourseDiscussionComment,
+  CourseController.addDiscussionComment
+);
+
+/**
+ * @route   DELETE /api/courses/discussion-comments/:commentId
+ * @desc    Delete a discussion comment
+ * @access  Private
+ */
+router.delete(
+  "/discussion-comments/:commentId",
+  CourseController.deleteDiscussionComment
+);
 
 /**
  * =====================================================
