@@ -993,10 +993,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const courseTitle =
     course.title[i18n.language] || course.title["zh-CN"] || course.title["en-US"] || "";
 
-  // 当前选中的媒体（用于下方预览区）
+  // 当前选中的媒体（用于超链接联动和非 PPT 降级布局）
   const [selectedMedia, setSelectedMedia] = useState<MediaResource | null>(null);
   // 当前选中的 PPT 资源（用于中间课件区）
   const [selectedPptMedia, setSelectedPptMedia] = useState<MediaResource | null>(null);
+  // 当前选中的视频资源（用于右侧固定视频区）
+  const [selectedVideoMedia, setSelectedVideoMedia] = useState<MediaResource | null>(null);
+  // 当前选中的图片资源（用于右侧补充图片区）
+  const [selectedImageMedia, setSelectedImageMedia] = useState<MediaResource | null>(null);
   // 下方预览区是否全屏
   const [isFullscreen, setIsFullscreen] = useState(false);
   // 主 PDF 是否全屏
@@ -1017,9 +1021,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const imageMediaList = previewMediaList.filter((media) => media.type === "image");
   const hasPptxLayout = pptMediaList.length > 0;
   const activePptMedia = selectedPptMedia ?? pptMediaList[0] ?? null;
+  const activeVideoMedia = selectedVideoMedia ?? videoMediaList[0] ?? null;
+  const activeImageMedia = selectedImageMedia;
   const activePreviewMedia = hasPptxLayout
-    ? selectedMedia ?? previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null
+    ? activeVideoMedia
     : selectedMedia;
+  const activeHighlightedMediaId = hasPptxLayout
+    ? selectedMedia?.id ?? activeVideoMedia?.id ?? null
+    : activePreviewMedia?.id ?? null;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
   const resourceSummaryChips = [
     {
@@ -1129,11 +1138,13 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     const shouldSyncDeck = options.syncDeck ?? true;
 
     if (media.type === "video") {
+      setSelectedVideoMedia(media);
       setShouldAutoplayPreview(options.autoplay ?? true);
       if (options.restart || selectedMedia?.id === media.id) {
         setPreviewPlaybackKey((previousKey) => previousKey + 1);
       }
     } else {
+      setSelectedImageMedia(media.type === "image" ? media : null);
       setShouldAutoplayPreview(false);
     }
 
@@ -1165,6 +1176,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   useEffect(() => {
     if (!hasPptxLayout) {
       setSelectedPptMedia(null);
+      setSelectedVideoMedia(null);
+      setSelectedImageMedia(null);
       setSelectedMedia(null);
       setIsFullscreen(false);
       setShouldAutoplayPreview(false);
@@ -1174,6 +1187,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     }
 
     setSelectedPptMedia(pptMediaList[0] ?? null);
+    setSelectedVideoMedia(videoMediaList[0] ?? null);
+    setSelectedImageMedia(null);
     setSelectedMedia(
       previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null
     );
@@ -1236,7 +1251,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               preferredPdfUrl={media.previewPdfUrl}
               theme={theme}
               mediaList={previewMediaList}
-              activeMediaId={activePreviewMedia?.id}
+              activeMediaId={activeHighlightedMediaId}
             />
           );
 
@@ -1318,74 +1333,73 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
       {hasPptxLayout && (
         <div
-          className={`min-h-[calc(100vh-140px)] border-t transition-all duration-300 ${
+          className={`flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden border-t transition-all duration-300 ${
             theme === "dark"
               ? "border-slate-700/70 bg-slate-900/40"
               : "border-slate-200 bg-white/50"
           }`}
         >
-          <div className="grid items-start xl:grid-cols-[264px_1.12fr_0.88fr] 2xl:grid-cols-[284px_1.14fr_0.86fr]">
-            <aside
-              className={`persistent-scrollbar xl:h-[calc(100vh-140px)] border-r p-4 overflow-y-auto transition-all duration-300 ${
-                theme === "dark"
-                  ? "border-slate-700/70 bg-slate-800/40"
-                  : "border-slate-200 bg-slate-50/50"
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <div
-                        className={`h-1 w-6 rounded-full ${
-                          theme === "dark" ? "bg-amber-400/60" : "bg-amber-600/60"
-                        }`}
-                      />
-                      <p
-                        className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
-                          theme === "dark" ? "text-amber-300/90" : "text-amber-700"
-                        }`}
-                      >
-                        {isZh ? "资源总览" : "Resources"}
-                      </p>
-                    </div>
-                    <h2
-                      className={`text-xl font-bold leading-tight ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
+          {/* 左侧固定边栏：资源总览 */}
+          <aside
+            className={`persistent-scrollbar w-full lg:w-[280px] xl:w-[320px] 2xl:w-[360px] flex-shrink-0 h-full overflow-y-auto transition-all duration-300 border-b lg:border-b-0 lg:border-r ${
+              theme === "dark"
+                ? "border-slate-700/70 bg-slate-800/40"
+                : "border-slate-200 bg-slate-50/50"
+            }`}
+          >
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex items-center gap-2">
+                    <div
+                      className={`h-1 w-6 rounded-full ${
+                        theme === "dark" ? "bg-amber-400/60" : "bg-amber-600/60"
+                      }`}
+                    />
+                    <p
+                      className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
+                        theme === "dark" ? "text-amber-300/90" : "text-amber-700"
                       }`}
                     >
-                      {courseTitle}
-                    </h2>
+                      {isZh ? "资源总览" : "Resources"}
+                    </p>
                   </div>
-                  <Link
-                    to="/experiments"
-                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
-                      theme === "dark"
-                        ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  <h2
+                    className={`text-xl font-bold leading-tight ${
+                      theme === "dark" ? "text-white" : "text-slate-900"
                     }`}
                   >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    {isZh ? "返回" : "Back"}
-                  </Link>
+                    {courseTitle}
+                  </h2>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {resourceSummaryChips.map((chip) => (
-                    <div
-                      key={chip.key}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm transition-all hover:scale-[1.03] ${chip.className}`}
-                    >
-                      <span className="opacity-80">{chip.icon}</span>
-                      <span>
-                        <span className="text-xs">{chip.count}</span> {chip.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <Link
+                  to="/experiments"
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  {isZh ? "返回" : "Back"}
+                </Link>
               </div>
 
-              <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {resourceSummaryChips.map((chip) => (
+                  <div
+                    key={chip.key}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm transition-all hover:scale-[1.03] ${chip.className}`}
+                  >
+                    <span className="opacity-80">{chip.icon}</span>
+                    <span>
+                      <span className="text-xs">{chip.count}</span> {chip.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-2 space-y-4">
                 {resourceSections.map((section) => (
                   <div
                     key={section.id}
@@ -1422,7 +1436,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     <div className="space-y-1.5">
                       {section.items.map((media) => {
                         const isCurrentPpt = media.id === activePptMedia?.id;
-                        const isCurrentPreview = media.id === activePreviewMedia?.id;
+                        const isCurrentPreview = hasPptxLayout
+                          ? media.id === activeVideoMedia?.id || media.id === activeImageMedia?.id
+                          : media.id === activePreviewMedia?.id;
                         const isActive = isCurrentPpt || isCurrentPreview;
 
                         return (
@@ -1528,133 +1544,40 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   </div>
                 </button>
               </div>
-            </aside>
+            </div>
+          </aside>
 
-            <section
-              className={`p-4 xl:h-[calc(100vh-140px)] overflow-y-auto transition-all duration-300 ${
-                theme === "dark"
-                  ? "border-r border-slate-700/70 bg-slate-900/20"
-                  : "border-r border-slate-200 bg-white/30"
-              }`}
-            >
-              <div className="mx-auto flex h-full w-full flex-col">
-                <div className="mb-4 flex items-start justify-between gap-3 px-1">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                      <p
-                        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                          theme === "dark" ? "text-amber-300/80" : "text-amber-700"
-                        }`}
-                      >
-                        {isZh ? "核心课件演示" : "Core Presentation"}
-                      </p>
-                    </div>
-                    <h3
-                      className={`text-xl font-bold tracking-tight ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
-                      }`}
-                    >
-                      {activePptMedia ? getMediaTitle(activePptMedia) : isZh ? "暂无课件" : "No deck"}
-                    </h3>
-                  </div>
-
-                  {activePptMedia && (
-                    <button
-                      onClick={() => window.open(activePptMedia.url, "_blank")}
-                      className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                        theme === "dark"
-                          ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                          : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                      }`}
-                      title={t("page.courses.download")}
-                    >
-                      <Download className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-
-                <div
-                  className={`flex-1 overflow-hidden rounded-[28px] border transition-all duration-500 ${
-                    theme === "dark"
-                      ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
-                      : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
-                  }`}
-                >
-                  {activePptMedia ? (
-                    <PptxViewer
-                      key={activePptMedia.id}
-                      url={activePptMedia.url}
-                      preferredPdfUrl={activePptMedia.previewPdfUrl}
-                      theme={theme}
-                      hyperlinks={activePptHyperlinks}
-                      onHyperlinkClick={handleHyperlinkClick}
-                      getHyperlinkTitle={getHyperlinkTitle}
-                      mediaList={previewMediaList}
-                      linkedMediaId={linkedMediaId}
-                      linkedMediaNonce={linkedMediaNonce}
-                      activeMediaId={activePreviewMedia?.id}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center p-12 text-center">
-                      <div>
-                        <FileText className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`} />
-                        <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                          {isZh ? "当前课程没有可播放的 PPT 课件" : "No presentation available"}
+          {/* 右侧：主内容区域（包括演示、视频和讨论） */}
+          <main className="flex-1 h-full overflow-y-auto persistent-scrollbar">
+            <div className="p-4 lg:p-6 space-y-8 max-w-[1600px] mx-auto">
+              {/* 第一行：演示 + 视频 */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1.14fr_0.86fr] gap-6 items-start">
+                {/* 课件演示区域 */}
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3 px-1">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <p
+                          className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                            theme === "dark" ? "text-amber-300/80" : "text-amber-700"
+                          }`}
+                        >
+                          {isZh ? "核心课件演示" : "Core Presentation"}
                         </p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <section
-              className={`p-4 xl:h-[calc(100vh-140px)] overflow-y-auto transition-all duration-300 ${
-                theme === "dark" ? "bg-slate-900/10" : "bg-white/20"
-              }`}
-            >
-              <div className="mx-auto flex h-full w-full flex-col">
-                <div className="mb-4 flex items-start justify-between gap-3 px-1">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                      <p
-                        className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                          theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
+                      <h3
+                        className={`text-xl font-bold tracking-tight ${
+                          theme === "dark" ? "text-white" : "text-slate-900"
                         }`}
                       >
-                        {isZh ? "对应实验资源" : "Associated Resources"}
-                      </p>
+                        {activePptMedia ? getMediaTitle(activePptMedia) : isZh ? "暂无课件" : "No deck"}
+                      </h3>
                     </div>
-                    <h3
-                      className={`text-lg font-bold tracking-tight ${
-                        theme === "dark" ? "text-white" : "text-slate-900"
-                      }`}
-                    >
-                      {activePreviewMedia
-                        ? getMediaTitle(activePreviewMedia)
-                        : isZh
-                          ? "请从左侧选择资源"
-                          : "Select from left"}
-                    </h3>
-                  </div>
 
-                  {activePreviewMedia && (
-                    <div className="flex items-center gap-2">
+                    {activePptMedia && (
                       <button
-                        onClick={toggleFullscreen}
-                        className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                          theme === "dark"
-                            ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                            : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                        }`}
-                        title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
-                      >
-                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                      </button>
-                      <button
-                        onClick={() => window.open(activePreviewMedia.url, "_blank")}
+                        onClick={() => window.open(activePptMedia.url, "_blank")}
                         className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                           theme === "dark"
                             ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
@@ -1664,244 +1587,366 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       >
                         <Download className="h-5 w-5" />
                       </button>
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className={`flex-1 overflow-hidden rounded-[28px] border transition-all duration-500 ${
-                    theme === "dark"
-                      ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
-                      : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
-                  }`}
-                >
-                  {activePreviewMedia ? (
-                    renderMedia(activePreviewMedia)
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-12 text-center">
-                      <div className="max-w-[240px]">
-                        <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}>
-                          <Play className="h-8 w-8" />
-                        </div>
-                        <p className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
-                          {isZh
-                            ? "在左侧选择视频或图片，实验细节将在这里同步呈现。"
-                            : "Select a video or image from the left to view experiment details."}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className={`mt-4 rounded-[22px] border px-5 py-4 transition-all duration-300 ${
-                    theme === "dark"
-                      ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
-                      : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
-                  }`}
-                >
-                  {activePreviewMedia ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                          style={{
-                            backgroundColor: `${MEDIA_TYPE_COLORS[activePreviewMedia.type]}18`,
-                            color: MEDIA_TYPE_COLORS[activePreviewMedia.type],
-                          }}
-                        >
-                          {getMediaTypeLabel(activePreviewMedia.type)}
-                        </span>
-                        {activePreviewMedia.duration && (
-                          <span
-                            className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                              theme === "dark" ? "text-slate-400" : "text-slate-500"
-                            }`}
-                          >
-                            <Clock className="h-3.5 w-3.5" />
-                            {Math.floor(activePreviewMedia.duration / 60)}:
-                            {(activePreviewMedia.duration % 60).toString().padStart(2, "0")}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <button 
-                        onClick={() => {
-                          const discussionElement = document.getElementById("experiment-discussion");
-                          discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }}
-                        className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
-                          theme === "dark" ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-700"
-                        }`}
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        {isZh ? "对此资源提问" : "Ask about this"}
-                      </button>
-                    </div>
-                  ) : (
-                    <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
-                      {isZh ? "未选中任何预览资源。" : "No preview media selected."}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      )}
-
-      {/* 下方区域：媒体资源列表 + 预览区（左右布局） */}
-      {!hasPptxLayout && mediaList.length > 0 && (
-        <div className={`rounded-2xl p-4 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
-          <div className="flex gap-4">
-            {/* 左侧：资源列表 */}
-            <div className="w-52 flex-shrink-0 space-y-1 max-h-[60vh] overflow-y-auto">
-              {mediaList.map((media) => (
-                <button
-                  key={media.id}
-                  onClick={() => handleMediaSelect(media)}
-                  className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
-                    selectedMedia?.id === media.id
-                      ? "bg-blue-500 text-white"
-                      : theme === "dark"
-                        ? "bg-slate-700 hover:bg-slate-600"
-                        : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  <div
-                    className="rounded p-1"
-                    style={{
-                      backgroundColor:
-                        selectedMedia?.id === media.id
-                          ? "rgba(255,255,255,0.2)"
-                          : `${MEDIA_TYPE_COLORS[media.type]}20`,
-                    }}
-                  >
-                    <span
-                      className="scale-75 inline-block"
-                      style={{
-                        color: selectedMedia?.id === media.id ? "white" : MEDIA_TYPE_COLORS[media.type],
-                      }}
-                    >
-                      {MEDIA_TYPE_ICONS[media.type]}
-                    </span>
+                    )}
                   </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <span
-                      className={`block text-xs font-medium truncate ${
-                        selectedMedia?.id === media.id
-                          ? "text-white"
-                          : theme === "dark"
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                      }`}
-                    >
-                      {getMediaTitle(media)}
-                    </span>
-                    {media.duration && (
-                      <div
-                        className="flex items-center gap-0.5 text-[10px] mt-0.5"
-                        style={{
-                          color: selectedMedia?.id === media.id ? "rgba(255,255,255,0.8)" : course.color,
-                        }}
-                      >
-                        <Clock className="h-2.5 w-2.5" />
-                        <span>
-                          {Math.floor(media.duration / 60)}:{(media.duration % 60).toString().padStart(2, "0")}
-                        </span>
+
+                  <div
+                    className={`aspect-[16/10] lg:aspect-auto lg:h-[520px] 2xl:h-[600px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                      theme === "dark"
+                        ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                        : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
+                    }`}
+                  >
+                    {activePptMedia ? (
+                      <PptxViewer
+                        key={activePptMedia.id}
+                        url={activePptMedia.url}
+                        preferredPdfUrl={activePptMedia.previewPdfUrl}
+                        theme={theme}
+                        hyperlinks={activePptHyperlinks}
+                        onHyperlinkClick={handleHyperlinkClick}
+                        getHyperlinkTitle={getHyperlinkTitle}
+                        mediaList={previewMediaList}
+                        linkedMediaId={linkedMediaId}
+                        linkedMediaNonce={linkedMediaNonce}
+                        activeMediaId={activeHighlightedMediaId}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center p-12 text-center">
+                        <div>
+                          <FileText className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`} />
+                          <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                            {isZh ? "当前课程没有可播放的 PPT 课件" : "No presentation available"}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
-                </button>
-              ))}
-            </div>
+                </section>
 
-            {/* 右侧：选中媒体的预览区域 */}
-            <div className="flex-1 min-w-0">
-              {selectedMedia ? (
-                <div>
-                  {/* 媒体预览 */}
-                  <div className="aspect-video mb-3">{renderMedia(selectedMedia)}</div>
-
-                  {/* 媒体详情 - 置于下方 */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="rounded-lg p-1.5"
-                        style={{ backgroundColor: `${MEDIA_TYPE_COLORS[selectedMedia.type]}20` }}
-                      >
-                        <span style={{ color: MEDIA_TYPE_COLORS[selectedMedia.type] }}>
-                          {MEDIA_TYPE_ICONS[selectedMedia.type]}
-                        </span>
-                      </div>
-                      <div>
-                        <h3
-                          className={`text-sm font-medium ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
+                {/* 资源预览区域 */}
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3 px-1">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                        <p
+                          className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                            theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
                           }`}
                         >
-                          {getMediaTitle(selectedMedia)}
-                        </h3>
-                        {selectedMedia.duration && (
-                          <div
-                            className="flex items-center gap-1 text-xs"
-                            style={{ color: course.color }}
-                          >
-                            <Clock className="h-3 w-3" />
-                            <span>
-                              {Math.floor(selectedMedia.duration / 60)}:
-                              {(selectedMedia.duration % 60).toString().padStart(2, "0")}
-                            </span>
+                          {isZh ? "实验视频联动" : "Experiment Video"}
+                        </p>
+                      </div>
+                      <h3
+                        className={`text-lg font-bold tracking-tight ${
+                          theme === "dark" ? "text-white" : "text-slate-900"
+                        }`}
+                      >
+                        {activeVideoMedia
+                          ? getMediaTitle(activeVideoMedia)
+                          : isZh
+                            ? "暂无实验视频"
+                            : "No experiment video"}
+                      </h3>
+                    </div>
+
+                    {activeVideoMedia && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleFullscreen}
+                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                            theme === "dark"
+                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                          }`}
+                          title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
+                        >
+                          {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                        </button>
+                        <button
+                          onClick={() => window.open(activeVideoMedia.url, "_blank")}
+                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                            theme === "dark"
+                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                          }`}
+                          title={t("page.courses.download")}
+                        >
+                          <Download className="h-5 w-5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    className={`aspect-video lg:aspect-auto lg:h-[420px] 2xl:h-[480px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                      theme === "dark"
+                        ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                        : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
+                    }`}
+                  >
+                    {activeVideoMedia ? (
+                      renderMedia(activeVideoMedia)
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-12 text-center">
+                        <div className="max-w-[240px]">
+                          <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}>
+                            <Play className="h-8 w-8" />
                           </div>
-                        )}
+                          <p className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                            {isZh
+                              ? "当前课程没有可播放的视频资源。"
+                              : "This course does not include a playable video resource."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {activeImageMedia && (
+                    <div
+                      className={`overflow-hidden rounded-[24px] border transition-all duration-300 ${
+                        theme === "dark"
+                          ? "border-slate-700/80 bg-slate-950/70 shadow-xl shadow-black/20"
+                          : "border-slate-200 bg-white shadow-md shadow-slate-200/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3 border-b px-5 py-4 dark:border-slate-700/80">
+                        <div>
+                          <p
+                            className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                              theme === "dark" ? "text-violet-300/80" : "text-violet-700"
+                            }`}
+                          >
+                            {isZh ? "补充图片" : "Reference Image"}
+                          </p>
+                          <h4
+                            className={`mt-1 text-sm font-bold ${
+                              theme === "dark" ? "text-white" : "text-slate-900"
+                            }`}
+                          >
+                            {getMediaTitle(activeImageMedia)}
+                          </h4>
+                        </div>
+                        <button
+                          onClick={() => window.open(activeImageMedia.url, "_blank")}
+                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                            theme === "dark"
+                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                          }`}
+                          title={t("page.courses.download")}
+                        >
+                          <Download className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="h-[240px] p-4">
+                        <img
+                          src={activeImageMedia.url}
+                          alt={getMediaTitle(activeImageMedia)}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full rounded-[18px] object-contain"
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={toggleFullscreen}
-                        className={`rounded-lg p-2 transition-colors ${
-                          theme === "dark"
-                            ? "text-gray-400 hover:bg-slate-700"
-                            : "text-gray-600 hover:bg-gray-100"
-                        }`}
-                        title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
-                      >
-                        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                      </button>
-                      <button
-                        onClick={() => window.open(selectedMedia.url, "_blank")}
-                        className={`rounded-lg p-2 transition-colors ${
-                          theme === "dark"
-                            ? "text-gray-400 hover:bg-slate-700"
-                            : "text-gray-600 hover:bg-gray-100"
-                        }`}
-                        title={t("page.courses.download")}
-                      >
-                        <Download className="h-5 w-5" />
-                      </button>
-                    </div>
+                  )}
+
+                  {/* 视频详情卡片 */}
+                  <div
+                    className={`rounded-[22px] border px-5 py-4 transition-all duration-300 ${
+                      theme === "dark"
+                        ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
+                        : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
+                    }`}
+                  >
+                    {activeVideoMedia ? (
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                            style={{
+                              backgroundColor: `${MEDIA_TYPE_COLORS[activeVideoMedia.type]}18`,
+                              color: MEDIA_TYPE_COLORS[activeVideoMedia.type],
+                            }}
+                          >
+                            {getMediaTypeLabel(activeVideoMedia.type)}
+                          </span>
+                          {activeVideoMedia.duration && (
+                            <span
+                              className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                                theme === "dark" ? "text-slate-400" : "text-slate-500"
+                              }`}
+                            >
+                              <Clock className="h-3.5 w-3.5" />
+                              {Math.floor(activeVideoMedia.duration / 60)}:
+                              {(activeVideoMedia.duration % 60).toString().padStart(2, "0")}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <button 
+                          onClick={() => {
+                            const discussionElement = document.getElementById("experiment-discussion");
+                            discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
+                          className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
+                            theme === "dark" ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-700"
+                          }`}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          {isZh ? "对此资源提问" : "Ask about this"}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                        {isZh ? "当前没有可展示的视频信息。" : "No video metadata available."}
+                      </p>
+                    )}
                   </div>
+                </section>
+              </div>
+
+              {/* 第二行：意见反馈 / 讨论区 */}
+              <div id="experiment-discussion" className="pt-12 border-t border-slate-200 dark:border-slate-700/60">
+                <div className="mb-6 px-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <p
+                      className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                        theme === "dark" ? "text-indigo-300/80" : "text-indigo-700"
+                      }`}
+                    >
+                      {isZh ? "意见反馈与交流" : "Feedback & Discussion"}
+                    </p>
+                  </div>
+                  <h3
+                    className={`text-xl font-bold tracking-tight ${
+                      theme === "dark" ? "text-white" : "text-slate-900"
+                    }`}
+                  >
+                    {isZh ? "实验讨论区" : "Experiment Discussion"}
+                  </h3>
                 </div>
-              ) : (
-                <div className="aspect-video flex items-center justify-center rounded-xl border-2 border-dashed">
-                  <p className={theme === "dark" ? "text-gray-500" : "text-gray-400"}>
-                    {t("page.courses.selectmedia") || "选择媒体资源查看"}
-                  </p>
+                <div className="rounded-[32px] overflow-hidden shadow-sm">
+                  <ExperimentDiscussionSection
+                    courseId={course.id}
+                    courseTitle={courseTitle}
+                    theme={theme}
+                    accentColor={course.color}
+                  />
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          </main>
         </div>
       )}
 
-      <div id="experiment-discussion" className="scroll-mt-20">
-        <ExperimentDiscussionSection
-          courseId={course.id}
-          courseTitle={courseTitle}
-          theme={theme}
-          accentColor={course.color}
-        />
-      </div>
+      {/* 下方区域：非 PPT 布局时的降级显示 */}
+      {!hasPptxLayout && mediaList.length > 0 && (
+        <div className="max-w-[1400px] mx-auto p-4 lg:p-6 space-y-6">
+          <div className={`rounded-3xl p-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm border border-slate-100"}`}>
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* 左侧：资源列表 */}
+              <div className="w-full lg:w-64 flex-shrink-0 space-y-1.5 max-h-[60vh] overflow-y-auto persistent-scrollbar pr-2">
+                <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 px-2 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                  {isZh ? "可选资源" : "Available Media"}
+                </p>
+                {mediaList.map((media) => (
+                  <button
+                    key={media.id}
+                    onClick={() => handleMediaSelect(media)}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-300 ${
+                      selectedMedia?.id === media.id
+                        ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/30 -translate-y-0.5"
+                        : theme === "dark"
+                          ? "bg-slate-700/50 hover:bg-slate-700 text-slate-300"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    <div
+                      className="rounded-lg p-1.5 flex-shrink-0"
+                      style={{
+                        backgroundColor:
+                          selectedMedia?.id === media.id
+                            ? "rgba(255,255,255,0.2)"
+                            : `${MEDIA_TYPE_COLORS[media.type]}20`,
+                      }}
+                    >
+                      <span
+                        className="scale-90 inline-block"
+                        style={{
+                          color: selectedMedia?.id === media.id ? "white" : MEDIA_TYPE_COLORS[media.type],
+                        }}
+                      >
+                        {MEDIA_TYPE_ICONS[media.type]}
+                      </span>
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <span className="block text-xs font-bold truncate">
+                        {getMediaTitle(media)}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* 右侧：预览区域 */}
+              <div className="flex-1 min-w-0">
+                {selectedMedia ? (
+                  <div className="space-y-4">
+                    <div className="aspect-video rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+                      {renderMedia(selectedMedia)}
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="rounded-xl p-2"
+                          style={{ backgroundColor: `${MEDIA_TYPE_COLORS[selectedMedia.type]}15` }}
+                        >
+                          <span style={{ color: MEDIA_TYPE_COLORS[selectedMedia.type] }}>
+                            {MEDIA_TYPE_ICONS[selectedMedia.type]}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                            {getMediaTitle(selectedMedia)}
+                          </h3>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleFullscreen}
+                          className={`rounded-xl p-2.5 transition-colors ${
+                            theme === "dark" ? "bg-slate-700 text-slate-300" : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          <Maximize2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="aspect-video flex items-center justify-center rounded-[24px] border-2 border-dashed border-slate-200 dark:border-slate-700">
+                    <p className="text-sm font-medium opacity-40">选择资源查看预览</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 讨论区 - 降级布局时也在下方 */}
+          <div id="experiment-discussion" className="pt-8">
+            <ExperimentDiscussionSection
+              courseId={course.id}
+              courseTitle={courseTitle}
+              theme={theme}
+              accentColor={course.color}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
