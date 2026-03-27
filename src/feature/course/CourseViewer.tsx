@@ -1058,8 +1058,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       icon: <ImageIcon className="h-3 w-3" />,
       className:
         theme === "dark"
-          ? "border-violet-400/20 bg-violet-500/10 text-violet-200"
-          : "border-violet-200 bg-violet-50 text-violet-700",
+          ? "border-slate-700/80 bg-slate-800/80 text-slate-300"
+          : "border-slate-200 bg-slate-100/90 text-slate-600",
     },
   ].filter((chip) => chip.count > 0);
   const resourceSections = [
@@ -1069,6 +1069,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       description: isZh ? "优先查看主课件与讲解页" : "Main teaching decks first",
       items: pptMediaList,
       accent: MEDIA_TYPE_COLORS.pptx,
+      priority: "primary",
     },
     {
       id: "video",
@@ -1076,6 +1077,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       description: isZh ? "建议优先预览的视频素材" : "Recommended clips to preview",
       items: videoMediaList,
       accent: MEDIA_TYPE_COLORS.video,
+      priority: "primary",
     },
     {
       id: "image",
@@ -1083,6 +1085,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       description: isZh ? "用于辅助说明的图片资源" : "Supporting visual references",
       items: imageMediaList,
       accent: MEDIA_TYPE_COLORS.image,
+      priority: "secondary",
     },
   ].filter((section) => section.items.length > 0);
 
@@ -1341,7 +1344,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
         >
           {/* 左侧固定边栏：资源总览 */}
           <aside
-            className={`persistent-scrollbar w-full lg:w-[280px] xl:w-[320px] 2xl:w-[360px] flex-shrink-0 h-full overflow-y-auto transition-all duration-300 border-b lg:border-b-0 lg:border-r ${
+            className={`persistent-scrollbar w-full lg:w-[236px] xl:w-[260px] 2xl:w-[288px] flex-shrink-0 h-full overflow-y-auto transition-all duration-300 border-b lg:border-b-0 lg:border-r ${
               theme === "dark"
                 ? "border-slate-700/70 bg-slate-800/40"
                 : "border-slate-200 bg-slate-50/50"
@@ -1403,20 +1406,36 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 {resourceSections.map((section) => (
                   <div
                     key={section.id}
-                    className={`rounded-[20px] border p-2.5 transition-all duration-300 ${
-                      theme === "dark"
-                        ? "border-slate-700/80 bg-slate-900/55 hover:border-slate-600/80 shadow-lg shadow-black/10"
-                        : "border-slate-200 bg-white/90 hover:border-slate-300 shadow-sm"
+                    className={`rounded-[20px] border transition-all duration-300 ${
+                      section.priority === "primary"
+                        ? theme === "dark"
+                          ? "border-slate-600/80 bg-slate-900/72 p-3 shadow-lg shadow-black/15"
+                          : "border-slate-200 bg-white p-3 shadow-md shadow-slate-200/45"
+                        : theme === "dark"
+                          ? "border-slate-700/75 bg-slate-900/40 p-2.5"
+                          : "border-slate-200/90 bg-white/80 p-2.5 shadow-sm"
                     }`}
                   >
                     <div className="mb-2.5 flex items-start justify-between gap-2 px-1">
                       <div>
+                        <div
+                          className={`mb-2 rounded-full ${
+                            section.priority === "primary" ? "h-1.5 w-12" : "h-1 w-8 opacity-70"
+                          }`}
+                          style={{ backgroundColor: section.accent }}
+                        />
                         <p className="text-[13px] font-bold" style={{ color: section.accent }}>
                           {section.title}
                         </p>
                         <p
                           className={`mt-0.5 line-clamp-1 text-[10px] leading-4 font-medium ${
-                            theme === "dark" ? "text-slate-400" : "text-slate-500"
+                            section.priority === "primary"
+                              ? theme === "dark"
+                                ? "text-slate-300"
+                                : "text-slate-600"
+                              : theme === "dark"
+                                ? "text-slate-400"
+                                : "text-slate-500"
                           }`}
                         >
                           {section.description}
@@ -1435,6 +1454,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
                     <div className="space-y-1.5">
                       {section.items.map((media) => {
+                        const isPrimarySection = section.priority === "primary";
                         const isCurrentPpt = media.id === activePptMedia?.id;
                         const isCurrentPreview = hasPptxLayout
                           ? media.id === activeVideoMedia?.id || media.id === activeImageMedia?.id
@@ -1445,7 +1465,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           <button
                             key={media.id}
                             onClick={() => handleMediaSelect(media)}
-                            className={`w-full rounded-[14px] border px-2 py-2.5 text-left transition-all duration-300 group relative ${
+                            className={`group relative w-full rounded-[14px] border text-left transition-all duration-300 ${
                               isActive
                                 ? theme === "dark"
                                   ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/40"
@@ -1453,11 +1473,13 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                 : theme === "dark"
                                   ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-750"
                                   : "border-slate-100 bg-white/60 hover:border-slate-200 hover:bg-white"
-                            } hover:-translate-y-0.5`}
+                            } ${isPrimarySection ? "px-2.5 py-2.5" : "px-2 py-2"} hover:-translate-y-0.5`}
                           >
                             <div className="flex items-start gap-2.5">
                               <div
-                                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+                                className={`flex flex-shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
+                                  isPrimarySection ? "h-8 w-8" : "h-7 w-7"
+                                }`}
                                 style={{
                                   backgroundColor: isActive
                                     ? `${MEDIA_TYPE_COLORS[media.type]}24`
@@ -1471,7 +1493,11 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <p
-                                    className={`line-clamp-2 text-[12px] font-bold leading-[1.2rem] ${
+                                    className={`line-clamp-2 font-bold ${
+                                      isPrimarySection
+                                        ? "text-[12px] leading-[1.2rem]"
+                                        : "text-[11px] leading-[1.1rem]"
+                                    } ${
                                       theme === "dark" ? "text-white" : "text-slate-900"
                                     }`}
                                   >
@@ -1549,9 +1575,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
           {/* 右侧：主内容区域（包括演示、视频和讨论） */}
           <main className="flex-1 h-full overflow-y-auto persistent-scrollbar">
-            <div className="p-4 lg:p-6 space-y-8 max-w-[1600px] mx-auto">
+            <div className="mx-auto max-w-[1720px] space-y-8 p-4 lg:p-6">
               {/* 第一行：演示 + 视频 */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1.14fr_0.86fr] gap-6 items-start">
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
                 {/* 课件演示区域 */}
                 <section className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3 px-1">
@@ -1591,7 +1617,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   </div>
 
                   <div
-                    className={`aspect-[16/10] lg:aspect-auto lg:h-[520px] 2xl:h-[600px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                    className={`aspect-[16/10] lg:aspect-auto lg:h-[560px] xl:h-[600px] 2xl:h-[660px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
                         : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
@@ -1680,7 +1706,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   </div>
 
                   <div
-                    className={`aspect-video lg:aspect-auto lg:h-[420px] 2xl:h-[480px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                    className={`aspect-video lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
                         : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
