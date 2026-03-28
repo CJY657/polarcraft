@@ -77,7 +77,7 @@ describe("CoursesPage", () => {
     expect(screen.getByRole("link", { name: "返回主页" }).getAttribute("href")).toBe("/");
   });
 
-  it("renders a dedicated all-experiments option and loads every unit when selected", async () => {
+  it("defaults to all experiments and loads every unit on first render", async () => {
     mockGetPublicUnitCourses.mockResolvedValue([]);
 
     render(
@@ -86,8 +86,6 @@ describe("CoursesPage", () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /查看全部实验/i }));
-
     await waitFor(() => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
@@ -95,5 +93,37 @@ describe("CoursesPage", () => {
 
     expect(screen.getByText("查看全部实验")).toBeDefined();
     expect(screen.getByText("3 个实验")).toBeDefined();
+  });
+
+  it("can switch from a unit back to all experiments", async () => {
+    mockGetPublicUnitCourses.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <CoursesPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
+    });
+
+    mockGetPublicUnitCourses.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /第一单元/i }));
+
+    await waitFor(() => {
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
+    });
+
+    mockGetPublicUnitCourses.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /查看全部实验/i }));
+
+    await waitFor(() => {
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
+    });
   });
 });

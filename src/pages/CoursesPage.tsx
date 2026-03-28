@@ -83,7 +83,7 @@ export function CoursesPage() {
         return current;
       }
 
-      return units[0].id;
+      return ALL_EXPERIMENTS_ID;
     });
   }, [units]);
 
