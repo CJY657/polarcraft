@@ -1,10 +1,36 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CoursesPage } from "./CoursesPage";
+
+const { mockUnitStore, mockGetPublicUnitCourses } = vi.hoisted(() => ({
+  mockUnitStore: {
+    units: [
+      {
+        id: "unit1",
+        title: { "zh-CN": "第一单元" },
+        description: { "zh-CN": "单元描述" },
+        color: "#0ea5e9",
+        sortOrder: 0,
+        courseCount: 2,
+      },
+      {
+        id: "unit2",
+        title: { "zh-CN": "第二单元" },
+        description: { "zh-CN": "单元描述" },
+        color: "#f97316",
+        sortOrder: 1,
+        courseCount: 1,
+      },
+    ],
+    isLoading: false,
+    fetchUnits: vi.fn(),
+  },
+  mockGetPublicUnitCourses: vi.fn(() => new Promise(() => {})),
+}));
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" as const }),
@@ -22,25 +48,12 @@ vi.mock("@/components/shared", () => ({
 }));
 
 vi.mock("@/stores/unitStore", () => ({
-  useUnitStore: () => ({
-    units: [
-      {
-        id: "unit1",
-        title: { "zh-CN": "第一单元" },
-        description: { "zh-CN": "单元描述" },
-        color: "#0ea5e9",
-        sortOrder: 0,
-        courseCount: 2,
-      },
-    ],
-    isLoading: false,
-    fetchUnits: vi.fn(),
-  }),
+  useUnitStore: () => mockUnitStore,
 }));
 
 vi.mock("@/lib/unit.service", () => ({
   unitApi: {
-    getPublicUnitCourses: vi.fn(() => new Promise(() => {})),
+    getPublicUnitCourses: mockGetPublicUnitCourses,
   },
 }));
 
@@ -49,6 +62,11 @@ vi.mock("@/feature/unit/CourseSelector", () => ({
 }));
 
 describe("CoursesPage", () => {
+  beforeEach(() => {
+    mockGetPublicUnitCourses.mockReset();
+    mockGetPublicUnitCourses.mockImplementation(() => new Promise(() => {}));
+  });
+
   it("renders a prominent link back to the home page", () => {
     render(
       <MemoryRouter>
@@ -57,5 +75,25 @@ describe("CoursesPage", () => {
     );
 
     expect(screen.getByRole("link", { name: "返回主页" }).getAttribute("href")).toBe("/");
+  });
+
+  it("renders a dedicated all-experiments option and loads every unit when selected", async () => {
+    mockGetPublicUnitCourses.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <CoursesPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /查看全部实验/i }));
+
+    await waitFor(() => {
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
+      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
+    });
+
+    expect(screen.getByText("查看全部实验")).toBeDefined();
+    expect(screen.getByText("3 个实验")).toBeDefined();
   });
 });

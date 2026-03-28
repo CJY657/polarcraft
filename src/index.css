@@ -187,6 +187,15 @@ html {
   scroll-behavior: smooth;
 }
 
+@layer base {
+  img,
+  video,
+  canvas,
+  iframe {
+    display: block;
+  }
+}
+
 @layer utilities {
   .glass-page {
     position: relative;

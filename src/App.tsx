@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  matchPath,
   useParams,
   useNavigate,
   useLocation,
@@ -228,8 +229,16 @@ function AnalyticsBridge() {
   return null;
 }
 
+export function shouldHideGlobalFooter(pathname: string) {
+  return Boolean(
+    matchPath("/experiments/:experimentId", pathname) ||
+      matchPath("/courses/:courseId", pathname)
+  );
+}
+
 function AppRouterContent() {
   const location = useLocation();
+  const shouldHideFooter = shouldHideGlobalFooter(location.pathname);
 
   return (
     <>
@@ -456,6 +465,7 @@ function AppRouterContent() {
           />
         </Routes>
       </Suspense>
+      {!shouldHideFooter && <Footer />}
     </>
   );
 }
@@ -472,7 +482,6 @@ export function App() {
           <BrowserRouter>
             <AppRouterContent />
             <AuthDialog />
-            <Footer />
           </BrowserRouter>
         </AuthProvider>
       </SystemProvider>

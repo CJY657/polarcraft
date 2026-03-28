@@ -5,15 +5,25 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { BookOpenText, Home, Layers, Loader2, type LucideIcon } from "lucide-react";
+import {
+  BookOpenText,
+  Compass,
+  Home,
+  Layers,
+  Loader2,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
-import { unitApi, type UnitCourse } from "@/lib/unit.service";
+import { unitApi } from "@/lib/unit.service";
 import { useUnitStore } from "@/stores/unitStore";
-import { CourseSelector } from "@/feature/unit/CourseSelector";
+import { CourseSelector, type CourseSelectorCourse } from "@/feature/unit/CourseSelector";
 import { cn } from "@/utils/classNames";
+
+const ALL_EXPERIMENTS_ID = "__all_experiments__";
 
 function EmptyWorkspace({
   theme,
@@ -48,7 +58,7 @@ export function CoursesPage() {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [selectedUnitCourses, setSelectedUnitCourses] = useState<UnitCourse[]>([]);
+  const [selectedUnitCourses, setSelectedUnitCourses] = useState<CourseSelectorCourse[]>([]);
   const [selectedUnitCoursesLoading, setSelectedUnitCoursesLoading] = useState(false);
   const [selectedUnitCoursesError, setSelectedUnitCoursesError] = useState<string | null>(null);
   const [selectedUnitCoursesReloadKey, setSelectedUnitCoursesReloadKey] = useState(0);
@@ -66,7 +76,10 @@ export function CoursesPage() {
     }
 
     setSelectedUnitId((current) => {
-      if (current && units.some((unit) => unit.id === current)) {
+      if (
+        current === ALL_EXPERIMENTS_ID ||
+        (current && units.some((unit) => unit.id === current))
+      ) {
         return current;
       }
 
@@ -83,9 +96,15 @@ export function CoursesPage() {
     [isZh],
   );
 
-  const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null;
+  const selectedUnit =
+    selectedUnitId === ALL_EXPERIMENTS_ID
+      ? null
+      : (units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null);
+  const isAllExperimentsSelected = selectedUnitId === ALL_EXPERIMENTS_ID;
+  const totalExperimentCount = units.reduce((total, unit) => total + (unit.courseCount || 0), 0);
+
   useEffect(() => {
-    if (!selectedUnit) {
+    if (units.length === 0) {
       setSelectedUnitCourses([]);
       setSelectedUnitCoursesLoading(false);
       setSelectedUnitCoursesError(null);
@@ -97,8 +116,29 @@ export function CoursesPage() {
     setSelectedUnitCoursesLoading(true);
     setSelectedUnitCoursesError(null);
 
-    unitApi
-      .getPublicUnitCourses(selectedUnit.id)
+    const coursesRequest = isAllExperimentsSelected
+      ? Promise.all(
+          units.map(async (unit, unitIndex) => {
+            const courses = await unitApi.getPublicUnitCourses(unit.id);
+
+            return courses.map((course, courseIndex) => ({
+              ...course,
+              unitTitle: unit.title,
+              unitAccentColor: unit.color,
+              sortKey: unit.sortOrder * 1000 + unitIndex * 100 + courseIndex,
+            }));
+          }),
+        ).then((collections) =>
+          collections
+            .flat()
+            .sort((left, right) => left.sortKey - right.sortKey)
+            .map(({ sortKey: _sortKey, ...course }) => course),
+        )
+      : selectedUnit
+        ? unitApi.getPublicUnitCourses(selectedUnit.id)
+        : Promise.resolve([]);
+
+    coursesRequest
       .then((courses) => {
         if (isCancelled) {
           return;
@@ -126,18 +166,31 @@ export function CoursesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [isZh, selectedUnit, selectedUnitCoursesReloadKey]);
+  }, [isAllExperimentsSelected, isZh, selectedUnit, selectedUnitCoursesReloadKey, units]);
 
   const surfaceClass =
     theme === "dark" ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-white";
   const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
-  const subtleTextClass = theme === "dark" ? "text-slate-500" : "text-slate-500";
   const pillClass = cn(
     "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold",
     theme === "dark"
       ? "border-slate-700 bg-slate-900 text-slate-300"
       : "border-slate-200 bg-slate-50 text-slate-600",
   );
+  const selectedSectionTitle = isAllExperimentsSelected
+    ? isZh
+      ? "全部实验"
+      : "All experiments"
+    : isZh
+      ? "本单元实验"
+      : "Experiments in this unit";
+  const selectedSectionDescription = isAllExperimentsSelected
+    ? isZh
+      ? "跨单元浏览全部实验入口，适合直接查找或快速进入。"
+      : "Browse every experiment across units from one unified library."
+    : isZh
+      ? "选择一个实验，直接进入课件与媒体内容。"
+      : "Choose an experiment to open its slides and media.";
 
   return (
     <div
@@ -213,65 +266,128 @@ export function CoursesPage() {
                   }
                 />
               ) : (
-                <div
-                  className={cn(
-                    "mt-2 divide-y",
-                    theme === "dark" ? "divide-slate-800" : "divide-slate-200",
-                  )}
-                >
-                  {units.map((unit) => {
-                    const isSelected = selectedUnit?.id === unit.id;
-
-                    return (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        onClick={() => setSelectedUnitId(unit.id)}
+                <div className="mt-2 space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUnitId(ALL_EXPERIMENTS_ID)}
+                    className={cn(
+                      "group relative w-full overflow-hidden rounded-[1.4rem] border p-4 text-left transition-all duration-200",
+                      isAllExperimentsSelected
+                        ? theme === "dark"
+                          ? "border-amber-300/40 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(15,23,42,0.88))] shadow-[0_18px_40px_rgba(251,191,36,0.12)]"
+                          : "border-amber-300 bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))] shadow-[0_18px_40px_rgba(217,119,6,0.12)]"
+                        : theme === "dark"
+                          ? "border-slate-800 bg-[linear-gradient(135deg,rgba(148,163,184,0.08),rgba(15,23,42,0.88))] hover:border-amber-300/25 hover:bg-[linear-gradient(135deg,rgba(251,191,36,0.10),rgba(15,23,42,0.92))]"
+                          : "border-slate-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.88),rgba(255,255,255,1))] hover:border-amber-200 hover:bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))]",
+                    )}
+                  >
+                    <div className="absolute right-0 top-0 h-20 w-20 translate-x-5 -translate-y-5 rounded-full bg-amber-300/20 blur-2xl" />
+                    <div className="relative flex items-start gap-3">
+                      <div
                         className={cn(
-                          "flex w-full items-start gap-3 px-3 py-4 text-left transition-colors",
-                          theme === "dark" ? "hover:bg-slate-900/80" : "hover:bg-slate-50",
+                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border",
+                          theme === "dark"
+                            ? "border-amber-300/25 bg-slate-950/55 text-amber-200"
+                            : "border-amber-200 bg-white/80 text-amber-700",
                         )}
-                        style={
-                          isSelected
-                            ? {
-                                backgroundColor:
-                                  theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
-                              }
-                            : undefined
-                        }
                       >
-                        <span
-                          className="mt-0.5 h-10 w-1 shrink-0 rounded-full"
-                          style={{ backgroundColor: isSelected ? unit.color : "transparent" }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">{getLabel(unit.title)}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <span
+                        <Compass className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-[1.2]">
+                        <div className="flex items-center justify-between gap-1 sm:gap-2">
+                          <div className="min-w-0 shrink-0">
+                            <p
                               className={cn(
-                                "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                theme === "dark"
-                                  ? "bg-slate-800 text-slate-300"
-                                  : "bg-slate-100 text-slate-600",
+                                "inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap",
+                                theme === "dark" ? "text-amber-200/85" : "text-amber-700",
                               )}
                             >
-                              {isZh ? `单元 ${unit.sortOrder + 1}` : `Unit ${unit.sortOrder + 1}`}
-                            </span>
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                theme === "dark"
-                                  ? "bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-400/20"
-                                  : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
-                              )}
-                            >
-                              {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
-                            </span>
+                              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                              {isZh ? "总览入口" : "Library view"}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold truncate">
+                              {isZh ? "查看全部实验" : "Browse all experiments"}
+                            </p>
                           </div>
+                          <span className={cn(pillClass, "shrink-0")}>
+                            {totalExperimentCount} {isZh ? "个实验" : "experiments"}
+                          </span>
                         </div>
-                      </button>
-                    );
-                  })}
+                      </div>
+                    </div>
+                  </button>
+
+                  <div
+                    className={cn(
+                      "overflow-hidden rounded-[1.25rem] border",
+                      theme === "dark" ? "border-slate-800" : "border-slate-200",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "divide-y",
+                        theme === "dark" ? "divide-slate-800" : "divide-slate-200",
+                      )}
+                    >
+                      {units.map((unit) => {
+                        const isSelected = selectedUnit?.id === unit.id;
+
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => setSelectedUnitId(unit.id)}
+                            className={cn(
+                              "flex w-full items-start gap-3 px-3 py-4 text-left transition-colors",
+                              theme === "dark" ? "hover:bg-slate-900/80" : "hover:bg-slate-50",
+                            )}
+                            style={
+                              isSelected
+                                ? {
+                                    backgroundColor:
+                                      theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <span
+                              className="mt-0.5 h-10 w-1 shrink-0 rounded-full"
+                              style={{ backgroundColor: isSelected ? unit.color : "transparent" }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">
+                                {getLabel(unit.title)}
+                              </p>
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                    theme === "dark"
+                                      ? "bg-slate-800 text-slate-300"
+                                      : "bg-slate-100 text-slate-600",
+                                  )}
+                                >
+                                  {isZh
+                                    ? `单元 ${unit.sortOrder + 1}`
+                                    : `Unit ${unit.sortOrder + 1}`}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                    theme === "dark"
+                                      ? "bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-400/20"
+                                      : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
+                                  )}
+                                >
+                                  {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </section>
@@ -285,7 +401,7 @@ export function CoursesPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-[#1d4ed8]" />
                   </div>
                 </section>
-              ) : !selectedUnit ? (
+              ) : !isAllExperimentsSelected && !selectedUnit ? (
                 <section className={cn("rounded-[2rem] border", surfaceClass)}>
                   <EmptyWorkspace
                     theme={theme}
@@ -302,13 +418,9 @@ export function CoursesPage() {
                 <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold">
-                        {isZh ? "本单元实验" : "Experiments in this unit"}
-                      </h3>
+                      <h3 className="text-xl font-semibold">{selectedSectionTitle}</h3>
                       <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
-                        {isZh
-                          ? "选择一个实验，直接进入课件与媒体内容。"
-                          : "Choose an experiment to open its slides and media."}
+                        {selectedSectionDescription}
                       </p>
                     </div>
                     <span className={pillClass}>
@@ -357,11 +469,10 @@ export function CoursesPage() {
                     ) : (
                       <CourseSelector
                         courses={selectedUnitCourses}
-                        unitColor={selectedUnit.color}
+                        unitColor={selectedUnit?.color || "#d97706"}
                         showHeader={false}
                       />
                     )}
-                    
                   </div>
                 </section>
               )}

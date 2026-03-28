@@ -14,8 +14,13 @@ import { preloadCourseViewerRoute } from "@/lib/routePreload";
 import { BookOpen, Play, FileText, ChevronRight } from "lucide-react";
 import type { UnitCourse } from "@/lib/unit.service";
 
+export interface CourseSelectorCourse extends UnitCourse {
+  unitTitle?: { "zh-CN"?: string; "en-US"?: string };
+  unitAccentColor?: string;
+}
+
 interface CourseSelectorProps {
-  courses: UnitCourse[];
+  courses: CourseSelectorCourse[];
   unitColor: string;
   layout?: "grid" | "sidebar";
   title?: string;
@@ -148,9 +153,11 @@ export function CourseSelector({
                   <div
                     className={cn(
                       "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] border sm:w-32",
-                      theme === "dark"
-                        ? "border-slate-800 bg-slate-900/85"
-                        : "border-slate-200 bg-slate-50",
+                      thumbnailImage
+                        ? "border-transparent bg-transparent"
+                        : theme === "dark"
+                          ? "border-slate-800 bg-slate-900/85"
+                          : "border-slate-200 bg-slate-50",
                     )}
                     style={!thumbnailImage ? { backgroundColor: `${course.color}12` } : undefined}
                   >
@@ -160,7 +167,7 @@ export function CourseSelector({
                         alt={getLabel(course.title)}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
@@ -203,6 +210,24 @@ export function CourseSelector({
                             >
                               <Play className="h-3 w-3" />
                               {course.mediaCount} {isZh ? "个媒体" : "media"}
+                            </span>
+                          )}
+                          {course.unitTitle && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                              style={{
+                                color: theme === "dark" ? "#e2e8f0" : course.unitAccentColor || "#475569",
+                                backgroundColor:
+                                  theme === "dark"
+                                    ? `${course.unitAccentColor || course.color}22`
+                                    : `${course.unitAccentColor || course.color}12`,
+                                borderColor:
+                                  theme === "dark"
+                                    ? `${course.unitAccentColor || course.color}38`
+                                    : `${course.unitAccentColor || course.color}24`,
+                              }}
+                            >
+                              {getLabel(course.unitTitle)}
                             </span>
                           )}
                         </div>

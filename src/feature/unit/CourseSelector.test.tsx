@@ -87,4 +87,27 @@ describe("CourseSelector", () => {
     expect(screen.getByText("1 个媒体")).toBeDefined();
     expect(screen.getByText("冰洲石实验").parentElement?.textContent).toContain("1 个媒体");
   });
+
+  it("shows the parent unit badge when courses come from the all-experiments view", () => {
+    render(
+      <MemoryRouter>
+        <CourseSelector
+          unitColor="#0ea5e9"
+          courses={[
+            {
+              id: "course1",
+              title: { "zh-CN": "偏振实验" },
+              description: { "zh-CN": "查看实验内容" },
+              color: "#0ea5e9",
+              unitTitle: { "zh-CN": "第一单元" },
+              unitAccentColor: "#f97316",
+            },
+          ]}
+          showHeader={false}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("第一单元")).toBeDefined();
+  });
 });

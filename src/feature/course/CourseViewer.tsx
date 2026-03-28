@@ -112,6 +112,17 @@ function fitPresentationSize(width: number, height: number, aspectRatio: number)
     return { width: 0, height: 0 };
   }
 
+  const widthFirstHeight = width / aspectRatio;
+
+  // Prefer filling the available width so the slide doesn't leave a thin strip
+  // on the right edge when the aspect-ratio mismatch is only slight.
+  if (widthFirstHeight <= height * 1.1) {
+    return {
+      width: Math.max(0, Math.floor(width)),
+      height: Math.max(0, Math.floor(widthFirstHeight)),
+    };
+  }
+
   const fittedWidth = Math.min(width, height * aspectRatio);
   const fittedHeight = fittedWidth / aspectRatio;
 
@@ -387,6 +398,7 @@ function PptxViewer({
       previewWrapper.style.margin = "0";
       previewWrapper.style.background = "transparent";
       previewWrapper.style.overflow = "hidden";
+      previewWrapper.style.padding = "0";
     }
 
     container
@@ -396,11 +408,13 @@ function PptxViewer({
       });
 
     container.querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper").forEach((slideWrapper) => {
-      slideWrapper.style.margin = "0 auto";
+      slideWrapper.style.width = "100%";
+      slideWrapper.style.height = "100%";
+      slideWrapper.style.margin = "0";
       slideWrapper.style.background = "transparent";
       slideWrapper.style.overflow = "hidden";
-      slideWrapper.style.borderRadius = "22px";
-      slideWrapper.style.boxShadow = "0 28px 80px rgba(15, 23, 42, 0.18)";
+      slideWrapper.style.borderRadius = "0";
+      slideWrapper.style.boxShadow = "none";
     });
 
     container.querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper p").forEach((paragraph) => {
@@ -750,7 +764,7 @@ function PptxViewer({
   return (
     <div
       ref={wrapperRef}
-      className="pptx-linked-deck relative flex h-full w-full items-center justify-center overflow-hidden p-4 md:p-6"
+      className="pptx-linked-deck relative flex h-full w-full items-center justify-center overflow-hidden"
     >
       <style>
         {`
@@ -1265,7 +1279,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               alt={getMediaTitle(media)}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain"
+              className="block h-full w-full object-cover"
             />
           );
 
@@ -1278,7 +1292,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               playsInline
               autoPlay={shouldAutoplayPreview}
               preload="metadata"
-              className="h-full w-full bg-black object-contain"
+              className="block h-full w-full bg-black object-cover"
             />
           );
 

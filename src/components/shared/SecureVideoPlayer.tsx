@@ -408,7 +408,7 @@ export function SecureImageViewer({
         src={src}
         alt={alt}
         className={cn(
-          'w-full h-full transition-opacity duration-300',
+          'absolute inset-0 block h-full w-full transition-opacity duration-300',
           objectFit === 'contain' ? 'object-contain' : 'object-cover',
           isLoading ? 'opacity-0' : 'opacity-100'
         )}

@@ -162,7 +162,7 @@ export function UnitsPage() {
                       <img
                         src={unit.coverImage}
                         alt={getLabel(unit.title)}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,18,32,0.46)] via-transparent to-transparent" />
                     </>

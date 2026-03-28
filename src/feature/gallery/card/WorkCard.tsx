@@ -26,7 +26,7 @@ export function WorkCard({ work, onClick }: WorkCardProps) {
         <img
           src={work.coverImage}
           alt={work.title[i18n.language] || work.title["zh-CN"]}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             // 使用占位符如果图片加载失败
             (e.target as HTMLImageElement).src =
