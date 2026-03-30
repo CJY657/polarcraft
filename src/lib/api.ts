@@ -22,6 +22,23 @@ interface ApiResponse<T = any> {
   };
 }
 
+export class ApiRequestError extends Error {
+  code?: string;
+  details?: any;
+  status?: number;
+
+  constructor(
+    message: string,
+    options: { code?: string; details?: any; status?: number } = {}
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.code = options.code;
+    this.details = options.details;
+    this.status = options.status;
+  }
+}
+
 async function parseApiResponse<T = any>(response: Response): Promise<ApiResponse<T>> {
   const text = await response.text();
 
@@ -41,6 +58,10 @@ async function parseApiResponse<T = any>(response: Response): Promise<ApiRespons
 }
 
 function normalizeRequestError(error: unknown, url: string): Error {
+  if (error instanceof ApiRequestError) {
+    return error;
+  }
+
   if (
     error instanceof TypeError &&
     (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))
@@ -176,7 +197,14 @@ async function request<T = any>(
         const retryData = await retryResponse.json();
 
         if (!retryResponse.ok) {
-          throw new Error(retryData.error?.message || 'Request failed after refresh');
+          throw new ApiRequestError(
+            retryData.error?.message || 'Request failed after refresh',
+            {
+              code: retryData.error?.code,
+              details: retryData.error?.details,
+              status: retryResponse.status,
+            }
+          );
         }
 
         processQueue(null);
@@ -191,7 +219,11 @@ async function request<T = any>(
     }
 
     if (!response.ok) {
-      throw new Error(data.error?.message || data.message || 'Request failed');
+      throw new ApiRequestError(data.error?.message || data.message || 'Request failed', {
+        code: data.error?.code,
+        details: data.error?.details,
+        status: response.status,
+      });
     }
 
     return data;

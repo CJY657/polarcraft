@@ -150,8 +150,8 @@ export class AuthController {
   static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
     setupResponseHelpers(res);
 
-    const { username } = req.body;
-    const result = await AuthService.forgotPassword({ username });
+    const { username, email } = req.body;
+    const result = await AuthService.forgotPassword({ username, email });
 
     logger.info(`Password reset requested for: ${username}`);
     res.success(result);

@@ -12,6 +12,7 @@
  */
 
 import { api } from './api';
+import type { ApiResponse } from './api';
 import {
   preparePasswordForRegistration,
   preparePasswordForLogin,
@@ -67,6 +68,11 @@ export interface ChangePasswordInput {
   currentPassword: string;
   newPassword: string;
   clientSalt: string;
+}
+
+export interface ForgotPasswordInput {
+  username: string;
+  email?: string;
 }
 
 export interface ResetPasswordTokenValidation {
@@ -218,11 +224,12 @@ export const authApi = {
    * Forgot password
    * 忘记密码
    */
-  forgotPassword: async (username: string): Promise<void> => {
-    const response = await api.post('/api/auth/forgot-password', { username });
+  forgotPassword: async (input: ForgotPasswordInput): Promise<ApiResponse<{ message: string }>> => {
+    const response = await api.post<{ message: string }>('/api/auth/forgot-password', input);
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to request password reset');
     }
+    return response;
   },
 
   /**

@@ -160,12 +160,10 @@ export class AuthService {
  * 请求密码重置
    */
   static async forgotPassword(input: ForgotPasswordInput): Promise<{ message: string }> {
-    // Find user by username or email
-    // 根据用户名或邮箱查找用户
+    // Find user by username first, then fall back to email lookup
+    // 优先按用户名查找，必要时回退到邮箱查找
     let user = await UserModel.findByUsername(input.username);
     if (!user && input.username.includes('@')) {
-      // Try looking up by email if input looks like an email
-      // 如果输入看起来像邮箱，尝试按邮箱查找
       user = await UserModel.findByEmail(input.username);
     }
 
@@ -178,6 +176,24 @@ export class AuthService {
       };
     }
 
+    let emailToUse = user.email;
+
+    // Allow users who registered without an email to provide one during password reset
+    // 允许未填写邮箱的用户在忘记密码时补充邮箱
+    if (!emailToUse && input.email) {
+      await UserModel.updateProfile(user.id, { email: input.email });
+      emailToUse = input.email;
+      logger.info(`Email captured during password reset for user: ${user.username}`);
+    }
+
+    if (!emailToUse) {
+      throw new AuthError(
+        'PASSWORD_RESET_EMAIL_REQUIRED',
+        '该账号尚未绑定邮箱，请先补充邮箱后再继续找回密码',
+        400
+      );
+    }
+
     // Invalidate any existing password reset tokens
     // 使任何现有的密码重置令牌失效
     await PasswordResetModel.invalidateAllForUser(user.id);
@@ -188,24 +204,20 @@ export class AuthService {
 
     // Send email with reset link
     // 发送带有重置链接的电子邮件
-    if (user.email) {
-      const emailSent = await EmailService.sendPasswordResetEmail(
-        user.email,
-        user.username,
-        resetToken.token
-      );
+    const emailSent = await EmailService.sendPasswordResetEmail(
+      emailToUse,
+      user.username,
+      resetToken.token
+    );
 
-      if (emailSent) {
-        logger.info(`Password reset email sent to: ${user.email}`);
-      } else {
-        logger.warn(`Failed to send password reset email to: ${user.email}`);
-        // If email is not configured, log the token for development
-        if (!config.email.enabled) {
-          logger.info(`Reset token (email not configured): ${resetToken.token} (valid for ${PasswordResetModel.DEFAULT_EXPIRY_MINUTES} minutes)`);
-        }
-      }
+    if (emailSent) {
+      logger.info(`Password reset email sent to: ${emailToUse}`);
     } else {
-      logger.warn(`User ${user.username} has no email address configured`);
+      logger.warn(`Failed to send password reset email to: ${emailToUse}`);
+      // If email is not configured, log the token for development
+      if (!config.email.enabled) {
+        logger.info(`Reset token (email not configured): ${resetToken.token} (valid for ${PasswordResetModel.DEFAULT_EXPIRY_MINUTES} minutes)`);
+      }
     }
 
     logger.info(`Password reset requested for user: ${user.username} (${user.id})`);

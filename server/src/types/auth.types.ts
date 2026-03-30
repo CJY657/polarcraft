@@ -135,6 +135,7 @@ export interface PasswordResetToken {
 /** Forgot password request / 忘记密码请求 */
 export interface ForgotPasswordInput {
   username: string;
+  email?: string;
 }
 
 /** Reset password request / 重置密码请求 */
@@ -210,6 +211,7 @@ export type AuthErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'USER_NOT_FOUND'
   | 'USER_ALREADY_EXISTS'
+  | 'PASSWORD_RESET_EMAIL_REQUIRED'
   | 'WEAK_PASSWORD'
   | 'INVALID_TOKEN'
   | 'TOKEN_EXPIRED'

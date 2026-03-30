@@ -145,6 +145,12 @@ export const validateForgotPassword = validate(
     .trim()
     .notEmpty()
     .withMessage('请提供用户名或邮箱'),
+  body('email')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isEmail()
+    .withMessage('邮箱格式不正确')
+    .normalizeEmail(),
 );
 
 export const validateResetPassword = validate(
