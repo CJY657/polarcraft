@@ -123,7 +123,7 @@ export function PasswordChangeDialog({ isOpen, onClose, username }: PasswordChan
       const hashedCurrentPassword = await preparePasswordForLogin(formData.currentPassword, salt);
 
       // Step 2: Hash new password with new salt
-      const { hashedPassword: hashedNewPassword } = await preparePasswordForRegistration(
+      const { hashedPassword: hashedNewPassword, salt: clientSalt } = await preparePasswordForRegistration(
         formData.newPassword
       );
 
@@ -131,6 +131,7 @@ export function PasswordChangeDialog({ isOpen, onClose, username }: PasswordChan
       await authApi.changePassword({
         currentPassword: hashedCurrentPassword,
         newPassword: hashedNewPassword,
+        clientSalt,
       });
 
       onClose();

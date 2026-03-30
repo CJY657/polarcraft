@@ -169,6 +169,33 @@ export class UserModel {
   }
 
   /**
+   * Update password and client-side salt
+   * 更新密码和客户端盐值
+   */
+  static async updatePasswordWithClientSalt(
+    id: string,
+    newPassword: string,
+    clientSalt: string
+  ): Promise<boolean> {
+    const passwordHash = await hashPassword(newPassword);
+
+    const result = await usersCollection().updateOne(
+      { id },
+      {
+        $set: {
+          password_hash: passwordHash,
+          client_salt: clientSalt,
+          client_hash_algorithm: 'SHA-256',
+          updated_at: new Date(),
+        },
+      }
+    );
+
+    logger.info(`Password and client salt updated for user: ${id}`);
+    return result.matchedCount > 0;
+  }
+
+  /**
    * Update last login time
    * 更新最后登录时间
    */

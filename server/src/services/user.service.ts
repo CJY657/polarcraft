@@ -7,8 +7,6 @@
  */
 
 import { UserModel } from '../models/user.model.js';
-import { validatePassword } from '../utils/password.util.js';
-import { config } from '../config/index.js';
 import {
   UserProfile,
   UpdateProfileInput,
@@ -24,6 +22,10 @@ import { logger } from '../utils/logger.js';
  * 用户服务类
  */
 export class UserService {
+  private static isClientPasswordHash(value: string): boolean {
+    return /^[a-f0-9]{64}$/i.test(value);
+  }
+
   /**
    * Get user profile by ID
  * 根据 ID 获取用户资料
@@ -75,20 +77,17 @@ export class UserService {
       throw new AuthError('INVALID_CREDENTIALS', '当前密码错误', 401);
     }
 
-    // Validate new password
-    // 验证新密码
-    const validation = validatePassword(input.newPassword, config.password);
-    if (!validation.valid) {
-      throw new AuthError(
-        'WEAK_PASSWORD',
-        validation.errors.join('; '),
-        400
-      );
+    if (!this.isClientPasswordHash(input.newPassword)) {
+      throw new AuthError('WEAK_PASSWORD', '新密码格式无效，请重新输入', 400);
     }
 
     // Update password
     // 更新密码
-    await UserModel.updatePassword(userId, input.newPassword);
+    await UserModel.updatePasswordWithClientSalt(
+      userId,
+      input.newPassword,
+      input.clientSalt
+    );
 
     // Revoke all refresh tokens (force re-login on all devices)
     // 撤销所有刷新令牌（强制所有设备重新登录）

@@ -8,7 +8,6 @@
 
 import { UserModel } from '../models/user.model.js';
 import { PasswordResetModel } from '../models/password-reset.model.js';
-import { validatePassword } from '../utils/password.util.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { TokenService } from './token.service.js';
@@ -30,6 +29,10 @@ import {
  * 认证服务类
  */
 export class AuthService {
+  private static isClientPasswordHash(value: string): boolean {
+    return /^[a-f0-9]{64}$/i.test(value);
+  }
+
   /**
    * Register a new user
  * 注册新用户
@@ -221,6 +224,22 @@ export class AuthService {
   }
 
   /**
+   * Validate password reset token
+   * 校验密码重置令牌
+   */
+  static async validateResetToken(token: string): Promise<{ valid: boolean; expiresAt?: Date }> {
+    const resetToken = await PasswordResetModel.findValidToken(token);
+    if (!resetToken) {
+      return { valid: false };
+    }
+
+    return {
+      valid: true,
+      expiresAt: resetToken.expires_at,
+    };
+  }
+
+  /**
    * Reset password with token
  * 使用令牌重置密码
    */
@@ -232,20 +251,17 @@ export class AuthService {
       throw new AuthError('INVALID_TOKEN', '密码重置令牌无效或已过期', 400);
     }
 
-    // Validate new password strength
-    // 验证新密码强度
-    const passwordValidation = validatePassword(input.newPassword, config.password);
-    if (!passwordValidation.valid) {
-      throw new AuthError(
-        'WEAK_PASSWORD',
-        passwordValidation.errors.join('; '),
-        400
-      );
+    if (!this.isClientPasswordHash(input.newPassword)) {
+      throw new AuthError('WEAK_PASSWORD', '新密码格式无效，请重新输入', 400);
     }
 
     // Update user password
     // 更新用户密码
-    await UserModel.updatePassword(resetToken.user_id, input.newPassword);
+    await UserModel.updatePasswordWithClientSalt(
+      resetToken.user_id,
+      input.newPassword,
+      input.clientSalt
+    );
 
     // Mark token as used
     // 将令牌标记为已使用

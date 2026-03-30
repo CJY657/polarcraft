@@ -55,10 +55,11 @@ export class UserController {
   static changePassword = asyncHandler(async (req: Request, res: Response) => {
     setupResponseHelpers(res);
 
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, clientSalt } = req.body;
     await UserService.changePassword(req.user!.sub, {
       currentPassword,
       newPassword,
+      clientSalt,
     });
 
     logger.info(`Password changed for user: ${req.user!.username}`);

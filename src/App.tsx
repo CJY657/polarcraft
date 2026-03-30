@@ -119,6 +119,8 @@ function LegacyAdminCourseEditorRedirect() {
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 
 // Admin Pages - 管理员页面
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
@@ -439,6 +441,14 @@ function AppRouterContent() {
           <Route
             path="/register"
             element={<AuthRedirectHandler />}
+          />
+          <Route
+            path="/forgot-password"
+            element={<ForgotPasswordPage />}
+          />
+          <Route
+            path="/reset-password"
+            element={<ResetPasswordPage />}
           />
           {/* Default route for 404 pages */}
           <Route

@@ -158,14 +158,32 @@ export class AuthController {
   });
 
   /**
+   * Validate password reset token
+ * 校验密码重置令牌
+   */
+  static validateResetToken = asyncHandler(async (req: Request, res: Response) => {
+    setupResponseHelpers(res);
+
+    const { token } = req.body;
+    const result = await AuthService.validateResetToken(token);
+
+    if (!result.valid) {
+      res.error('密码重置链接无效或已过期', 'INVALID_TOKEN', 400);
+      return;
+    }
+
+    res.success(result);
+  });
+
+  /**
    * Reset password
  * 重置密码
    */
   static resetPassword = asyncHandler(async (req: Request, res: Response) => {
     setupResponseHelpers(res);
 
-    const { token, newPassword } = req.body;
-    const result = await AuthService.resetPassword({ token, newPassword });
+    const { token, newPassword, clientSalt } = req.body;
+    const result = await AuthService.resetPassword({ token, newPassword, clientSalt });
 
     logger.info('Password reset completed');
     res.success(result, '密码重置成功');

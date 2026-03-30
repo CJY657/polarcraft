@@ -10,6 +10,7 @@ import {
   validateRegister,
   validateLogin,
   validateForgotPassword,
+  validateResetToken,
   validateResetPassword,
 } from '../middleware/validation.middleware.js';
 import {
@@ -81,6 +82,18 @@ router.post(
   passwordResetRateLimiter,
   validateForgotPassword,
   AuthController.forgotPassword
+);
+
+/**
+ * @route   POST /api/auth/validate-reset-token
+ * @desc    Validate password reset token
+ * @access  Public
+ */
+router.post(
+  '/validate-reset-token',
+  passwordResetRateLimiter,
+  validateResetToken,
+  AuthController.validateResetToken
 );
 
 /**

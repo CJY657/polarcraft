@@ -103,6 +103,11 @@ export const tokenValidation = body('token')
   .notEmpty()
   .withMessage('令牌不能为空');
 
+export const clientSaltValidation = body('clientSalt')
+  .trim()
+  .isLength({ min: 32, max: 128 })
+  .withMessage('客户端盐值格式不正确');
+
 export const rememberMeValidation = body('rememberMe')
   .optional()
   .isBoolean()
@@ -132,6 +137,7 @@ export const validateLogin = validate(
 export const validateChangePassword = validate(
   currentPasswordValidation,
   newPasswordValidation,
+  clientSaltValidation,
 );
 
 export const validateForgotPassword = validate(
@@ -143,11 +149,14 @@ export const validateForgotPassword = validate(
 
 export const validateResetPassword = validate(
   tokenValidation,
+  clientSaltValidation,
   body('newPassword')
     .trim()
     .isLength({ min: 8 })
     .withMessage('新密码长度至少为 8 个字符'),
 );
+
+export const validateResetToken = validate(tokenValidation);
 
 export const validateUpdateProfile = validate(
   body('username')

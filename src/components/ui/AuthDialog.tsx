@@ -6,6 +6,7 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog } from './dialog';
 import { useAuthDialogStore, AuthMode } from '@/stores/authDialogStore';
@@ -52,6 +53,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   const { t } = useTranslation();
   const { login } = useAuth();
   const { closeDialog } = useAuthDialogStore();
+  const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +74,11 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    closeDialog();
+    navigate('/forgot-password');
   };
 
   return (
@@ -121,17 +128,27 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
           />
         </div>
 
-        <div className="flex items-center">
-          <input
-            id="login-remember"
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-800"
-          />
-          <label htmlFor="login-remember" className="ml-2 text-sm text-slate-400">
-            {t('auth.rememberMe', '记住我')}
-          </label>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center">
+            <input
+              id="login-remember"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-800"
+            />
+            <label htmlFor="login-remember" className="ml-2 text-sm text-slate-400">
+              {t('auth.rememberMe', '记住我')}
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
+          >
+            {t('auth.forgotPassword', '忘记密码？')}
+          </button>
         </div>
 
         <button

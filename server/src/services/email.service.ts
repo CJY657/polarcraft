@@ -8,6 +8,7 @@
 
 import nodemailer from 'nodemailer';
 import { config } from '../config/index.js';
+import { PasswordResetModel } from '../models/password-reset.model.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -99,6 +100,7 @@ export class EmailService {
     resetToken: string
   ): Promise<boolean> {
     const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
+    const expiryMinutes = PasswordResetModel.DEFAULT_EXPIRY_MINUTES;
 
     const subject = 'PolarCraft 密码重置 | Password Reset';
     const text = `
@@ -109,7 +111,7 @@ export class EmailService {
 请点击以下链接重置您的密码：
 ${resetUrl}
 
-此链接将在 30 分钟后过期。
+此链接将在 ${expiryMinutes} 分钟后过期。
 
 如果您没有请求重置密码，请忽略此邮件。
 
@@ -121,7 +123,7 @@ You have requested to reset your PolarCraft account password.
 Please click the following link to reset your password:
 ${resetUrl}
 
-This link will expire in 30 minutes.
+This link will expire in ${expiryMinutes} minutes.
 
 If you did not request a password reset, please ignore this email.
     `.trim();
@@ -157,8 +159,8 @@ If you did not request a password reset, please ignore this email.
   <p>Or copy this link to your browser:</p>
   <p style="word-break: break-all; color: #3498db;">${resetUrl}</p>
 
-  <p><strong>此链接将在 30 分钟后过期。</strong></p>
-  <p><strong>This link will expire in 30 minutes.</strong></p>
+  <p><strong>此链接将在 ${expiryMinutes} 分钟后过期。</strong></p>
+  <p><strong>This link will expire in ${expiryMinutes} minutes.</strong></p>
 
   <p>如果您没有请求重置密码，请忽略此邮件。</p>
   <p>If you did not request a password reset, please ignore this email.</p>

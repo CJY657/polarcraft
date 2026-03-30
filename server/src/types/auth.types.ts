@@ -141,12 +141,14 @@ export interface ForgotPasswordInput {
 export interface ResetPasswordInput {
   token: string;
   newPassword: string;
+  clientSalt: string;
 }
 
 /** Change password request / 修改密码请求 */
 export interface ChangePasswordInput {
   currentPassword: string;
   newPassword: string;
+  clientSalt: string;
 }
 
 // =====================================================

@@ -66,6 +66,12 @@ export interface RegisterInput {
 export interface ChangePasswordInput {
   currentPassword: string;
   newPassword: string;
+  clientSalt: string;
+}
+
+export interface ResetPasswordTokenValidation {
+  valid: boolean;
+  expiresAt?: string;
 }
 
 // =====================================================
@@ -223,8 +229,20 @@ export const authApi = {
    * Reset password
    * 重置密码
    */
-  resetPassword: async (token: string, newPassword: string): Promise<void> => {
-    const response = await api.post('/api/auth/reset-password', { token, newPassword });
+  validateResetToken: async (token: string): Promise<ResetPasswordTokenValidation> => {
+    const response = await api.post<ResetPasswordTokenValidation>('/api/auth/validate-reset-token', { token });
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || 'Failed to validate password reset token');
+  },
+
+  /**
+   * Reset password
+   * 重置密码
+   */
+  resetPassword: async (token: string, newPassword: string, clientSalt: string): Promise<void> => {
+    const response = await api.post('/api/auth/reset-password', { token, newPassword, clientSalt });
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to reset password');
     }
