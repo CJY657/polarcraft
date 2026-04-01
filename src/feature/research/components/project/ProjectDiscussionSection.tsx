@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, MessageCircle, Reply, Send, Trash2 } from 'lucide-react';
+import { ChevronDown, Loader2, MessageCircle, Reply, Send, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
 
@@ -50,6 +50,36 @@ function buildCommentTree(comments: ProjectDiscussionComment[]): DiscussionTreeC
   return buildBranch(null);
 }
 
+function countReplies(comment: DiscussionTreeComment): number {
+  return comment.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
+}
+
+function buildRootCommentLookup(
+  comments: ProjectDiscussionComment[]
+): Map<string, string> {
+  const commentById = new Map(comments.map((comment) => [comment.id, comment]));
+  const rootLookup = new Map<string, string>();
+
+  for (const comment of comments) {
+    let current: ProjectDiscussionComment | undefined = comment;
+    let rootId = comment.id;
+
+    while (current?.parent_comment_id) {
+      const parent = commentById.get(current.parent_comment_id);
+      if (!parent) {
+        break;
+      }
+
+      rootId = parent.id;
+      current = parent;
+    }
+
+    rootLookup.set(comment.id, rootId);
+  }
+
+  return rootLookup;
+}
+
 export function ProjectDiscussionSection({
   projectId,
   canParticipate,
@@ -59,6 +89,7 @@ export function ProjectDiscussionSection({
   const [comments, setComments] = useState<ProjectDiscussionComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
 
   const [newComment, setNewComment] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -71,9 +102,12 @@ export function ProjectDiscussionSection({
 
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
 
   const commentTree = buildCommentTree(comments);
+  const rootCommentLookup = buildRootCommentLookup(comments);
   const starterPrompts = ['问一个概念点', '补充实验现象', '提出改进建议'];
+  const summaryComments = commentTree.slice(0, 3);
 
   async function loadComments() {
     try {
@@ -89,6 +123,14 @@ export function ProjectDiscussionSection({
   }
 
   useEffect(() => {
+    setIsDiscussionOpen(false);
+    setNewComment('');
+    setSubmitError(null);
+    setReplyTargetId(null);
+    setReplyDrafts({});
+    setReplyError(null);
+    setDeleteError(null);
+    setExpandedThreadIds({});
     void loadComments();
   }, [projectId]);
 
@@ -104,6 +146,7 @@ export function ProjectDiscussionSection({
       setSubmitError(null);
       await researchApi.addProjectDiscussionComment(projectId, { content });
       setNewComment('');
+      setIsDiscussionOpen(true);
       await loadComments();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '发布留言失败');
@@ -122,12 +165,15 @@ export function ProjectDiscussionSection({
     try {
       setSubmittingReplyToId(parentCommentId);
       setReplyError(null);
+      const rootCommentId = rootCommentLookup.get(parentCommentId) ?? parentCommentId;
       await researchApi.addProjectDiscussionComment(projectId, {
         content,
         parentCommentId,
       });
       setReplyDrafts((current) => ({ ...current, [parentCommentId]: '' }));
       setReplyTargetId(null);
+      setExpandedThreadIds((current) => ({ ...current, [rootCommentId]: true }));
+      setIsDiscussionOpen(true);
       await loadComments();
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : '回复失败');
@@ -161,6 +207,9 @@ export function ProjectDiscussionSection({
     const isReplying = replyTargetId === comment.id;
     const replyDraft = replyDrafts[comment.id] ?? '';
     const isRoot = depth === 0;
+    const hasReplies = comment.replies.length > 0;
+    const totalReplyCount = countReplies(comment);
+    const isThreadExpanded = isRoot ? expandedThreadIds[comment.id] ?? false : true;
 
     return (
       <div
@@ -213,9 +262,13 @@ export function ProjectDiscussionSection({
               {canParticipate && !comment.is_deleted && (
                 <button
                   onClick={() => {
+                    if (isRoot) {
+                      setExpandedThreadIds((current) => ({ ...current, [comment.id]: true }));
+                    }
                     setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                     setReplyError(null);
                     setDeleteError(null);
+                    setIsDiscussionOpen(true);
                   }}
                   className="inline-flex items-center gap-1 text-[var(--paper-link)] transition-opacity hover:opacity-80"
                 >
@@ -236,6 +289,26 @@ export function ProjectDiscussionSection({
                     <Trash2 className="h-3.5 w-3.5" />
                   )}
                   删除
+                </button>
+              )}
+
+              {isRoot && hasReplies && (
+                <button
+                  onClick={() => {
+                    setExpandedThreadIds((current) => ({
+                      ...current,
+                      [comment.id]: !current[comment.id],
+                    }));
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-accent)]/10 px-2.5 py-1 text-[var(--paper-link)] transition-colors hover:bg-[var(--paper-accent)]/16"
+                >
+                  {isThreadExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 transition-transform duration-200',
+                      isThreadExpanded && 'rotate-180'
+                    )}
+                  />
                 </button>
               )}
             </div>
@@ -284,7 +357,7 @@ export function ProjectDiscussionSection({
           </div>
         </div>
 
-        {comment.replies.length > 0 && (
+        {hasReplies && isThreadExpanded && (
           <div className="mt-4 space-y-3">
             {comment.replies.map((reply) => renderComment(reply, depth + 1))}
           </div>
@@ -308,104 +381,197 @@ export function ProjectDiscussionSection({
             参考 Khan Academy 下面那种线程式讨论：先抛主问题，再沿着同一条回复链往下追问。
           </p>
         </div>
-        <div className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-semibold sm:self-auto">
-          <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
-          {comments.length} 条留言
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <div className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold">
+            <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
+            {comments.length} 条留言
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDiscussionOpen((current) => !current)}
+            aria-expanded={isDiscussionOpen}
+            className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+          >
+            {isDiscussionOpen ? '收起讨论区' : '展开讨论区'}
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-[var(--paper-link)] transition-transform duration-200',
+                isDiscussionOpen && 'rotate-180'
+              )}
+            />
+          </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.9),rgba(244,248,255,0.9))]">
-        <div className="grid gap-0 lg:grid-cols-[0.92fr_1.38fr]">
-          <div className="border-b border-[var(--paper-accent)]/10 px-5 py-5 lg:border-b-0 lg:border-r">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
-              Start a discussion
+      {!isDiscussionOpen && (
+        <button
+          type="button"
+          onClick={() => setIsDiscussionOpen(true)}
+          className="group w-full overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.76),rgba(244,248,255,0.88))] px-5 py-4 text-left transition hover:border-[var(--paper-accent)]/20 hover:shadow-[0_18px_42px_rgba(15,23,42,0.05)]"
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
+                Discussion Preview
+              </div>
+              <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
+                {isLoading
+                  ? '正在同步讨论区内容'
+                  : commentTree.length === 0
+                  ? '讨论区已收起，展开后可以发起第一条讨论'
+                  : '讨论区已收起，展开后查看完整留言和回复'}
+              </p>
+              <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                {loadError
+                  ? loadError
+                  : commentTree.length === 0
+                  ? '像抖音评论区一样，平时收起来，需要时再点开。'
+                  : `当前有 ${comments.length} 条留言，最近的讨论会优先显示在上面。`}
+              </p>
             </div>
-            <p className="mt-3 text-lg font-semibold text-[var(--paper-foreground)]">
-              先写一条主留言，让后面的回复都围绕同一个问题展开。
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-              更像学习社区里的讨论串，而不是零散弹幕。
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {starterPrompts.map((prompt) => (
-                <span
-                  key={prompt}
-                  className="rounded-full border border-[var(--paper-accent)]/14 bg-white/72 px-3 py-1 text-xs font-medium text-[var(--paper-foreground)]"
+
+            <div className="flex items-center gap-3 md:justify-end">
+              {summaryComments.length > 0 && (
+                <div className="flex -space-x-2">
+                  {summaryComments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-[var(--paper-accent)]/16 text-xs font-semibold text-[var(--paper-link)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                    >
+                      {(comment.username || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/82 px-3 py-2 text-sm font-medium text-[var(--paper-foreground)]">
+                点此展开
+                <ChevronDown className="h-4 w-4 text-[var(--paper-link)] transition-transform duration-200 group-hover:translate-y-0.5" />
+              </div>
+            </div>
+          </div>
+
+          {summaryComments.length > 0 && (
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {summaryComments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="rounded-[1.2rem] border border-white/60 bg-white/76 px-4 py-3"
                 >
-                  {prompt}
-                </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate text-sm font-semibold text-[var(--paper-foreground)]">
+                      {comment.username || '未命名用户'}
+                    </span>
+                    <span className="text-[11px] text-[var(--glass-text-muted)]">
+                      {formatCommentTime(comment.created_at)}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                    {comment.is_deleted ? '这条留言已删除' : comment.content}
+                  </p>
+                </div>
               ))}
             </div>
-          </div>
-
-          <div className="px-5 py-5">
-            <textarea
-              value={newComment}
-              onChange={(event) => setNewComment(event.target.value)}
-              rows={5}
-              maxLength={2000}
-              disabled={!canParticipate || isSubmitting}
-              placeholder={canParticipate ? '例如：这个实验结果为什么会在某个角度突然变化？' : '当前课题暂不开放公开留言'}
-              className="w-full resize-y rounded-[1.15rem] border border-white/70 bg-white/92 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
-            />
-            {submitError && (
-              <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>
-            )}
-            {!canParticipate && (
-              <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
-                公开课题或课题成员可以参与讨论；如果只是想协作编辑，请先提交加入申请。
-              </p>
-            )}
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="text-xs text-[var(--glass-text-muted)]">
-                最多 2000 字，建议一条留言只聚焦一个问题。
-              </span>
-              <button
-                onClick={() => void handleSubmitComment()}
-                disabled={!canParticipate || isSubmitting}
-                className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                发起讨论
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {deleteError && (
-        <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-sm text-[#b33d3d]">
-          {deleteError}
-        </div>
+          )}
+        </button>
       )}
 
-      <div className="mt-6">
-        {isLoading ? (
-          <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-sm text-[var(--glass-text-muted)]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            正在加载讨论内容
+      {isDiscussionOpen && (
+        <>
+          <div className="overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.9),rgba(244,248,255,0.9))]">
+            <div className="grid gap-0 lg:grid-cols-[0.92fr_1.38fr]">
+              <div className="border-b border-[var(--paper-accent)]/10 px-5 py-5 lg:border-b-0 lg:border-r">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
+                  Start a discussion
+                </div>
+                <p className="mt-3 text-lg font-semibold text-[var(--paper-foreground)]">
+                  先写一条主留言，让后面的回复都围绕同一个问题展开。
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  更像学习社区里的讨论串，而不是零散弹幕。
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {starterPrompts.map((prompt) => (
+                    <span
+                      key={prompt}
+                      className="rounded-full border border-[var(--paper-accent)]/14 bg-white/72 px-3 py-1 text-xs font-medium text-[var(--paper-foreground)]"
+                    >
+                      {prompt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-5 py-5">
+                <textarea
+                  value={newComment}
+                  onChange={(event) => setNewComment(event.target.value)}
+                  rows={5}
+                  maxLength={2000}
+                  disabled={!canParticipate || isSubmitting}
+                  placeholder={canParticipate ? '例如：这个实验结果为什么会在某个角度突然变化？' : '当前课题暂不开放公开留言'}
+                  className="w-full resize-y rounded-[1.15rem] border border-white/70 bg-white/92 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
+                />
+                {submitError && (
+                  <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>
+                )}
+                {!canParticipate && (
+                  <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                    公开课题或课题成员可以参与讨论；如果只是想协作编辑，请先提交加入申请。
+                  </p>
+                )}
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="text-xs text-[var(--glass-text-muted)]">
+                    最多 2000 字，建议一条留言只聚焦一个问题。
+                  </span>
+                  <button
+                    onClick={() => void handleSubmitComment()}
+                    disabled={!canParticipate || isSubmitting}
+                    className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    发起讨论
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : loadError ? (
-          <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-sm text-[#b33d3d]">
-            {loadError}
+
+          {deleteError && (
+            <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-sm text-[#b33d3d]">
+              {deleteError}
+            </div>
+          )}
+
+          <div className="mt-6">
+            {isLoading ? (
+              <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-sm text-[var(--glass-text-muted)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                正在加载讨论内容
+              </div>
+            ) : loadError ? (
+              <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-sm text-[#b33d3d]">
+                {loadError}
+              </div>
+            ) : commentTree.length === 0 ? (
+              <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
+                <p className="text-sm font-medium text-[var(--paper-foreground)]">还没有人开场</p>
+                <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                  先抛一个明确问题，后面的回复自然会形成一条清楚的讨论线。
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {commentTree.map((comment) => renderComment(comment))}
+              </div>
+            )}
           </div>
-        ) : commentTree.length === 0 ? (
-          <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
-            <p className="text-sm font-medium text-[var(--paper-foreground)]">还没有人开场</p>
-            <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
-              先抛一个明确问题，后面的回复自然会形成一条清楚的讨论线。
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {commentTree.map((comment) => renderComment(comment))}
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </section>
   );
 }
