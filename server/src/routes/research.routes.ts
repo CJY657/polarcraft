@@ -3,11 +3,61 @@
  * 虚拟课题组路由
  */
 
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { ResearchController } from '../controllers/research.controller.js';
+import { UploadController } from '../controllers/upload.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
+import { createUploadMiddleware, handleUploadError } from '../middleware/upload.middleware.js';
+import { ResearchModel } from '../models/research.model.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
+
+function buildProjectDiscussionUploadScope(projectId: string): string {
+  const sanitizedProjectId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `project-discussion-${sanitizedProjectId}`;
+}
+
+async function authorizeProjectDiscussionImageUpload(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { projectId } = req.params;
+    const uploadScope = buildProjectDiscussionUploadScope(projectId);
+
+    if (!uploadScope || uploadScope === 'project-discussion-') {
+      res.error('课题标识无效', 'INVALID_PROJECT_ID', 400);
+      return;
+    }
+
+    const { project, canParticipate } = await ResearchModel.getProjectDiscussionAccess(
+      projectId,
+      req.user!.sub
+    );
+
+    if (!project) {
+      res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+      return;
+    }
+
+    if (!canParticipate) {
+      res.error('无权上传课题讨论图片', 'FORBIDDEN', 403);
+      return;
+    }
+
+    req.body = {
+      ...(typeof req.body === 'object' && req.body !== null ? req.body : {}),
+      unitId: uploadScope,
+    };
+    req.params.category = 'image';
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
 
 // All research routes require authentication
 router.use(authenticate);
@@ -230,6 +280,36 @@ router.get('/projects/:projectId/discussion-comments', ResearchController.getPro
  * @access  Private
  */
 router.post('/projects/:projectId/discussion-comments', ResearchController.addProjectDiscussionComment);
+
+/**
+ * @route   POST /api/research/projects/:projectId/discussion-images
+ * @desc    Upload an image for project discussion comments
+ * @access  Private
+ */
+router.post(
+  '/projects/:projectId/discussion-images',
+  authorizeProjectDiscussionImageUpload,
+  (req, res, next): void => {
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Project discussion image upload started', {
+      projectId: req.params.projectId,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
+
+    const upload = createUploadMiddleware('image');
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        handleUploadError(err, req, res, next);
+        return;
+      }
+      next();
+    });
+  },
+  UploadController.uploadFile
+);
 
 /**
  * @route   DELETE /api/research/discussion-comments/:id

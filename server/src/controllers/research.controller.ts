@@ -7,10 +7,46 @@
  */
 
 import { Request, Response } from 'express';
+import { uploadConfig } from '../config/upload.config.js';
 import { ResearchModel } from '../models/research.model.js';
 import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
+import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
 import { logger } from '../utils/logger.js';
+
+const MAX_PROJECT_DISCUSSION_IMAGES = 6;
+const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
+
+function normalizeProjectDiscussionImageUrls(value: unknown): string[] | null {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const uniqueUrls = new Set<string>();
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      return null;
+    }
+
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    if (trimmed !== managedUploadUrlPrefix && !trimmed.startsWith(`${managedUploadUrlPrefix}/`)) {
+      return null;
+    }
+
+    uniqueUrls.add(trimmed);
+  }
+
+  return [...uniqueUrls];
+}
 
 export class ResearchController {
   // ============================================================
@@ -459,26 +495,31 @@ export class ResearchController {
     const currentUserId = req.user!.sub;
     const rawContent = typeof req.body.content === 'string' ? req.body.content : '';
     const content = rawContent.trim();
+    const imageUrls = normalizeProjectDiscussionImageUrls(req.body.imageUrls);
     const parentCommentId = typeof req.body.parentCommentId === 'string' && req.body.parentCommentId.trim().length > 0
       ? req.body.parentCommentId.trim()
       : null;
 
-    if (!content) {
-      return res.error('评论内容不能为空', 'INVALID_COMMENT_CONTENT', 400);
+    if (imageUrls === null) {
+      return res.error('评论图片地址格式无效', 'INVALID_COMMENT_IMAGES', 400);
     }
 
     if (content.length > 2000) {
       return res.error('评论内容不能超过 2000 字', 'COMMENT_TOO_LONG', 400);
     }
 
-    const project = await ResearchModel.getProjectById(projectId);
+    if ((imageUrls?.length ?? 0) > MAX_PROJECT_DISCUSSION_IMAGES) {
+      return res.error(`单条评论最多上传 ${MAX_PROJECT_DISCUSSION_IMAGES} 张图片`, 'TOO_MANY_COMMENT_IMAGES', 400);
+    }
+
+    if (!content && (imageUrls?.length ?? 0) === 0) {
+      return res.error('评论内容和图片至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
+    }
+
+    const { project, canParticipate } = await ResearchModel.getProjectDiscussionAccess(projectId, currentUserId);
     if (!project) {
       return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
     }
-
-    const members = await ResearchModel.getProjectMembers(projectId);
-    const isMember = members.some((member: any) => member.user_id === currentUserId);
-    const canParticipate = isMember || project.is_public || project.allow_guest_comments;
 
     if (!canParticipate) {
       return res.error('无权参与该课题讨论', 'FORBIDDEN', 403);
@@ -499,7 +540,8 @@ export class ResearchController {
       projectId,
       currentUserId,
       content,
-      parentCommentId
+      parentCommentId,
+      imageUrls ?? []
     );
 
     await ResearchModel.logActivity(
@@ -508,7 +550,10 @@ export class ResearchController {
       'add_comment',
       'project_comment',
       commentId,
-      { parent_comment_id: parentCommentId }
+      {
+        parent_comment_id: parentCommentId,
+        image_count: imageUrls?.length ?? 0,
+      }
     );
 
     logger.info(`Project discussion comment added by user ${req.user!.username}: ${commentId}`);
@@ -537,6 +582,9 @@ export class ResearchController {
     }
 
     await ResearchModel.deleteProjectDiscussionComment(id);
+    await ManagedUploadCleanupService.cleanupUrls(comment.image_urls ?? [], {
+      reason: `research.project-comment.delete:${id}`,
+    });
     logger.info(`Project discussion comment deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '讨论留言删除成功');
   });

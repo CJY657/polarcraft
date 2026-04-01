@@ -48,6 +48,7 @@ const UPLOAD_REFERENCE_FIELDS: CollectionFieldRef[] = [
   { collection: 'course_main_slides', field: 'url' },
   { collection: 'course_media', field: 'url' },
   { collection: 'course_media', field: 'preview_pdf_url' },
+  { collection: 'research_project_comments', field: 'image_urls' },
 ];
 
 const uploadRootDir = path.resolve(uploadConfig.uploadDir);
@@ -71,6 +72,26 @@ function normalizeCandidateUrls(urls: CleanupCandidateUrl[]): string[] {
   }
 
   return [...uniqueUrls];
+}
+
+function extractReferencedUrlValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (typeof item !== 'string') {
+      return [];
+    }
+
+    const trimmed = item.trim();
+    return trimmed ? [trimmed] : [];
+  });
 }
 
 function getManagedUploadFilePath(url: string): string | null {
@@ -134,9 +155,10 @@ async function findStillReferencedUrls(urls: string[]): Promise<Set<string>> {
         .toArray();
 
       for (const document of documents) {
-        const value = document?.[field];
-        if (typeof value === 'string' && urlSet.has(value)) {
-          referencedUrls.add(value);
+        for (const value of extractReferencedUrlValues(document?.[field])) {
+          if (urlSet.has(value)) {
+            referencedUrls.add(value);
+          }
         }
       }
     })
@@ -155,14 +177,11 @@ async function collectReferencedManagedUploadFilePaths(): Promise<Set<string>> {
         .toArray();
 
       for (const document of documents) {
-        const value = document?.[field];
-        if (typeof value !== 'string') {
-          continue;
-        }
-
-        const filePath = getManagedUploadFilePath(value);
-        if (filePath) {
-          referencedPaths.add(filePath);
+        for (const value of extractReferencedUrlValues(document?.[field])) {
+          const filePath = getManagedUploadFilePath(value);
+          if (filePath) {
+            referencedPaths.add(filePath);
+          }
         }
       }
     })

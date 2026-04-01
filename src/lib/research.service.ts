@@ -50,11 +50,22 @@ export interface ProjectDiscussionComment {
   user_id: string;
   parent_comment_id: string | null;
   content: string;
+  image_urls: string[];
   is_deleted: boolean;
   created_at: string;
   updated_at: string;
   username: string;
   avatar_url: string | null;
+}
+
+export interface ProjectDiscussionImageUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: 'image';
+  unitId: string;
 }
 
 export interface CreateProjectInput {
@@ -322,13 +333,31 @@ export const researchApi = {
    */
   addProjectDiscussionComment: async (
     projectId: string,
-    input: { content: string; parentCommentId?: string }
+    input: { content: string; parentCommentId?: string; imageUrls?: string[] }
   ): Promise<{ id: string }> => {
     const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/discussion-comments`, input);
     if (response.success && response.data) {
       return response.data;
     }
     throw new Error(response.error?.message || '发布讨论留言失败');
+  },
+
+  /**
+   * Upload project discussion image
+   * 上传课题讨论图片
+   */
+  uploadProjectDiscussionImage: async (
+    projectId: string,
+    file: File
+  ): Promise<ProjectDiscussionImageUploadResult> => {
+    const response = await api.upload<ProjectDiscussionImageUploadResult>(
+      `/api/research/projects/${projectId}/discussion-images`,
+      file
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '上传讨论图片失败');
   },
 
   /**

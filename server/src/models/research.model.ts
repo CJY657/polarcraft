@@ -45,6 +45,29 @@ function sortMembers(a: any, b: any): number {
   return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
 }
 
+function normalizeImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const uniqueUrls = new Set<string>();
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      continue;
+    }
+
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    uniqueUrls.add(trimmed);
+  }
+
+  return [...uniqueUrls];
+}
+
 export class ResearchModel {
   /**
    * Get projects by user ID
@@ -117,6 +140,22 @@ export class ResearchModel {
       member_count: memberCount,
       canvas_count: canvasCount,
     };
+  }
+
+  static async getProjectDiscussionAccess(
+    projectId: string,
+    userId: string
+  ): Promise<{ project: any | null; isMember: boolean; canParticipate: boolean }> {
+    const project = await this.getProjectById(projectId);
+    if (!project) {
+      return { project: null, isMember: false, canParticipate: false };
+    }
+
+    const members = await this.getProjectMembers(projectId);
+    const isMember = members.some((member: any) => member.user_id === userId);
+    const canParticipate = isMember || project.is_public || project.allow_guest_comments;
+
+    return { project, isMember, canParticipate };
   }
 
   /**
@@ -704,6 +743,7 @@ export class ResearchModel {
 
     return comments.map((comment) => ({
       ...comment,
+      image_urls: normalizeImageUrls(comment.image_urls),
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
@@ -714,7 +754,15 @@ export class ResearchModel {
    * 获取课题讨论评论详情
    */
   static async getProjectDiscussionCommentById(commentId: string): Promise<any | null> {
-    return normalizeDocument<any>(await projectCommentsCollection().findOne({ id: commentId }));
+    const comment = normalizeDocument<any>(await projectCommentsCollection().findOne({ id: commentId }));
+    if (!comment) {
+      return null;
+    }
+
+    return {
+      ...comment,
+      image_urls: normalizeImageUrls(comment.image_urls),
+    };
   }
 
   /**
@@ -725,7 +773,8 @@ export class ResearchModel {
     projectId: string,
     userId: string,
     content: string,
-    parentCommentId: string | null = null
+    parentCommentId: string | null = null,
+    imageUrls: string[] = []
   ): Promise<string> {
     const now = new Date();
     const commentId = generateId();
@@ -736,6 +785,7 @@ export class ResearchModel {
       user_id: userId,
       parent_comment_id: parentCommentId,
       content,
+      image_urls: normalizeImageUrls(imageUrls),
       is_deleted: false,
       created_at: now,
       updated_at: now,
@@ -779,7 +829,7 @@ export class ResearchModel {
     if (childCount > 0) {
       const result = await projectCommentsCollection().updateOne(
         { id: commentId },
-        { $set: { is_deleted: true, content: '', updated_at: new Date() } }
+        { $set: { is_deleted: true, content: '', image_urls: [], updated_at: new Date() } }
       );
       logger.info(`Project discussion comment soft deleted: ${commentId}`);
       return result.matchedCount > 0;
