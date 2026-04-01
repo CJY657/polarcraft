@@ -54,30 +54,31 @@ function countReplies(comment: DiscussionTreeComment): number {
   return comment.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
 }
 
-function buildRootCommentLookup(
+function buildParentCommentLookup(
   comments: ProjectDiscussionComment[]
-): Map<string, string> {
-  const commentById = new Map(comments.map((comment) => [comment.id, comment]));
-  const rootLookup = new Map<string, string>();
+): Map<string, string | null> {
+  const parentLookup = new Map<string, string | null>();
 
   for (const comment of comments) {
-    let current: ProjectDiscussionComment | undefined = comment;
-    let rootId = comment.id;
-
-    while (current?.parent_comment_id) {
-      const parent = commentById.get(current.parent_comment_id);
-      if (!parent) {
-        break;
-      }
-
-      rootId = parent.id;
-      current = parent;
-    }
-
-    rootLookup.set(comment.id, rootId);
+    parentLookup.set(comment.id, comment.parent_comment_id ?? null);
   }
 
-  return rootLookup;
+  return parentLookup;
+}
+
+function expandCommentAncestors(
+  commentId: string,
+  parentLookup: Map<string, string | null>
+): Record<string, boolean> {
+  const expanded: Record<string, boolean> = {};
+  let currentId: string | null = commentId;
+
+  while (currentId) {
+    expanded[currentId] = true;
+    currentId = parentLookup.get(currentId) ?? null;
+  }
+
+  return expanded;
 }
 
 export function ProjectDiscussionSection({
@@ -102,10 +103,10 @@ export function ProjectDiscussionSection({
 
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
+  const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
 
   const commentTree = buildCommentTree(comments);
-  const rootCommentLookup = buildRootCommentLookup(comments);
+  const parentCommentLookup = buildParentCommentLookup(comments);
   const summaryComments = commentTree.slice(0, 3);
 
   async function loadComments() {
@@ -129,7 +130,7 @@ export function ProjectDiscussionSection({
     setReplyDrafts({});
     setReplyError(null);
     setDeleteError(null);
-    setExpandedThreadIds({});
+    setExpandedCommentIds({});
     void loadComments();
   }, [projectId]);
 
@@ -164,14 +165,16 @@ export function ProjectDiscussionSection({
     try {
       setSubmittingReplyToId(parentCommentId);
       setReplyError(null);
-      const rootCommentId = rootCommentLookup.get(parentCommentId) ?? parentCommentId;
       await researchApi.addProjectDiscussionComment(projectId, {
         content,
         parentCommentId,
       });
       setReplyDrafts((current) => ({ ...current, [parentCommentId]: '' }));
       setReplyTargetId(null);
-      setExpandedThreadIds((current) => ({ ...current, [rootCommentId]: true }));
+      setExpandedCommentIds((current) => ({
+        ...current,
+        ...expandCommentAncestors(parentCommentId, parentCommentLookup),
+      }));
       setIsDiscussionOpen(true);
       await loadComments();
     } catch (error) {
@@ -205,17 +208,16 @@ export function ProjectDiscussionSection({
   function renderComment(comment: DiscussionTreeComment, depth = 0) {
     const isReplying = replyTargetId === comment.id;
     const replyDraft = replyDrafts[comment.id] ?? '';
-    const isRoot = depth === 0;
     const hasReplies = comment.replies.length > 0;
     const totalReplyCount = countReplies(comment);
-    const isThreadExpanded = isRoot ? expandedThreadIds[comment.id] ?? false : true;
+    const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
 
     return (
       <div
         key={comment.id}
         className={cn(
           'relative',
-          isRoot ? 'rounded-[1.25rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,252,0.96))] p-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] md:p-4' : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'
+          depth === 0 ? 'rounded-[1.25rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,252,0.96))] p-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] md:p-4' : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'
         )}
       >
         <div className="flex items-start gap-2.5">
@@ -249,9 +251,10 @@ export function ProjectDiscussionSection({
               {canParticipate && !comment.is_deleted && (
                 <button
                   onClick={() => {
-                    if (isRoot) {
-                      setExpandedThreadIds((current) => ({ ...current, [comment.id]: true }));
-                    }
+                    setExpandedCommentIds((current) => ({
+                      ...current,
+                      ...expandCommentAncestors(comment.id, parentCommentLookup),
+                    }));
                     setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                     setReplyError(null);
                     setDeleteError(null);
@@ -279,21 +282,21 @@ export function ProjectDiscussionSection({
                 </button>
               )}
 
-              {isRoot && hasReplies && (
+              {hasReplies && (
                 <button
                   onClick={() => {
-                    setExpandedThreadIds((current) => ({
+                    setExpandedCommentIds((current) => ({
                       ...current,
-                      [comment.id]: !current[comment.id],
+                      [comment.id]: !(current[comment.id] ?? depth > 0),
                     }));
                   }}
                   className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-accent)]/10 px-2.5 py-1 text-[var(--paper-link)] transition-colors hover:bg-[var(--paper-accent)]/16"
                 >
-                  {isThreadExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
+                  {isRepliesExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
                   <ChevronDown
                     className={cn(
                       'h-3.5 w-3.5 transition-transform duration-200',
-                      isThreadExpanded && 'rotate-180'
+                      isRepliesExpanded && 'rotate-180'
                     )}
                   />
                 </button>
@@ -344,7 +347,7 @@ export function ProjectDiscussionSection({
           </div>
         </div>
 
-        {hasReplies && isThreadExpanded && (
+        {hasReplies && isRepliesExpanded && (
           <div className="mt-3 space-y-2.5">
             {comment.replies.map((reply) => renderComment(reply, depth + 1))}
           </div>
