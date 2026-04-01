@@ -106,7 +106,6 @@ export function ProjectDiscussionSection({
 
   const commentTree = buildCommentTree(comments);
   const rootCommentLookup = buildRootCommentLookup(comments);
-  const starterPrompts = ['问一个概念点', '补充实验现象', '提出改进建议'];
   const summaryComments = commentTree.slice(0, 3);
 
   async function loadComments() {
@@ -216,30 +215,18 @@ export function ProjectDiscussionSection({
         key={comment.id}
         className={cn(
           'relative',
-          isRoot ? 'rounded-[1.6rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,249,252,0.94))] p-4 shadow-[0_22px_48px_rgba(15,23,42,0.06)] md:p-5' : 'ml-5 border-l border-[var(--paper-accent)]/18 pl-4 sm:ml-8 sm:pl-5'
+          isRoot ? 'rounded-[1.25rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,252,0.96))] p-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] md:p-4' : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'
         )}
       >
-        {!isRoot && (
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">
-            <span className="h-px w-6 bg-[var(--paper-accent)]/30" />
-            Reply
-          </div>
-        )}
-
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-xs font-semibold text-[var(--paper-link)]">
             {(comment.username || 'U').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="font-semibold text-[var(--paper-foreground)]">
+              <span className="text-sm font-semibold text-[var(--paper-foreground)]">
                 {comment.username || '未命名用户'}
               </span>
-              {isRoot && !comment.is_deleted && (
-                <span className="rounded-full bg-[var(--paper-accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--paper-link)]">
-                  主留言
-                </span>
-              )}
               <span className="text-xs text-[var(--glass-text-muted)]">
                 {formatCommentTime(comment.created_at)}
               </span>
@@ -250,7 +237,7 @@ export function ProjectDiscussionSection({
               )}
             </div>
 
-            <div className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
+            <div className="mt-1.5 text-sm leading-6 text-[var(--paper-foreground)]">
               {comment.is_deleted ? (
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
               ) : (
@@ -258,7 +245,7 @@ export function ProjectDiscussionSection({
               )}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-medium">
+            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium">
               {canParticipate && !comment.is_deleted && (
                 <button
                   onClick={() => {
@@ -314,22 +301,22 @@ export function ProjectDiscussionSection({
             </div>
 
             {isReplying && canParticipate && (
-              <div className="mt-4 rounded-[1.15rem] border border-[var(--paper-accent)]/16 bg-[var(--paper-accent)]/6 p-3">
+              <div className="mt-3 rounded-[1rem] border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
                 <textarea
                   value={replyDraft}
                   onChange={(event) => {
                     const value = event.target.value;
                     setReplyDrafts((current) => ({ ...current, [comment.id]: value }));
                   }}
-                  rows={3}
+                  rows={2}
                   maxLength={2000}
                   placeholder="补充你的看法、建议或追问"
-                  className="w-full resize-y rounded-[1rem] border border-white/60 bg-white/85 px-3 py-2 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
+                  className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
                 />
                 {replyError && (
                   <p className="mt-2 text-xs text-[#b33d3d]">{replyError}</p>
                 )}
-                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <div className="mt-2.5 flex flex-wrap justify-end gap-2">
                   <button
                     onClick={() => {
                       setReplyTargetId(null);
@@ -358,7 +345,7 @@ export function ProjectDiscussionSection({
         </div>
 
         {hasReplies && isThreadExpanded && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-2.5">
             {comment.replies.map((reply) => renderComment(reply, depth + 1))}
           </div>
         )}
@@ -368,7 +355,7 @@ export function ProjectDiscussionSection({
 
   return (
     <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="research-kicker mb-2">Discussion</div>
           <h2
@@ -377,9 +364,6 @@ export function ProjectDiscussionSection({
           >
             课题讨论区
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-            参考 Khan Academy 下面那种线程式讨论：先抛主问题，再沿着同一条回复链往下追问。
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <div className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold">
@@ -478,66 +462,40 @@ export function ProjectDiscussionSection({
 
       {isDiscussionOpen && (
         <>
-          <div className="overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.9),rgba(244,248,255,0.9))]">
-            <div className="grid gap-0 lg:grid-cols-[0.92fr_1.38fr]">
-              <div className="border-b border-[var(--paper-accent)]/10 px-5 py-5 lg:border-b-0 lg:border-r">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
-                  Start a discussion
-                </div>
-                <p className="mt-3 text-lg font-semibold text-[var(--paper-foreground)]">
-                  先写一条主留言，让后面的回复都围绕同一个问题展开。
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  更像学习社区里的讨论串，而不是零散弹幕。
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {starterPrompts.map((prompt) => (
-                    <span
-                      key={prompt}
-                      className="rounded-full border border-[var(--paper-accent)]/14 bg-white/72 px-3 py-1 text-xs font-medium text-[var(--paper-foreground)]"
-                    >
-                      {prompt}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="px-5 py-5">
-                <textarea
-                  value={newComment}
-                  onChange={(event) => setNewComment(event.target.value)}
-                  rows={5}
-                  maxLength={2000}
-                  disabled={!canParticipate || isSubmitting}
-                  placeholder={canParticipate ? '例如：这个实验结果为什么会在某个角度突然变化？' : '当前课题暂不开放公开留言'}
-                  className="w-full resize-y rounded-[1.15rem] border border-white/70 bg-white/92 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
-                />
-                {submitError && (
-                  <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>
+          <div className="rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5">
+            <textarea
+              value={newComment}
+              onChange={(event) => setNewComment(event.target.value)}
+              rows={3}
+              maxLength={2000}
+              disabled={!canParticipate || isSubmitting}
+              placeholder={canParticipate ? '写下你的问题、观察或建议…' : '当前课题暂不开放公开留言'}
+              className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+            {submitError && (
+              <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>
+            )}
+            {!canParticipate && (
+              <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                公开课题或课题成员可以参与讨论。
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-[var(--glass-text-muted)]">
+                最多 2000 字
+              </span>
+              <button
+                onClick={() => void handleSubmitComment()}
+                disabled={!canParticipate || isSubmitting}
+                className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
                 )}
-                {!canParticipate && (
-                  <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
-                    公开课题或课题成员可以参与讨论；如果只是想协作编辑，请先提交加入申请。
-                  </p>
-                )}
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <span className="text-xs text-[var(--glass-text-muted)]">
-                    最多 2000 字，建议一条留言只聚焦一个问题。
-                  </span>
-                  <button
-                    onClick={() => void handleSubmitComment()}
-                    disabled={!canParticipate || isSubmitting}
-                    className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    发起讨论
-                  </button>
-                </div>
-              </div>
+                发布
+              </button>
             </div>
           </div>
 
@@ -547,7 +505,7 @@ export function ProjectDiscussionSection({
             </div>
           )}
 
-          <div className="mt-6">
+          <div className="mt-4">
             {isLoading ? (
               <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-sm text-[var(--glass-text-muted)]">
                 <Loader2 className="h-4 w-4 animate-spin" />
