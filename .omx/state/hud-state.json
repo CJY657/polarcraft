@@ -1,5 +1,0 @@
-{
-  "last_turn_at": "2026-04-03T05:51:25.913Z",
-  "turn_count": 63,
-  "last_agent_output": "已完成。\n\n**改动文件**\n- `src/feature/course/CourseViewer.tsx`\n- `src/feature/course/PdfViewer.tsx`\n- `src/f"
-}
