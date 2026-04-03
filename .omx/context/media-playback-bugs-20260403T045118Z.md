@@ -1,0 +1,26 @@
+# Deep Interview Context Snapshot
+
+- Task statement: 修复课程媒体联动中的 3 个异常：视频全屏左右被裁、Esc 退出全屏后 PPT 返回首页、点击照片放不出来。
+- Desired outcome: 明确用户期望交互后，再进入后续规划/修复。
+- Stated solution: 排查相关代码并澄清修复范围和可能副作用。
+- Probable intent hypothesis: 用户希望 PPT 超链接联动的视频/图片预览稳定可用，且全屏/退出行为符合演示场景直觉，不打断当前课件上下文。
+- Known facts/evidence:
+  - `src/feature/course/CourseViewer.tsx` 的 `renderMedia()` 中，视频 `<video>` 在常规预览和自定义全屏 overlay 里都使用 `object-cover`，存在左右被裁的风险。
+  - 同文件通过全局 `window.addEventListener("keydown")` 监听 `Escape`，会关闭 `isFullscreen` / `isMainSlideFullscreen`。
+  - 同文件点击图片只会设置 `selectedImageMedia`，但右侧主预览仍绑定 `activeVideoMedia`；图片只在下方 `activeImageMedia` 补充卡片出现，容易表现为“点了没打开”。
+  - PPT/PDF 联动逻辑在 `CourseViewer.tsx` + `PdfViewer.tsx` 中，页码状态独立管理；当前尚未直接看到 `Escape` 会把 PPT 页码重置到 1 的显式代码，需要进一步确认复现路径（可能与浏览器原生 video fullscreen / 组件重渲染有关）。
+- Constraints:
+  - 当前处于 `$deep-interview`，只做澄清与交接，不直接改代码。
+  - 需优先澄清预期交互，避免把“图片展示方式”改错。
+- Unknowns/open questions:
+  - 图片点击后的正确行为：替换右侧主预览、弹出大图、还是保留现有“下方补充图”模式？
+  - 视频退出全屏后的正确行为：仅退出全屏并保留当前 PPT 页/当前媒体，还是同时收起媒体或恢复默认视频？
+  - “PPT 返回首页”发生在自定义 overlay 全屏，还是浏览器/原生 video fullscreen？
+- Decision-boundary unknowns:
+  - 我可以只修正明显 bug，还是可以顺手调整媒体区交互模型（如图片改成 modal/lightbox）？
+  - 是否允许把视频预览从 `cover` 改为 `contain`，哪怕会出现黑边？
+- Likely codebase touchpoints:
+  - `src/feature/course/CourseViewer.tsx`
+  - `src/feature/course/PdfViewer.tsx`
+  - `src/feature/course/pptMedia.ts`
+  - `src/components/shared/SecureVideoPlayer.tsx`（存在全屏逻辑，但当前课程页实际在用原生 `<video>`）

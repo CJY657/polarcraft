@@ -1011,11 +1011,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaResource | null>(null);
   // 当前选中的 PPT 资源（用于中间课件区）
   const [selectedPptMedia, setSelectedPptMedia] = useState<MediaResource | null>(null);
-  // 当前选中的视频资源（用于右侧固定视频区）
-  const [selectedVideoMedia, setSelectedVideoMedia] = useState<MediaResource | null>(null);
-  // 当前选中的图片资源（用于右侧补充图片区）
-  const [selectedImageMedia, setSelectedImageMedia] = useState<MediaResource | null>(null);
-  // 下方预览区是否全屏
+  // 预览区是否全屏
   const [isFullscreen, setIsFullscreen] = useState(false);
   // 主 PDF 是否全屏
   const [isMainSlideFullscreen, setIsMainSlideFullscreen] = useState(false);
@@ -1023,6 +1019,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const [shouldAutoplayPreview, setShouldAutoplayPreview] = useState(false);
   const [linkedMediaId, setLinkedMediaId] = useState<string | null>(null);
   const [linkedMediaNonce, setLinkedMediaNonce] = useState(0);
+  const previewSurfaceRef = useRef<HTMLDivElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const playbackPositionRef = useRef<Record<string, number>>({});
 
   // 获取主 PDF（直接从 mainSlide 字段获取）
   const mainSlide = course.mainSlide;
@@ -1035,14 +1034,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const imageMediaList = previewMediaList.filter((media) => media.type === "image");
   const hasPptxLayout = pptMediaList.length > 0;
   const activePptMedia = selectedPptMedia ?? pptMediaList[0] ?? null;
-  const activeVideoMedia = selectedVideoMedia ?? videoMediaList[0] ?? null;
-  const activeImageMedia = selectedImageMedia;
-  const activePreviewMedia = hasPptxLayout
-    ? activeVideoMedia
-    : selectedMedia;
-  const activeHighlightedMediaId = hasPptxLayout
-    ? selectedMedia?.id ?? activeVideoMedia?.id ?? null
-    : activePreviewMedia?.id ?? null;
+  const defaultPreviewMedia =
+    previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null;
+  const activePreviewMedia = selectedMedia ?? defaultPreviewMedia;
+  const activeHighlightedMediaId = activePreviewMedia?.id ?? null;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
   const resourceSummaryChips = [
     {
@@ -1143,6 +1138,44 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     return media ? getMediaTitle(media) : targetMediaId;
   };
 
+  const persistPreviewPlaybackPosition = () => {
+    const currentPreviewMedia = activePreviewMedia;
+    const video = previewVideoRef.current;
+    if (!currentPreviewMedia || currentPreviewMedia.type !== "video" || !video) {
+      return;
+    }
+
+    playbackPositionRef.current[currentPreviewMedia.id] = video.currentTime;
+  };
+
+  const restorePreviewPlaybackPosition = (mediaId: string) => {
+    const video = previewVideoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const savedTime = playbackPositionRef.current[mediaId];
+    if (savedTime == null || Number.isNaN(savedTime) || savedTime <= 0) {
+      return;
+    }
+
+    const applySavedTime = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : savedTime;
+      const clampedTime = Math.min(savedTime, Math.max(duration - 0.1, 0));
+      if (!Number.isFinite(clampedTime) || clampedTime < 0) {
+        return;
+      }
+      video.currentTime = clampedTime;
+    };
+
+    if (video.readyState >= 1) {
+      applySavedTime();
+      return;
+    }
+
+    video.addEventListener("loadedmetadata", applySavedTime, { once: true });
+  };
+
   const handleMediaSelect = (
     media: MediaResource,
     options: { autoplay?: boolean; restart?: boolean; syncDeck?: boolean } = {}
@@ -1153,15 +1186,15 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     }
 
     const shouldSyncDeck = options.syncDeck ?? true;
+    persistPreviewPlaybackPosition();
 
     if (media.type === "video") {
-      setSelectedVideoMedia(media);
       setShouldAutoplayPreview(options.autoplay ?? true);
-      if (options.restart || selectedMedia?.id === media.id) {
+      if (options.restart) {
+        playbackPositionRef.current[media.id] = 0;
         setPreviewPlaybackKey((previousKey) => previousKey + 1);
       }
     } else {
-      setSelectedImageMedia(media.type === "image" ? media : null);
       setShouldAutoplayPreview(false);
     }
 
@@ -1186,15 +1219,26 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   };
 
   // 切换下方预览区全屏
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+  const toggleFullscreen = async () => {
+    const previewSurface = previewSurfaceRef.current;
+    if (!previewSurface) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await previewSurface.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("Failed to toggle preview fullscreen:", error);
+    }
   };
 
   useEffect(() => {
     if (!hasPptxLayout) {
       setSelectedPptMedia(null);
-      setSelectedVideoMedia(null);
-      setSelectedImageMedia(null);
       setSelectedMedia(null);
       setIsFullscreen(false);
       setShouldAutoplayPreview(false);
@@ -1203,35 +1247,59 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       return;
     }
 
+    const initialPreviewMedia =
+      previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null;
+
     setSelectedPptMedia(pptMediaList[0] ?? null);
-    setSelectedVideoMedia(videoMediaList[0] ?? null);
-    setSelectedImageMedia(null);
-    setSelectedMedia(
-      previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null
-    );
-    setIsFullscreen(false);
+    setSelectedMedia(initialPreviewMedia);
     setIsMainSlideFullscreen(false);
     setPreviewPlaybackKey(0);
     setShouldAutoplayPreview(false);
     setLinkedMediaId(null);
     setLinkedMediaNonce(0);
-  }, [course.id, mediaSignature, hasPptxLayout]);
+  }, [course.id, hasPptxLayout, mediaSignature]);
 
-  // ESC 键退出全屏
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fullscreenElement = document.fullscreenElement;
+      const previewSurface = previewSurfaceRef.current;
+      const isPreviewFullscreen = Boolean(
+        fullscreenElement &&
+          previewSurface &&
+          (fullscreenElement === previewSurface || previewSurface.contains(fullscreenElement))
+      );
+
+      setIsFullscreen(isPreviewFullscreen);
+
+      if (!isPreviewFullscreen) {
+        persistPreviewPlaybackPosition();
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [activePreviewMedia?.id, activePreviewMedia?.type]);
+
+  // ESC 键退出主 PDF 全屏
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (isMainSlideFullscreen) {
-          setIsMainSlideFullscreen(false);
-        } else if (isFullscreen) {
-          setIsFullscreen(false);
-        }
+      if (e.key === "Escape" && isMainSlideFullscreen) {
+        setIsMainSlideFullscreen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen, isMainSlideFullscreen]);
+  }, [isMainSlideFullscreen]);
+
+  useEffect(() => {
+    if (activePreviewMedia?.type !== "video") {
+      previewVideoRef.current = null;
+      return;
+    }
+
+    restorePreviewPlaybackPosition(activePreviewMedia.id);
+  }, [activePreviewMedia, previewPlaybackKey]);
 
   // 渲染主 PDF 内容
   const renderMainSlide = (isFullscreenMode = false) => {
@@ -1279,20 +1347,34 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               alt={getMediaTitle(media)}
               loading="lazy"
               decoding="async"
-              className="block h-full w-full object-cover"
+              className="block h-full w-full object-contain"
             />
           );
 
         case "video":
           return (
             <video
+              ref={previewVideoRef}
               key={`${media.id}-${previewPlaybackKey}`}
               src={getPreferredMediaUrl(media)}
               controls
               playsInline
               autoPlay={shouldAutoplayPreview}
               preload="metadata"
-              className="block h-full w-full bg-black object-cover"
+              className="block h-full w-full bg-black object-contain"
+              onLoadedMetadata={() => restorePreviewPlaybackPosition(media.id)}
+              onTimeUpdate={() => {
+                if (!previewVideoRef.current) {
+                  return;
+                }
+                playbackPositionRef.current[media.id] = previewVideoRef.current.currentTime;
+              }}
+              onPause={() => {
+                if (!previewVideoRef.current) {
+                  return;
+                }
+                playbackPositionRef.current[media.id] = previewVideoRef.current.currentTime;
+              }}
             />
           );
 
@@ -1307,22 +1389,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       }
     };
 
-    if (isFullscreen) {
-      return (
-        <div className="fixed inset-0 z-[9999] bg-black">
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="absolute right-4 top-4 z-20 rounded-lg bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
-            title={t("page.courses.exitfullscreen")}
-          >
-            <Minimize2 className="h-5 w-5" />
-          </button>
-          <div className="h-full w-full">{renderMediaBody()}</div>
-        </div>
-      );
-    }
-
-    return <div className="h-full w-full rounded-xl overflow-hidden">{renderMediaBody()}</div>;
+    return (
+      <div
+        ref={previewSurfaceRef}
+        className={`h-full w-full overflow-hidden ${isFullscreen ? "bg-black" : "rounded-xl"}`}
+      >
+        {renderMediaBody()}
+      </div>
+    );
   };
 
   return (
@@ -1470,9 +1544,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       {section.items.map((media) => {
                         const isPrimarySection = section.priority === "primary";
                         const isCurrentPpt = media.id === activePptMedia?.id;
-                        const isCurrentPreview = hasPptxLayout
-                          ? media.id === activeVideoMedia?.id || media.id === activeImageMedia?.id
-                          : media.id === activePreviewMedia?.id;
+                        const isCurrentPreview =
+                          media.type === "pptx"
+                            ? false
+                            : media.id === activePreviewMedia?.id;
                         const isActive = isCurrentPpt || isCurrentPreview;
 
                         return (
@@ -1675,7 +1750,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                             theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
                           }`}
                         >
-                          {isZh ? "实验视频联动" : "Experiment Video"}
+                          {isZh ? "实验媒体联动" : "Experiment Media"}
                         </p>
                       </div>
                       <h3
@@ -1683,29 +1758,31 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           theme === "dark" ? "text-white" : "text-slate-900"
                         }`}
                       >
-                        {activeVideoMedia
-                          ? getMediaTitle(activeVideoMedia)
+                        {activePreviewMedia
+                          ? getMediaTitle(activePreviewMedia)
                           : isZh
-                            ? "暂无实验视频"
-                            : "No experiment video"}
+                            ? "暂无实验媒体"
+                            : "No experiment media"}
                       </h3>
                     </div>
 
-                    {activeVideoMedia && (
+                    {activePreviewMedia && (
                       <div className="flex items-center gap-2">
+                        {activePreviewMedia.type === "video" && (
+                          <button
+                            onClick={toggleFullscreen}
+                            className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                              theme === "dark"
+                                ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                                : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                            }`}
+                            title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
+                          >
+                            {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                          </button>
+                        )}
                         <button
-                          onClick={toggleFullscreen}
-                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                            theme === "dark"
-                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                          }`}
-                          title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
-                        >
-                          {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-                        </button>
-                        <button
-                          onClick={() => window.open(activeVideoMedia.url, "_blank")}
+                          onClick={() => window.open(activePreviewMedia.url, "_blank")}
                           className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                             theme === "dark"
                               ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
@@ -1726,8 +1803,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
                     }`}
                   >
-                    {activeVideoMedia ? (
-                      renderMedia(activeVideoMedia)
+                    {activePreviewMedia ? (
+                      renderMedia(activePreviewMedia)
                     ) : (
                       <div className="flex h-full items-center justify-center px-12 text-center">
                         <div className="max-w-[240px]">
@@ -1736,92 +1813,43 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           </div>
                           <p className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
                             {isZh
-                              ? "当前课程没有可播放的视频资源。"
-                              : "This course does not include a playable video resource."}
+                              ? "当前课程没有可播放的媒体资源。"
+                              : "This course does not include a playable media resource."}
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {activeImageMedia && (
-                    <div
-                      className={`overflow-hidden rounded-[24px] border transition-all duration-300 ${
-                        theme === "dark"
-                          ? "border-slate-700/80 bg-slate-950/70 shadow-xl shadow-black/20"
-                          : "border-slate-200 bg-white shadow-md shadow-slate-200/40"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3 border-b px-5 py-4 dark:border-slate-700/80">
-                        <div>
-                          <p
-                            className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                              theme === "dark" ? "text-violet-300/80" : "text-violet-700"
-                            }`}
-                          >
-                            {isZh ? "补充图片" : "Reference Image"}
-                          </p>
-                          <h4
-                            className={`mt-1 text-sm font-bold ${
-                              theme === "dark" ? "text-white" : "text-slate-900"
-                            }`}
-                          >
-                            {getMediaTitle(activeImageMedia)}
-                          </h4>
-                        </div>
-                        <button
-                          onClick={() => window.open(activeImageMedia.url, "_blank")}
-                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                            theme === "dark"
-                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                          }`}
-                          title={t("page.courses.download")}
-                        >
-                          <Download className="h-5 w-5" />
-                        </button>
-                      </div>
-                      <div className="h-[240px] p-4">
-                        <img
-                          src={activeImageMedia.url}
-                          alt={getMediaTitle(activeImageMedia)}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full rounded-[18px] object-contain"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 视频详情卡片 */}
+                  {/* 媒体详情卡片 */}
                   <div
                     className={`rounded-[22px] border px-5 py-4 transition-all duration-300 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
                         : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
-                    }`}
+                      }`}
                   >
-                    {activeVideoMedia ? (
+                    {activePreviewMedia ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <span
                             className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
                             style={{
-                              backgroundColor: `${MEDIA_TYPE_COLORS[activeVideoMedia.type]}18`,
-                              color: MEDIA_TYPE_COLORS[activeVideoMedia.type],
+                              backgroundColor: `${MEDIA_TYPE_COLORS[activePreviewMedia.type]}18`,
+                              color: MEDIA_TYPE_COLORS[activePreviewMedia.type],
                             }}
                           >
-                            {getMediaTypeLabel(activeVideoMedia.type)}
+                            {getMediaTypeLabel(activePreviewMedia.type)}
                           </span>
-                          {activeVideoMedia.duration && (
+                          {activePreviewMedia.type === "video" && activePreviewMedia.duration && (
                             <span
                               className={`inline-flex items-center gap-1.5 text-xs font-bold ${
                                 theme === "dark" ? "text-slate-400" : "text-slate-500"
                               }`}
                             >
                               <Clock className="h-3.5 w-3.5" />
-                              {Math.floor(activeVideoMedia.duration / 60)}:
-                              {(activeVideoMedia.duration % 60).toString().padStart(2, "0")}
+                              {Math.floor(activePreviewMedia.duration / 60)}:
+                              {(activePreviewMedia.duration % 60).toString().padStart(2, "0")}
                             </span>
                           )}
                         </div>
@@ -1841,7 +1869,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       </div>
                     ) : (
                       <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
-                        {isZh ? "当前没有可展示的视频信息。" : "No video metadata available."}
+                        {isZh ? "当前没有可展示的媒体信息。" : "No media metadata available."}
                       </p>
                     )}
                   </div>

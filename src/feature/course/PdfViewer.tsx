@@ -25,6 +25,7 @@ import {
   extractReferenceKeysFromText,
   normalizeMediaReferenceText,
 } from "./mediaReference";
+import { getPreservedPageAfterResize } from "./pdfViewerState";
 
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -220,13 +221,13 @@ function PdfViewer({
   const [isLandscape, setIsLandscape] = useState<boolean>(
     typeof window !== "undefined" ? window.innerWidth > window.innerHeight : false
   );
+  const previousIsLandscapeRef = useRef(isLandscape);
 
   // 监听屏幕方向变化
   useEffect(() => {
     const handleResize = () => {
       const landscape = window.innerWidth > window.innerHeight;
       setIsLandscape(landscape);
-      setCurrentPage(1);
     };
 
     window.addEventListener("resize", handleResize);
@@ -351,6 +352,20 @@ function PdfViewer({
       });
     });
   }, [isLandscape, numPages]);
+
+  useEffect(() => {
+    if (previousIsLandscapeRef.current === isLandscape) {
+      return;
+    }
+
+    previousIsLandscapeRef.current = isLandscape;
+
+    if (numPages <= 0) {
+      return;
+    }
+
+    goToPage(getPreservedPageAfterResize(currentPage, numPages));
+  }, [currentPage, goToPage, isLandscape, numPages]);
 
   // 横屏模式：翻页控制
   const nextPage = useCallback(() => {
