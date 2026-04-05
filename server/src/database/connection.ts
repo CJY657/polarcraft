@@ -122,7 +122,8 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, user_id: 1 }, unique: true, name: 'unique_membership' },
-      { key: { user_id: 1, project_id: 1 }, name: 'idx_user_project' },
+      { key: { user_id: 1, active: 1, project_id: 1 }, name: 'idx_user_active_project' },
+      { key: { project_id: 1, active: 1, role: 1 }, name: 'idx_project_active_role' },
     ],
   },
   {

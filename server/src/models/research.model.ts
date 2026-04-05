@@ -7,6 +7,11 @@ import { getCollection } from '../database/connection.js';
 import { compareRole, normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
+import {
+  buildActiveMembershipFilter,
+  buildInactiveMembershipFilter,
+  isMembershipActive,
+} from './research-membership.util.js';
 
 const researchProjectsCollection = () => getCollection('research_projects');
 const projectMembersCollection = () => getCollection('research_project_members');
@@ -75,12 +80,17 @@ export class ResearchModel {
    */
   static async getUserProjects(userId: string): Promise<any[]> {
     const memberships = normalizeDocuments<{ project_id: string }>(
-      await projectMembersCollection().find({ user_id: userId }).project({ _id: 0, project_id: 1 }).toArray()
+      await projectMembersCollection()
+        .find(buildActiveMembershipFilter({ user_id: userId }))
+        .project({ _id: 0, project_id: 1 })
+        .toArray()
     );
     const memberProjectIds = memberships.map((membership) => membership.project_id);
-    const projectFilter = memberProjectIds.length > 0
-      ? { $or: [{ id: { $in: memberProjectIds } }, { is_public: true }] }
-      : { is_public: true };
+    if (memberProjectIds.length === 0) {
+      return [];
+    }
+
+    const projectFilter = { id: { $in: memberProjectIds } };
 
     const projects = normalizeDocuments<any>(
       await researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 }).toArray()
@@ -92,7 +102,7 @@ export class ResearchModel {
     const projectIds = projects.map((project) => project.id);
     const [members, canvases] = await Promise.all([
       normalizeDocuments<{ project_id: string; user_id: string }>(
-        await projectMembersCollection().find({ project_id: { $in: projectIds } }).toArray()
+        await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: projectIds } })).toArray()
       ),
       normalizeDocuments<{ id: string; project_id: string }>(
         await canvasesCollection().find({ project_id: { $in: projectIds } }).toArray()
@@ -131,7 +141,7 @@ export class ResearchModel {
     }
 
     const [memberCount, canvasCount] = await Promise.all([
-      projectMembersCollection().countDocuments({ project_id: projectId }),
+      projectMembersCollection().countDocuments(buildActiveMembershipFilter({ project_id: projectId })),
       canvasesCollection().countDocuments({ project_id: projectId }),
     ]);
 
@@ -273,14 +283,25 @@ export class ResearchModel {
     userId: string,
     role: string = 'viewer'
   ): Promise<boolean> {
+    const now = new Date();
     const existing = normalizeDocument<any>(
       await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
     );
 
     if (existing) {
+      const updateDoc: Record<string, unknown> = {
+        role,
+        active: true,
+        removed_at: null,
+      };
+
+      if (!isMembershipActive(existing)) {
+        updateDoc.joined_at = now;
+      }
+
       await projectMembersCollection().updateOne(
         { project_id: projectId, user_id: userId },
-        { $set: { role } }
+        { $set: updateDoc }
       );
     } else {
       await projectMembersCollection().insertOne({
@@ -288,7 +309,9 @@ export class ResearchModel {
         project_id: projectId,
         user_id: userId,
         role,
-        joined_at: new Date(),
+        active: true,
+        removed_at: null,
+        joined_at: now,
       });
     }
 
@@ -301,9 +324,17 @@ export class ResearchModel {
    * 移除项目成员
    */
   static async removeProjectMember(projectId: string, userId: string): Promise<boolean> {
-    const result = await projectMembersCollection().deleteOne({ project_id: projectId, user_id: userId });
+    const result = await projectMembersCollection().updateOne(
+      buildActiveMembershipFilter({ project_id: projectId, user_id: userId }),
+      {
+        $set: {
+          active: false,
+          removed_at: new Date(),
+        },
+      }
+    );
     logger.info(`Member removed from project: ${projectId} - ${userId}`);
-    return result.deletedCount > 0;
+    return result.matchedCount > 0;
   }
 
   /**
@@ -312,7 +343,7 @@ export class ResearchModel {
    */
   static async getProjectMembers(projectId: string): Promise<any[]> {
     const members = normalizeDocuments<any>(
-      await projectMembersCollection().find({ project_id: projectId }).toArray()
+      await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: projectId })).toArray()
     ).sort(sortMembers);
     const userMap = await getUserMap(members.map((member) => member.user_id));
 
@@ -321,6 +352,37 @@ export class ResearchModel {
       username: userMap.get(member.user_id)?.username || '',
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
+  }
+
+  /**
+   * Get former project members
+   * 获取已退出/被移除的历史成员
+   */
+  static async getFormerProjectMembers(projectId: string): Promise<any[]> {
+    const members = normalizeDocuments<any>(
+      await projectMembersCollection().find(buildInactiveMembershipFilter({ project_id: projectId })).toArray()
+    ).sort((a, b) => {
+      const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
+      const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
+      return removedAtB - removedAtA;
+    });
+    const userMap = await getUserMap(members.map((member) => member.user_id));
+
+    return members.map((member) => ({
+      ...member,
+      username: userMap.get(member.user_id)?.username || '',
+      avatar_url: userMap.get(member.user_id)?.avatar_url || null,
+    }));
+  }
+
+  /**
+   * Get a project membership record regardless of active state
+   * 获取指定成员的成员关系记录（含 inactive）
+   */
+  static async getProjectMembership(projectId: string, userId: string): Promise<any | null> {
+    return normalizeDocument<any>(
+      await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
+    );
   }
 
   /**

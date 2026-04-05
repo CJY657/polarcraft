@@ -35,13 +35,22 @@ export interface ProjectMember {
   project_id: string;
   user_id: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
+  active?: boolean;
+  removed_at?: string | null;
   joined_at: string;
   username: string;
   avatar_url: string | null;
 }
 
+export interface FormerProjectMember extends ProjectMember {
+  active: false;
+  removed_at: string | null;
+}
+
 export interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
+  former_members?: FormerProjectMember[];
+  has_pending_application?: boolean;
 }
 
 export interface ProjectDiscussionComment {

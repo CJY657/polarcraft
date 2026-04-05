@@ -6,7 +6,7 @@
  * 显示单个研究课题及其画布和设置
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, Navigate, useLocation } from "react-router-dom";
 import {
   Plus,
@@ -23,13 +23,20 @@ import {
   UserCheck,
   AlertCircle,
   UserMinus,
+  UserPlus,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
-import { researchApi, type ResearchProject, type ProjectMember, type ResearchCanvas } from "@/lib/research.service";
+import {
+  researchApi,
+  type ProjectWithMembers,
+  type ProjectMember,
+  type ResearchCanvas,
+  type FormerProjectMember,
+} from "@/lib/research.service";
 import {
   profileApi,
   type ProjectSettings,
@@ -44,10 +51,6 @@ import { ProjectApplicationForm } from "../components/project/ProjectApplication
 import { ProjectDiscussionSection } from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
-
-interface ProjectWithMembers extends ResearchProject {
-  members: ProjectMember[];
-}
 
 function isProjectMember(member: ProjectMember | PublicProjectMember): member is ProjectMember {
   return "user_id" in member && "id" in member;
@@ -86,11 +89,45 @@ export function ResearchProjectPage() {
   const [memberToRemove, setMemberToRemove] = useState<ProjectMember | null>(null);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
+  const [isAddingFormerMemberId, setIsAddingFormerMemberId] = useState<string | null>(null);
+  const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
 
   const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
+  const currentUserRole = useMemo(() => {
+    if (!project || !user) return null;
+    const member = project.members.find((m) => m.user_id === user.id);
+    return member?.role || null;
+  }, [project, user]);
   const isReadOnlyMode =
-    !projectId?.startsWith("example-") && (location.state?.readOnly === true || isPublicGuestMode);
+    !projectId?.startsWith("example-")
+    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole));
   const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
+  const loadAuthenticatedProjectData = useCallback(async (targetProjectId: string) => {
+    const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
+      researchApi.getProject(targetProjectId),
+      profileApi.getProjectSettings(targetProjectId).catch(() => null),
+      researchApi.getProjectCanvases(targetProjectId).catch(() => []),
+      profileApi.getProjectApplications(targetProjectId).catch(() => [] as ProjectApplication[]),
+    ]);
+
+    setProject(projectData);
+    setPublicProject(null);
+    setSettings(settingsData);
+    setCanvases(canvasesData);
+    setPendingApplicationCount(applicationsData.filter((application) => application.status === "pending").length);
+  }, []);
+
+  const refreshProjectData = useCallback(async () => {
+    if (!projectId || !isAuthenticated) return;
+
+    try {
+      setError(null);
+      await loadAuthenticatedProjectData(projectId);
+    } catch (err) {
+      console.error("Failed to refresh project:", err);
+      setError(err instanceof Error ? err.message : "加载课题失败");
+    }
+  }, [isAuthenticated, loadAuthenticatedProjectData, projectId]);
 
   // Fetch project data
   useEffect(() => {
@@ -126,17 +163,7 @@ export function ResearchProjectPage() {
           return;
         }
 
-        const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
-          researchApi.getProject(targetProjectId),
-          profileApi.getProjectSettings(targetProjectId).catch(() => null),
-          researchApi.getProjectCanvases(targetProjectId).catch(() => []),
-          profileApi.getProjectApplications(targetProjectId).catch(() => [] as ProjectApplication[]),
-        ]);
-        setProject(projectData);
-        setSettings(settingsData);
-        setCanvases(canvasesData);
-        const pending = applicationsData.filter((a: ProjectApplication) => a.status === "pending").length;
-        setPendingApplicationCount(pending);
+        await loadAuthenticatedProjectData(targetProjectId);
       } catch (err) {
         console.error("Failed to fetch project:", err);
         setError(err instanceof Error ? err.message : "加载课题失败");
@@ -145,17 +172,11 @@ export function ResearchProjectPage() {
       }
     }
 
-    fetchProjectData();
-  }, [projectId, isAuthenticated, authLoading, isExampleProject]);
-
-  // Get current user's role in project
-  const currentUserRole = useMemo(() => {
-    if (!project || !user) return null;
-    const member = project.members.find((m) => m.user_id === user.id);
-    return member?.role || null;
-  }, [project, user]);
+    void fetchProjectData();
+  }, [projectId, isAuthenticated, authLoading, isExampleProject, loadAuthenticatedProjectData]);
 
   const isOwnerOrAdmin = currentUserRole === "owner" || currentUserRole === "admin";
+  const isOwner = currentUserRole === "owner";
 
   // Format date
   const formatDate = (dateStr: string) => {
@@ -224,15 +245,29 @@ export function ResearchProjectPage() {
     setRemoveMemberError(null);
     try {
       await researchApi.removeProjectMember(projectId, memberToRemove.user_id);
-      // Refresh project data
-      const projectData = await researchApi.getProject(projectId);
-      setProject(projectData);
+      await refreshProjectData();
       setMemberToRemove(null);
     } catch (err) {
       console.error("Failed to remove member:", err);
       setRemoveMemberError(err instanceof Error ? err.message : "移除成员失败");
     } finally {
       setIsRemovingMember(false);
+    }
+  };
+
+  const handleRestoreFormerMember = async (member: FormerProjectMember) => {
+    if (!projectId) return;
+
+    setIsAddingFormerMemberId(member.user_id);
+    setRestoreMemberError(null);
+    try {
+      await researchApi.addProjectMember(projectId, member.user_id, "viewer");
+      await refreshProjectData();
+    } catch (err) {
+      console.error("Failed to restore member:", err);
+      setRestoreMemberError(err instanceof Error ? err.message : "拉回成员失败");
+    } finally {
+      setIsAddingFormerMemberId(null);
     }
   };
 
@@ -292,10 +327,24 @@ export function ResearchProjectPage() {
     : publicProject || project!;
 
   const displayMembers: Array<ProjectMember | PublicProjectMember> = project?.members || publicProject?.members || [];
+  const formerMembers = project?.former_members ?? [];
   const displayIsRecruiting = settings?.is_recruiting ?? publicProject?.is_recruiting ?? false;
   const displayRequireApproval = settings?.require_approval ?? publicProject?.require_approval ?? true;
   const displayRecruitmentRequirements =
     settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
+  const hasPendingApplication = project?.has_pending_application ?? publicProject?.has_pending_application ?? false;
+  const projectOwner = project?.members.find((member) => member.role === "owner") ?? null;
+  const applyButtonLabel = isPublicGuestMode
+    ? "登录后申请加入"
+    : hasPendingApplication
+      ? "申请已提交"
+      : "申请加入课题";
+  const applyBannerButtonLabel = isPublicGuestMode
+    ? "登录后加入"
+    : hasPendingApplication
+      ? "申请已提交"
+      : "申请加入";
+  const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
 
   const statusBadge = getStatusBadge(displayProject.status);
   const primaryCanvasHref = `/lab/projects/${projectId}/canvases/${canvases[0]?.id || "main"}`;
@@ -306,11 +355,27 @@ export function ResearchProjectPage() {
   const canParticipateInDiscussion = !isExampleProject && Boolean(
     user && (currentUserRole || displayProject.is_public || displayProject.allow_guest_comments)
   );
-  const canEnterCanvas = isExampleProject || (isAuthenticated && !!canvases[0]?.id);
+  const canEnterCanvas = isExampleProject || (!!currentUserRole && !!canvases[0]?.id);
 
   const handleCanvasCtaClick = () => {
     if (!isAuthenticated) {
       openDialog("login");
+      return;
+    }
+
+    if (isReadOnlyMode && !hasPendingApplication) {
+      setIsApplicationFormOpen(true);
+    }
+  };
+
+  const handleApplyAction = () => {
+    if (isPublicGuestMode) {
+      openDialog("login");
+      return;
+    }
+
+    if (!hasPendingApplication) {
+      setIsApplicationFormOpen(true);
     }
   };
 
@@ -372,10 +437,11 @@ export function ResearchProjectPage() {
               </div>
             </div>
             <button
-              onClick={() => (isPublicGuestMode ? openDialog("login") : setIsApplicationFormOpen(true))}
-              className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
+              onClick={handleApplyAction}
+              disabled={applyButtonDisabled}
+              className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
             >
-              {isPublicGuestMode ? "登录后加入" : "申请加入"}
+              {applyBannerButtonLabel}
             </button>
           </div>
         )}
@@ -433,16 +499,17 @@ export function ResearchProjectPage() {
                     className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
                   >
                     <Grid3x3 className="h-4 w-4" />
-                    登录后进入画布
+                    {isAuthenticated ? "申请通过后进入画布" : "登录后进入画布"}
                   </button>
                 )}
 
                 {isReadOnlyMode ? (
                   <button
-                    onClick={() => (isPublicGuestMode ? openDialog("login") : setIsApplicationFormOpen(true))}
-                    className="glass-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium"
+                    onClick={handleApplyAction}
+                    disabled={applyButtonDisabled}
+                    className="glass-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isPublicGuestMode ? "登录后申请加入" : "申请加入课题"}
+                    {applyButtonLabel}
                   </button>
                 ) : (
                   canManageProject && (
@@ -507,7 +574,7 @@ export function ResearchProjectPage() {
                 </p>
               </div>
 
-              {isOwnerOrAdmin && !isReadOnlyMode && (
+              {isOwner && !isReadOnlyMode && (
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
@@ -538,7 +605,7 @@ export function ResearchProjectPage() {
                 const isSelfRemoval = isSelf && member.role !== 'owner';
                 const canRemove = !!project && isActualProjectMember && !isReadOnlyMode && (
                   isSelfRemoval || // 成员可以移除自己（退出）
-                  (isOwnerOrAdmin && member.role !== 'owner' && !isSelf) // owner/admin 可以移除非 owner 成员
+                  (isOwner && member.role !== 'owner' && !isSelf) // 仅组长可以移除其他成员
                 );
                 const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
 
@@ -583,6 +650,63 @@ export function ResearchProjectPage() {
                 );
               })}
             </div>
+
+            {isOwner && !isReadOnlyMode && formerMembers.length > 0 && (
+              <div className="mt-6 border-t border-[var(--glass-stroke)] pt-6">
+                <div className="mb-4">
+                  <div className="research-kicker mb-2">Former Members</div>
+                  <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">待恢复成员</h3>
+                  <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                    这些成员曾加入过本课题，组长可以将他们重新拉回，默认角色为查看者。
+                  </p>
+                </div>
+
+                {restoreMemberError && (
+                  <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                    {restoreMemberError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {formerMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
+                    >
+                      <div
+                        className={cn(
+                          "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
+                          theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                        )}
+                      >
+                        {member.username?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</div>
+                        <div className="text-xs text-[var(--glass-text-muted)]">
+                          上次身份：{getRoleLabel(member.role)}
+                        </div>
+                        <div className="text-xs text-[var(--glass-text-muted)]">
+                          {member.removed_at ? `移除于 ${formatDate(member.removed_at)}` : "已离开课题"}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => void handleRestoreFormerMember(member)}
+                        disabled={isAddingFormerMemberId === member.user_id}
+                        className="glass-button rounded-full p-2 text-[var(--paper-link)] disabled:cursor-not-allowed disabled:opacity-60"
+                        title="拉回成员"
+                      >
+                        {isAddingFormerMemberId === member.user_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -748,11 +872,12 @@ export function ResearchProjectPage() {
       </main>
 
       {/* Application Management Dialog */}
-      {!isExampleProject && projectId && isOwnerOrAdmin && (
+      {!isExampleProject && projectId && isOwner && (
         <ApplicationManagementDialog
           isOpen={isApplicationDialogOpen}
           onClose={() => setIsApplicationDialogOpen(false)}
           projectId={projectId}
+          onStatusChange={() => void refreshProjectData()}
         />
       )}
 
@@ -800,8 +925,8 @@ export function ResearchProjectPage() {
             max_members: settings?.max_members ?? null,
             member_count: project.member_count,
             is_member: false,
-            owner_username: project.members.find((member) => member.role === "owner")?.username ?? null,
-            owner_avatar_url: project.members.find((member) => member.role === "owner")?.avatar_url ?? null,
+            owner_username: projectOwner?.username ?? null,
+            owner_avatar_url: projectOwner?.avatar_url ?? null,
             members: project.members.map((member) => ({
               username: member.username,
               avatar_url: member.avatar_url,
@@ -812,7 +937,7 @@ export function ResearchProjectPage() {
           }}
           onSuccess={() => {
             setIsApplicationFormOpen(false);
-            // 可以在这里添加成功提示或刷新页面
+            void refreshProjectData();
           }}
         />
       )}

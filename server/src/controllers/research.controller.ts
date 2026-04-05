@@ -76,7 +76,18 @@ export class ResearchController {
 
     // Get members
     const members = await ResearchModel.getProjectMembers(id);
-    res.success({ ...project, members });
+    const currentUser = members.find((member: any) => member.user_id === req.user!.sub);
+    const formerMembers = currentUser?.role === 'owner'
+      ? await ResearchModel.getFormerProjectMembers(id)
+      : undefined;
+    const pendingApplication = await ProfileModel.getPendingApplication(id, req.user!.sub);
+
+    res.success({
+      ...project,
+      members,
+      has_pending_application: Boolean(pendingApplication),
+      ...(formerMembers ? { former_members: formerMembers } : {}),
+    });
   });
 
   /**
@@ -129,11 +140,41 @@ export class ResearchController {
    */
   static addProjectMember = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { userId, role = 'viewer' } = req.body;
+    const { userId } = req.body;
+    const currentUserId = req.user!.sub;
 
-    await ResearchModel.addProjectMember(id, userId, role);
+    const project = await ResearchModel.getProjectById(id);
+    if (!project) {
+      return res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    const members = await ResearchModel.getProjectMembers(id);
+    const currentUser = members.find((member: any) => member.user_id === currentUserId);
+    if (!currentUser || currentUser.role !== 'owner') {
+      return res.error('只有组长可以拉回成员', 'FORBIDDEN', 403);
+    }
+
+    const targetMembership = await ResearchModel.getProjectMembership(id, userId);
+    if (!targetMembership) {
+      return res.error('只能拉回曾加入过该课题的成员', 'FORMER_MEMBER_REQUIRED', 400);
+    }
+
+    if (targetMembership.active !== false) {
+      return res.error('该用户已经是当前成员', 'ALREADY_MEMBER', 400);
+    }
+
+    await ResearchModel.addProjectMember(id, userId, 'viewer');
+    const pendingApplication = await ProfileModel.getPendingApplication(id, userId);
+    if (pendingApplication) {
+      await ProfileModel.updateApplicationStatus(
+        pendingApplication.id,
+        'approved',
+        currentUserId,
+        '组长直接拉回成员'
+      );
+    }
     logger.info(`Member added to project ${id} by ${req.user!.username}: ${userId}`);
-    res.success(null, '成员添加成功');
+    res.success(null, '成员已拉回');
   });
 
   /**
@@ -165,19 +206,14 @@ export class ResearchController {
       return res.success(null, '已退出课题组');
     }
 
-    // 权限检查：只有 owner 和 admin 可以移除其他成员
-    if (!currentUser || !['owner', 'admin'].includes(currentUser.role)) {
+    // 权限检查：只有 owner 可以移除其他成员
+    if (!currentUser || currentUser.role !== 'owner') {
       return res.error('无权移除成员', 'FORBIDDEN', 403);
     }
 
     // 不能移除 owner
     if (targetMember.role === 'owner') {
       return res.error('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
-    }
-
-    // admin 不能移除其他 admin
-    if (currentUser.role === 'admin' && targetMember.role === 'admin') {
-      return res.error('管理员不能移除其他管理员', 'CANNOT_REMOVE_ADMIN', 403);
     }
 
     await ResearchModel.removeProjectMember(id, userId);
@@ -694,6 +730,12 @@ export class ResearchController {
    */
   static getProjectApplications = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const members = await ResearchModel.getProjectMembers(id);
+    const currentUser = members.find((member: any) => member.user_id === req.user!.sub);
+    if (!currentUser || currentUser.role !== 'owner') {
+      return res.error('无权查看申请列表', 'FORBIDDEN', 403);
+    }
+
     const applications = await ProfileModel.getProjectApplications(id);
     res.success(applications);
   });
@@ -766,18 +808,28 @@ export class ResearchController {
       return res.error('该申请已处理', 'ALREADY_PROCESSED', 400);
     }
 
-    // Check if user is project owner/admin
+    // Check if user is project owner
     const members = await ResearchModel.getProjectMembers(application.project_id);
     const reviewer = members.find((m: any) => m.user_id === reviewerId);
-    if (!reviewer || !['owner', 'admin'].includes(reviewer.role)) {
+    if (!reviewer || reviewer.role !== 'owner') {
       return res.error('无权处理该申请', 'FORBIDDEN', 403);
+    }
+
+    if (status === 'approved') {
+      const applicantMembership = await ResearchModel.getProjectMembership(
+        application.project_id,
+        application.user_id
+      );
+      if (applicantMembership && applicantMembership.active !== false) {
+        return res.error('该用户已经是项目成员', 'ALREADY_MEMBER', 400);
+      }
     }
 
     await ProfileModel.updateApplicationStatus(id, status, reviewerId, review_notes);
 
     // If approved, add to project members
     if (status === 'approved') {
-      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'editor');
+      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'viewer');
       logger.info(`User ${application.user_id} added to project ${application.project_id}`);
     }
 

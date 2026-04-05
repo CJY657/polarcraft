@@ -158,6 +158,7 @@ export interface PublicProject {
   max_members: number | null;
   member_count: number;
   is_member: boolean;
+  has_pending_application?: boolean;
   owner_username: string | null;
   owner_avatar_url: string | null;
   members: PublicProjectMember[];

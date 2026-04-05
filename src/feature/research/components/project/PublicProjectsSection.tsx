@@ -54,6 +54,9 @@ export function PublicProjectsSection() {
       openDialog("login");
       return;
     }
+    if (project.has_pending_application) {
+      return;
+    }
     setSelectedProject(project);
     setIsApplicationFormOpen(true);
   };
@@ -217,9 +220,10 @@ export function PublicProjectsSection() {
                 {!project.is_member && (
                   <button
                     onClick={() => handleApplyClick(project)}
-                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white"
+                    disabled={project.has_pending_application}
+                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {project.require_approval ? "提交申请" : "立即加入"}
+                    {project.has_pending_application ? "待审核" : project.require_approval ? "提交申请" : "立即加入"}
                   </button>
                 )}
               </div>

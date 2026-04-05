@@ -13,6 +13,7 @@ import {
 } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
+import { buildActiveMembershipFilter } from './research-membership.util.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -396,14 +397,17 @@ export class ProfileModel {
     userId: string,
     data: CreateApplicationInput
   ): Promise<string> {
-    const existing = await applicationsCollection().findOne({ project_id: projectId, user_id: userId });
-    if (existing) {
+    const pendingApplication = await this.getPendingApplication(projectId, userId);
+    if (pendingApplication) {
       throw new Error('已经存在待处理的申请');
     }
 
     const now = new Date();
+    const existingApplication = normalizeDocument<ProjectApplication>(
+      await applicationsCollection().findOne({ project_id: projectId, user_id: userId })
+    );
     const application: ProjectApplication = {
-      id: generateId(),
+      id: existingApplication?.id || generateId(),
       project_id: projectId,
       user_id: userId,
       display_name: data.display_name,
@@ -422,7 +426,31 @@ export class ProfileModel {
       updated_at: now,
     };
 
-    await applicationsCollection().insertOne(application as unknown as Record<string, unknown>);
+    if (existingApplication) {
+      await applicationsCollection().updateOne(
+        { id: existingApplication.id },
+        {
+          $set: {
+            display_name: application.display_name,
+            organization: application.organization,
+            education_id: application.education_id,
+            major: application.major,
+            grade: application.grade,
+            research_experience: application.research_experience,
+            expertise: application.expertise,
+            motivation: application.motivation,
+            status: 'pending',
+            reviewed_by: null,
+            reviewed_at: null,
+            review_notes: null,
+            created_at: now,
+            updated_at: now,
+          },
+        }
+      );
+    } else {
+      await applicationsCollection().insertOne(application as unknown as Record<string, unknown>);
+    }
 
     logger.info(`Application created: ${application.id} for project ${projectId}`);
     return application.id;
@@ -517,13 +545,24 @@ export class ProfileModel {
     }
 
     const visibleProjectIds = projects.map((project) => project.id);
-    const members = normalizeDocuments<any>(
-      await projectMembersCollection().find({ project_id: { $in: visibleProjectIds } }).toArray()
-    );
+    const [members, pendingApplications] = await Promise.all([
+      normalizeDocuments<any>(
+        await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: visibleProjectIds } })).toArray()
+      ),
+      userId
+        ? normalizeDocuments<{ project_id: string }>(
+            await applicationsCollection()
+              .find({ project_id: { $in: visibleProjectIds }, user_id: userId, status: 'pending' })
+              .project({ _id: 0, project_id: 1 })
+              .toArray()
+          )
+        : Promise.resolve([] as { project_id: string }[]),
+    ]);
     const userMap = await getUserMap(members.map((member) => member.user_id));
 
     const settingsMap = new Map(settings.map((item) => [item.project_id, item]));
     const membersByProject = new Map<string, any[]>();
+    const pendingProjectIds = new Set(pendingApplications.map((application) => application.project_id));
 
     for (const member of members) {
       const list = membersByProject.get(member.project_id) || [];
@@ -552,6 +591,7 @@ export class ProfileModel {
         max_members: setting?.max_members,
         member_count: projectMembers.length,
         is_member: userId ? projectMembers.some((member) => member.user_id === userId) : false,
+        has_pending_application: userId ? pendingProjectIds.has(project.id) : false,
         owner_username: ownerUser?.username || null,
         owner_avatar_url: ownerUser?.avatar_url || null,
         members: projectMembers.map((member) => ({

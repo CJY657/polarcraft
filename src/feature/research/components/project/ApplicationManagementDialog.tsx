@@ -15,12 +15,14 @@ interface ApplicationManagementDialogProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  onStatusChange?: () => void | Promise<void>;
 }
 
 export function ApplicationManagementDialog({
   isOpen,
   onClose,
   projectId,
+  onStatusChange,
 }: ApplicationManagementDialogProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -59,6 +61,7 @@ export function ApplicationManagementDialog({
           a.id === applicationId ? { ...a, status: 'approved' as const } : a
         )
       );
+      await onStatusChange?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
@@ -80,6 +83,7 @@ export function ApplicationManagementDialog({
             : a
         )
       );
+      await onStatusChange?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
