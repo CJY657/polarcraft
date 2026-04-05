@@ -858,7 +858,7 @@ export function ProjectDiscussionSection({
                 rows={3}
                 maxLength={MAX_COMMENT_LENGTH}
                 disabled={!canParticipate || isSubmitting}
-                placeholder={canParticipate ? '写下你的问题、观察或建议…' : '当前课题暂不开放公开留言'}
+                placeholder={canParticipate ? '写下你的问题、观察或建议…' : '只有课题成员可以参与讨论'}
                 className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
               />
 
@@ -897,7 +897,7 @@ export function ProjectDiscussionSection({
               {submitError && <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>}
               {!canParticipate && (
                 <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
-                  公开课题或课题成员可以参与讨论。
+                  只有课题成员可以参与讨论。
                 </p>
               )}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

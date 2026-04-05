@@ -48,6 +48,100 @@ function normalizeProjectDiscussionImageUrls(value: unknown): string[] | null {
   return [...uniqueUrls];
 }
 
+type ProjectAccessLevel = 'read' | 'write' | 'manage' | 'discussion';
+
+async function ensureProjectAccess(
+  res: Response,
+  projectId: string,
+  userId: string,
+  level: ProjectAccessLevel,
+  forbiddenMessage = '权限不足'
+) {
+  const access = await ResearchModel.getProjectAccess(projectId, userId);
+
+  if (!access.project) {
+    res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    return null;
+  }
+
+  const allowed = {
+    read: access.canRead,
+    write: access.canWrite,
+    manage: access.canManage,
+    discussion: access.canAccessDiscussion,
+  }[level];
+
+  if (!allowed) {
+    res.error(forbiddenMessage, 'FORBIDDEN', 403);
+    return null;
+  }
+
+  return access;
+}
+
+async function ensureCanvasAccess(
+  res: Response,
+  canvasId: string,
+  userId: string,
+  level: Exclude<ProjectAccessLevel, 'discussion'>,
+  forbiddenMessage = '权限不足'
+) {
+  const canvas = await ResearchModel.getCanvasById(canvasId);
+  if (!canvas) {
+    res.error('画布未找到', 'CANVAS_NOT_FOUND', 404);
+    return null;
+  }
+
+  const access = await ensureProjectAccess(res, canvas.project_id, userId, level, forbiddenMessage);
+  if (!access) {
+    return null;
+  }
+
+  return { canvas, access };
+}
+
+async function ensureNodeAccess(
+  res: Response,
+  nodeId: string,
+  userId: string,
+  level: Exclude<ProjectAccessLevel, 'discussion'>,
+  forbiddenMessage = '权限不足'
+) {
+  const node = await ResearchModel.getNodeById(nodeId);
+  if (!node) {
+    res.error('节点未找到', 'NODE_NOT_FOUND', 404);
+    return null;
+  }
+
+  const canvasAccess = await ensureCanvasAccess(res, node.canvas_id, userId, level, forbiddenMessage);
+  if (!canvasAccess) {
+    return null;
+  }
+
+  return { node, ...canvasAccess };
+}
+
+async function ensureEdgeAccess(
+  res: Response,
+  edgeId: string,
+  userId: string,
+  level: Exclude<ProjectAccessLevel, 'discussion'>,
+  forbiddenMessage = '权限不足'
+) {
+  const edge = await ResearchModel.getEdgeById(edgeId);
+  if (!edge) {
+    res.error('关系未找到', 'EDGE_NOT_FOUND', 404);
+    return null;
+  }
+
+  const canvasAccess = await ensureCanvasAccess(res, edge.canvas_id, userId, level, forbiddenMessage);
+  if (!canvasAccess) {
+    return null;
+  }
+
+  return { edge, ...canvasAccess };
+}
+
 export class ResearchController {
   // ============================================================
   // Projects / 项目
@@ -68,10 +162,15 @@ export class ResearchController {
    */
   static getProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const project = await ResearchModel.getProjectById(id);
-
-    if (!project) {
-      return res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题'
+    );
+    if (!access) {
+      return;
     }
 
     // Get members
@@ -83,7 +182,7 @@ export class ResearchController {
     const pendingApplication = await ProfileModel.getPendingApplication(id, req.user!.sub);
 
     res.success({
-      ...project,
+      ...access.project,
       members,
       has_pending_application: Boolean(pendingApplication),
       ...(formerMembers ? { former_members: formerMembers } : {}),
@@ -112,6 +211,10 @@ export class ResearchController {
    */
   static updateProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以更新课题');
+    if (!access) {
+      return;
+    }
     const updated = await ResearchModel.updateProject(id, req.body);
 
     if (!updated) {
@@ -129,6 +232,10 @@ export class ResearchController {
    */
   static deleteProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以删除课题');
+    if (!access) {
+      return;
+    }
     await ResearchModel.deleteProject(id);
     logger.info(`Project deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '项目删除成功');
@@ -143,15 +250,9 @@ export class ResearchController {
     const { userId } = req.body;
     const currentUserId = req.user!.sub;
 
-    const project = await ResearchModel.getProjectById(id);
-    if (!project) {
-      return res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
-    }
-
-    const members = await ResearchModel.getProjectMembers(id);
-    const currentUser = members.find((member: any) => member.user_id === currentUserId);
-    if (!currentUser || currentUser.role !== 'owner') {
-      return res.error('只有组长可以拉回成员', 'FORBIDDEN', 403);
+    const access = await ensureProjectAccess(res, id, currentUserId, 'manage', '只有组长可以拉回成员');
+    if (!access) {
+      return;
     }
 
     const targetMembership = await ResearchModel.getProjectMembership(id, userId);
@@ -166,7 +267,7 @@ export class ResearchController {
       return res.error('该用户已经是当前成员', 'ALREADY_MEMBER', 400);
     }
 
-    await ResearchModel.addProjectMember(id, userId, 'viewer');
+    await ResearchModel.addProjectMember(id, userId, 'member');
     const pendingApplication = await ProfileModel.getPendingApplication(id, userId);
     if (pendingApplication) {
       await ProfileModel.updateApplicationStatus(
@@ -234,6 +335,16 @@ export class ResearchController {
    */
   static getProjectCanvases = asyncHandler(async (req: Request, res: Response) => {
     const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题画布'
+    );
+    if (!access) {
+      return;
+    }
     const canvases = await ResearchModel.getProjectCanvases(projectId);
     res.success(canvases);
   });
@@ -244,13 +355,18 @@ export class ResearchController {
    */
   static getCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const canvas = await ResearchModel.getCanvasById(id);
-
-    if (!canvas) {
-      return res.error('画布未找到', 'CANVAS_NOT_FOUND', 404);
+    const canvasAccess = await ensureCanvasAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题画布'
+    );
+    if (!canvasAccess) {
+      return;
     }
 
-    res.success(canvas);
+    res.success(canvasAccess.canvas);
   });
 
   /**
@@ -259,6 +375,10 @@ export class ResearchController {
    */
   static createCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { projectId } = req.params;
+    const access = await ensureProjectAccess(res, projectId, req.user!.sub, 'write', '只有课题成员可以创建画布');
+    if (!access) {
+      return;
+    }
     const canvasId = await ResearchModel.createCanvas(projectId, req.body);
 
     const canvas = await ResearchModel.getCanvasById(canvasId);
@@ -272,6 +392,10 @@ export class ResearchController {
    */
   static updateCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const canvasAccess = await ensureCanvasAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑画布');
+    if (!canvasAccess) {
+      return;
+    }
     await ResearchModel.updateCanvas(id, req.body);
 
     const canvas = await ResearchModel.getCanvasById(id);
@@ -285,6 +409,10 @@ export class ResearchController {
    */
   static deleteCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const canvasAccess = await ensureCanvasAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除画布');
+    if (!canvasAccess) {
+      return;
+    }
     await ResearchModel.deleteCanvas(id);
     logger.info(`Canvas deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '画布删除成功');
@@ -300,18 +428,22 @@ export class ResearchController {
    */
   static createNode = asyncHandler(async (req: Request, res: Response) => {
     const { canvasId } = req.params;
-
-    // Check if canvas exists, if not return error
-    let canvas = await ResearchModel.getCanvasById(canvasId);
-    if (!canvas) {
-      return res.error('画布未找到，请刷新页面重试', 'CANVAS_NOT_FOUND', 404);
+    const canvasAccess = await ensureCanvasAccess(
+      res,
+      canvasId,
+      req.user!.sub,
+      'write',
+      '只有课题成员可以创建节点'
+    );
+    if (!canvasAccess) {
+      return;
     }
 
     const nodeId = await ResearchModel.createNode(canvasId, req.body, req.user!.sub);
 
     // Log activity
     await ResearchModel.logActivity(
-      canvas.project_id,
+      canvasAccess.canvas.project_id,
       req.user!.sub,
       'create_node',
       'node',
@@ -330,13 +462,18 @@ export class ResearchController {
    */
   static getNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const node = await ResearchModel.getNodeById(id);
-
-    if (!node) {
-      return res.error('节点未找到', 'NODE_NOT_FOUND', 404);
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题内容'
+    );
+    if (!nodeAccess) {
+      return;
     }
 
-    res.success(node);
+    res.success(nodeAccess.node);
   });
 
   /**
@@ -345,6 +482,10 @@ export class ResearchController {
    */
   static updateNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑节点');
+    if (!nodeAccess) {
+      return;
+    }
     await ResearchModel.updateNode(id, req.body);
 
     const node = await ResearchModel.getNodeById(id);
@@ -358,16 +499,16 @@ export class ResearchController {
    */
   static deleteNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-
-    // Get canvas for activity logging
-    const node = await ResearchModel.getNodeById(id);
-    const canvas = await ResearchModel.getCanvasById(node!.canvas_id);
+    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除节点');
+    if (!nodeAccess) {
+      return;
+    }
 
     await ResearchModel.deleteNode(id);
 
     // Log activity
     await ResearchModel.logActivity(
-      canvas!.project_id,
+      nodeAccess.canvas.project_id,
       req.user!.sub,
       'delete_node',
       'node',
@@ -385,6 +526,10 @@ export class ResearchController {
   static assignNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { assignedTo } = req.body;
+    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以分配节点');
+    if (!nodeAccess) {
+      return;
+    }
 
     await ResearchModel.updateNode(id, { assigned_to: assignedTo });
     logger.info(`Node ${id} assigned by user ${req.user!.username}`);
@@ -401,12 +546,15 @@ export class ResearchController {
    */
   static createEdge = asyncHandler(async (req: Request, res: Response) => {
     const { canvasId } = req.params;
+    const canvasAccess = await ensureCanvasAccess(res, canvasId, req.user!.sub, 'write', '只有课题成员可以创建关系');
+    if (!canvasAccess) {
+      return;
+    }
     const edgeId = await ResearchModel.createEdge(canvasId, req.body, req.user!.sub);
 
     // Log activity
-    const canvas = await ResearchModel.getCanvasById(canvasId);
     await ResearchModel.logActivity(
-      canvas!.project_id,
+      canvasAccess.canvas.project_id,
       req.user!.sub,
       'create_edge',
       'edge',
@@ -425,13 +573,18 @@ export class ResearchController {
    */
   static getEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const edge = await ResearchModel.getEdgeById(id);
-
-    if (!edge) {
-      return res.error('关系未找到', 'EDGE_NOT_FOUND', 404);
+    const edgeAccess = await ensureEdgeAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题内容'
+    );
+    if (!edgeAccess) {
+      return;
     }
 
-    res.success(edge);
+    res.success(edgeAccess.edge);
   });
 
   /**
@@ -440,6 +593,10 @@ export class ResearchController {
    */
   static updateEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const edgeAccess = await ensureEdgeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑关系');
+    if (!edgeAccess) {
+      return;
+    }
     await ResearchModel.updateEdge(id, req.body);
 
     const edge = await ResearchModel.getEdgeById(id);
@@ -453,6 +610,10 @@ export class ResearchController {
    */
   static deleteEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const edgeAccess = await ensureEdgeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除关系');
+    if (!edgeAccess) {
+      return;
+    }
     await ResearchModel.deleteEdge(id);
     logger.info(`Edge deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '关系删除成功');
@@ -468,6 +629,16 @@ export class ResearchController {
    */
   static getNodeComments = asyncHandler(async (req: Request, res: Response) => {
     const { nodeId } = req.params;
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      nodeId,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题评论'
+    );
+    if (!nodeAccess) {
+      return;
+    }
     const comments = await ResearchModel.getNodeComments(nodeId);
     res.success(comments);
   });
@@ -479,6 +650,10 @@ export class ResearchController {
   static addComment = asyncHandler(async (req: Request, res: Response) => {
     const { nodeId } = req.params;
     const { content } = req.body;
+    const nodeAccess = await ensureNodeAccess(res, nodeId, req.user!.sub, 'write', '只有课题成员可以发表评论');
+    if (!nodeAccess) {
+      return;
+    }
 
     const commentId = await ResearchModel.addComment(nodeId, req.user!.sub, content);
     logger.info(`Comment added to node ${nodeId} by user ${req.user!.username}`);
@@ -492,6 +667,19 @@ export class ResearchController {
   static updateComment = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { content } = req.body;
+    const comment = await ResearchModel.getCommentById(id);
+    if (!comment) {
+      return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
+    }
+
+    const nodeAccess = await ensureNodeAccess(res, comment.node_id, req.user!.sub, 'write', '只有课题成员可以编辑评论');
+    if (!nodeAccess) {
+      return;
+    }
+
+    if (comment.user_id !== req.user!.sub) {
+      return res.error('只能编辑自己的评论', 'FORBIDDEN', 403);
+    }
 
     await ResearchModel.updateComment(id, req.user!.sub, content);
     logger.info(`Comment ${id} updated by user ${req.user!.username}`);
@@ -504,6 +692,21 @@ export class ResearchController {
    */
   static deleteComment = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const comment = await ResearchModel.getCommentById(id);
+    if (!comment) {
+      return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
+    }
+
+    const nodeAccess = await ensureNodeAccess(res, comment.node_id, req.user!.sub, 'write', '只有课题成员可以删除评论');
+    if (!nodeAccess) {
+      return;
+    }
+
+    const canModerate = nodeAccess.access.canModerate;
+    if (comment.user_id !== req.user!.sub && !canModerate) {
+      return res.error('无权删除该评论', 'FORBIDDEN', 403);
+    }
+
     await ResearchModel.deleteComment(id);
     logger.info(`Comment ${id} deleted by user ${req.user!.username}`);
     res.success(null, '评论删除成功');
@@ -515,10 +718,15 @@ export class ResearchController {
    */
   static getProjectDiscussionComments = asyncHandler(async (req: Request, res: Response) => {
     const { projectId } = req.params;
-    const project = await ResearchModel.getProjectById(projectId);
-
-    if (!project) {
-      return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      'discussion',
+      '只有课题成员可以查看讨论区'
+    );
+    if (!access) {
+      return;
     }
 
     const comments = await ResearchModel.getProjectDiscussionComments(projectId);
@@ -555,13 +763,15 @@ export class ResearchController {
       return res.error('评论内容和图片至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
     }
 
-    const { project, canParticipate } = await ResearchModel.getProjectDiscussionAccess(projectId, currentUserId);
-    if (!project) {
-      return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
-    }
-
-    if (!canParticipate) {
-      return res.error('无权参与该课题讨论', 'FORBIDDEN', 403);
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      currentUserId,
+      'discussion',
+      '只有课题成员可以参与讨论'
+    );
+    if (!access) {
+      return;
     }
 
     if (parentCommentId) {
@@ -614,7 +824,7 @@ export class ResearchController {
 
     const members = await ResearchModel.getProjectMembers(comment.project_id);
     const currentMember = members.find((member: any) => member.user_id === currentUserId);
-    const canModerate = currentMember && ['owner', 'admin'].includes(currentMember.role);
+    const canModerate = currentMember?.role === 'owner';
 
     if (comment.user_id !== currentUserId && !canModerate) {
       return res.error('无权删除该评论', 'FORBIDDEN', 403);
@@ -639,6 +849,16 @@ export class ResearchController {
   static getProjectActivity = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { limit = 50 } = req.query;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题活动'
+    );
+    if (!access) {
+      return;
+    }
     const activities = await ResearchModel.getProjectActivity(id, Number(limit));
     res.success(activities);
   });
@@ -653,6 +873,16 @@ export class ResearchController {
    */
   static getTaskBoard = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题任务看板'
+    );
+    if (!access) {
+      return;
+    }
     const taskBoard = await ResearchModel.getTaskBoard(id);
     res.success(taskBoard);
   });
@@ -662,6 +892,11 @@ export class ResearchController {
    * 更新任务看板（暂未实现）
    */
   static updateTaskBoard = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'write', '只有课题成员可以更新任务看板');
+    if (!access) {
+      return;
+    }
     // TODO: Implement task board updates
     res.success(null, '任务看板更新成功');
   });
@@ -707,6 +942,10 @@ export class ResearchController {
    */
   static getProjectSettings = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以查看课题设置');
+    if (!access) {
+      return;
+    }
     const settings = await ProfileModel.getOrCreateProjectSettings(id);
     res.success(settings);
   });
@@ -717,6 +956,10 @@ export class ResearchController {
    */
   static updateProjectSettings = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以更新课题设置');
+    if (!access) {
+      return;
+    }
     await ProfileModel.updateProjectSettings(id, req.body);
     const settings = await ProfileModel.getProjectSettings(id);
     logger.info(`Project settings updated by user ${req.user!.username}: ${id}`);
@@ -733,10 +976,9 @@ export class ResearchController {
    */
   static getProjectApplications = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const members = await ResearchModel.getProjectMembers(id);
-    const currentUser = members.find((member: any) => member.user_id === req.user!.sub);
-    if (!currentUser || currentUser.role !== 'owner') {
-      return res.error('无权查看申请列表', 'FORBIDDEN', 403);
+    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '无权查看申请列表');
+    if (!access) {
+      return;
     }
 
     const applications = await ProfileModel.getProjectApplications(id);
@@ -776,7 +1018,7 @@ export class ResearchController {
       // If no approval required, auto-approve
       if (!settings.require_approval) {
         await ProfileModel.updateApplicationStatus(applicationId, 'approved', userId);
-        await ResearchModel.addProjectMember(id, userId, 'viewer');
+        await ResearchModel.addProjectMember(id, userId, 'member');
         logger.info(`Application auto-approved: ${applicationId}`);
       }
 
@@ -832,7 +1074,7 @@ export class ResearchController {
 
     // If approved, add to project members
     if (status === 'approved') {
-      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'viewer');
+      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'member');
       logger.info(`User ${application.user_id} added to project ${application.project_id}`);
     }
 
@@ -876,6 +1118,16 @@ export class ResearchController {
    */
   static getCreatorProfiles = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      'read',
+      '你只能查看公开课题或已加入的课题资料'
+    );
+    if (!access) {
+      return;
+    }
     const profiles = await ProfileModel.getProjectCreatorProfiles(id);
     res.success(profiles);
   });

@@ -34,7 +34,7 @@ export interface ProjectMember {
   id: string;
   project_id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'editor' | 'viewer';
+  role: 'owner' | 'member';
   active?: boolean;
   removed_at?: string | null;
   joined_at: string;
@@ -306,7 +306,7 @@ export const researchApi = {
    * Add member to project
    * 添加课题成员
    */
-  addProjectMember: async (projectId: string, userId: string, role: 'admin' | 'editor' | 'viewer' = 'viewer'): Promise<void> => {
+  addProjectMember: async (projectId: string, userId: string, role: 'member' = 'member'): Promise<void> => {
     const response = await api.post(`/api/research/projects/${projectId}/members`, { userId, role });
     if (!response.success) {
       throw new Error(response.error?.message || '添加成员失败');

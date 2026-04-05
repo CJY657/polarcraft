@@ -16,9 +16,6 @@ import {
   Edit3,
   Loader2,
   Crown,
-  Shield,
-  Eye,
-  Edit,
   Globe,
   UserCheck,
   AlertCircle,
@@ -175,8 +172,8 @@ export function ResearchProjectPage() {
     void fetchProjectData();
   }, [projectId, isAuthenticated, authLoading, isExampleProject, loadAuthenticatedProjectData]);
 
-  const isOwnerOrAdmin = currentUserRole === "owner" || currentUserRole === "admin";
   const isOwner = currentUserRole === "owner";
+  const isMember = currentUserRole === "member" || isOwner;
 
   // Format date
   const formatDate = (dateStr: string) => {
@@ -215,12 +212,11 @@ export function ResearchProjectPage() {
     switch (role) {
       case "owner":
         return <Crown className="w-4 h-4 text-amber-500" />;
+      case "member":
       case "admin":
-        return <Shield className="w-4 h-4 text-blue-500" />;
       case "editor":
-        return <Edit className="w-4 h-4 text-green-500" />;
       case "viewer":
-        return <Eye className="w-4 h-4 text-gray-500" />;
+        return <UserCheck className="w-4 h-4 text-blue-500" />;
       default:
         return null;
     }
@@ -230,9 +226,10 @@ export function ResearchProjectPage() {
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       owner: "组长",
-      admin: "管理员",
+      member: "成员",
+      admin: "成员",
       editor: "成员",
-      viewer: "查看者",
+      viewer: "成员",
     };
     return labels[role] || role;
   };
@@ -261,7 +258,7 @@ export function ResearchProjectPage() {
     setIsAddingFormerMemberId(member.user_id);
     setRestoreMemberError(null);
     try {
-      await researchApi.addProjectMember(projectId, member.user_id, "viewer");
+      await researchApi.addProjectMember(projectId, member.user_id, "member");
       await refreshProjectData();
     } catch (err) {
       console.error("Failed to restore member:", err);
@@ -351,10 +348,8 @@ export function ResearchProjectPage() {
   const primaryCanvasState = isExampleProject
     ? { exampleProjectId: exampleId }
     : { readOnly: isReadOnlyMode };
-  const canManageProject = !isExampleProject && isOwnerOrAdmin && !isReadOnlyMode;
-  const canParticipateInDiscussion = !isExampleProject && Boolean(
-    user && (currentUserRole || displayProject.is_public || displayProject.allow_guest_comments)
-  );
+  const canManageProject = !isExampleProject && isOwner && !isReadOnlyMode;
+  const canParticipateInDiscussion = !isExampleProject && Boolean(user && isMember);
   const canEnterCanvas = isExampleProject || (!!currentUserRole && !!canvases[0]?.id);
 
   const handleCanvasCtaClick = () => {
@@ -657,7 +652,7 @@ export function ResearchProjectPage() {
                   <div className="research-kicker mb-2">Former Members</div>
                   <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">待恢复成员</h3>
                   <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
-                    这些成员曾加入过本课题，组长可以将他们重新拉回，默认角色为查看者。
+                    这些成员曾加入过本课题，组长可以将他们重新拉回，恢复后统一为成员权限。
                   </p>
                 </div>
 
@@ -710,11 +705,11 @@ export function ResearchProjectPage() {
           </section>
         )}
 
-        {!isExampleProject && projectId && project && isAuthenticated && (
+        {!isExampleProject && projectId && project && isAuthenticated && isMember && (
           <ProjectDiscussionSection
             projectId={projectId}
             currentUserId={user?.id}
-            canModerate={isOwnerOrAdmin}
+            canModerate={isOwner}
             canParticipate={canParticipateInDiscussion}
           />
         )}
@@ -733,7 +728,7 @@ export function ResearchProjectPage() {
                 进入画布前，你已经能在上面看清这个课题的状态、人员和协作方式。
               </p>
             </div>
-            {!isExampleProject && isOwnerOrAdmin && !isReadOnlyMode && (
+            {!isExampleProject && isOwner && !isReadOnlyMode && (
               <button className="glass-button inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium sm:self-auto">
                 <Plus className="w-4 h-4 text-[var(--paper-link)]" />
                 新建画布

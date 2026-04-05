@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
   mockResearchModel: {
+    getProjectAccess: vi.fn(),
     getProjectById: vi.fn(),
     getProjectMembers: vi.fn(),
     getFormerProjectMembers: vi.fn(),
@@ -51,12 +52,23 @@ describe('ResearchController member management', () => {
   });
 
   it('includes former_members when the requester is the owner', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', name_zh: '课题', member_count: 1 },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
     mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1', name_zh: '课题', member_count: 1 });
     mockResearchModel.getProjectMembers.mockResolvedValue([
       { user_id: 'owner-1', role: 'owner', username: 'owner' },
     ]);
     mockResearchModel.getFormerProjectMembers.mockResolvedValue([
-      { user_id: 'former-1', role: 'viewer', username: 'former', removed_at: new Date().toISOString() },
+      { user_id: 'former-1', role: 'member', username: 'former', removed_at: new Date().toISOString() },
     ]);
     mockProfileModel.getPendingApplication.mockResolvedValue(null);
 
@@ -75,6 +87,17 @@ describe('ResearchController member management', () => {
   });
 
   it('includes pending-application state for non-members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', name_zh: '课题', member_count: 1 },
+      membership: null,
+      role: null,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
     mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1', name_zh: '课题', member_count: 1 });
     mockResearchModel.getProjectMembers.mockResolvedValue([
       { user_id: 'owner-1', role: 'owner', username: 'owner' },
@@ -95,10 +118,17 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects addProjectMember when the requester is not the owner', async () => {
-    mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1' });
-    mockResearchModel.getProjectMembers.mockResolvedValue([
-      { user_id: 'member-1', role: 'viewer', username: 'member' },
-    ]);
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
 
     const req = {
       params: { id: 'project-1' },
@@ -113,14 +143,21 @@ describe('ResearchController member management', () => {
     expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
   });
 
-  it('reactivates a former member as viewer when the requester is the owner', async () => {
-    mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1' });
-    mockResearchModel.getProjectMembers.mockResolvedValue([
-      { user_id: 'owner-1', role: 'owner', username: 'owner' },
-    ]);
+  it('reactivates a former member as member when the requester is the owner', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
     mockResearchModel.getProjectMembership.mockResolvedValue({
       user_id: 'former-1',
-      role: 'editor',
+      role: 'member',
       active: false,
     });
     mockProfileModel.getPendingApplication.mockResolvedValue({
@@ -132,14 +169,14 @@ describe('ResearchController member management', () => {
 
     const req = {
       params: { id: 'project-1' },
-      body: { userId: 'former-1', role: 'admin' },
+      body: { userId: 'former-1', role: 'member' },
       user: { sub: 'owner-1', username: 'owner' },
     };
     const res = createResponse();
 
     await invokeHandler(ResearchController.addProjectMember, req, res);
 
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'former-1', 'viewer');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'former-1', 'member');
     expect(mockProfileModel.updateApplicationStatus).toHaveBeenCalledWith(
       'application-1',
       'approved',
@@ -150,13 +187,20 @@ describe('ResearchController member management', () => {
   });
 
   it('allows restoring a legacy former member without an existing membership row', async () => {
-    mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1' });
-    mockResearchModel.getProjectMembers.mockResolvedValue([
-      { user_id: 'owner-1', role: 'owner', username: 'owner' },
-    ]);
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
     mockResearchModel.getProjectMembership.mockResolvedValue(null);
     mockResearchModel.getFormerProjectMembers.mockResolvedValue([
-      { user_id: 'legacy-user', role: 'viewer', username: 'legacy' },
+      { user_id: 'legacy-user', role: 'member', username: 'legacy' },
     ]);
     mockProfileModel.getPendingApplication.mockResolvedValue(null);
     mockResearchModel.addProjectMember.mockResolvedValue(true);
@@ -171,14 +215,22 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.addProjectMember, req, res);
 
     expect(mockResearchModel.getFormerProjectMembers).toHaveBeenCalledWith('project-1');
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'legacy-user', 'viewer');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'legacy-user', 'member');
     expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
   });
 
   it('requires owner role to view project applications', async () => {
-    mockResearchModel.getProjectMembers.mockResolvedValue([
-      { user_id: 'admin-1', role: 'admin', username: 'admin' },
-    ]);
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
 
     const req = {
       params: { id: 'project-1' },
@@ -192,7 +244,7 @@ describe('ResearchController member management', () => {
     expect(mockProfileModel.getProjectApplications).not.toHaveBeenCalled();
   });
 
-  it('approves applications by adding members as viewer', async () => {
+  it('approves applications by adding members as member', async () => {
     mockProfileModel.getApplicationById.mockResolvedValue({
       id: 'application-1',
       project_id: 'project-1',
@@ -218,7 +270,7 @@ describe('ResearchController member management', () => {
 
     await invokeHandler(ResearchController.updateApplicationStatus, req, res);
 
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'viewer');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'member');
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
   });
 });

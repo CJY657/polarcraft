@@ -98,7 +98,7 @@ describe('ResearchModel.getFormerProjectMembers', () => {
       expect.objectContaining({
         user_id: 'legacy-user',
         username: 'legacy',
-        role: 'viewer',
+        role: 'member',
         active: false,
         project_id: 'project-1',
       }),

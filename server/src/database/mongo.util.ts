@@ -30,8 +30,9 @@ export function compareRole(a: string, b: string): number {
   const rank: Record<string, number> = {
     owner: 0,
     admin: 1,
+    member: 2,
     editor: 2,
-    viewer: 3,
+    viewer: 2,
   };
 
   return (rank[a] ?? Number.MAX_SAFE_INTEGER) - (rank[b] ?? Number.MAX_SAFE_INTEGER);

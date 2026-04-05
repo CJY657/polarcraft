@@ -80,6 +80,31 @@ type LegacyFormerMemberSource = {
   removed_at?: Date | string | null;
 };
 
+export type ResearchProjectRole = 'owner' | 'member';
+
+export interface ResearchProjectAccess {
+  project: any | null;
+  membership: any | null;
+  role: ResearchProjectRole | null;
+  isMember: boolean;
+  canRead: boolean;
+  canWrite: boolean;
+  canManage: boolean;
+  canAccessDiscussion: boolean;
+  canModerate: boolean;
+}
+
+function normalizeProjectRole(role: unknown): ResearchProjectRole {
+  return role === 'owner' ? 'owner' : 'member';
+}
+
+function normalizeMembershipRecord<T extends { role?: unknown }>(member: T): T & { role: ResearchProjectRole } {
+  return {
+    ...member,
+    role: normalizeProjectRole(member.role),
+  };
+}
+
 function pickLatestDate(...values: Array<Date | string | null | undefined>): Date | null {
   const timestamps = values
     .map((value) => {
@@ -180,16 +205,50 @@ export class ResearchModel {
     projectId: string,
     userId: string
   ): Promise<{ project: any | null; isMember: boolean; canParticipate: boolean }> {
+    const access = await this.getProjectAccess(projectId, userId);
+    return {
+      project: access.project,
+      isMember: access.isMember,
+      canParticipate: access.canAccessDiscussion,
+    };
+  }
+
+  static async getProjectAccess(projectId: string, userId?: string): Promise<ResearchProjectAccess> {
     const project = await this.getProjectById(projectId);
     if (!project) {
-      return { project: null, isMember: false, canParticipate: false };
+      return {
+        project: null,
+        membership: null,
+        role: null,
+        isMember: false,
+        canRead: false,
+        canWrite: false,
+        canManage: false,
+        canAccessDiscussion: false,
+        canModerate: false,
+      };
     }
 
-    const members = await this.getProjectMembers(projectId);
-    const isMember = members.some((member: any) => member.user_id === userId);
-    const canParticipate = isMember || project.is_public || project.allow_guest_comments;
+    const membership = userId
+      ? normalizeDocument<any>(
+          await projectMembersCollection().findOne(buildActiveMembershipFilter({ project_id: projectId, user_id: userId }))
+        )
+      : null;
+    const normalizedMembership = membership ? normalizeMembershipRecord(membership) : null;
+    const role = normalizedMembership?.role ?? null;
+    const isMember = Boolean(normalizedMembership);
 
-    return { project, isMember, canParticipate };
+    return {
+      project,
+      membership: normalizedMembership,
+      role,
+      isMember,
+      canRead: isMember || Boolean(project.is_public),
+      canWrite: isMember,
+      canManage: role === 'owner',
+      canAccessDiscussion: isMember,
+      canModerate: role === 'owner',
+    };
   }
 
   /**
@@ -305,16 +364,17 @@ export class ResearchModel {
   static async addProjectMember(
     projectId: string,
     userId: string,
-    role: string = 'viewer'
+    role: string = 'member'
   ): Promise<boolean> {
     const now = new Date();
+    const normalizedRole = normalizeProjectRole(role);
     const existing = normalizeDocument<any>(
       await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
     );
 
     if (existing) {
       const updateDoc: Record<string, unknown> = {
-        role,
+        role: normalizedRole,
         active: true,
         removed_at: null,
       };
@@ -332,14 +392,14 @@ export class ResearchModel {
         id: generateId(),
         project_id: projectId,
         user_id: userId,
-        role,
+        role: normalizedRole,
         active: true,
         removed_at: null,
         joined_at: now,
       });
     }
 
-    logger.info(`Member added to project: ${projectId} - ${userId} as ${role}`);
+    logger.info(`Member added to project: ${projectId} - ${userId} as ${normalizedRole}`);
     return true;
   }
 
@@ -368,7 +428,7 @@ export class ResearchModel {
   static async getProjectMembers(projectId: string): Promise<any[]> {
     const members = normalizeDocuments<any>(
       await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: projectId })).toArray()
-    ).sort(sortMembers);
+    ).map((member) => normalizeMembershipRecord(member)).sort(sortMembers);
     const userMap = await getUserMap(members.map((member) => member.user_id));
 
     return members.map((member) => ({
@@ -436,7 +496,7 @@ export class ResearchModel {
 
         knownFormerMembers.set(source.user_id, {
           user_id: source.user_id,
-          role: 'viewer',
+          role: 'member',
           joined_at: pickLatestDate(source.created_at, source.reviewed_at, source.updated_at),
           removed_at: pickLatestDate(source.updated_at, source.created_at, source.reviewed_at),
         });
@@ -454,7 +514,7 @@ export class ResearchModel {
       ...member,
       id: (member as { id?: string }).id || `legacy-former-${projectId}-${member.user_id}`,
       project_id: projectId,
-      role: member.role || 'viewer',
+      role: normalizeProjectRole(member.role),
       active: false,
       joined_at: member.joined_at || member.removed_at || new Date(0).toISOString(),
       removed_at: member.removed_at || member.joined_at || new Date(0).toISOString(),
@@ -468,9 +528,10 @@ export class ResearchModel {
    * 获取指定成员的成员关系记录（含 inactive）
    */
   static async getProjectMembership(projectId: string, userId: string): Promise<any | null> {
-    return normalizeDocument<any>(
+    const membership = normalizeDocument<any>(
       await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
     );
+    return membership ? normalizeMembershipRecord(membership) : null;
   }
 
   /**
@@ -833,6 +894,10 @@ export class ResearchModel {
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
+  }
+
+  static async getCommentById(commentId: string): Promise<any | null> {
+    return normalizeDocument<any>(await commentsCollection().findOne({ id: commentId }));
   }
 
   /**

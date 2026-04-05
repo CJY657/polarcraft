@@ -32,17 +32,14 @@ async function authorizeProjectDiscussionImageUpload(
       return;
     }
 
-    const { project, canParticipate } = await ResearchModel.getProjectDiscussionAccess(
-      projectId,
-      req.user!.sub
-    );
+    const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub);
 
-    if (!project) {
+    if (!access.project) {
       res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
       return;
     }
 
-    if (!canParticipate) {
+    if (!access.canAccessDiscussion) {
       res.error('无权上传课题讨论图片', 'FORBIDDEN', 403);
       return;
     }

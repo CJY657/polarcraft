@@ -13,7 +13,7 @@ import {
 } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
-import { buildActiveMembershipFilter } from './research-membership.util.js';
+import { buildActiveMembershipFilter, normalizeProjectRole } from './research-membership.util.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -597,7 +597,7 @@ export class ProfileModel {
         members: projectMembers.map((member) => ({
           username: userMap.get(member.user_id)?.username || '',
           avatar_url: userMap.get(member.user_id)?.avatar_url || null,
-          role: member.role,
+          role: normalizeProjectRole(member.role) ?? 'member',
         })),
       };
     });

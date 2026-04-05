@@ -137,7 +137,7 @@ describe("ResearchProjectPage", () => {
     mockAddProjectMember.mockResolvedValue(undefined);
   });
 
-  it("lets the owner re-add a former member as viewer", async () => {
+  it("lets the owner re-add a former member as member", async () => {
     mockGetProject
       .mockResolvedValueOnce(
         createProject({
@@ -146,7 +146,7 @@ describe("ResearchProjectPage", () => {
               id: "former-1",
               project_id: "project-1",
               user_id: "user-2",
-              role: "editor",
+              role: "member",
               active: false,
               joined_at: new Date().toISOString(),
               removed_at: new Date().toISOString(),
@@ -164,7 +164,7 @@ describe("ResearchProjectPage", () => {
     fireEvent.click(screen.getByTitle("拉回成员"));
 
     await waitFor(() => {
-      expect(mockAddProjectMember).toHaveBeenCalledWith("project-1", "user-2", "viewer");
+      expect(mockAddProjectMember).toHaveBeenCalledWith("project-1", "user-2", "member");
     });
     await waitFor(() => {
       expect(mockGetProject).toHaveBeenCalledTimes(2);

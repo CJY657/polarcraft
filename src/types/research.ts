@@ -45,9 +45,7 @@ export type ProjectStatus =
 /** Member Role - 成员角色 */
 export type MemberRole =
   | "owner"   // 所有者
-  | "admin"   // 管理员
-  | "editor"  // 编辑者
-  | "viewer"; // 查看者
+  | "member"; // 成员
 
 // ============================================================
 // Node Types - 节点类型定义

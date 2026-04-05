@@ -3,10 +3,31 @@ export interface MembershipLifecycleLike {
   removed_at?: Date | string | null;
 }
 
+export type NormalizedProjectRole = 'owner' | 'member';
+
 type Query = Record<string, unknown>;
 
 export function isMembershipActive(member?: MembershipLifecycleLike | null): boolean {
   return member?.active !== false;
+}
+
+export function normalizeProjectRole(role?: string | null): NormalizedProjectRole | null {
+  switch (role) {
+    case 'owner':
+      return 'owner';
+    case 'member':
+    case 'admin':
+    case 'editor':
+    case 'viewer':
+      return 'member';
+    default:
+      return null;
+  }
+}
+
+export function isProjectManagerRole(role?: string | null): boolean {
+  const normalizedRole = normalizeProjectRole(role);
+  return normalizedRole === 'owner';
 }
 
 export function buildActiveMembershipFilter(filter: Query = {}): Query {
