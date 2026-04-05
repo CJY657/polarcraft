@@ -149,6 +149,32 @@ describe('ResearchController member management', () => {
     expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
   });
 
+  it('allows restoring a legacy former member without an existing membership row', async () => {
+    mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-1' });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+    ]);
+    mockResearchModel.getProjectMembership.mockResolvedValue(null);
+    mockResearchModel.getFormerProjectMembers.mockResolvedValue([
+      { user_id: 'legacy-user', role: 'viewer', username: 'legacy' },
+    ]);
+    mockProfileModel.getPendingApplication.mockResolvedValue(null);
+    mockResearchModel.addProjectMember.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { userId: 'legacy-user' },
+      user: { sub: 'owner-1', username: 'owner' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectMember, req, res);
+
+    expect(mockResearchModel.getFormerProjectMembers).toHaveBeenCalledWith('project-1');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'legacy-user', 'viewer');
+    expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
+  });
+
   it('requires owner role to view project applications', async () => {
     mockResearchModel.getProjectMembers.mockResolvedValue([
       { user_id: 'admin-1', role: 'admin', username: 'admin' },

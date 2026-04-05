@@ -155,11 +155,14 @@ export class ResearchController {
     }
 
     const targetMembership = await ResearchModel.getProjectMembership(id, userId);
-    if (!targetMembership) {
+    const formerMembers = targetMembership ? [] : await ResearchModel.getFormerProjectMembers(id);
+    const isLegacyFormerMember = formerMembers.some((member: any) => member.user_id === userId);
+
+    if (!targetMembership && !isLegacyFormerMember) {
       return res.error('只能拉回曾加入过该课题的成员', 'FORMER_MEMBER_REQUIRED', 400);
     }
 
-    if (targetMembership.active !== false) {
+    if (targetMembership && targetMembership.active !== false) {
       return res.error('该用户已经是当前成员', 'ALREADY_MEMBER', 400);
     }
 

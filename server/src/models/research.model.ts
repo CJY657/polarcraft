@@ -73,6 +73,30 @@ function normalizeImageUrls(value: unknown): string[] {
   return [...uniqueUrls];
 }
 
+type LegacyFormerMemberSource = {
+  user_id: string;
+  role?: string | null;
+  joined_at?: Date | string | null;
+  removed_at?: Date | string | null;
+};
+
+function pickLatestDate(...values: Array<Date | string | null | undefined>): Date | null {
+  const timestamps = values
+    .map((value) => {
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      const timestamp = date.getTime();
+      return Number.isNaN(timestamp) ? null : timestamp;
+    })
+    .filter((value): value is number => value !== null);
+
+  if (timestamps.length === 0) {
+    return null;
+  }
+
+  return new Date(Math.max(...timestamps));
+}
+
 export class ResearchModel {
   /**
    * Get projects by user ID
@@ -359,17 +383,81 @@ export class ResearchModel {
    * 获取已退出/被移除的历史成员
    */
   static async getFormerProjectMembers(projectId: string): Promise<any[]> {
-    const members = normalizeDocuments<any>(
+    const inactiveMembers = normalizeDocuments<any>(
       await projectMembersCollection().find(buildInactiveMembershipFilter({ project_id: projectId })).toArray()
     ).sort((a, b) => {
       const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
       const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
       return removedAtB - removedAtA;
     });
-    const userMap = await getUserMap(members.map((member) => member.user_id));
+    const activeMembers = normalizeDocuments<{ user_id: string }>(
+      await projectMembersCollection()
+        .find(buildActiveMembershipFilter({ project_id: projectId }))
+        .project({ _id: 0, user_id: 1 })
+        .toArray()
+    );
+    const legacySources = await Promise.all([
+      normalizeDocuments<any>(
+        await applicationsCollection()
+          .find({ project_id: projectId, status: 'approved' })
+          .project({ _id: 0, user_id: 1, created_at: 1, reviewed_at: 1 })
+          .toArray()
+      ),
+      normalizeDocuments<any>(
+        await projectCommentsCollection()
+          .find({ project_id: projectId })
+          .project({ _id: 0, user_id: 1, created_at: 1, updated_at: 1 })
+          .toArray()
+      ),
+      normalizeDocuments<any>(
+        await activityLogCollection()
+          .find({ project_id: projectId })
+          .project({ _id: 0, user_id: 1, created_at: 1 })
+          .toArray()
+      ),
+      normalizeDocuments<any>(
+        await creatorProfilesCollection()
+          .find({ project_id: projectId })
+          .project({ _id: 0, user_id: 1, created_at: 1, updated_at: 1 })
+          .toArray()
+      ),
+    ]);
 
-    return members.map((member) => ({
+    const knownFormerMembers = new Map<string, LegacyFormerMemberSource>(
+      inactiveMembers.map((member) => [member.user_id, member])
+    );
+    const activeUserIds = new Set(activeMembers.map((member) => member.user_id));
+
+    for (const sourceGroup of legacySources) {
+      for (const source of sourceGroup) {
+        if (!source.user_id || activeUserIds.has(source.user_id) || knownFormerMembers.has(source.user_id)) {
+          continue;
+        }
+
+        knownFormerMembers.set(source.user_id, {
+          user_id: source.user_id,
+          role: 'viewer',
+          joined_at: pickLatestDate(source.created_at, source.reviewed_at, source.updated_at),
+          removed_at: pickLatestDate(source.updated_at, source.created_at, source.reviewed_at),
+        });
+      }
+    }
+
+    const formerMembers = [...knownFormerMembers.values()].sort((a, b) => {
+      const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
+      const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
+      return removedAtB - removedAtA;
+    });
+    const userMap = await getUserMap(formerMembers.map((member) => member.user_id));
+
+    return formerMembers.map((member) => ({
       ...member,
+      id: (member as { id?: string }).id || `legacy-former-${projectId}-${member.user_id}`,
+      project_id: projectId,
+      role: member.role || 'viewer',
+      active: false,
+      joined_at: member.joined_at || member.removed_at || new Date(0).toISOString(),
+      removed_at: member.removed_at || member.joined_at || new Date(0).toISOString(),
       username: userMap.get(member.user_id)?.username || '',
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
