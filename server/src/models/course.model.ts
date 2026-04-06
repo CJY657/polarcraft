@@ -44,6 +44,42 @@ async function getUserMap(userIds: string[]): Promise<Map<string, { username: st
   return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
 }
 
+function normalizeImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const uniqueUrls = new Set<string>();
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      continue;
+    }
+
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    uniqueUrls.add(trimmed);
+  }
+
+  return [...uniqueUrls];
+}
+
+type CourseDiscussionCommentDocument = {
+  id: string;
+  course_id: string;
+  user_id: string;
+  parent_comment_id?: string | null;
+  content?: string | null;
+  image_urls?: unknown;
+  resource_id?: string | null;
+  is_deleted?: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
 export class CourseModel {
   /**
    * Delete courses and all related course resources
@@ -216,19 +252,53 @@ export class CourseModel {
   static async getDiscussionComments(courseId: string): Promise<Array<CourseDiscussionCommentRow & {
     username: string;
     avatar_url: string | null;
+    resource_title_zh: string | null;
+    resource_title_en: string | null;
   }>> {
-    const comments = normalizeDocuments<CourseDiscussionCommentRow>(
+    const comments = normalizeDocuments<CourseDiscussionCommentDocument>(
       await courseDiscussionCommentsCollection()
         .find({ course_id: courseId })
-        .sort({ created_at: -1 })
+        .sort({ created_at: 1 })
         .toArray()
     );
     const userMap = await getUserMap(comments.map((comment) => comment.user_id));
 
+    // Get resource titles for comments that reference a resource
+    const resourceIds = [
+      ...new Set(
+        comments
+          .map((comment) => comment.resource_id)
+          .filter((resourceId): resourceId is string => typeof resourceId === 'string' && resourceId.length > 0)
+      ),
+    ];
+    const resourceMap = new Map<string, { title_zh: string; title_en: string | null }>();
+    if (resourceIds.length > 0) {
+      const resources = normalizeDocuments<MediaRow>(
+        await courseMediaCollection()
+          .find({ id: { $in: resourceIds } })
+          .project({ _id: 0, id: 1, title_zh: 1, title_en: 1 })
+          .toArray()
+      );
+      for (const resource of resources) {
+        resourceMap.set(resource.id, { title_zh: resource.title_zh, title_en: resource.title_en });
+      }
+    }
+
     return comments.map((comment) => ({
-      ...comment,
+      id: comment.id,
+      course_id: comment.course_id,
+      user_id: comment.user_id,
+      parent_comment_id: comment.parent_comment_id ?? null,
+      content: comment.content ?? '',
+      image_urls: normalizeImageUrls(comment.image_urls),
+      resource_id: comment.resource_id ?? null,
+      is_deleted: comment.is_deleted ?? false,
+      created_at: comment.created_at,
+      updated_at: comment.updated_at,
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
+      resource_title_zh: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_zh ?? null : null,
+      resource_title_en: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_en ?? null : null,
     }));
   }
 
@@ -236,43 +306,132 @@ export class CourseModel {
    * Get course discussion comment by ID
    * 获取实验讨论评论详情
    */
-  static async getDiscussionCommentById(commentId: string): Promise<CourseDiscussionCommentRow | null> {
-    return normalizeDocument<CourseDiscussionCommentRow>(
+  static async getDiscussionCommentById(commentId: string): Promise<(CourseDiscussionCommentRow & {
+    resource_title_zh: string | null;
+    resource_title_en: string | null;
+  }) | null> {
+    const comment = normalizeDocument<CourseDiscussionCommentDocument>(
       await courseDiscussionCommentsCollection().findOne({ id: commentId })
     );
+    if (!comment) {
+      return null;
+    }
+
+    let resourceTitleZh: string | null = null;
+    let resourceTitleEn: string | null = null;
+    if (comment.resource_id) {
+      const resource = normalizeDocument<MediaRow>(
+        await courseMediaCollection().findOne({ id: comment.resource_id })
+      );
+      if (resource) {
+        resourceTitleZh = resource.title_zh;
+        resourceTitleEn = resource.title_en;
+      }
+    }
+
+    return {
+      id: comment.id,
+      course_id: comment.course_id,
+      user_id: comment.user_id,
+      parent_comment_id: comment.parent_comment_id ?? null,
+      content: comment.content ?? '',
+      image_urls: normalizeImageUrls(comment.image_urls),
+      resource_id: comment.resource_id ?? null,
+      is_deleted: comment.is_deleted ?? false,
+      created_at: comment.created_at,
+      updated_at: comment.updated_at,
+      resource_title_zh: resourceTitleZh,
+      resource_title_en: resourceTitleEn,
+    };
   }
 
   /**
    * Add course discussion comment
    * 添加实验讨论评论
    */
-  static async addDiscussionComment(courseId: string, userId: string, content: string): Promise<string> {
+  static async addDiscussionComment(
+    courseId: string,
+    userId: string,
+    content: string,
+    imageUrls: string[] = [],
+    parentCommentId: string | null = null,
+    resourceId: string | null = null
+  ): Promise<string> {
     const now = new Date();
     const commentId = generateId();
 
-    const comment: CourseDiscussionCommentRow = {
+    await courseDiscussionCommentsCollection().insertOne({
       id: commentId,
       course_id: courseId,
       user_id: userId,
+      parent_comment_id: parentCommentId,
       content,
+      image_urls: normalizeImageUrls(imageUrls),
+      resource_id: resourceId,
+      is_deleted: false,
       created_at: now,
       updated_at: now,
-    };
+    });
 
-    await courseDiscussionCommentsCollection().insertOne(comment as unknown as Record<string, unknown>);
-
-    logger.info(`Course discussion comment created: ${commentId}`);
+    logger.info(`Course discussion comment created: ${commentId} in course ${courseId}`);
     return commentId;
   }
 
   /**
+   * Prune deleted ancestor comments that have no children
+   * 清理已删除的无子评论的祖先评论
+   */
+  private static async pruneDeletedDiscussionAncestor(commentId: string | null): Promise<void> {
+    if (!commentId) {
+      return;
+    }
+
+    const comment = await this.getDiscussionCommentById(commentId);
+    if (!comment?.is_deleted) {
+      return;
+    }
+
+    const childCount = await courseDiscussionCommentsCollection().countDocuments({ parent_comment_id: commentId });
+    if (childCount > 0) {
+      return;
+    }
+
+    await courseDiscussionCommentsCollection().deleteOne({ id: commentId });
+    await this.pruneDeletedDiscussionAncestor(comment.parent_comment_id ?? null);
+  }
+
+  /**
    * Delete course discussion comment
-   * 删除实验讨论评论
+   * 删除实验讨论评论（支持软删除）
    */
   static async deleteDiscussionComment(commentId: string): Promise<boolean> {
+    const comment = await this.getDiscussionCommentById(commentId);
+    if (!comment) {
+      return false;
+    }
+
+    const childCount = await courseDiscussionCommentsCollection().countDocuments({ parent_comment_id: commentId });
+
+    if (childCount > 0) {
+      // Soft delete: mark as deleted but keep the comment for thread continuity
+      const result = await courseDiscussionCommentsCollection().updateOne(
+        { id: commentId },
+        { $set: { is_deleted: true, content: '', image_urls: [], updated_at: new Date() } }
+      );
+      logger.info(`Course discussion comment soft deleted: ${commentId}`);
+      return result.modifiedCount > 0;
+    }
+
+    // Hard delete: remove the comment entirely
     const result = await courseDiscussionCommentsCollection().deleteOne({ id: commentId });
+    if (result.deletedCount === 0) {
+      return false;
+    }
+
+    // Prune any deleted ancestors that now have no children
+    await this.pruneDeletedDiscussionAncestor(comment.parent_comment_id ?? null);
     logger.info(`Course discussion comment deleted: ${commentId}`);
-    return result.deletedCount > 0;
+    return true;
   }
 
   /**

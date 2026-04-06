@@ -104,15 +104,24 @@ function transformDiscussionCommentRow(
   row: CourseDiscussionCommentRow & {
     username: string;
     avatar_url: string | null;
+    resource_title_zh: string | null;
+    resource_title_en: string | null;
   }
 ) {
   return {
     id: row.id,
     courseId: row.course_id,
     userId: row.user_id,
+    parentCommentId: row.parent_comment_id,
     username: row.username,
     avatarUrl: row.avatar_url,
     content: row.content,
+    imageUrls: row.image_urls,
+    resourceId: row.resource_id,
+    resourceTitle: row.resource_title_zh
+      ? { 'zh-CN': row.resource_title_zh, 'en-US': row.resource_title_en || undefined }
+      : null,
+    isDeleted: row.is_deleted,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -371,13 +380,31 @@ export class CourseController {
   static addDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
+    const rawImageUrls: unknown[] = Array.isArray(req.body.imageUrls) ? req.body.imageUrls : [];
+    const imageUrls = rawImageUrls
+      .filter((imageUrl): imageUrl is string => typeof imageUrl === "string")
+      .map((imageUrl) => imageUrl.trim())
+      .filter((imageUrl) => imageUrl.length > 0);
+    const parentCommentId =
+      typeof req.body.parentCommentId === "string" && req.body.parentCommentId.trim()
+        ? req.body.parentCommentId.trim()
+        : null;
+    const resourceId =
+      typeof req.body.resourceId === "string" && req.body.resourceId.trim()
+        ? req.body.resourceId.trim()
+        : null;
 
-    if (!content) {
-      return res.error("评论内容不能为空", "INVALID_COMMENT_CONTENT", 400);
+    // Validate: must have content or images
+    if (!content && imageUrls.length === 0) {
+      return res.error("评论内容不能为空（可以只发图片）", "INVALID_COMMENT_CONTENT", 400);
     }
 
     if (content.length > 2000) {
       return res.error("评论内容不能超过 2000 字", "COMMENT_TOO_LONG", 400);
+    }
+
+    if (imageUrls.length > 6) {
+      return res.error("单条评论最多添加 6 张图片", "TOO_MANY_IMAGES", 400);
     }
 
     const course = await CourseModel.getCourseById(id);
@@ -385,7 +412,30 @@ export class CourseController {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
 
-    const commentId = await CourseModel.addDiscussionComment(id, req.user!.sub, content);
+    // Validate parent comment if provided
+    if (parentCommentId) {
+      const parentComment = await CourseModel.getDiscussionCommentById(parentCommentId);
+      if (!parentComment || parentComment.course_id !== id) {
+        return res.error("回复的评论不存在", "PARENT_COMMENT_NOT_FOUND", 404);
+      }
+    }
+
+    // Validate resource if provided
+    if (resourceId) {
+      const resource = await CourseModel.getMediaById(resourceId);
+      if (!resource || resource.course_id !== id) {
+        return res.error("关联的资源不存在", "RESOURCE_NOT_FOUND", 404);
+      }
+    }
+
+    const commentId = await CourseModel.addDiscussionComment(
+      id,
+      req.user!.sub,
+      content,
+      imageUrls,
+      parentCommentId,
+      resourceId
+    );
 
     logger.info(`Course discussion comment added by ${req.user!.username}: ${commentId}`);
     res.success({ id: commentId }, "讨论留言发布成功", 201);

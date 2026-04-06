@@ -3,14 +3,56 @@
  * 课程管理路由
  */
 
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { CourseController } from "../controllers/course.controller.js";
+import { UploadController } from "../controllers/upload.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { discussionRateLimiter } from "../middleware/rate-limit.middleware.js";
 import { requireAdmin } from "../middleware/rbac.middleware.js";
+import { createUploadMiddleware, handleUploadError } from "../middleware/upload.middleware.js";
 import { validateCreateCourseDiscussionComment } from "../middleware/validation.middleware.js";
+import { CourseModel } from "../models/course.model.js";
+import { logger } from "../utils/logger.js";
 
 const router = Router();
+
+function buildCourseDiscussionUploadScope(courseId: string): string {
+  const sanitizedCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `course-discussion-${sanitizedCourseId}`;
+}
+
+async function authorizeCourseDiscussionImageUpload(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const uploadScope = buildCourseDiscussionUploadScope(id);
+
+    if (!uploadScope || uploadScope === 'course-discussion-') {
+      res.error('课程标识无效', 'INVALID_COURSE_ID', 400);
+      return;
+    }
+
+    const course = await CourseModel.getCourseById(id);
+    if (!course) {
+      res.error('课程不存在', 'COURSE_NOT_FOUND', 404);
+      return;
+    }
+
+    // Any authenticated user can upload discussion images
+    req.body = {
+      ...(typeof req.body === 'object' && req.body !== null ? req.body : {}),
+      unitId: uploadScope,
+    };
+    req.params.category = 'image';
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
 
 /**
  * =====================================================
@@ -80,6 +122,36 @@ router.post(
   discussionRateLimiter,
   validateCreateCourseDiscussionComment,
   CourseController.addDiscussionComment
+);
+
+/**
+ * @route   POST /api/courses/:id/discussion-images
+ * @desc    Upload an image for course discussion comments
+ * @access  Private
+ */
+router.post(
+  "/:id/discussion-images",
+  authorizeCourseDiscussionImageUpload,
+  (req, res, next): void => {
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Course discussion image upload started', {
+      courseId: req.params.id,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
+
+    const upload = createUploadMiddleware('image');
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        handleUploadError(err, req, res, next);
+        return;
+      }
+      next();
+    });
+  },
+  UploadController.uploadFile
 );
 
 /**

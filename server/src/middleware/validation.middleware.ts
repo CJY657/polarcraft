@@ -230,7 +230,39 @@ export const validateCreateFeedback = validate(
 
 export const validateCreateCourseDiscussionComment = validate(
   body('content')
+    .optional({ values: 'falsy' })
     .trim()
-    .isLength({ min: 1, max: 2000 })
-    .withMessage('评论内容长度必须在 1-2000 个字符之间'),
+    .isLength({ max: 2000 })
+    .withMessage('评论内容长度不能超过 2000 个字符'),
+  body('imageUrls')
+    .optional()
+    .isArray({ max: 6 })
+    .withMessage('单条评论最多上传 6 张图片'),
+  body('imageUrls.*')
+    .optional()
+    .isString()
+    .withMessage('图片地址格式无效')
+    .trim()
+    .isLength({ min: 1, max: 2048 })
+    .withMessage('图片地址长度无效'),
+  body('parentCommentId')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('父评论 ID 过长'),
+  body('resourceId')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('资源 ID 过长'),
+  body().custom((value) => {
+    const content = typeof value?.content === 'string' ? value.content.trim() : '';
+    const hasImages = Array.isArray(value?.imageUrls) && value.imageUrls.length > 0;
+
+    if (!content && !hasImages) {
+      throw new Error('评论内容和图片不能同时为空');
+    }
+
+    return true;
+  }),
 );

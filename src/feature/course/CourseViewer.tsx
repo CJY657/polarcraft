@@ -1022,6 +1022,11 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   const [shouldAutoplayPreview, setShouldAutoplayPreview] = useState(false);
   const [linkedMediaId, setLinkedMediaId] = useState<string | null>(null);
   const [linkedMediaNonce, setLinkedMediaNonce] = useState(0);
+  const [discussionQuestionResource, setDiscussionQuestionResource] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [discussionQuestionSignal, setDiscussionQuestionSignal] = useState(0);
   const previewSurfaceRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const playbackPositionRef = useRef<Record<string, number>>({});
@@ -1122,6 +1127,24 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
   // 获取媒体标题
   const getMediaTitle = (media: MediaResource | { title: Record<string, string> }) => {
     return media.title[i18n.language] || media.title["zh-CN"] || media.title["en-US"] || "";
+  };
+
+  const focusDiscussionForResource = (media: MediaResource | null) => {
+    if (!media) {
+      return;
+    }
+
+    setDiscussionQuestionResource({
+      id: media.id,
+      title: getMediaTitle(media),
+    });
+    setDiscussionQuestionSignal((current) => current + 1);
+
+    const discussionElement = document.getElementById("experiment-discussion");
+    discussionElement?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const getMediaTypeLabel = (type: MediaType) => {
@@ -1247,6 +1270,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       setShouldAutoplayPreview(false);
       setLinkedMediaId(null);
       setLinkedMediaNonce(0);
+      setDiscussionQuestionResource(null);
+      setDiscussionQuestionSignal(0);
       return;
     }
 
@@ -1260,6 +1285,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     setShouldAutoplayPreview(false);
     setLinkedMediaId(null);
     setLinkedMediaNonce(0);
+    setDiscussionQuestionResource(null);
+    setDiscussionQuestionSignal(0);
   }, [course.id, hasPptxLayout, mediaSignature]);
 
   useEffect(() => {
@@ -1870,14 +1897,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         </div>
 
                         <button
-                          onClick={() => {
-                            const discussionElement =
-                              document.getElementById("experiment-discussion");
-                            discussionElement?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "start",
-                            });
-                          }}
+                          onClick={() => focusDiscussionForResource(activePreviewMedia)}
                           className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
                             theme === "dark"
                               ? "text-cyan-400 hover:text-cyan-300"
@@ -1910,6 +1930,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     courseTitle={courseTitle}
                     theme={theme}
                     accentColor={course.color}
+                    questionResource={discussionQuestionResource}
+                    questionSignal={discussionQuestionSignal}
                   />
                 </div>
               </div>
@@ -2001,6 +2023,16 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => focusDiscussionForResource(selectedMedia)}
+                          className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                            theme === "dark"
+                              ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                              : "bg-cyan-50 text-cyan-700 hover:bg-cyan-100"
+                          }`}
+                        >
+                          {isZh ? "对此资源提问" : "Ask about this"}
+                        </button>
+                        <button
                           onClick={toggleFullscreen}
                           className={`rounded-xl p-2.5 transition-colors ${
                             theme === "dark"
@@ -2032,6 +2064,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               courseTitle={courseTitle}
               theme={theme}
               accentColor={course.color}
+              questionResource={discussionQuestionResource}
+              questionSignal={discussionQuestionSignal}
             />
           </div>
         </div>

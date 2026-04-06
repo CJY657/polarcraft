@@ -64,9 +64,14 @@ export interface CourseDiscussionComment {
   id: string;
   courseId: string;
   userId: string;
+  parentCommentId: string | null;
   username: string;
   avatarUrl: string | null;
   content: string;
+  imageUrls: string[];
+  resourceId: string | null;
+  resourceTitle: LabelI18n | null;
+  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -142,6 +147,19 @@ export interface UpdateHyperlinkInput {
 
 export interface CreateCourseDiscussionCommentInput {
   content: string;
+  parentCommentId?: string;
+  imageUrls?: string[];
+  resourceId?: string;
+}
+
+export interface CourseDiscussionImageUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: 'image';
+  unitId: string;
 }
 
 // =====================================================
@@ -370,6 +388,24 @@ export const courseApi = {
     if (!response.success) {
       throw new Error(response.error?.message || "Failed to delete discussion comment");
     }
+  },
+
+  /**
+   * Upload discussion image
+   * 上传讨论图片
+   */
+  async uploadDiscussionImage(
+    courseId: string,
+    file: File
+  ): Promise<CourseDiscussionImageUploadResult> {
+    const response = await api.upload<CourseDiscussionImageUploadResult>(
+      `/api/courses/${courseId}/discussion-images`,
+      file
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || "上传讨论图片失败");
   },
 
   // =====================================================

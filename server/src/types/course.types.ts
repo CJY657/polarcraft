@@ -135,6 +135,9 @@ export interface UpdateHyperlinkInput {
 
 export interface CreateCourseDiscussionCommentInput {
   content: string;
+  parentCommentId?: string;
+  imageUrls?: string[];
+  resourceId?: string;
 }
 
 // =====================================================
@@ -197,7 +200,21 @@ export interface CourseDiscussionCommentRow {
   id: string;
   course_id: string;
   user_id: string;
+  parent_comment_id: string | null;
   content: string;
+  image_urls: string[];
+  resource_id: string | null;
+  is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface CourseDiscussionImageUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: 'image';
+  unitId: string;
 }
