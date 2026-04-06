@@ -135,7 +135,7 @@ function fitPresentationSize(width: number, height: number, aspectRatio: number)
 function collectReferenceKeysFromPptNode(
   node: unknown,
   referenceKeys: Set<string>,
-  visited: WeakSet<object>
+  visited: WeakSet<object>,
 ) {
   if (typeof node === "string") {
     extractReferenceKeysFromText(node).forEach((referenceKey) => {
@@ -169,10 +169,7 @@ function collectReferenceKeysFromPptNode(
   collectReferenceKeysFromPptNode(record.children, referenceKeys, visited);
 }
 
-function buildPptReferencePageMap(
-  documentInfo: PptxDocument,
-  mediaList: MediaResource[]
-) {
+function buildPptReferencePageMap(documentInfo: PptxDocument, mediaList: MediaResource[]) {
   const referenceMap = buildMediaReferenceMap(mediaList);
   if (Object.keys(referenceMap).length === 0) {
     return {};
@@ -182,7 +179,11 @@ function buildPptReferencePageMap(
 
   documentInfo.slides?.forEach((slide, slideIndex) => {
     const foundReferenceKeys = new Set<string>();
-    collectReferenceKeysFromPptNode(slide.nodes ?? slide, foundReferenceKeys, new WeakSet<object>());
+    collectReferenceKeysFromPptNode(
+      slide.nodes ?? slide,
+      foundReferenceKeys,
+      new WeakSet<object>(),
+    );
 
     foundReferenceKeys.forEach((referenceKey) => {
       const targetMediaId = referenceMap[referenceKey];
@@ -195,10 +196,7 @@ function buildPptReferencePageMap(
   return pageMap;
 }
 
-async function detectPptReferencePageMap(
-  arrayBuffer: ArrayBuffer,
-  mediaList: MediaResource[]
-) {
+async function detectPptReferencePageMap(arrayBuffer: ArrayBuffer, mediaList: MediaResource[]) {
   if (mediaList.length === 0) {
     return {};
   }
@@ -254,9 +252,9 @@ function PptxViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const previewerRef = useRef<PptxPreviewerInstance | null>(null);
   const renderVersionRef = useRef(0);
-  const renderPresentationRef = useRef<(arrayBuffer: ArrayBuffer, preferredPage?: number) => Promise<void>>(
-    async () => {}
-  );
+  const renderPresentationRef = useRef<
+    (arrayBuffer: ArrayBuffer, preferredPage?: number) => Promise<void>
+  >(async () => {});
   const currentPageRef = useRef(1);
   const onHyperlinkClickRef = useRef(onHyperlinkClick);
   const getHyperlinkTitleRef = useRef(getHyperlinkTitle);
@@ -272,7 +270,10 @@ function PptxViewer({
   const [detectedPageMap, setDetectedPageMap] = useState<Record<string, number>>({});
   const currentPageHyperlinks = hyperlinks.filter((hyperlink) => hyperlink.page === currentPage);
   const mediaReferenceSignature = mediaList
-    .map((media) => `${media.id}:${media.url}:${media.title["zh-CN"] || ""}:${media.title["en-US"] || ""}`)
+    .map(
+      (media) =>
+        `${media.id}:${media.url}:${media.title["zh-CN"] || ""}:${media.title["en-US"] || ""}`,
+    )
     .join("|");
 
   const cachedDataRef = useRef<ArrayBuffer | null>(null);
@@ -280,7 +281,9 @@ function PptxViewer({
   currentPageRef.current = currentPage;
 
   const getLinkedMediaPage = (targetMediaId: string) => {
-    const configuredHyperlink = hyperlinks.find((hyperlink) => hyperlink.targetMediaId === targetMediaId);
+    const configuredHyperlink = hyperlinks.find(
+      (hyperlink) => hyperlink.targetMediaId === targetMediaId,
+    );
     if (configuredHyperlink) {
       return configuredHyperlink.page;
     }
@@ -407,55 +410,59 @@ function PptxViewer({
         element.style.display = "none";
       });
 
-    container.querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper").forEach((slideWrapper) => {
-      slideWrapper.style.width = "100%";
-      slideWrapper.style.height = "100%";
-      slideWrapper.style.margin = "0";
-      slideWrapper.style.background = "transparent";
-      slideWrapper.style.overflow = "hidden";
-      slideWrapper.style.borderRadius = "0";
-      slideWrapper.style.boxShadow = "none";
-    });
+    container
+      .querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper")
+      .forEach((slideWrapper) => {
+        slideWrapper.style.width = "100%";
+        slideWrapper.style.height = "100%";
+        slideWrapper.style.margin = "0";
+        slideWrapper.style.background = "transparent";
+        slideWrapper.style.overflow = "hidden";
+        slideWrapper.style.borderRadius = "0";
+        slideWrapper.style.boxShadow = "none";
+      });
 
-    container.querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper p").forEach((paragraph) => {
-      const normalizedText = (paragraph.textContent || "").replace(/\s+/g, "");
-      const [referenceKey] = extractReferenceKeysFromText(normalizedText);
-      const targetMediaId = referenceKey ? mediaReferenceMapRef.current[referenceKey] : null;
+    container
+      .querySelectorAll<HTMLElement>(".pptx-preview-slide-wrapper p")
+      .forEach((paragraph) => {
+        const normalizedText = (paragraph.textContent || "").replace(/\s+/g, "");
+        const [referenceKey] = extractReferenceKeysFromText(normalizedText);
+        const targetMediaId = referenceKey ? mediaReferenceMapRef.current[referenceKey] : null;
 
-      if (!targetMediaId) {
-        paragraph.classList.remove("pptx-linked-paragraph");
+        if (!targetMediaId) {
+          paragraph.classList.remove("pptx-linked-paragraph");
+          paragraph.classList.remove("pptx-linked-paragraph-active");
+          paragraph.onclick = null;
+          paragraph.onkeydown = null;
+          paragraph.removeAttribute("role");
+          paragraph.removeAttribute("tabindex");
+          paragraph.removeAttribute("title");
+          paragraph.removeAttribute("data-target-media-id");
+          return;
+        }
+
+        paragraph.classList.add("pptx-linked-paragraph");
         paragraph.classList.remove("pptx-linked-paragraph-active");
-        paragraph.onclick = null;
-        paragraph.onkeydown = null;
-        paragraph.removeAttribute("role");
-        paragraph.removeAttribute("tabindex");
-        paragraph.removeAttribute("title");
-        paragraph.removeAttribute("data-target-media-id");
-        return;
-      }
-
-      paragraph.classList.add("pptx-linked-paragraph");
-      paragraph.classList.remove("pptx-linked-paragraph-active");
-      paragraph.dataset.targetMediaId = targetMediaId;
-      paragraph.setAttribute("role", "button");
-      paragraph.setAttribute("tabindex", "0");
-      paragraph.setAttribute(
-        "title",
-        getHyperlinkTitleRef.current?.(targetMediaId) || targetMediaId
-      );
-      paragraph.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onHyperlinkClickRef.current?.(targetMediaId);
-      };
-      paragraph.onkeydown = (event) => {
-        if (event.key === "Enter" || event.key === " ") {
+        paragraph.dataset.targetMediaId = targetMediaId;
+        paragraph.setAttribute("role", "button");
+        paragraph.setAttribute("tabindex", "0");
+        paragraph.setAttribute(
+          "title",
+          getHyperlinkTitleRef.current?.(targetMediaId) || targetMediaId,
+        );
+        paragraph.onclick = (event) => {
           event.preventDefault();
           event.stopPropagation();
           onHyperlinkClickRef.current?.(targetMediaId);
-        }
-      };
-    });
+        };
+        paragraph.onkeydown = (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            onHyperlinkClickRef.current?.(targetMediaId);
+          }
+        };
+      });
   };
 
   const syncRenderedPage = (page: number) => {
@@ -566,7 +573,7 @@ function PptxViewer({
       const nextStageSize = fitPresentationSize(
         entry.contentRect.width,
         entry.contentRect.height,
-        aspectRatio
+        aspectRatio,
       );
 
       setStageSize((previousSize) => {
@@ -639,12 +646,7 @@ function PptxViewer({
   }, [mediaReferenceSignature, renderMode, url]);
 
   useEffect(() => {
-    if (
-      renderMode !== "pptx" ||
-      !linkedMediaId ||
-      linkedMediaNonce <= 0 ||
-      totalPages <= 0
-    ) {
+    if (renderMode !== "pptx" || !linkedMediaId || linkedMediaNonce <= 0 || totalPages <= 0) {
       return;
     }
 
@@ -710,7 +712,14 @@ function PptxViewer({
     }
 
     return (
-      <Suspense fallback={<ViewerModuleLoader theme={theme} message="Loading PDF viewer..." />}>
+      <Suspense
+        fallback={
+          <ViewerModuleLoader
+            theme={theme}
+            message="Loading PDF viewer..."
+          />
+        }
+      >
         <PdfViewer
           url={pdfFallbackUrl}
           theme={theme}
@@ -982,13 +991,7 @@ function PptxViewer({
   );
 }
 
-function ViewerModuleLoader({
-  theme,
-  message,
-}: {
-  theme: "dark" | "light";
-  message: string;
-}) {
+function ViewerModuleLoader({ theme, message }: { theme: "dark" | "light"; message: string }) {
   return (
     <div className="flex h-full w-full items-center justify-center bg-slate-900">
       <div className="text-center">
@@ -1178,7 +1181,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
   const handleMediaSelect = (
     media: MediaResource,
-    options: { autoplay?: boolean; restart?: boolean; syncDeck?: boolean } = {}
+    options: { autoplay?: boolean; restart?: boolean; syncDeck?: boolean } = {},
   ) => {
     if (media.type === "pptx") {
       setSelectedPptMedia(media);
@@ -1265,8 +1268,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       const previewSurface = previewSurfaceRef.current;
       const isPreviewFullscreen = Boolean(
         fullscreenElement &&
-          previewSurface &&
-          (fullscreenElement === previewSurface || previewSurface.contains(fullscreenElement))
+        previewSurface &&
+        (fullscreenElement === previewSurface || previewSurface.contains(fullscreenElement)),
       );
 
       setIsFullscreen(isPreviewFullscreen);
@@ -1311,7 +1314,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
     return (
       <div className={containerClass}>
-        <Suspense fallback={<ViewerModuleLoader theme={theme} message="Loading PDF viewer..." />}>
+        <Suspense
+          fallback={
+            <ViewerModuleLoader
+              theme={theme}
+              message="Loading PDF viewer..."
+            />
+          }
+        >
           <PdfViewer
             url={mainSlide.url}
             theme={theme}
@@ -1403,7 +1413,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     <div className="w-full">
       {/* 上方区域：主 PDF 永久显示 */}
       {!hasPptxLayout && mainSlide && (
-        <div className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}>
+        <div
+          className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}
+        >
           <div className="aspect-video">{renderMainSlide()}</div>
         </div>
       )}
@@ -1512,7 +1524,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           }`}
                           style={{ backgroundColor: section.accent }}
                         />
-                        <p className="text-[13px] font-bold" style={{ color: section.accent }}>
+                        <p
+                          className="text-[13px] font-bold"
+                          style={{ color: section.accent }}
+                        >
                           {section.title}
                         </p>
                         <p
@@ -1545,9 +1560,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         const isPrimarySection = section.priority === "primary";
                         const isCurrentPpt = media.id === activePptMedia?.id;
                         const isCurrentPreview =
-                          media.type === "pptx"
-                            ? false
-                            : media.id === activePreviewMedia?.id;
+                          media.type === "pptx" ? false : media.id === activePreviewMedia?.id;
                         const isActive = isCurrentPpt || isCurrentPreview;
 
                         return (
@@ -1586,9 +1599,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                       isPrimarySection
                                         ? "text-[12px] leading-[1.2rem]"
                                         : "text-[11px] leading-[1.1rem]"
-                                    } ${
-                                      theme === "dark" ? "text-white" : "text-slate-900"
-                                    }`}
+                                    } ${theme === "dark" ? "text-white" : "text-slate-900"}`}
                                   >
                                     {getMediaTitle(media)}
                                   </p>
@@ -1649,10 +1660,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       <MessageSquare className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className={`text-[13px] font-bold ${theme === "dark" ? "text-indigo-200" : "text-indigo-900"}`}>
+                      <p
+                        className={`text-[13px] font-bold ${theme === "dark" ? "text-indigo-200" : "text-indigo-900"}`}
+                      >
                         {isZh ? "参与讨论" : "Join Discussion"}
                       </p>
-                      <p className={`text-[10px] font-medium opacity-80 ${theme === "dark" ? "text-indigo-300" : "text-indigo-700"}`}>
+                      <p
+                        className={`text-[10px] font-medium opacity-80 ${theme === "dark" ? "text-indigo-300" : "text-indigo-700"}`}
+                      >
                         {isZh ? "与同学老师实时互动" : "Discuss with classmates"}
                       </p>
                     </div>
@@ -1671,22 +1686,16 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3 px-1">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        <p
-                          className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                            theme === "dark" ? "text-amber-300/80" : "text-amber-700"
-                          }`}
-                        >
-                          {isZh ? "核心课件演示" : "Core Presentation"}
-                        </p>
-                      </div>
                       <h3
                         className={`text-xl font-bold tracking-tight ${
                           theme === "dark" ? "text-white" : "text-slate-900"
                         }`}
                       >
-                        {activePptMedia ? getMediaTitle(activePptMedia) : isZh ? "暂无课件" : "No deck"}
+                        {activePptMedia
+                          ? getMediaTitle(activePptMedia)
+                          : isZh
+                            ? "暂无课件"
+                            : "No deck"}
                       </h3>
                     </div>
 
@@ -1729,8 +1738,12 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     ) : (
                       <div className="flex h-full items-center justify-center p-12 text-center">
                         <div>
-                          <FileText className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`} />
-                          <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                          <FileText
+                            className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`}
+                          />
+                          <p
+                            className={`text-sm font-medium ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}
+                          >
                             {isZh ? "当前课程没有可播放的 PPT 课件" : "No presentation available"}
                           </p>
                         </div>
@@ -1743,16 +1756,6 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3 px-1">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                        <p
-                          className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                            theme === "dark" ? "text-cyan-300/80" : "text-cyan-700"
-                          }`}
-                        >
-                          {isZh ? "实验媒体联动" : "Experiment Media"}
-                        </p>
-                      </div>
                       <h3
                         className={`text-lg font-bold tracking-tight ${
                           theme === "dark" ? "text-white" : "text-slate-900"
@@ -1776,9 +1779,17 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                                 ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
                                 : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
                             }`}
-                            title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
+                            title={
+                              isFullscreen
+                                ? t("page.courses.exitfullscreen")
+                                : t("page.courses.fullscreen")
+                            }
                           >
-                            {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                            {isFullscreen ? (
+                              <Minimize2 className="h-5 w-5" />
+                            ) : (
+                              <Maximize2 className="h-5 w-5" />
+                            )}
                           </button>
                         )}
                         <button
@@ -1808,10 +1819,14 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     ) : (
                       <div className="flex h-full items-center justify-center px-12 text-center">
                         <div className="max-w-[240px]">
-                          <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}>
+                          <div
+                            className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}
+                          >
                             <Play className="h-8 w-8" />
                           </div>
-                          <p className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}>
+                          <p
+                            className={`text-sm font-medium leading-relaxed ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}
+                          >
                             {isZh
                               ? "当前课程没有可播放的媒体资源。"
                               : "This course does not include a playable media resource."}
@@ -1827,7 +1842,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
                         : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
-                      }`}
+                    }`}
                   >
                     {activePreviewMedia ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1853,14 +1868,20 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                             </span>
                           )}
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={() => {
-                            const discussionElement = document.getElementById("experiment-discussion");
-                            discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            const discussionElement =
+                              document.getElementById("experiment-discussion");
+                            discussionElement?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
                           }}
                           className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
-                            theme === "dark" ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-700"
+                            theme === "dark"
+                              ? "text-cyan-400 hover:text-cyan-300"
+                              : "text-cyan-600 hover:text-cyan-700"
                           }`}
                         >
                           <MessageSquare className="h-3.5 w-3.5" />
@@ -1868,7 +1889,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         </button>
                       </div>
                     ) : (
-                      <p className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                      <p
+                        className={`text-sm font-medium ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}
+                      >
                         {isZh ? "当前没有可展示的媒体信息。" : "No media metadata available."}
                       </p>
                     )}
@@ -1877,26 +1900,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               </div>
 
               {/* 第二行：意见反馈 / 讨论区 */}
-              <div id="experiment-discussion" className="pt-12 border-t border-slate-200 dark:border-slate-700/60">
-                <div className="mb-6 px-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    <p
-                      className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
-                        theme === "dark" ? "text-indigo-300/80" : "text-indigo-700"
-                      }`}
-                    >
-                      {isZh ? "意见反馈与交流" : "Feedback & Discussion"}
-                    </p>
-                  </div>
-                  <h3
-                    className={`text-xl font-bold tracking-tight ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    {isZh ? "实验讨论区" : "Experiment Discussion"}
-                  </h3>
-                </div>
+              <div
+                id="experiment-discussion"
+                className="pt-8 border-t border-slate-200 dark:border-slate-700/60"
+              >
                 <div className="rounded-[32px] overflow-hidden shadow-sm">
                   <ExperimentDiscussionSection
                     courseId={course.id}
@@ -1914,11 +1921,15 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
       {/* 下方区域：非 PPT 布局时的降级显示 */}
       {!hasPptxLayout && mediaList.length > 0 && (
         <div className="max-w-[1400px] mx-auto p-4 lg:p-6 space-y-6">
-          <div className={`rounded-3xl p-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm border border-slate-100"}`}>
+          <div
+            className={`rounded-3xl p-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm border border-slate-100"}`}
+          >
             <div className="flex flex-col lg:flex-row gap-6">
               {/* 左侧：资源列表 */}
               <div className="w-full lg:w-64 flex-shrink-0 space-y-1.5 max-h-[60vh] overflow-y-auto persistent-scrollbar pr-2">
-                <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 px-2 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}>
+                <p
+                  className={`text-[10px] font-bold uppercase tracking-wider mb-3 px-2 ${theme === "dark" ? "text-slate-500" : "text-slate-400"}`}
+                >
                   {isZh ? "可选资源" : "Available Media"}
                 </p>
                 {mediaList.map((media) => (
@@ -1945,7 +1956,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       <span
                         className="scale-90 inline-block"
                         style={{
-                          color: selectedMedia?.id === media.id ? "white" : MEDIA_TYPE_COLORS[media.type],
+                          color:
+                            selectedMedia?.id === media.id
+                              ? "white"
+                              : MEDIA_TYPE_COLORS[media.type],
                         }}
                       >
                         {MEDIA_TYPE_ICONS[media.type]}
@@ -1978,7 +1992,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                           </span>
                         </div>
                         <div>
-                          <h3 className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                          <h3
+                            className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-slate-900"}`}
+                          >
                             {getMediaTitle(selectedMedia)}
                           </h3>
                         </div>
@@ -1987,7 +2003,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                         <button
                           onClick={toggleFullscreen}
                           className={`rounded-xl p-2.5 transition-colors ${
-                            theme === "dark" ? "bg-slate-700 text-slate-300" : "bg-slate-100 text-slate-600"
+                            theme === "dark"
+                              ? "bg-slate-700 text-slate-300"
+                              : "bg-slate-100 text-slate-600"
                           }`}
                         >
                           <Maximize2 className="h-5 w-5" />
@@ -2005,7 +2023,10 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
           </div>
 
           {/* 讨论区 - 降级布局时也在下方 */}
-          <div id="experiment-discussion" className="pt-8">
+          <div
+            id="experiment-discussion"
+            className="pt-8"
+          >
             <ExperimentDiscussionSection
               courseId={course.id}
               courseTitle={courseTitle}
