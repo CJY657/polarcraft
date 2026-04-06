@@ -1679,9 +1679,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
           {/* 右侧：主内容区域（包括演示、视频和讨论） */}
           <main className="flex-1 h-full overflow-y-auto persistent-scrollbar">
-            <div className="mx-auto max-w-[1720px] space-y-8 p-4 lg:p-6">
+            <div className="mx-auto max-w-[1720px] space-y-4 p-3 lg:p-4">
               {/* 第一行：演示 + 视频 */}
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
                 {/* 课件演示区域 */}
                 <section className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3 px-1">
@@ -1715,7 +1715,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   </div>
 
                   <div
-                    className={`aspect-[16/10] lg:aspect-auto lg:h-[560px] xl:h-[600px] 2xl:h-[660px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                    className={`aspect-[16/10] lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
                         : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
@@ -1808,7 +1808,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                   </div>
 
                   <div
-                    className={`aspect-video lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
+                    className={`aspect-video lg:aspect-auto lg:h-[380px] xl:h-[420px] 2xl:h-[480px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
                         : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
@@ -1838,7 +1838,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
 
                   {/* 媒体详情卡片 */}
                   <div
-                    className={`rounded-[22px] border px-5 py-4 transition-all duration-300 ${
+                    className={`rounded-[22px] border px-4 py-3 transition-all duration-300 ${
                       theme === "dark"
                         ? "border-slate-700/80 bg-slate-900/80 shadow-lg shadow-black/20"
                         : "border-slate-200 bg-white/95 shadow-md shadow-slate-200/40"
@@ -1902,9 +1902,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               {/* 第二行：意见反馈 / 讨论区 */}
               <div
                 id="experiment-discussion"
-                className="pt-8 border-t border-slate-200 dark:border-slate-700/60"
+                className="pt-4 border-t border-slate-200 dark:border-slate-700/60 mt-4"
               >
-                <div className="rounded-[32px] overflow-hidden shadow-sm">
+                <div className="rounded-[24px] overflow-hidden shadow-sm">
                   <ExperimentDiscussionSection
                     courseId={course.id}
                     courseTitle={courseTitle}
@@ -2025,7 +2025,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
           {/* 讨论区 - 降级布局时也在下方 */}
           <div
             id="experiment-discussion"
-            className="pt-8"
+            className="pt-4"
           >
             <ExperimentDiscussionSection
               courseId={course.id}

@@ -3,10 +3,7 @@ import { Loader2, LogIn, MessageSquare, Send, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  courseApi,
-  type CourseDiscussionComment,
-} from "@/lib/course.service";
+import { courseApi, type CourseDiscussionComment } from "@/lib/course.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { cn } from "@/utils/classNames";
 
@@ -61,7 +58,13 @@ export function ExperimentDiscussionSection({
       const data = await courseApi.getPublicDiscussionComments(courseId);
       setComments(data);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : isZh ? "加载讨论失败" : "Failed to load discussion");
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : isZh
+            ? "加载讨论失败"
+            : "Failed to load discussion",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +93,13 @@ export function ExperimentDiscussionSection({
       setDraft("");
       await loadComments();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : isZh ? "发布失败，请稍后再试" : "Failed to post comment");
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : isZh
+            ? "发布失败，请稍后再试"
+            : "Failed to post comment",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +112,13 @@ export function ExperimentDiscussionSection({
       await courseApi.deleteDiscussionComment(commentId);
       setComments((current) => current.filter((comment) => comment.id !== commentId));
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : isZh ? "删除失败，请稍后再试" : "Failed to delete comment");
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : isZh
+            ? "删除失败，请稍后再试"
+            : "Failed to delete comment",
+      );
     } finally {
       setDeletingCommentId(null);
     }
@@ -122,34 +137,33 @@ export function ExperimentDiscussionSection({
     : ["Ask about a slide", "Add an observation", "Suggest an improvement"];
 
   return (
-    <section className="px-4 pb-4 pt-4 xl:px-6">
+    <section className="px-2 pb-2 pt-2 xl:px-4">
       <div
         className={cn(
           "overflow-hidden rounded-[22px] border",
-          theme === "dark"
-            ? "border-slate-700/70 bg-slate-900/70"
-            : "border-slate-200 bg-white"
+          theme === "dark" ? "border-slate-700/70 bg-slate-900/70" : "border-slate-200 bg-white",
         )}
       >
         <div className="grid gap-0 lg:grid-cols-[0.92fr_1.18fr]">
           <div
             className={cn(
-              "border-b px-5 py-4 sm:px-6 sm:py-5 lg:border-b-0 lg:border-r",
+              "border-b px-4 py-3 sm:px-5 sm:py-4 lg:border-b-0 lg:border-r",
               theme === "dark"
                 ? "border-slate-700/70 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.12),transparent_46%),linear-gradient(180deg,rgba(15,23,42,0.8),rgba(15,23,42,0.92))]"
-                : "border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_42%),linear-gradient(180deg,rgba(255,251,235,0.92),rgba(255,255,255,0.98))]"
+                : "border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_42%),linear-gradient(180deg,rgba(255,251,235,0.92),rgba(255,255,255,0.98))]",
             )}
           >
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
-              <span className="h-px w-8" style={{ backgroundColor: accentColor }} />
-              <span style={{ color: accentColor }}>
-                {isZh ? "实验讨论" : "Discussion"}
-              </span>
+              <span
+                className="h-px w-8"
+                style={{ backgroundColor: accentColor }}
+              />
+              <span style={{ color: accentColor }}>{isZh ? "实验讨论" : "Discussion"}</span>
             </div>
             <h2
               className={cn(
                 "mt-3 text-xl font-semibold leading-tight",
-                theme === "dark" ? "text-white" : "text-slate-900"
+                theme === "dark" ? "text-white" : "text-slate-900",
               )}
             >
               {isZh ? "围绕课件直接讨论" : "Discuss the deck in context"}
@@ -157,7 +171,7 @@ export function ExperimentDiscussionSection({
             <p
               className={cn(
                 "mt-3 text-sm leading-6",
-                theme === "dark" ? "text-slate-300" : "text-slate-600"
+                theme === "dark" ? "text-slate-300" : "text-slate-600",
               )}
             >
               {isZh
@@ -173,7 +187,7 @@ export function ExperimentDiscussionSection({
                     "rounded-full border px-2.5 py-1 text-[11px] font-medium",
                     theme === "dark"
                       ? "border-slate-600 bg-slate-800/70 text-slate-200"
-                      : "border-slate-200 bg-white/90 text-slate-700"
+                      : "border-slate-200 bg-white/90 text-slate-700",
                   )}
                 >
                   {prompt}
@@ -184,23 +198,24 @@ export function ExperimentDiscussionSection({
             <div
               className={cn(
                 "mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
-                theme === "dark"
-                  ? "bg-slate-800/80 text-slate-200"
-                  : "bg-slate-100 text-slate-700"
+                theme === "dark" ? "bg-slate-800/80 text-slate-200" : "bg-slate-100 text-slate-700",
               )}
             >
-              <MessageSquare className="h-4 w-4" style={{ color: accentColor }} />
+              <MessageSquare
+                className="h-4 w-4"
+                style={{ color: accentColor }}
+              />
               {isZh ? `${comments.length} 条讨论` : `${comments.length} comments`}
             </div>
           </div>
 
-          <div className="px-5 py-4 sm:px-6 sm:py-5">
+          <div className="px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p
                   className={cn(
                     "text-sm font-semibold",
-                    theme === "dark" ? "text-slate-100" : "text-slate-900"
+                    theme === "dark" ? "text-slate-100" : "text-slate-900",
                   )}
                 >
                   {isZh ? "发一条留言" : "Start a comment"}
@@ -208,7 +223,7 @@ export function ExperimentDiscussionSection({
                 <p
                   className={cn(
                     "mt-1 text-sm",
-                    theme === "dark" ? "text-slate-400" : "text-slate-500"
+                    theme === "dark" ? "text-slate-400" : "text-slate-500",
                   )}
                 >
                   {isZh
@@ -224,7 +239,7 @@ export function ExperimentDiscussionSection({
                     "inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors",
                     theme === "dark"
                       ? "bg-slate-100 text-slate-900 hover:bg-white"
-                      : "bg-slate-900 text-white hover:bg-slate-800"
+                      : "bg-slate-900 text-white hover:bg-slate-800",
                   )}
                 >
                   <LogIn className="h-3.5 w-3.5" />
@@ -236,7 +251,7 @@ export function ExperimentDiscussionSection({
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              rows={4}
+              rows={2}
               maxLength={maxLength}
               disabled={!canParticipate || isSubmitting}
               placeholder={
@@ -253,23 +268,18 @@ export function ExperimentDiscussionSection({
                 theme === "dark"
                   ? "border-slate-700 bg-slate-950/70 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
                   : "border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:border-slate-400",
-                !canParticipate && "cursor-not-allowed opacity-75"
+                !canParticipate && "cursor-not-allowed opacity-75",
               )}
             />
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p
-                  className={cn(
-                    "text-xs",
-                    theme === "dark" ? "text-slate-400" : "text-slate-500"
-                  )}
+                  className={cn("text-xs", theme === "dark" ? "text-slate-400" : "text-slate-500")}
                 >
                   {isZh ? `最多 ${maxLength} 字` : `Up to ${maxLength} characters`}
                 </p>
-                {submitError && (
-                  <p className="mt-1 text-xs text-red-500">{submitError}</p>
-                )}
+                {submitError && <p className="mt-1 text-xs text-red-500">{submitError}</p>}
               </div>
 
               <button
@@ -277,7 +287,7 @@ export function ExperimentDiscussionSection({
                 disabled={isSubmitting || (canParticipate && !draft.trim())}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60",
-                  "hover:opacity-90"
+                  "hover:opacity-90",
                 )}
                 style={{ backgroundColor: accentColor }}
               >
@@ -300,7 +310,7 @@ export function ExperimentDiscussionSection({
               "flex items-center justify-center gap-3 rounded-[18px] border px-4 py-8 text-sm",
               theme === "dark"
                 ? "border-slate-700/70 bg-slate-900/60 text-slate-300"
-                : "border-slate-200 bg-white text-slate-600"
+                : "border-slate-200 bg-white text-slate-600",
             )}
           >
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -322,13 +332,13 @@ export function ExperimentDiscussionSection({
               "rounded-[18px] border px-6 py-8 text-center",
               theme === "dark"
                 ? "border-slate-700/70 bg-slate-900/60"
-                : "border-slate-200 bg-white"
+                : "border-slate-200 bg-white",
             )}
           >
             <p
               className={cn(
                 "text-sm font-semibold",
-                theme === "dark" ? "text-white" : "text-slate-900"
+                theme === "dark" ? "text-white" : "text-slate-900",
               )}
             >
               {isZh ? "还没有人开场" : "No discussion yet"}
@@ -336,7 +346,7 @@ export function ExperimentDiscussionSection({
             <p
               className={cn(
                 "mx-auto mt-2 max-w-2xl text-sm leading-6",
-                theme === "dark" ? "text-slate-400" : "text-slate-500"
+                theme === "dark" ? "text-slate-400" : "text-slate-500",
               )}
             >
               {isZh
@@ -353,7 +363,7 @@ export function ExperimentDiscussionSection({
                   "rounded-[18px] border px-4 py-3 sm:px-5",
                   theme === "dark"
                     ? "border-slate-700/70 bg-slate-900/70"
-                    : "border-slate-200 bg-white"
+                    : "border-slate-200 bg-white",
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -362,7 +372,7 @@ export function ExperimentDiscussionSection({
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
                       theme === "dark"
                         ? "bg-slate-800 text-slate-100"
-                        : "bg-amber-50 text-slate-900"
+                        : "bg-amber-50 text-slate-900",
                     )}
                     style={theme === "light" ? { border: `1px solid ${accentColor}` } : undefined}
                   >
@@ -374,7 +384,7 @@ export function ExperimentDiscussionSection({
                       <span
                         className={cn(
                           "font-semibold",
-                          theme === "dark" ? "text-white" : "text-slate-900"
+                          theme === "dark" ? "text-white" : "text-slate-900",
                         )}
                       >
                         {comment.username || (isZh ? "未命名用户" : "Unknown user")}
@@ -385,7 +395,7 @@ export function ExperimentDiscussionSection({
                             "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                             theme === "dark"
                               ? "bg-slate-800 text-slate-300"
-                              : "bg-slate-100 text-slate-600"
+                              : "bg-slate-100 text-slate-600",
                           )}
                         >
                           {isZh ? "你" : "You"}
@@ -394,7 +404,7 @@ export function ExperimentDiscussionSection({
                       <span
                         className={cn(
                           "text-xs",
-                          theme === "dark" ? "text-slate-400" : "text-slate-500"
+                          theme === "dark" ? "text-slate-400" : "text-slate-500",
                         )}
                       >
                         {formatCommentTime(comment.createdAt, locale)}
@@ -404,7 +414,7 @@ export function ExperimentDiscussionSection({
                     <p
                       className={cn(
                         "mt-1.5 whitespace-pre-wrap break-words text-sm leading-5",
-                        theme === "dark" ? "text-slate-200" : "text-slate-700"
+                        theme === "dark" ? "text-slate-200" : "text-slate-700",
                       )}
                     >
                       {comment.content}
@@ -420,7 +430,7 @@ export function ExperimentDiscussionSection({
                         theme === "dark"
                           ? "text-red-300 hover:bg-red-500/10"
                           : "text-red-600 hover:bg-red-50",
-                        deletingCommentId === comment.id && "cursor-not-allowed opacity-60"
+                        deletingCommentId === comment.id && "cursor-not-allowed opacity-60",
                       )}
                     >
                       {deletingCommentId === comment.id ? (
