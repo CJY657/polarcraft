@@ -8,11 +8,10 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2, MessageSquarePlus, MessageSquare, Upload } from "lucide-react";
+import { Loader2, MessageSquarePlus, MessageSquare } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useCourseDetailStore } from "@/stores/courseStore";
 import { loadCourseViewerModule } from "@/lib/routePreload";
 import { capturePostHogEventOnce } from "@/lib/posthog";
@@ -34,7 +33,6 @@ function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
 export default function CourseViewerPage() {
   const { courseId, experimentId } = useParams<{ courseId?: string; experimentId?: string }>();
   const { theme } = useTheme();
-  const { user } = useAuth();
   const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -160,46 +158,6 @@ export default function CourseViewerPage() {
         </div>
       ) : (
         <div>
-          {user?.role === "admin" && (
-            <div className="mb-4 w-full px-4 pt-4 xl:px-6">
-              <div
-                className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                  theme === "dark"
-                    ? "border-cyan-500/30 bg-cyan-500/10"
-                    : "border-cyan-200 bg-cyan-50"
-                }`}
-              >
-                <div>
-                  <p
-                    className={`text-sm font-medium ${
-                      theme === "dark" ? "text-cyan-200" : "text-cyan-900"
-                    }`}
-                  >
-                    仅管理员可上传实验媒体资源
-                  </p>
-                  <p
-                    className={`text-xs ${
-                      theme === "dark" ? "text-cyan-100/80" : "text-cyan-700"
-                    }`}
-                  >
-                    使用实验管理页上传视频、图片和 PPT 相关资源。
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate(`/admin/experiments/${course.id}?tab=media`)}
-                  className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
-                    theme === "dark"
-                      ? "bg-cyan-500 text-white hover:bg-cyan-400"
-                      : "bg-cyan-600 text-white hover:bg-cyan-700"
-                  }`}
-                >
-                  <Upload className="h-4 w-4" />
-                  上传资源
-                </button>
-              </div>
-            </div>
-          )}
-
           <Suspense fallback={<ViewerLoader theme={theme} />}>
             <CourseViewer course={courseData} theme={theme} />
           </Suspense>
