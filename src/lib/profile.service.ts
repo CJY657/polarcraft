@@ -170,8 +170,6 @@ export interface PublicProjectDetail extends PublicProject {
   is_public: boolean;
   allow_guest_comments: boolean;
   enable_task_board: boolean;
-  default_canvas_id: string | null;
-  canvas_count: number;
 }
 
 // =====================================================

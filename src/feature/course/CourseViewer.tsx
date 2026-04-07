@@ -1244,6 +1244,23 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     }
   };
 
+  // 处理讨论区资源点击 - 跳转到对应资源
+  const handleDiscussionResourceClick = (resourceId: string) => {
+    const media = mediaList.find((m) => m.id === resourceId);
+    if (media) {
+      handleMediaSelect(media, {
+        autoplay: media.type === "video",
+        restart: false,
+        syncDeck: true,
+      });
+      // 滚动到预览区域
+      const previewSection = document.getElementById("preview-surface");
+      if (previewSection) {
+        previewSection.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  };
+
   // 切换下方预览区全屏
   const toggleFullscreen = async () => {
     const previewSurface = previewSurfaceRef.current;
@@ -1384,7 +1401,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               alt={getMediaTitle(media)}
               loading="lazy"
               decoding="async"
-              className="block h-full w-full object-contain"
+              className="block h-full w-full object-cover"
             />
           );
 
@@ -1429,6 +1446,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
     return (
       <div
         ref={previewSurfaceRef}
+        id="preview-surface"
         className={`h-full w-full overflow-hidden ${isFullscreen ? "bg-black" : "rounded-xl"}`}
       >
         {renderMediaBody()}
@@ -1932,6 +1950,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                     accentColor={course.color}
                     questionResource={discussionQuestionResource}
                     questionSignal={discussionQuestionSignal}
+                    onResourceClick={handleDiscussionResourceClick}
                   />
                 </div>
               </div>
@@ -2066,6 +2085,7 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               accentColor={course.color}
               questionResource={discussionQuestionResource}
               questionSignal={discussionQuestionSignal}
+              onResourceClick={handleDiscussionResourceClick}
             />
           </div>
         </div>

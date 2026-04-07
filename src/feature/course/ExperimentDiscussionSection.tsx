@@ -32,6 +32,7 @@ interface ExperimentDiscussionSectionProps {
   accentColor?: string;
   questionResource?: DiscussionResourceQuestion | null;
   questionSignal?: number;
+  onResourceClick?: (resourceId: string) => void;
 }
 
 interface DiscussionTreeComment extends CourseDiscussionComment {
@@ -181,6 +182,13 @@ function buildImageSelectionMessage(
   return messages.length > 0 ? messages.join(isZh ? "；" : "; ") : null;
 }
 
+// 将 File 数组转换为类似 FileList 的结构供 buildDraftImages 使用
+function createFileListFromArray(files: File[]): FileList {
+  const dataTransfer = new DataTransfer();
+  files.forEach((file) => dataTransfer.items.add(file));
+  return dataTransfer.files;
+}
+
 function DraftImagePreviewList({
   images,
   onRemove,
@@ -294,6 +302,7 @@ export function ExperimentDiscussionSection({
   accentColor = "#C9A227",
   questionResource = null,
   questionSignal = 0,
+  onResourceClick,
 }: ExperimentDiscussionSectionProps) {
   const { i18n } = useTranslation();
   const { user } = useAuth();
@@ -322,6 +331,10 @@ export function ExperimentDiscussionSection({
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
   const [lightboxZoomed, setLightboxZoomed] = useState(false);
+
+  // 拖拽状态
+  const [isDraggingNewComment, setIsDraggingNewComment] = useState(false);
+  const [isDraggingReply, setIsDraggingReply] = useState<Record<string, boolean>>({});
 
   const newCommentImagesRef = useRef<DraftImage[]>([]);
   const replyImagesRef = useRef<Record<string, DraftImage[]>>({});
@@ -513,6 +526,126 @@ export function ExperimentDiscussionSection({
     });
   }
 
+  // 处理拖拽图片 - 新评论
+  function handleNewCommentDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingNewComment(false);
+
+    const files = event.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      files,
+      MAX_COMMENT_IMAGES - newCommentImages.length,
+    );
+
+    if (acceptedImages.length > 0) {
+      setNewCommentImages((current) => [...current, ...acceptedImages]);
+    }
+
+    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount, isZh);
+    setSubmitError(nextMessage);
+  }
+
+  // 处理拖拽图片 - 回复
+  function handleReplyDrop(commentId: string, event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingReply((current) => ({ ...current, [commentId]: false }));
+
+    const files = event.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const currentImages = replyImages[commentId] ?? [];
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      files,
+      MAX_COMMENT_IMAGES - currentImages.length,
+    );
+
+    if (acceptedImages.length > 0) {
+      setReplyImages((current) => ({
+        ...current,
+        [commentId]: [...(current[commentId] ?? []), ...acceptedImages],
+      }));
+    }
+
+    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount, isZh);
+    setReplyError(nextMessage);
+  }
+
+  // 处理粘贴图片 - 新评论
+  function handleNewCommentPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length === 0) return;
+
+    // 阻止默认粘贴行为（避免图片数据被粘贴为文本）
+    event.preventDefault();
+
+    const fileList = createFileListFromArray(imageFiles);
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      fileList,
+      MAX_COMMENT_IMAGES - newCommentImages.length,
+    );
+
+    if (acceptedImages.length > 0) {
+      setNewCommentImages((current) => [...current, ...acceptedImages]);
+    }
+
+    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount, isZh);
+    setSubmitError(nextMessage);
+  }
+
+  // 处理粘贴图片 - 回复
+  function handleReplyPaste(commentId: string, event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length === 0) return;
+
+    // 阻止默认粘贴行为
+    event.preventDefault();
+
+    const currentImages = replyImages[commentId] ?? [];
+    const fileList = createFileListFromArray(imageFiles);
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      fileList,
+      MAX_COMMENT_IMAGES - currentImages.length,
+    );
+
+    if (acceptedImages.length > 0) {
+      setReplyImages((current) => ({
+        ...current,
+        [commentId]: [...(current[commentId] ?? []), ...acceptedImages],
+      }));
+    }
+
+    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount, isZh);
+    setReplyError(nextMessage);
+  }
+
   async function handleSubmitComment() {
     if (!canParticipate) {
       openDialog("login");
@@ -687,16 +820,26 @@ export function ExperimentDiscussionSection({
                 </span>
               )}
               {resourceLabel && !comment.isDeleted && (
-                <span
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (comment.resourceId && onResourceClick) {
+                      onResourceClick(comment.resourceId);
+                    }
+                  }}
                   className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-opacity",
+                    onResourceClick && comment.resourceId
+                      ? "cursor-pointer hover:opacity-80"
+                      : "cursor-default",
                     theme === "dark"
                       ? "bg-cyan-500/15 text-cyan-300"
                       : "bg-cyan-50 text-cyan-700",
                   )}
+                  disabled={!onResourceClick || !comment.resourceId}
                 >
                   {isZh ? "资源：" : "Resource:"} {resourceLabel}
-                </span>
+                </button>
               )}
             </div>
 
@@ -810,22 +953,65 @@ export function ExperimentDiscussionSection({
                     : "border-slate-200 bg-slate-50/80",
                 )}
               >
-                <textarea
-                  value={replyDraft}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setReplyDrafts((current) => ({ ...current, [comment.id]: value }));
-                  }}
-                  rows={2}
-                  maxLength={MAX_COMMENT_LENGTH}
-                  placeholder={isZh ? "补充你的看法、建议或追问" : "Add your follow-up here"}
+                {/* 可拖拽区域包裹回复输入框 */}
+                <div
                   className={cn(
-                    "w-full resize-y rounded-[0.9rem] border px-3 py-2 text-sm outline-none transition",
-                    theme === "dark"
-                      ? "border-slate-700 bg-slate-950/80 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
-                      : "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-slate-400",
+                    "relative rounded-[0.9rem] transition",
+                    isDraggingReply[comment.id] && (theme === "dark" 
+                      ? "ring-2 ring-cyan-400/50 ring-offset-2 ring-offset-slate-900" 
+                      : "ring-2 ring-cyan-400/50 ring-offset-2 ring-offset-white"),
                   )}
-                />
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDraggingReply((current) => ({ ...current, [comment.id]: true }));
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setIsDraggingReply((current) => ({ ...current, [comment.id]: false }));
+                    }
+                  }}
+                  onDrop={(e) => handleReplyDrop(comment.id, e)}
+                >
+                  <textarea
+                    value={replyDraft}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setReplyDrafts((current) => ({ ...current, [comment.id]: value }));
+                    }}
+                    onPaste={(e) => handleReplyPaste(comment.id, e)}
+                    rows={2}
+                    maxLength={MAX_COMMENT_LENGTH}
+                    placeholder={isZh ? "补充你的看法、建议或追问（支持拖拽或粘贴图片）" : "Add your follow-up (drag or paste images)"}
+                    className={cn(
+                      "w-full resize-y rounded-[0.9rem] border px-3 py-2 text-sm outline-none transition",
+                      theme === "dark"
+                        ? "border-slate-700 bg-slate-950/80 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
+                        : "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-slate-400",
+                    )}
+                  />
+                  {isDraggingReply[comment.id] && (
+                    <div
+                      className={cn(
+                        "absolute inset-0 flex items-center justify-center rounded-[0.9rem] pointer-events-none",
+                        theme === "dark" ? "bg-cyan-500/10" : "bg-cyan-50/80",
+                      )}
+                    >
+                      <span className={cn(
+                        "text-sm font-medium",
+                        theme === "dark" ? "text-cyan-300" : "text-cyan-700",
+                      )}>
+                        {isZh ? "松开鼠标上传图片" : "Drop to upload images"}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 <input
                   ref={(node) => {
@@ -1058,29 +1244,73 @@ export function ExperimentDiscussionSection({
                 </div>
               )}
 
-              <textarea
-                value={newComment}
-                onChange={(event) => setNewComment(event.target.value)}
-                rows={3}
-                maxLength={MAX_COMMENT_LENGTH}
-                disabled={!canParticipate || isSubmitting}
-                placeholder={
-                  canParticipate
-                    ? isZh
-                      ? "例如：这个资源里的干涉纹路为什么会随角度变化？"
-                      : "For example: why do the interference patterns change with angle in this resource?"
-                    : isZh
-                      ? "登录后即可参与实验讨论"
-                      : "Log in to participate in the discussion"
-                }
+              {/* 可拖拽区域包裹输入框 */}
+              <div
                 className={cn(
-                  "mt-4 w-full resize-y rounded-[18px] border px-4 py-3 text-sm outline-none transition",
-                  theme === "dark"
-                    ? "border-slate-700 bg-slate-950/70 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
-                    : "border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:border-slate-400",
-                  !canParticipate && "cursor-not-allowed opacity-75",
+                  "relative mt-4 rounded-[18px] transition",
+                  isDraggingNewComment && (theme === "dark" 
+                    ? "ring-2 ring-cyan-400/50 ring-offset-2 ring-offset-slate-900" 
+                    : "ring-2 ring-cyan-400/50 ring-offset-2 ring-offset-white"),
                 )}
-              />
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingNewComment(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // 只有当离开整个区域时才取消
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setIsDraggingNewComment(false);
+                  }
+                }}
+                onDrop={handleNewCommentDrop}
+              >
+                <textarea
+                  value={newComment}
+                  onChange={(event) => setNewComment(event.target.value)}
+                  onPaste={handleNewCommentPaste}
+                  rows={3}
+                  maxLength={MAX_COMMENT_LENGTH}
+                  disabled={!canParticipate || isSubmitting}
+                  placeholder={
+                    canParticipate
+                      ? isZh
+                        ? "例如：这个资源里的干涉纹路为什么会随角度变化？（支持拖拽或粘贴图片）"
+                        : "For example: why do the interference patterns change with angle? (Drag or paste images)"
+                      : isZh
+                        ? "登录后即可参与实验讨论"
+                        : "Log in to participate in the discussion"
+                  }
+                  className={cn(
+                    "w-full resize-y rounded-[18px] border px-4 py-3 text-sm outline-none transition",
+                    theme === "dark"
+                      ? "border-slate-700 bg-slate-950/70 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
+                      : "border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:border-slate-400",
+                    !canParticipate && "cursor-not-allowed opacity-75",
+                  )}
+                />
+                {isDraggingNewComment && (
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex items-center justify-center rounded-[18px] pointer-events-none",
+                      theme === "dark" ? "bg-cyan-500/10" : "bg-cyan-50/80",
+                    )}
+                  >
+                    <span className={cn(
+                      "text-sm font-medium",
+                      theme === "dark" ? "text-cyan-300" : "text-cyan-700",
+                    )}>
+                      {isZh ? "松开鼠标上传图片" : "Drop to upload images"}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               <input
                 ref={newCommentFileInputRef}

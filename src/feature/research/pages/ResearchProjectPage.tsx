@@ -2,15 +2,13 @@
  * Research Project Page
  * 研究课题页面
  *
- * Displays a single research project with its canvases and settings
- * 显示单个研究课题及其画布和设置
+ * Displays a single research project with its members and settings
+ * 显示单个研究课题及其成员和设置
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, Navigate, useLocation } from "react-router-dom";
 import {
-  Plus,
-  Grid3x3,
   ArrowLeft,
   Settings,
   Edit3,
@@ -31,7 +29,6 @@ import {
   researchApi,
   type ProjectWithMembers,
   type ProjectMember,
-  type ResearchCanvas,
   type FormerProjectMember,
 } from "@/lib/research.service";
 import {
@@ -69,7 +66,6 @@ export function ResearchProjectPage() {
   const [project, setProject] = useState<ProjectWithMembers | null>(null);
   const [publicProject, setPublicProject] = useState<PublicProjectDetail | null>(null);
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
-  const [canvases, setCanvases] = useState<ResearchCanvas[]>([]);
   const [isLoading, setIsLoading] = useState(!isExampleProject);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,17 +96,15 @@ export function ResearchProjectPage() {
     && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole));
   const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
   const loadAuthenticatedProjectData = useCallback(async (targetProjectId: string) => {
-    const [projectData, settingsData, canvasesData, applicationsData] = await Promise.all([
+    const [projectData, settingsData, applicationsData] = await Promise.all([
       researchApi.getProject(targetProjectId),
       profileApi.getProjectSettings(targetProjectId).catch(() => null),
-      researchApi.getProjectCanvases(targetProjectId).catch(() => []),
       profileApi.getProjectApplications(targetProjectId).catch(() => [] as ProjectApplication[]),
     ]);
 
     setProject(projectData);
     setPublicProject(null);
     setSettings(settingsData);
-    setCanvases(canvasesData);
     setPendingApplicationCount(applicationsData.filter((application) => application.status === "pending").length);
   }, []);
 
@@ -151,7 +145,6 @@ export function ResearchProjectPage() {
         setProject(null);
         setPublicProject(null);
         setSettings(null);
-        setCanvases([]);
         setPendingApplicationCount(0);
 
         if (!isAuthenticated) {
@@ -313,12 +306,10 @@ export function ResearchProjectPage() {
         is_public: true,
         thumbnail: exampleProject?.coverImage || null,
         member_count: 1,
-        canvas_count: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         allow_guest_comments: false,
         enable_task_board: false,
-        default_canvas_id: null,
         members: [],
       }
     : publicProject || project!;
@@ -344,24 +335,8 @@ export function ResearchProjectPage() {
   const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
 
   const statusBadge = getStatusBadge(displayProject.status);
-  const primaryCanvasHref = `/lab/projects/${projectId}/canvases/${canvases[0]?.id || "main"}`;
-  const primaryCanvasState = isExampleProject
-    ? { exampleProjectId: exampleId }
-    : { readOnly: isReadOnlyMode };
   const canManageProject = !isExampleProject && isOwner && !isReadOnlyMode;
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && isMember);
-  const canEnterCanvas = isExampleProject || (!!currentUserRole && !!canvases[0]?.id);
-
-  const handleCanvasCtaClick = () => {
-    if (!isAuthenticated) {
-      openDialog("login");
-      return;
-    }
-
-    if (isReadOnlyMode && !hasPendingApplication) {
-      setIsApplicationFormOpen(true);
-    }
-  };
 
   const handleApplyAction = () => {
     if (isPublicGuestMode) {
@@ -426,8 +401,8 @@ export function ResearchProjectPage() {
                 </p>
                 <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
                   {isPublicGuestMode
-                    ? "未登录时可以先看课题信息和成员，想进入画布或申请加入时再登录。"
-                    : "如果想编辑画布或参与协作，请先提交加入申请。"}
+                    ? "未登录时可以先看课题信息和成员，想申请加入时再登录。"
+                    : "如果想参与讨论或协作，请先提交加入申请。"}
                 </p>
               </div>
             </div>
@@ -475,34 +450,15 @@ export function ResearchProjectPage() {
               )}
 
               <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
-                {displayProject.description_zh || "这个课题还没有补充详细摘要，建议先进入画布查看当前研究结构。"}
+                {displayProject.description_zh || "这个课题还没有补充详细摘要。"}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                {canEnterCanvas ? (
-                  <Link
-                    to={primaryCanvasHref}
-                    state={primaryCanvasState}
-                    className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    {isExampleProject ? "打开示例画布" : "进入主画布"}
-                  </Link>
-                ) : (
-                  <button
-                    onClick={handleCanvasCtaClick}
-                    className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    {isAuthenticated ? "申请通过后进入画布" : "登录后进入画布"}
-                  </button>
-                )}
-
                 {isReadOnlyMode ? (
                   <button
                     onClick={handleApplyAction}
                     disabled={applyButtonDisabled}
-                    className="glass-button inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    className="glass-button glass-button-primary inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applyButtonLabel}
                   </button>
@@ -535,14 +491,10 @@ export function ResearchProjectPage() {
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.member_count}</p>
               </div>
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">画布</p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.canvas_count}</p>
-              </div>
-              <div className="research-metric rounded-[1.45rem] p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">创建时间</p>
                 <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
               </div>
-              <div className="research-metric rounded-[1.45rem] p-4">
+              <div className="research-metric rounded-[1.45rem] p-4 sm:col-span-2">
                 <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
                 <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
                   {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
@@ -565,7 +517,7 @@ export function ResearchProjectPage() {
                   研究团队
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  角色与权限先说明白，进入画布后协作会更顺。
+                  角色与权限说明白，协作会更顺。
                 </p>
               </div>
 
@@ -713,156 +665,6 @@ export function ResearchProjectPage() {
             canParticipate={canParticipateInDiscussion}
           />
         )}
-
-        <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="research-kicker mb-2">Canvas</div>
-              <h2
-                className="text-2xl font-semibold text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                研究画布
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
-                进入画布前，你已经能在上面看清这个课题的状态、人员和协作方式。
-              </p>
-            </div>
-            {!isExampleProject && isOwner && !isReadOnlyMode && (
-              <button className="glass-button inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium sm:self-auto">
-                <Plus className="w-4 h-4 text-[var(--paper-link)]" />
-                新建画布
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {canEnterCanvas ? (
-              <Link
-                to={primaryCanvasHref}
-                state={primaryCanvasState}
-                className="research-panel-soft group rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
-                    <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
-                  </div>
-                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
-                    活跃入口
-                  </span>
-                </div>
-
-                <h3
-                  className="text-lg font-semibold text-[var(--paper-foreground)]"
-                  style={{ fontFamily: "var(--font-ui-display)" }}
-                >
-                  主画布
-                </h3>
-                <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  {displayProject.description_zh || "这里承载课题的问题节点、实验设计、文献引用与结论关系。"}
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="research-chip inline-flex rounded-full px-3 py-1">
-                    {isExampleProject
-                      ? `${exampleProject?.nodes.length || 0} 个节点`
-                      : `${displayProject.canvas_count} 张画布`}
-                  </span>
-                  <span className="research-chip inline-flex rounded-full px-3 py-1">
-                    {isExampleProject
-                      ? `${exampleProject?.edges.length || 0} 条关系`
-                      : isReadOnlyMode
-                        ? "只读查看"
-                        : "可编辑"}
-                  </span>
-                </div>
-
-                <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">进入画布开始工作</div>
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={handleCanvasCtaClick}
-                className="research-panel-soft group text-left rounded-[1.65rem] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="research-chip flex h-12 w-12 items-center justify-center rounded-[1.2rem]">
-                    <Grid3x3 className="h-6 w-6 text-[var(--paper-link)]" />
-                  </div>
-                  <span className="research-chip inline-flex rounded-full px-3 py-1 text-xs font-semibold">
-                    需登录
-                  </span>
-                </div>
-
-                <h3
-                  className="text-lg font-semibold text-[var(--paper-foreground)]"
-                  style={{ fontFamily: "var(--font-ui-display)" }}
-                >
-                  主画布
-                </h3>
-                <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  公开详情可直接浏览，进入主画布前需要先登录并加入课题。
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                  <span className="research-chip inline-flex rounded-full px-3 py-1">
-                    {displayProject.canvas_count} 张画布
-                  </span>
-                  <span className="research-chip inline-flex rounded-full px-3 py-1">登录后进入</span>
-                </div>
-
-                <div className="mt-5 text-sm font-medium text-[var(--paper-link)]">登录后继续</div>
-              </button>
-            )}
-          </div>
-
-          {/* Getting Started Guide - 只读模式隐藏 */}
-          {!isReadOnlyMode && (
-            <div className="research-panel-soft mt-8 rounded-[1.6rem] border border-dashed p-5 sm:p-6">
-              <h3
-                className="text-xl font-semibold text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                开始使用
-              </h3>
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-sm font-semibold text-amber-500">
-                  1
-                </div>
-                <div>
-                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">先搭起主画布</h4>
-                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
-                      把当前研究问题作为主入口，避免一开始就把信息铺得过散。
-                    </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-sm font-semibold text-blue-500">
-                  2
-                </div>
-                <div>
-                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">再补问题与证据</h4>
-                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
-                      把问题、实验、文献和结论拆成节点，后续协作时会更容易分工。
-                    </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 text-sm font-semibold text-green-500">
-                  3
-                </div>
-                <div>
-                    <h4 className="mb-1 font-medium text-[var(--paper-foreground)]">最后连接研究逻辑</h4>
-                    <p className="text-sm leading-6 text-[var(--glass-text-muted)]">
-                      用关系边说明“为什么有关联”，这样画布才是研究结构，而不是便签堆积。
-                    </p>
-                </div>
-              </div>
-            </div>
-            </div>
-          )}
-        </section>
 
       </main>
 
