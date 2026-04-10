@@ -11,6 +11,7 @@ import {
   useNavigationType,
 } from "react-router-dom"; // React Router 组件
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"; // 错误边界组件
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
 import { useAuth } from "@/contexts/AuthContext";
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
@@ -227,6 +228,21 @@ export function shouldHideGlobalFooter(pathname: string) {
   );
 }
 
+export function shouldRequireStudentAuth(pathname: string) {
+  return Boolean(
+    pathname === "/experiments" ||
+      matchPath("/experiments/:experimentId", pathname) ||
+      pathname === "/units" ||
+      matchPath("/units/:unitId", pathname) ||
+      matchPath("/units/:unitId/courses/:courseId", pathname) ||
+      pathname === "/feedback" ||
+      pathname === "/profile" ||
+      pathname === "/inbox" ||
+      pathname === "/lab" ||
+      pathname.startsWith("/lab/")
+  );
+}
+
 function AppRouterContent() {
   const location = useLocation();
   const shouldHideFooter = shouldHideGlobalFooter(location.pathname);
@@ -248,15 +264,68 @@ function AppRouterContent() {
 
           {/* 6 Core Modules - 六大核心模块（一级页面）首页六个模块直接链接到这些页面 */}
 
-          {/* Module 1: 实验内容 */}
-          <Route
-            path="/experiments"
-            element={<CoursesPage />}
-          />
-          <Route
-            path="/experiments/:experimentId"
-            element={<CourseViewerPage />}
-          />
+          <Route element={<ProtectedRoute />}>
+            {/* Module 1: 实验内容 */}
+            <Route
+              path="/experiments"
+              element={<CoursesPage />}
+            />
+            <Route
+              path="/experiments/:experimentId"
+              element={<CourseViewerPage />}
+            />
+
+            {/* Module 1b: 实验课单元 */}
+            <Route
+              path="/units"
+              element={<UnitsPage />}
+            />
+            <Route
+              path="/units/:unitId/courses/:courseId"
+              element={<LegacyUnitCourseRouteRedirect />}
+            />
+            <Route
+              path="/units/:unitId"
+              element={<UnitRedirectPage />}
+            />
+
+            {/* Module 6: 虚拟课题 */}
+            {/* Research System / 虚拟课题组系统 */}
+            <Route
+              path="/lab"
+              element={<Navigate to="/lab/explore" replace />}
+            />
+            <Route
+              path="/lab/projects"
+              element={<MyProjectsPage />}
+            />
+            <Route
+              path="/lab/explore"
+              element={<PublicProjectExplorePage />}
+            />
+            <Route
+              path="/lab/projects/:projectId"
+              element={<ResearchProjectPage />}
+            />
+
+            <Route
+              path="/feedback"
+              element={<FeedbackPage />}
+            />
+
+            {/* Profile - 个人中心 */}
+            <Route
+              path="/profile"
+              element={<ProfilePage />}
+            />
+
+            {/* Inbox - 收件箱 */}
+            <Route
+              path="/inbox"
+              element={<InboxPage />}
+            />
+          </Route>
+
           <Route
             path="/chronicles"
             element={<TimelinePage />}
@@ -272,20 +341,6 @@ function AppRouterContent() {
           <Route
             path="/courses/:courseId"
             element={<LegacyCourseViewerRedirect />}
-          />
-
-          {/* Module 1b: 实验课单元 */}
-          <Route
-            path="/units"
-            element={<UnitsPage />}
-          />
-          <Route
-            path="/units/:unitId/courses/:courseId"
-            element={<LegacyUnitCourseRouteRedirect />}
-          />
-          <Route
-            path="/units/:unitId"
-            element={<UnitRedirectPage />}
           />
 
           {/* Module 2: 光学器件 */}
@@ -332,44 +387,9 @@ function AppRouterContent() {
             element={<WorkDetailPage />}
           />
 
-          {/* Module 6: 虚拟课题 */}
-          {/* Research System / 虚拟课题组系统 */}
-          <Route
-            path="/lab"
-            element={<Navigate to="/lab/explore" replace />}
-          />
-          <Route
-            path="/lab/projects"
-            element={<MyProjectsPage />}
-          />
-          <Route
-            path="/lab/explore"
-            element={<PublicProjectExplorePage />}
-          />
-          <Route
-            path="/lab/projects/:projectId"
-            element={<ResearchProjectPage />}
-          />
-
           <Route
             path="/about"
             element={<AboutPage />}
-          />
-          <Route
-            path="/feedback"
-            element={<FeedbackPage />}
-          />
-
-          {/* Profile - 个人中心 */}
-          <Route
-            path="/profile"
-            element={<ProfilePage />}
-          />
-
-          {/* Inbox - 收件箱 */}
-          <Route
-            path="/inbox"
-            element={<InboxPage />}
           />
 
           {/* Admin - 管理后台 */}

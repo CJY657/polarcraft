@@ -52,7 +52,7 @@ const formVariants = {
 function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   const { t } = useTranslation();
   const { login } = useAuth();
-  const { closeDialog } = useAuthDialogStore();
+  const { closeDialog, consumeReturnTo } = useAuthDialogStore();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
@@ -68,7 +68,11 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
 
     try {
       await login(username, password, rememberMe);
+      const returnTo = consumeReturnTo();
       closeDialog();
+      if (returnTo) {
+        navigate(returnTo, { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请检查用户名和密码');
     } finally {
@@ -179,7 +183,8 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
 function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   const { t } = useTranslation();
   const { register } = useAuth();
-  const { closeDialog } = useAuthDialogStore();
+  const { closeDialog, consumeReturnTo } = useAuthDialogStore();
+  const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -208,7 +213,11 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
     try {
       await register(username, password, email || undefined);
+      const returnTo = consumeReturnTo();
       closeDialog();
+      if (returnTo) {
+        navigate(returnTo, { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败，请稍后重试');
     } finally {

@@ -38,7 +38,9 @@ export function AdminRoute({ children }: AdminRouteProps) {
     // Use setTimeout to ensure navigation happens after render
     // 使用 setTimeout 确保导航在渲染后发生
     setTimeout(() => {
-      openDialog('login');
+      openDialog('login', {
+        returnTo: `${location.pathname}${location.search}${location.hash}`,
+      });
     }, 0);
     return <Navigate to="/" state={{ from: location }} replace />;
   }
