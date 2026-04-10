@@ -41,6 +41,7 @@ interface CourseAdminState {
   createMedia: (courseId: string, data: CreateMediaInput) => Promise<CourseMedia>;
   updateMedia: (mediaId: string, data: UpdateMediaInput) => Promise<CourseMedia>;
   deleteMedia: (mediaId: string) => Promise<void>;
+  deleteMediaBatch: (mediaIds: string[]) => Promise<void>;
   reorderMedia: (courseId: string, mediaIds: string[]) => Promise<void>;
 
   // Hyperlink Actions
@@ -323,6 +324,39 @@ export const useCourseAdminStore = create<CourseAdminState>((set) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '删除媒体资源失败',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  deleteMediaBatch: async (mediaIds: string[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      const deletedIds = new Set(mediaIds);
+      await courseApi.deleteMediaBatch(mediaIds);
+      set((state) => {
+        if (state.currentCourse) {
+          const currentMedia = state.currentCourse.media ?? [];
+          const currentHyperlinks = state.currentCourse.hyperlinks ?? [];
+          return {
+            currentCourse: {
+              ...state.currentCourse,
+              media: currentMedia.filter((m) => !deletedIds.has(m.id)),
+              hyperlinks: currentHyperlinks.filter(
+                (h) =>
+                  !deletedIds.has(h.targetMediaId) &&
+                  !(h.sourceMediaId && deletedIds.has(h.sourceMediaId))
+              ),
+            },
+            isLoading: false,
+          };
+        }
+        return { isLoading: false };
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : '批量删除媒体资源失败',
         isLoading: false,
       });
       throw error;

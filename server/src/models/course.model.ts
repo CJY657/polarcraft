@@ -456,6 +456,22 @@ export class CourseModel {
   }
 
   /**
+   * Get media by IDs
+   * 批量获取媒体资源
+   */
+  static async getMediaByIds(mediaIds: string[]): Promise<MediaRow[]> {
+    if (mediaIds.length === 0) {
+      return [];
+    }
+
+    return normalizeDocuments<MediaRow>(
+      await courseMediaCollection()
+        .find({ id: { $in: [...new Set(mediaIds)] } })
+        .toArray()
+    );
+  }
+
+  /**
    * Create media
    * 创建媒体资源
    */
@@ -530,6 +546,32 @@ export class CourseModel {
 
     logger.info(`Media deleted: ${mediaId}`);
     return true;
+  }
+
+  /**
+   * Delete media in batch
+   * 批量删除媒体资源
+   */
+  static async deleteMediaBatch(mediaIds: string[]): Promise<number> {
+    const normalizedIds = [...new Set(mediaIds)];
+    if (normalizedIds.length === 0) {
+      return 0;
+    }
+
+    const result = await courseMediaCollection().deleteMany({ id: { $in: normalizedIds } });
+    if (result.deletedCount === 0) {
+      return 0;
+    }
+
+    await courseHyperlinksCollection().deleteMany({
+      $or: [
+        { target_media_id: { $in: normalizedIds } },
+        { source_media_id: { $in: normalizedIds } },
+      ],
+    });
+
+    logger.info(`Media deleted in batch: ${result.deletedCount}`);
+    return result.deletedCount;
   }
 
   /**

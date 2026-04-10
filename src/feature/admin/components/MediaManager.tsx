@@ -6,7 +6,7 @@
  * 管理课程的媒体资源
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import { CourseMedia, MediaType } from '@/lib/course.service';
 import { Plus, Pencil, Trash2, FileText, Image, Video, GripVertical, Upload } from 'lucide-react';
@@ -19,24 +19,61 @@ interface MediaManagerProps {
 }
 
 export function MediaManager({ courseId, unitId }: MediaManagerProps) {
-  const { currentCourse, deleteMedia, reorderMedia, isLoading, error } =
+  const { currentCourse, deleteMedia, deleteMediaBatch, reorderMedia, isLoading, error } =
     useCourseAdminStore();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
   const [editingMedia, setEditingMedia] = useState<CourseMedia | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmIds, setDeleteConfirmIds] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
 
   const media = currentCourse?.media || [];
+  const selectedIdSet = useMemo(() => new Set(selectedMediaIds), [selectedMediaIds]);
+  const allSelected = media.length > 0 && selectedMediaIds.length === media.length;
+  const deleteTargetCount = deleteConfirmIds.length;
+  const deleteTargetLabel = deleteTargetCount > 1 ? `${deleteTargetCount} 个媒体资源` : '此媒体资源';
+
+  useEffect(() => {
+    const validIds = new Set(media.map((item) => item.id));
+    setSelectedMediaIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [media]);
 
   const handleDelete = async (mediaId: string) => {
     try {
       await deleteMedia(mediaId);
-      setDeleteConfirmId(null);
+      setDeleteConfirmIds([]);
     } catch (err) {
       console.error('Failed to delete media:', err);
     }
+  };
+
+  const handleBatchDelete = async (mediaIds: string[]) => {
+    try {
+      if (mediaIds.length === 1) {
+        await handleDelete(mediaIds[0]);
+        return;
+      }
+
+      await deleteMediaBatch(mediaIds);
+      setSelectedMediaIds((prev) => prev.filter((id) => !mediaIds.includes(id)));
+      setDeleteConfirmIds([]);
+    } catch (err) {
+      console.error('Failed to delete media in batch:', err);
+    }
+  };
+
+  const toggleMediaSelection = (mediaId: string) => {
+    setSelectedMediaIds((prev) =>
+      prev.includes(mediaId)
+        ? prev.filter((id) => id !== mediaId)
+        : [...prev, mediaId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedMediaIds(allSelected ? [] : media.map((item) => item.id));
   };
 
   const handleDragStart = (index: number) => {
@@ -107,6 +144,14 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
           管理此实验的媒体资源。拖拽可重新排序。
         </p>
         <div className="flex items-center gap-2">
+          {media.length > 0 && (
+            <button
+              onClick={toggleSelectAll}
+              className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {allSelected ? '取消全选' : '全选'}
+            </button>
+          )}
           <button
             onClick={() => setIsBatchUploadOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -123,6 +168,30 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
           </button>
         </div>
       </div>
+
+      {selectedMediaIds.length > 0 && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-3">
+          <p className="text-sm text-cyan-100">
+            已选中 {selectedMediaIds.length} 个媒体资源
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedMediaIds([])}
+              className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
+            >
+              清空选择
+            </button>
+            <button
+              onClick={() => setDeleteConfirmIds(selectedMediaIds)}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              批量删除
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -145,6 +214,17 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
             }`}
           >
             <div className="flex items-center gap-4">
+              <label className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  aria-label={`选择媒体 ${item.title['zh-CN'] || item.title['en-US'] || item.id}`}
+                  checked={selectedIdSet.has(item.id)}
+                  onChange={() => toggleMediaSelection(item.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                />
+              </label>
+
               {/* Drag Handle */}
               <div className="text-gray-500">
                 <GripVertical className="w-5 h-5" />
@@ -178,8 +258,9 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setDeleteConfirmId(item.id)}
+                  onClick={() => setDeleteConfirmIds([item.id])}
                   className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                  aria-label={`删除媒体 ${item.title['zh-CN'] || item.title['en-US'] || item.id}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -230,22 +311,22 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
       )}
 
       {/* Delete Confirmation */}
-      {deleteConfirmId && (
+      {deleteConfirmIds.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-700">
             <h3 className="text-xl font-semibold text-white mb-2">删除媒体？</h3>
             <p className="text-gray-400 mb-6">
-              这将同时删除指向此媒体的所有超链接。此操作无法撤销。
+              这将删除 {deleteTargetLabel}，并同时删除所有指向这些媒体的超链接。此操作无法撤销。
             </p>
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setDeleteConfirmId(null)}
+                onClick={() => setDeleteConfirmIds([])}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors"
               >
                 取消
               </button>
               <button
-                onClick={() => handleDelete(deleteConfirmId)}
+                onClick={() => handleBatchDelete(deleteConfirmIds)}
                 disabled={isLoading}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-500/50 text-white rounded-lg text-sm transition-colors"
               >

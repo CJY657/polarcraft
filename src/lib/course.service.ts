@@ -162,6 +162,10 @@ export interface CourseDiscussionImageUploadResult {
   unitId: string;
 }
 
+export interface DeleteMediaBatchResult {
+  deletedCount: number;
+}
+
 // =====================================================
 // Course API Service / 课程 API 服务
 // =====================================================
@@ -478,6 +482,20 @@ export const courseApi = {
     if (!response.success) {
       throw new Error(response.error?.message || "Failed to delete media");
     }
+  },
+
+  /**
+   * Batch delete media
+   * 批量删除媒体资源
+   */
+  async deleteMediaBatch(mediaIds: string[]): Promise<DeleteMediaBatchResult> {
+    const response = await api.delete<DeleteMediaBatchResult>("/api/courses/media", {
+      mediaIds,
+    });
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || "Failed to batch delete media");
   },
 
   /**

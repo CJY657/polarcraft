@@ -260,6 +260,13 @@ router.post("/:id/media", requireAdmin, CourseController.createMedia);
 router.put("/:id/media/reorder", requireAdmin, CourseController.reorderMedia);
 
 /**
+ * @route   DELETE /api/courses/media
+ * @desc    Batch delete media
+ * @access  Private (Admin)
+ */
+router.delete("/media", requireAdmin, CourseController.deleteMediaBatch);
+
+/**
  * @route   GET /api/courses/media/:mediaId
  * @desc    Get media by ID
  * @access  Private (Admin)

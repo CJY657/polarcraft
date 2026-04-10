@@ -563,6 +563,41 @@ export class CourseController {
   });
 
   /**
+   * Batch delete media
+   * 批量删除媒体资源
+   */
+  static deleteMediaBatch = asyncHandler(async (req: Request, res: Response) => {
+    const mediaIds = Array.isArray(req.body?.mediaIds)
+      ? req.body.mediaIds.filter(
+          (mediaId: unknown): mediaId is string =>
+            typeof mediaId === "string" && mediaId.trim().length > 0
+        )
+      : [];
+
+    if (mediaIds.length === 0) {
+      return res.error("请提供要删除的媒体资源", "VALIDATION_ERROR", 400);
+    }
+
+    const media = await CourseModel.getMediaByIds(mediaIds);
+    if (media.length === 0) {
+      return res.error("媒体资源不存在", "NOT_FOUND", 404);
+    }
+
+    const deletedCount = await CourseModel.deleteMediaBatch(media.map((item) => item.id));
+    await ManagedUploadCleanupService.cleanupUrls(
+      media.flatMap((item) => [item.url, item.preview_pdf_url]),
+      {
+        reason: `course.media.batch-delete:${media.map((item) => item.id).join(",")}`,
+      }
+    );
+
+    logger.info(
+      `Media deleted in batch by ${req.user!.username}: ${media.map((item) => item.id).join(",")}`
+    );
+    res.success({ deletedCount }, `已删除 ${deletedCount} 个媒体资源`);
+  });
+
+  /**
    * Reorder media
    * 重新排序媒体
    */

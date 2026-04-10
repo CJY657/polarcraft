@@ -253,7 +253,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  delete: <T = any>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+  delete: <T = any>(endpoint: string, body?: any) =>
+    request<T>(endpoint, {
+      method: 'DELETE',
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    }),
 
   /**
    * Upload a file using FormData
