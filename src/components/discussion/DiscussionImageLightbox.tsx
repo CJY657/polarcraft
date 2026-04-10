@@ -27,6 +27,7 @@ interface Size {
 
 const ZOOM_SCALE = 2.4;
 const DRAG_THRESHOLD = 4;
+const VIEWPORT_MARGIN = 12;
 
 function fitImageWithinBounds(image: Size, bounds: Size): Size {
   if (image.width <= 0 || image.height <= 0 || bounds.width <= 0 || bounds.height <= 0) {
@@ -121,8 +122,8 @@ export function DiscussionImageLightbox({
     }
 
     const fitted = fitImageWithinBounds(naturalSize, {
-      width: Math.max(viewportSize.width - 48, 1),
-      height: Math.max(viewportSize.height - 48, 1),
+      width: Math.max(viewportSize.width - VIEWPORT_MARGIN, 1),
+      height: Math.max(viewportSize.height - VIEWPORT_MARGIN, 1),
     });
 
     return {
@@ -251,11 +252,11 @@ export function DiscussionImageLightbox({
       isOpen={Boolean(image)}
       onClose={handleClose}
       showCloseButton={false}
-      className="h-[96vh] max-w-[96vw] overflow-hidden border border-slate-800 bg-slate-950/96"
+      className="h-[99vh] max-w-[99vw] overflow-hidden rounded-none border-0 bg-transparent shadow-none"
     >
       {image && (
-        <div className="relative flex h-full flex-col">
-          <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
+        <div className="relative flex h-full flex-col overflow-hidden bg-black">
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
             <button
               type="button"
               onClick={toggleZoom}
@@ -274,7 +275,7 @@ export function DiscussionImageLightbox({
           <button
             type="button"
             onClick={handleClose}
-            className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/78"
+            className="absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/78"
             aria-label={labels.close}
           >
             <X className="h-5 w-5" />
@@ -287,13 +288,13 @@ export function DiscussionImageLightbox({
             onPointerUp={finishPointerDrag}
             onPointerCancel={finishPointerDrag}
             className={cn(
-              "h-full overflow-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.75),rgba(2,6,23,0.96))]",
+              "h-full overflow-auto bg-black",
               zoomed ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-in"
             )}
           >
             <div
               className={cn(
-                "flex min-h-full min-w-full p-4 sm:p-6",
+                "flex min-h-full min-w-full p-1 sm:p-2",
                 zoomed ? "items-start justify-start" : "items-center justify-center"
               )}
             >
@@ -324,10 +325,10 @@ export function DiscussionImageLightbox({
                   }}
                   onClick={handleImageClick}
                   className={cn(
-                    "select-none rounded-[1.2rem] shadow-[0_24px_60px_rgba(15,23,42,0.42)] transition-[width,height,max-width,max-height] duration-200",
+                    "select-none transition-[width,height,max-width,max-height] duration-200",
                     zoomed
                       ? "h-full w-full max-h-none max-w-none object-contain"
-                      : "max-h-[calc(96vh-7rem)] w-auto max-w-full object-contain"
+                      : "max-h-[calc(99vh-1.25rem)] w-auto max-w-[calc(99vw-1rem)] object-contain"
                   )}
                 />
               </div>
