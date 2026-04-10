@@ -235,7 +235,7 @@ export function HomePage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {module.quickLinks.map((link) => (
                       <button
-                        key={link.path}
+                        key={`${module.id}:${link.labelKey}:${link.path}`}
                         type="button"
                         onClick={() => navigate(link.path)}
                         className="text-xs font-medium text-[var(--paper-link)] hover:underline"

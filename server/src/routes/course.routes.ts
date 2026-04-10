@@ -199,6 +199,13 @@ router.post("/", requireAdmin, CourseController.createCourse);
 router.put("/:id", requireAdmin, CourseController.updateCourse);
 
 /**
+ * @route   DELETE /api/courses/media
+ * @desc    Batch delete media
+ * @access  Private (Admin)
+ */
+router.delete("/media", requireAdmin, CourseController.deleteMediaBatch);
+
+/**
  * @route   DELETE /api/courses/:id
  * @desc    Delete course
  * @access  Private (Admin)
@@ -258,13 +265,6 @@ router.post("/:id/media", requireAdmin, CourseController.createMedia);
  * @access  Private (Admin)
  */
 router.put("/:id/media/reorder", requireAdmin, CourseController.reorderMedia);
-
-/**
- * @route   DELETE /api/courses/media
- * @desc    Batch delete media
- * @access  Private (Admin)
- */
-router.delete("/media", requireAdmin, CourseController.deleteMediaBatch);
 
 /**
  * @route   GET /api/courses/media/:mediaId
