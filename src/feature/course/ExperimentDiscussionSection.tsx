@@ -9,12 +9,10 @@ import {
   Send,
   Trash2,
   X,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Dialog } from "@/components/ui/dialog";
+import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { courseApi, type CourseDiscussionComment } from "@/lib/course.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
@@ -330,7 +328,6 @@ export function ExperimentDiscussionSection({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
-  const [lightboxZoomed, setLightboxZoomed] = useState(false);
 
   // 拖拽状态
   const [isDraggingNewComment, setIsDraggingNewComment] = useState(false);
@@ -359,10 +356,6 @@ export function ExperimentDiscussionSection({
       Object.values(replyImagesRef.current).forEach((images) => revokeDraftImages(images));
     };
   }, []);
-
-  useEffect(() => {
-    setLightboxZoomed(false);
-  }, [lightboxImage]);
 
   useEffect(() => {
     if (!questionResource) {
@@ -401,7 +394,6 @@ export function ExperimentDiscussionSection({
     setDeleteError(null);
     setExpandedCommentIds({});
     setLightboxImage(null);
-    setLightboxZoomed(false);
     setQuestionTarget(questionResource);
     setNewComment("");
     setSubmitError(null);
@@ -1446,65 +1438,19 @@ export function ExperimentDiscussionSection({
         </div>
       </section>
 
-      <Dialog
-        isOpen={Boolean(lightboxImage)}
-        onClose={() => {
-          setLightboxImage(null);
-          setLightboxZoomed(false);
+      <DiscussionImageLightbox
+        image={lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        labels={{
+          close: isZh ? "关闭大图预览" : "Close image preview",
+          zoomIn: isZh ? "放大" : "Zoom",
+          zoomOut: isZh ? "还原" : "Reset",
+          zoomInAriaLabel: isZh ? "放大图片" : "zoom in image",
+          zoomOutAriaLabel: isZh ? "还原图片" : "zoom out image",
+          hint: isZh ? "点击图片可切换放大/还原" : "Click image to zoom in/out",
+          zoomedHint: isZh ? "拖动查看细节，点击图片可还原" : "Drag to pan and click image to reset",
         }}
-        showCloseButton={false}
-        className="max-w-5xl overflow-hidden border border-slate-800 bg-slate-950/96"
-      >
-        {lightboxImage && (
-          <div className="relative">
-            <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setLightboxZoomed((current) => !current)}
-                className="inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-2 text-xs font-medium text-white transition hover:bg-black/78"
-                aria-label={lightboxZoomed ? "zoom out image" : "zoom in image"}
-              >
-                {lightboxZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
-                {lightboxZoomed ? (isZh ? "还原" : "Reset") : isZh ? "放大" : "Zoom"}
-              </button>
-              <span className="hidden rounded-full bg-black/45 px-3 py-2 text-xs text-white/88 sm:inline">
-                {isZh ? "点击图片可切换放大/还原" : "Click image to zoom in/out"}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setLightboxImage(null);
-                setLightboxZoomed(false);
-              }}
-              className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/78"
-              aria-label="close image preview"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div
-              className={cn(
-                "max-h-[88vh] min-h-[14rem] overflow-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.75),rgba(2,6,23,0.96))] p-4 sm:p-6",
-                lightboxZoomed ? "cursor-zoom-out" : "cursor-zoom-in",
-              )}
-            >
-              <div className="flex min-h-full min-w-full items-center justify-center">
-                <img
-                  src={lightboxImage.url}
-                  alt={lightboxImage.alt}
-                  onClick={() => setLightboxZoomed((current) => !current)}
-                  className={cn(
-                    "rounded-[1.2rem] object-contain shadow-[0_24px_60px_rgba(15,23,42,0.42)] transition-[width,max-width] duration-200 select-none",
-                    lightboxZoomed
-                      ? "w-[160%] max-w-none sm:w-[135%] lg:w-[120%]"
-                      : "max-h-[80vh] w-auto max-w-full",
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </Dialog>
+      />
     </>
   );
 }

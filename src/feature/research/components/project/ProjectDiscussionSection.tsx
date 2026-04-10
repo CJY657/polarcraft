@@ -8,10 +8,8 @@ import {
   Send,
   Trash2,
   X,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide-react';
-import { Dialog } from '@/components/ui/dialog';
+import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import { cn } from '@/utils/classNames';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
 
@@ -150,6 +148,12 @@ function buildImageSelectionMessage(invalidCount: number, overflowCount: number)
   return messages.length > 0 ? messages.join('；') : null;
 }
 
+function createFileListFromArray(files: File[]): FileList {
+  const dataTransfer = new DataTransfer();
+  files.forEach((file) => dataTransfer.items.add(file));
+  return dataTransfer.files;
+}
+
 function getCommentPreviewText(comment: ProjectDiscussionComment): string {
   if (comment.is_deleted) {
     return '这条留言已删除';
@@ -274,7 +278,6 @@ export function ProjectDiscussionSection({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
-  const [lightboxZoomed, setLightboxZoomed] = useState(false);
 
   const newCommentImagesRef = useRef<DraftImage[]>([]);
   const replyImagesRef = useRef<Record<string, DraftImage[]>>({});
@@ -299,10 +302,6 @@ export function ProjectDiscussionSection({
       Object.values(replyImagesRef.current).forEach((images) => revokeDraftImages(images));
     };
   }, []);
-
-  useEffect(() => {
-    setLightboxZoomed(false);
-  }, [lightboxImage]);
 
   async function loadComments() {
     try {
@@ -347,7 +346,6 @@ export function ProjectDiscussionSection({
     setDeleteError(null);
     setExpandedCommentIds({});
     setLightboxImage(null);
-    setLightboxZoomed(false);
     clearNewCommentComposer();
     setReplyImages((current) => {
       Object.values(current).forEach((images) => revokeDraftImages(images));
@@ -416,6 +414,83 @@ export function ProjectDiscussionSection({
     }
 
     event.target.value = '';
+  }
+
+  function handleNewCommentPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = event.clipboardData?.items;
+    if (!items) {
+      return;
+    }
+
+    const imageFiles: File[] = [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const fileList = createFileListFromArray(imageFiles);
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      fileList,
+      MAX_COMMENT_IMAGES - newCommentImages.length
+    );
+
+    if (acceptedImages.length > 0) {
+      setNewCommentImages((current) => [...current, ...acceptedImages]);
+    }
+
+    setSubmitError(buildImageSelectionMessage(invalidCount, overflowCount));
+  }
+
+  function handleReplyPaste(
+    commentId: string,
+    event: React.ClipboardEvent<HTMLTextAreaElement>
+  ) {
+    const items = event.clipboardData?.items;
+    if (!items) {
+      return;
+    }
+
+    const imageFiles: File[] = [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const currentImages = replyImages[commentId] ?? [];
+    const fileList = createFileListFromArray(imageFiles);
+    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+      fileList,
+      MAX_COMMENT_IMAGES - currentImages.length
+    );
+
+    if (acceptedImages.length > 0) {
+      setReplyImages((current) => ({
+        ...current,
+        [commentId]: [...(current[commentId] ?? []), ...acceptedImages],
+      }));
+    }
+
+    setReplyError(buildImageSelectionMessage(invalidCount, overflowCount));
   }
 
   function handleRemoveNewCommentImage(imageId: string) {
@@ -650,9 +725,10 @@ export function ProjectDiscussionSection({
                     const value = event.target.value;
                     setReplyDrafts((current) => ({ ...current, [comment.id]: value }));
                   }}
+                  onPaste={(event) => handleReplyPaste(comment.id, event)}
                   rows={2}
                   maxLength={MAX_COMMENT_LENGTH}
-                  placeholder="补充你的看法、建议或追问"
+                  placeholder="补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）"
                   className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
                 />
 
@@ -678,7 +754,7 @@ export function ProjectDiscussionSection({
                     添加图片
                   </button>
                   <span className="text-xs text-[var(--glass-text-muted)]">
-                    最多 {MAX_COMMENT_IMAGES} 张图片
+                    最多 {MAX_COMMENT_IMAGES} 张图片，支持 Ctrl+V 粘贴
                   </span>
                 </div>
 
@@ -855,10 +931,15 @@ export function ProjectDiscussionSection({
               <textarea
                 value={newComment}
                 onChange={(event) => setNewComment(event.target.value)}
+                onPaste={handleNewCommentPaste}
                 rows={3}
                 maxLength={MAX_COMMENT_LENGTH}
                 disabled={!canParticipate || isSubmitting}
-                placeholder={canParticipate ? '写下你的问题、观察或建议…' : '只有课题成员可以参与讨论'}
+                placeholder={
+                  canParticipate
+                    ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
+                    : '只有课题成员可以参与讨论'
+                }
                 className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
               />
 
@@ -882,7 +963,7 @@ export function ProjectDiscussionSection({
                   添加图片
                 </button>
                 <span className="text-xs text-[var(--glass-text-muted)]">
-                  最多 {MAX_COMMENT_IMAGES} 张图片，单条评论可只发图片不写文字
+                  最多 {MAX_COMMENT_IMAGES} 张图片，支持 Ctrl+V 粘贴，单条评论可只发图片不写文字
                 </span>
               </div>
 
@@ -953,69 +1034,19 @@ export function ProjectDiscussionSection({
         )}
       </section>
 
-      <Dialog
-        isOpen={Boolean(lightboxImage)}
-        onClose={() => {
-          setLightboxImage(null);
-          setLightboxZoomed(false);
+      <DiscussionImageLightbox
+        image={lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        labels={{
+          close: '关闭大图预览',
+          zoomIn: '放大',
+          zoomOut: '还原',
+          zoomInAriaLabel: '放大图片',
+          zoomOutAriaLabel: '还原图片',
+          hint: '点击图片可切换放大/还原',
+          zoomedHint: '拖动查看细节，点击图片可还原',
         }}
-        showCloseButton={false}
-        className="max-w-5xl overflow-hidden border border-slate-800 bg-slate-950/96"
-      >
-        {lightboxImage && (
-          <div className="relative">
-            <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setLightboxZoomed((current) => !current)}
-                className="inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-2 text-xs font-medium text-white transition hover:bg-black/78"
-                aria-label={lightboxZoomed ? '还原图片' : '放大图片'}
-              >
-                {lightboxZoomed ? (
-                  <ZoomOut className="h-4 w-4" />
-                ) : (
-                  <ZoomIn className="h-4 w-4" />
-                )}
-                {lightboxZoomed ? '还原' : '放大'}
-              </button>
-              <span className="hidden rounded-full bg-black/45 px-3 py-2 text-xs text-white/88 sm:inline">
-                点击图片可切换放大/还原
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setLightboxImage(null);
-                setLightboxZoomed(false);
-              }}
-              className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/78"
-              aria-label="关闭大图预览"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div
-              className={cn(
-                'max-h-[88vh] min-h-[14rem] overflow-auto bg-[radial-gradient(circle_at_center,rgba(30,41,59,0.75),rgba(2,6,23,0.96))] p-4 sm:p-6',
-                lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
-              )}
-            >
-              <div className="flex min-h-full min-w-full items-center justify-center">
-                <img
-                  src={lightboxImage.url}
-                  alt={lightboxImage.alt}
-                  onClick={() => setLightboxZoomed((current) => !current)}
-                  className={cn(
-                    'rounded-[1.2rem] object-contain shadow-[0_24px_60px_rgba(15,23,42,0.42)] transition-[width,max-width] duration-200 select-none',
-                    lightboxZoomed
-                      ? 'w-[160%] max-w-none sm:w-[135%] lg:w-[120%]'
-                      : 'max-h-[80vh] w-auto max-w-full'
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </Dialog>
+      />
     </>
   );
 }
