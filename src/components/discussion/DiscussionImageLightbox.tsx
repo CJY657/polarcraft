@@ -252,7 +252,8 @@ export function DiscussionImageLightbox({
       isOpen={Boolean(image)}
       onClose={handleClose}
       showCloseButton={false}
-      className="h-[99vh] max-w-[99vw] overflow-hidden rounded-none border-0 bg-transparent shadow-none"
+      containerClassName="p-0"
+      className="h-screen w-screen max-w-none overflow-hidden rounded-none border-0 bg-transparent shadow-none"
     >
       {image && (
         <div className="relative flex h-full flex-col overflow-hidden bg-black">
@@ -328,7 +329,7 @@ export function DiscussionImageLightbox({
                     "select-none transition-[width,height,max-width,max-height] duration-200",
                     zoomed
                       ? "h-full w-full max-h-none max-w-none object-contain"
-                      : "max-h-[calc(99vh-1.25rem)] w-auto max-w-[calc(99vw-1rem)] object-contain"
+                      : "max-h-[calc(100vh-0.5rem)] w-auto max-w-[calc(100vw-0.5rem)] object-contain"
                   )}
                 />
               </div>

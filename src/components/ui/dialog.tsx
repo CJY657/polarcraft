@@ -7,12 +7,14 @@ import { ReactNode, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { cn } from '@/utils/classNames';
 
 interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  containerClassName?: string;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEsc?: boolean;
@@ -45,6 +47,7 @@ export function Dialog({
   onClose,
   children,
   className = '',
+  containerClassName = '',
   showCloseButton = false,
   closeOnOverlayClick = true,
   closeOnEsc = true
@@ -78,7 +81,7 @@ export function Dialog({
   const content = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", containerClassName)}>
           {/* Overlay */}
           <motion.div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -91,7 +94,10 @@ export function Dialog({
 
           {/* Dialog Content */}
           <motion.div
-            className={`relative w-full max-w-md bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl ${className}`}
+            className={cn(
+              "relative w-full max-w-md bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl",
+              className
+            )}
             variants={dialogVariants}
             initial="hidden"
             animate="visible"
