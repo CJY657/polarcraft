@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, Link, Navigate, useLocation } from "react-router-dom";
+import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Settings,
@@ -39,6 +39,7 @@ import {
   type PublicProjectMember,
 } from "@/lib/profile.service";
 import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
+import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
@@ -53,6 +54,7 @@ function isProjectMember(member: ProjectMember | PublicProjectMember): member is
 export function ResearchProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
@@ -84,8 +86,10 @@ export function ResearchProjectPage() {
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
   const [isAddingFormerMemberId, setIsAddingFormerMemberId] = useState<string | null>(null);
   const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
 
   const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
+  const isAdmin = user?.role === "admin";
   const currentUserRole = useMemo(() => {
     if (!project || !user) return null;
     const member = project.members.find((m) => m.user_id === user.id);
@@ -93,7 +97,7 @@ export function ResearchProjectPage() {
   }, [project, user]);
   const isReadOnlyMode =
     !projectId?.startsWith("example-")
-    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole));
+    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole && !isAdmin));
   const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
   const loadAuthenticatedProjectData = useCallback(async (targetProjectId: string) => {
     const [projectData, settingsData, applicationsData] = await Promise.all([
@@ -261,6 +265,22 @@ export function ResearchProjectPage() {
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (!projectId) {
+      throw new Error("课题不存在");
+    }
+
+    setIsDeletingProject(true);
+
+    try {
+      await researchApi.deleteProject(projectId);
+      navigate("/lab/projects", { replace: true });
+    } catch (err) {
+      setIsDeletingProject(false);
+      throw (err instanceof Error ? err : new Error("删除课题失败"));
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -336,6 +356,7 @@ export function ResearchProjectPage() {
 
   const statusBadge = getStatusBadge(displayProject.status);
   const canManageProject = !isExampleProject && isOwner && !isReadOnlyMode;
+  const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && isMember);
 
   const handleApplyAction = () => {
@@ -463,24 +484,33 @@ export function ResearchProjectPage() {
                     {applyButtonLabel}
                   </button>
                 ) : (
-                  canManageProject && (
-                    <>
-                      <button
-                        onClick={() => setIsEditDialogOpen(true)}
-                        className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
-                      >
-                        <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
-                        编辑信息
-                      </button>
-                      <button
-                        onClick={() => setIsSettingsDialogOpen(true)}
-                        className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
-                      >
-                        <Settings className="h-4 w-4 text-[var(--paper-link)]" />
-                        协作设置
-                      </button>
-                    </>
-                  )
+                  <>
+                    {canManageProject && (
+                      <>
+                        <button
+                          onClick={() => setIsEditDialogOpen(true)}
+                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                        >
+                          <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
+                          编辑信息
+                        </button>
+                        <button
+                          onClick={() => setIsSettingsDialogOpen(true)}
+                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                        >
+                          <Settings className="h-4 w-4 text-[var(--paper-link)]" />
+                          协作设置
+                        </button>
+                      </>
+                    )}
+                    {canDeleteProject && (
+                      <ProjectDeleteAction
+                        projectName={displayProject.name_zh}
+                        onDelete={handleDeleteProject}
+                        isDeleting={isDeletingProject}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>

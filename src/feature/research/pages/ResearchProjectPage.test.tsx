@@ -11,6 +11,7 @@ const mockGetProjectSettings = vi.fn();
 const mockGetProjectCanvases = vi.fn();
 const mockGetProjectApplications = vi.fn();
 const mockAddProjectMember = vi.fn();
+const mockDeleteProject = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
@@ -62,6 +63,7 @@ vi.mock("@/lib/research.service", () => ({
     getProject: (...args: unknown[]) => mockGetProject(...args),
     getProjectCanvases: (...args: unknown[]) => mockGetProjectCanvases(...args),
     addProjectMember: (...args: unknown[]) => mockAddProjectMember(...args),
+    deleteProject: (...args: unknown[]) => mockDeleteProject(...args),
     removeProjectMember: vi.fn(),
   },
 }));
@@ -78,6 +80,7 @@ function renderPage(initialEntries: Array<{ pathname: string; state?: unknown }>
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
+        <Route path="/lab/projects" element={<div>projects-page</div>} />
         <Route path="/lab/projects/:projectId" element={<ResearchProjectPage />} />
       </Routes>
     </MemoryRouter>
@@ -125,6 +128,7 @@ describe("ResearchProjectPage", () => {
     mockGetProjectCanvases.mockReset();
     mockGetProjectApplications.mockReset();
     mockAddProjectMember.mockReset();
+    mockDeleteProject.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
       user: { id: "owner-1", username: "owner", role: "user" },
@@ -135,6 +139,7 @@ describe("ResearchProjectPage", () => {
     mockGetProjectCanvases.mockResolvedValue([]);
     mockGetProjectApplications.mockResolvedValue([]);
     mockAddProjectMember.mockResolvedValue(undefined);
+    mockDeleteProject.mockResolvedValue(undefined);
   });
 
   it("lets the owner re-add a former member as member", async () => {
@@ -168,6 +173,39 @@ describe("ResearchProjectPage", () => {
     });
     await waitFor(() => {
       expect(mockGetProject).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("shows the delete action for admins and deletes after confirmation", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "admin-1", username: "admin", role: "admin" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        is_public: false,
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    fireEvent.click(await screen.findByRole("button", { name: "删除课题" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
+
+    await waitFor(() => {
+      expect(mockDeleteProject).toHaveBeenCalledWith("project-1");
     });
   });
 

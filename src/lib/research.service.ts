@@ -24,6 +24,8 @@ export interface ResearchProject {
   allow_guest_comments: boolean;
   enable_task_board: boolean;
   member_count: number;
+  canvas_count?: number;
+  current_user_role?: 'owner' | 'member' | null;
   created_at: string;
   updated_at: string;
 }

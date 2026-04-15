@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
   mockResearchModel: {
     getProjectAccess: vi.fn(),
+    getUserProjects: vi.fn(),
     getProjectById: vi.fn(),
     getProjectMembers: vi.fn(),
     getFormerProjectMembers: vi.fn(),
     getProjectMembership: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
+    deleteProject: vi.fn(),
   },
   mockProfileModel: {
     getProjectApplications: vi.fn(),
@@ -242,6 +244,59 @@ describe('ResearchController member management', () => {
 
     expect(res.error).toHaveBeenCalledWith('无权查看申请列表', 'FORBIDDEN', 403);
     expect(mockProfileModel.getProjectApplications).not.toHaveBeenCalled();
+  });
+
+  it('allows an admin to delete a project without owner membership', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+    mockResearchModel.deleteProject.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'project-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProject, req, res);
+
+    expect(mockResearchModel.deleteProject).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith(null, '项目删除成功');
+  });
+
+  it('rejects project deletion for non-owner non-admin users', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { id: 'project-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProject, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有管理员或组长可以删除课题', 'FORBIDDEN', 403);
+    expect(mockResearchModel.deleteProject).not.toHaveBeenCalled();
   });
 
   it('approves applications by adding members as member', async () => {

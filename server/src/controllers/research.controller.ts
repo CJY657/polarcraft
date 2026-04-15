@@ -54,10 +54,11 @@ async function ensureProjectAccess(
   res: Response,
   projectId: string,
   userId: string,
+  userRole: 'user' | 'admin',
   level: ProjectAccessLevel,
   forbiddenMessage = '权限不足'
 ) {
-  const access = await ResearchModel.getProjectAccess(projectId, userId);
+  const access = await ResearchModel.getProjectAccess(projectId, userId, userRole);
 
   if (!access.project) {
     res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
@@ -83,6 +84,7 @@ async function ensureCanvasAccess(
   res: Response,
   canvasId: string,
   userId: string,
+  userRole: 'user' | 'admin',
   level: Exclude<ProjectAccessLevel, 'discussion'>,
   forbiddenMessage = '权限不足'
 ) {
@@ -92,7 +94,7 @@ async function ensureCanvasAccess(
     return null;
   }
 
-  const access = await ensureProjectAccess(res, canvas.project_id, userId, level, forbiddenMessage);
+  const access = await ensureProjectAccess(res, canvas.project_id, userId, userRole, level, forbiddenMessage);
   if (!access) {
     return null;
   }
@@ -104,6 +106,7 @@ async function ensureNodeAccess(
   res: Response,
   nodeId: string,
   userId: string,
+  userRole: 'user' | 'admin',
   level: Exclude<ProjectAccessLevel, 'discussion'>,
   forbiddenMessage = '权限不足'
 ) {
@@ -113,7 +116,7 @@ async function ensureNodeAccess(
     return null;
   }
 
-  const canvasAccess = await ensureCanvasAccess(res, node.canvas_id, userId, level, forbiddenMessage);
+  const canvasAccess = await ensureCanvasAccess(res, node.canvas_id, userId, userRole, level, forbiddenMessage);
   if (!canvasAccess) {
     return null;
   }
@@ -125,6 +128,7 @@ async function ensureEdgeAccess(
   res: Response,
   edgeId: string,
   userId: string,
+  userRole: 'user' | 'admin',
   level: Exclude<ProjectAccessLevel, 'discussion'>,
   forbiddenMessage = '权限不足'
 ) {
@@ -134,7 +138,7 @@ async function ensureEdgeAccess(
     return null;
   }
 
-  const canvasAccess = await ensureCanvasAccess(res, edge.canvas_id, userId, level, forbiddenMessage);
+  const canvasAccess = await ensureCanvasAccess(res, edge.canvas_id, userId, userRole, level, forbiddenMessage);
   if (!canvasAccess) {
     return null;
   }
@@ -152,7 +156,7 @@ export class ResearchController {
    * 获取用户的项目列表
    */
   static getUserProjects = asyncHandler(async (req: Request, res: Response) => {
-    const projects = await ResearchModel.getUserProjects(req.user!.sub);
+    const projects = await ResearchModel.getUserProjects(req.user!.sub, req.user!.role);
     res.success(projects);
   });
 
@@ -166,6 +170,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题'
     );
@@ -211,7 +216,7 @@ export class ResearchController {
    */
   static updateProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以更新课题');
+    const access = await ensureProjectAccess(res, id, req.user!.sub, req.user!.role, 'manage', '只有组长可以更新课题');
     if (!access) {
       return;
     }
@@ -232,10 +237,22 @@ export class ResearchController {
    */
   static deleteProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以删除课题');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能查看公开课题或已加入的课题'
+    );
     if (!access) {
       return;
     }
+
+    if (req.user!.role !== 'admin' && !access.canManage) {
+      return res.error('只有管理员或组长可以删除课题', 'FORBIDDEN', 403);
+    }
+
     await ResearchModel.deleteProject(id);
     logger.info(`Project deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '项目删除成功');
@@ -250,7 +267,14 @@ export class ResearchController {
     const { userId } = req.body;
     const currentUserId = req.user!.sub;
 
-    const access = await ensureProjectAccess(res, id, currentUserId, 'manage', '只有组长可以拉回成员');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      currentUserId,
+      req.user!.role,
+      'manage',
+      '只有组长可以拉回成员'
+    );
     if (!access) {
       return;
     }
@@ -339,6 +363,7 @@ export class ResearchController {
       res,
       projectId,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题画布'
     );
@@ -359,6 +384,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题画布'
     );
@@ -375,7 +401,14 @@ export class ResearchController {
    */
   static createCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { projectId } = req.params;
-    const access = await ensureProjectAccess(res, projectId, req.user!.sub, 'write', '只有课题成员可以创建画布');
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以创建画布'
+    );
     if (!access) {
       return;
     }
@@ -392,7 +425,14 @@ export class ResearchController {
    */
   static updateCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const canvasAccess = await ensureCanvasAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑画布');
+    const canvasAccess = await ensureCanvasAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以编辑画布'
+    );
     if (!canvasAccess) {
       return;
     }
@@ -409,7 +449,14 @@ export class ResearchController {
    */
   static deleteCanvas = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const canvasAccess = await ensureCanvasAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除画布');
+    const canvasAccess = await ensureCanvasAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除画布'
+    );
     if (!canvasAccess) {
       return;
     }
@@ -432,6 +479,7 @@ export class ResearchController {
       res,
       canvasId,
       req.user!.sub,
+      req.user!.role,
       'write',
       '只有课题成员可以创建节点'
     );
@@ -466,6 +514,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题内容'
     );
@@ -482,7 +531,14 @@ export class ResearchController {
    */
   static updateNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑节点');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以编辑节点'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -499,7 +555,14 @@ export class ResearchController {
    */
   static deleteNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除节点');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除节点'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -526,7 +589,14 @@ export class ResearchController {
   static assignNode = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { assignedTo } = req.body;
-    const nodeAccess = await ensureNodeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以分配节点');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以分配节点'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -546,7 +616,14 @@ export class ResearchController {
    */
   static createEdge = asyncHandler(async (req: Request, res: Response) => {
     const { canvasId } = req.params;
-    const canvasAccess = await ensureCanvasAccess(res, canvasId, req.user!.sub, 'write', '只有课题成员可以创建关系');
+    const canvasAccess = await ensureCanvasAccess(
+      res,
+      canvasId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以创建关系'
+    );
     if (!canvasAccess) {
       return;
     }
@@ -577,6 +654,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题内容'
     );
@@ -593,7 +671,14 @@ export class ResearchController {
    */
   static updateEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const edgeAccess = await ensureEdgeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以编辑关系');
+    const edgeAccess = await ensureEdgeAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以编辑关系'
+    );
     if (!edgeAccess) {
       return;
     }
@@ -610,7 +695,14 @@ export class ResearchController {
    */
   static deleteEdge = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const edgeAccess = await ensureEdgeAccess(res, id, req.user!.sub, 'write', '只有课题成员可以删除关系');
+    const edgeAccess = await ensureEdgeAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除关系'
+    );
     if (!edgeAccess) {
       return;
     }
@@ -633,6 +725,7 @@ export class ResearchController {
       res,
       nodeId,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题评论'
     );
@@ -650,7 +743,14 @@ export class ResearchController {
   static addComment = asyncHandler(async (req: Request, res: Response) => {
     const { nodeId } = req.params;
     const { content } = req.body;
-    const nodeAccess = await ensureNodeAccess(res, nodeId, req.user!.sub, 'write', '只有课题成员可以发表评论');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      nodeId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以发表评论'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -672,7 +772,14 @@ export class ResearchController {
       return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
     }
 
-    const nodeAccess = await ensureNodeAccess(res, comment.node_id, req.user!.sub, 'write', '只有课题成员可以编辑评论');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      comment.node_id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以编辑评论'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -697,7 +804,14 @@ export class ResearchController {
       return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
     }
 
-    const nodeAccess = await ensureNodeAccess(res, comment.node_id, req.user!.sub, 'write', '只有课题成员可以删除评论');
+    const nodeAccess = await ensureNodeAccess(
+      res,
+      comment.node_id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除评论'
+    );
     if (!nodeAccess) {
       return;
     }
@@ -722,6 +836,7 @@ export class ResearchController {
       res,
       projectId,
       req.user!.sub,
+      req.user!.role,
       'discussion',
       '只有课题成员可以查看讨论区'
     );
@@ -767,6 +882,7 @@ export class ResearchController {
       res,
       projectId,
       currentUserId,
+      req.user!.role,
       'discussion',
       '只有课题成员可以参与讨论'
     );
@@ -853,6 +969,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题活动'
     );
@@ -877,6 +994,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题任务看板'
     );
@@ -893,7 +1011,14 @@ export class ResearchController {
    */
   static updateTaskBoard = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'write', '只有课题成员可以更新任务看板');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以更新任务看板'
+    );
     if (!access) {
       return;
     }
@@ -942,7 +1067,14 @@ export class ResearchController {
    */
   static getProjectSettings = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以查看课题设置');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '只有组长可以查看课题设置'
+    );
     if (!access) {
       return;
     }
@@ -956,7 +1088,14 @@ export class ResearchController {
    */
   static updateProjectSettings = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '只有组长可以更新课题设置');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '只有组长可以更新课题设置'
+    );
     if (!access) {
       return;
     }
@@ -976,7 +1115,14 @@ export class ResearchController {
    */
   static getProjectApplications = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const access = await ensureProjectAccess(res, id, req.user!.sub, 'manage', '无权查看申请列表');
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '无权查看申请列表'
+    );
     if (!access) {
       return;
     }
@@ -1122,6 +1268,7 @@ export class ResearchController {
       res,
       id,
       req.user!.sub,
+      req.user!.role,
       'read',
       '你只能查看公开课题或已加入的课题资料'
     );

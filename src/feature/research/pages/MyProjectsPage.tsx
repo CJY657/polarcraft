@@ -68,7 +68,7 @@ function getHealthDisplay(healthStatus: string) {
 }
 
 export function MyProjectsPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { isSystemHealthy, healthStatus, isChecking, checkHealth } = useSystem();
   const navigate = useNavigate();
   const openDialog = useAuthDialogStore((state) => state.openDialog);
@@ -77,6 +77,7 @@ export function MyProjectsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -113,6 +114,19 @@ export function MyProjectsPage() {
       return;
     }
     setIsCreateWizardOpen(true);
+  };
+
+  const handleDeleteProject = async (project: ResearchProject) => {
+    setDeletingProjectId(project.id);
+
+    try {
+      await researchApi.deleteProject(project.id);
+      setDeletingProjectId(null);
+      setProjects((prev) => prev.filter((item) => item.id !== project.id));
+    } catch (err) {
+      setDeletingProjectId(null);
+      throw (err instanceof Error ? err : new Error("删除课题失败"));
+    }
   };
 
   const healthDisplay = getHealthDisplay(healthStatus);
@@ -360,7 +374,13 @@ export function MyProjectsPage() {
 
             <div className="space-y-3">
               {projects.map((project) => (
-                <ProjectListItem key={project.id} project={project} />
+                <ProjectListItem
+                  key={project.id}
+                  project={project}
+                  canDelete={user?.role === "admin" || project.current_user_role === "owner"}
+                  isDeleting={deletingProjectId === project.id}
+                  onDelete={handleDeleteProject}
+                />
               ))}
             </div>
           </section>

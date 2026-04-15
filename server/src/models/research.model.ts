@@ -86,6 +86,7 @@ export interface ResearchProjectAccess {
   project: any | null;
   membership: any | null;
   role: ResearchProjectRole | null;
+  isAdmin: boolean;
   isMember: boolean;
   canRead: boolean;
   canWrite: boolean;
@@ -127,19 +128,22 @@ export class ResearchModel {
    * Get projects by user ID
    * 获取用户的项目列表
    */
-  static async getUserProjects(userId: string): Promise<any[]> {
-    const memberships = normalizeDocuments<{ project_id: string }>(
+  static async getUserProjects(userId: string, userRole: 'user' | 'admin' = 'user'): Promise<any[]> {
+    const memberships = normalizeDocuments<{ project_id: string; role?: string | null }>(
       await projectMembersCollection()
         .find(buildActiveMembershipFilter({ user_id: userId }))
-        .project({ _id: 0, project_id: 1 })
+        .project({ _id: 0, project_id: 1, role: 1 })
         .toArray()
     );
     const memberProjectIds = memberships.map((membership) => membership.project_id);
-    if (memberProjectIds.length === 0) {
+
+    if (userRole !== 'admin' && memberProjectIds.length === 0) {
       return [];
     }
 
-    const projectFilter = { id: { $in: memberProjectIds } };
+    const projectFilter = userRole === 'admin'
+      ? {}
+      : { id: { $in: memberProjectIds } };
 
     const projects = normalizeDocuments<any>(
       await researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 }).toArray()
@@ -160,9 +164,14 @@ export class ResearchModel {
 
     const memberCountMap = new Map<string, number>();
     const canvasCountMap = new Map<string, number>();
+    const currentUserRoleMap = new Map<string, ResearchProjectRole>();
 
     for (const member of members) {
       memberCountMap.set(member.project_id, (memberCountMap.get(member.project_id) ?? 0) + 1);
+    }
+
+    for (const membership of memberships) {
+      currentUserRoleMap.set(membership.project_id, normalizeProjectRole(membership.role));
     }
 
     for (const canvas of canvases) {
@@ -173,6 +182,7 @@ export class ResearchModel {
       ...project,
       member_count: memberCountMap.get(project.id) ?? 0,
       canvas_count: canvasCountMap.get(project.id) ?? 0,
+      current_user_role: currentUserRoleMap.get(project.id) ?? null,
     }));
   }
 
@@ -203,9 +213,10 @@ export class ResearchModel {
 
   static async getProjectDiscussionAccess(
     projectId: string,
-    userId: string
+    userId: string,
+    userRole?: 'user' | 'admin'
   ): Promise<{ project: any | null; isMember: boolean; canParticipate: boolean }> {
-    const access = await this.getProjectAccess(projectId, userId);
+    const access = await this.getProjectAccess(projectId, userId, userRole);
     return {
       project: access.project,
       isMember: access.isMember,
@@ -213,13 +224,18 @@ export class ResearchModel {
     };
   }
 
-  static async getProjectAccess(projectId: string, userId?: string): Promise<ResearchProjectAccess> {
+  static async getProjectAccess(
+    projectId: string,
+    userId?: string,
+    userRole: 'user' | 'admin' = 'user'
+  ): Promise<ResearchProjectAccess> {
     const project = await this.getProjectById(projectId);
     if (!project) {
       return {
         project: null,
         membership: null,
         role: null,
+        isAdmin: false,
         isMember: false,
         canRead: false,
         canWrite: false,
@@ -237,13 +253,15 @@ export class ResearchModel {
     const normalizedMembership = membership ? normalizeMembershipRecord(membership) : null;
     const role = normalizedMembership?.role ?? null;
     const isMember = Boolean(normalizedMembership);
+    const isAdmin = userRole === 'admin';
 
     return {
       project,
       membership: normalizedMembership,
       role,
+      isAdmin,
       isMember,
-      canRead: isMember || Boolean(project.is_public),
+      canRead: isAdmin || isMember || Boolean(project.is_public),
       canWrite: isMember,
       canManage: role === 'owner',
       canAccessDiscussion: isMember,

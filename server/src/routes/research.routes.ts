@@ -32,7 +32,7 @@ async function authorizeProjectDiscussionImageUpload(
       return;
     }
 
-    const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub);
+    const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub, req.user!.role);
 
     if (!access.project) {
       res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
