@@ -45,11 +45,37 @@ describe("ProjectListItem", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "删除课题" }));
     expect(screen.getByText("确认删除「偏振成像课题」")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "确认删除" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("输入大写 DELETE 以确认删除"), {
+      target: { value: "DELETE" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
 
     await waitFor(() => {
-      expect(onDelete).toHaveBeenCalledWith(baseProject);
+      expect(onDelete).toHaveBeenCalledWith(baseProject, "DELETE");
+    });
+  });
+
+  it("requires exact uppercase DELETE before triggering deletion", async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <ProjectListItem project={baseProject} canDelete onDelete={onDelete} />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "删除课题" }));
+    fireEvent.change(screen.getByLabelText("输入大写 DELETE 以确认删除"), {
+      target: { value: "delete" },
+    });
+
+    expect((screen.getByRole("button", { name: "确认删除" }) as HTMLButtonElement).disabled).toBe(true);
+
+    await waitFor(() => {
+      expect(onDelete).not.toHaveBeenCalled();
     });
   });
 });

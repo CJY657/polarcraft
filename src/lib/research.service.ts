@@ -156,8 +156,8 @@ export const researchApi = {
    * Delete project
    * 删除课题
    */
-  deleteProject: async (projectId: string): Promise<void> => {
-    const response = await api.delete(`/api/research/projects/${projectId}`);
+  deleteProject: async (projectId: string, confirmationText: string): Promise<void> => {
+    const response = await api.delete(`/api/research/projects/${projectId}`, { confirmationText });
     if (!response.success) {
       throw new Error(response.error?.message || '删除课题失败');
     }

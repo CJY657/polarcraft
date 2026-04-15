@@ -15,7 +15,7 @@ interface ProjectListItemProps {
   project: ResearchProject;
   canDelete?: boolean;
   isDeleting?: boolean;
-  onDelete?: (project: ResearchProject) => Promise<void>;
+  onDelete?: (project: ResearchProject, confirmationText: string) => Promise<void>;
 }
 
 function getStatusMeta(status: ResearchProject["status"]) {
@@ -134,7 +134,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
         {canDelete && onDelete && (
           <ProjectDeleteAction
             projectName={project.name_zh}
-            onDelete={() => onDelete(project)}
+            onDelete={(confirmationText) => onDelete(project, confirmationText)}
             isDeleting={isDeleting}
           />
         )}

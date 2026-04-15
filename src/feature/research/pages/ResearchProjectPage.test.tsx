@@ -202,10 +202,13 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     fireEvent.click(await screen.findByRole("button", { name: "删除课题" }));
+    fireEvent.change(screen.getByLabelText("输入大写 DELETE 以确认删除"), {
+      target: { value: "DELETE" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
 
     await waitFor(() => {
-      expect(mockDeleteProject).toHaveBeenCalledWith("project-1");
+      expect(mockDeleteProject).toHaveBeenCalledWith("project-1", "DELETE");
     });
   });
 

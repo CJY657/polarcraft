@@ -116,11 +116,11 @@ export function MyProjectsPage() {
     setIsCreateWizardOpen(true);
   };
 
-  const handleDeleteProject = async (project: ResearchProject) => {
+  const handleDeleteProject = async (project: ResearchProject, confirmationText: string) => {
     setDeletingProjectId(project.id);
 
     try {
-      await researchApi.deleteProject(project.id);
+      await researchApi.deleteProject(project.id, confirmationText);
       setDeletingProjectId(null);
       setProjects((prev) => prev.filter((item) => item.id !== project.id));
     } catch (err) {

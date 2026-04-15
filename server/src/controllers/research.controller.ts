@@ -16,6 +16,7 @@ import { logger } from '../utils/logger.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
+const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 
 function normalizeProjectDiscussionImageUrls(value: unknown): string[] | null {
   if (value === undefined || value === null) {
@@ -237,6 +238,8 @@ export class ResearchController {
    */
   static deleteProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const confirmationText =
+      typeof req.body?.confirmationText === 'string' ? req.body.confirmationText.trim() : '';
     const access = await ensureProjectAccess(
       res,
       id,
@@ -251,6 +254,10 @@ export class ResearchController {
 
     if (req.user!.role !== 'admin' && !access.canManage) {
       return res.error('只有管理员或组长可以删除课题', 'FORBIDDEN', 403);
+    }
+
+    if (confirmationText !== DELETE_PROJECT_CONFIRMATION_KEYWORD) {
+      return res.error('请输入大写 DELETE 以确认删除课题', 'DELETE_CONFIRMATION_REQUIRED', 400);
     }
 
     await ResearchModel.deleteProject(id);

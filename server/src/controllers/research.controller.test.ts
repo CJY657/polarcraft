@@ -263,6 +263,7 @@ describe('ResearchController member management', () => {
 
     const req = {
       params: { id: 'project-1' },
+      body: { confirmationText: 'DELETE' },
       user: { sub: 'admin-1', username: 'admin', role: 'admin' },
     };
     const res = createResponse();
@@ -271,6 +272,37 @@ describe('ResearchController member management', () => {
 
     expect(mockResearchModel.deleteProject).toHaveBeenCalledWith('project-1');
     expect(res.success).toHaveBeenCalledWith(null, '项目删除成功');
+  });
+
+  it('requires DELETE confirmation text before deleting a project', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { confirmationText: 'delete' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProject, req, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '请输入大写 DELETE 以确认删除课题',
+      'DELETE_CONFIRMATION_REQUIRED',
+      400
+    );
+    expect(mockResearchModel.deleteProject).not.toHaveBeenCalled();
   });
 
   it('rejects project deletion for non-owner non-admin users', async () => {

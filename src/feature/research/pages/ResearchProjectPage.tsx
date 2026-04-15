@@ -265,7 +265,7 @@ export function ResearchProjectPage() {
     }
   };
 
-  const handleDeleteProject = async () => {
+  const handleDeleteProject = async (confirmationText: string) => {
     if (!projectId) {
       throw new Error("课题不存在");
     }
@@ -273,7 +273,7 @@ export function ResearchProjectPage() {
     setIsDeletingProject(true);
 
     try {
-      await researchApi.deleteProject(projectId);
+      await researchApi.deleteProject(projectId, confirmationText);
       navigate("/lab/projects", { replace: true });
     } catch (err) {
       setIsDeletingProject(false);
