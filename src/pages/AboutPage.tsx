@@ -6,6 +6,7 @@ import {
   FlaskConical,
   GalleryVerticalEnd,
   LibraryBig,
+  LockKeyhole,
   Orbit,
   Telescope,
   MessageSquarePlus,
@@ -16,6 +17,7 @@ import {
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
+import { cn } from "@/utils/classNames";
 
 interface AccentConfig {
   color: string;
@@ -39,6 +41,8 @@ interface ModuleCard {
   Icon: LucideIcon;
   accent: AccentConfig;
   spanClassName: string;
+  status?: "available" | "unavailable";
+  statusNote?: string;
 }
 
 const PLATFORM_PILLARS: Pillar[] = [
@@ -96,11 +100,13 @@ const MODULE_MAP: ModuleCard[] = [
   {
     title: "游戏挑战",
     route: "/games",
-    description: "把理解转成动作与判断，在任务约束中验证是否真的会用。",
+    description: "挑战任务与交互逻辑仍在优化中，当前暂不向学生开放。",
     eyebrow: "Challenge",
     Icon: Orbit,
     accent: { color: "#c58b1d", soft: "rgba(197, 139, 29, 0.12)", glow: "rgba(197, 139, 29, 0.16)" },
     spanClassName: "md:col-span-2",
+    status: "unavailable",
+    statusNote: "入口暂时关闭，避免学生点进未完成页面后直接看到报错信息。",
   },
   {
     title: "成果展示",
@@ -294,39 +300,94 @@ export default function AboutPage() {
           />
 
           <div className="mt-8 grid gap-4 md:grid-cols-6">
-            {MODULE_MAP.map((module) => (
-              <Link
-                key={module.title}
-                to={module.route}
-                className={`group relative overflow-hidden rounded-[1.8rem] border p-5 transition-transform duration-200 hover:-translate-y-1 ${module.spanClassName}`}
-                style={{
-                  borderColor: isDark ? `${module.accent.color}30` : `${module.accent.color}20`,
-                  background: isDark
-                    ? `linear-gradient(180deg, ${module.accent.soft}, rgba(10, 18, 24, 0.22))`
-                    : `linear-gradient(180deg, ${module.accent.soft}, rgba(255, 255, 255, 0.86))`,
-                  boxShadow: `0 20px 40px -34px ${module.accent.glow}`,
-                }}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: module.accent.color }}>
-                      {module.eyebrow}
-                    </p>
-                    <h3 className="mt-2 text-xl font-semibold text-[var(--paper-foreground)]">{module.title}</h3>
-                  </div>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: module.accent.soft, color: module.accent.color }}>
-                    <module.Icon className="h-5 w-5" />
-                  </div>
-                </div>
+            {MODULE_MAP.map((module) => {
+              const isUnavailable = module.status === "unavailable";
+              const moduleCardClassName = cn(
+                "group relative overflow-hidden rounded-[1.8rem] border p-5 transition-transform duration-200",
+                module.spanClassName,
+                isUnavailable ? "cursor-default" : "hover:-translate-y-1",
+              );
+              const moduleCardStyle = {
+                borderColor: isDark ? `${module.accent.color}30` : `${module.accent.color}20`,
+                background: isDark
+                  ? `linear-gradient(180deg, ${module.accent.soft}, rgba(10, 18, 24, 0.22))`
+                  : `linear-gradient(180deg, ${module.accent.soft}, rgba(255, 255, 255, 0.86))`,
+                boxShadow: `0 20px 40px -34px ${module.accent.glow}`,
+              };
 
-                <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">{module.description}</p>
+              const cardContent = (
+                <>
+                  {isUnavailable ? (
+                    <div
+                      className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em]"
+                      style={{
+                        color: module.accent.color,
+                        borderColor: isDark ? `${module.accent.color}42` : `${module.accent.color}26`,
+                        background: isDark ? `${module.accent.color}16` : `${module.accent.color}0d`,
+                      }}
+                    >
+                      <LockKeyhole className="h-3.5 w-3.5" />
+                      暂不开放
+                    </div>
+                  ) : null}
 
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: module.accent.color }}>
-                  打开模块
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: module.accent.color }}>
+                        {module.eyebrow}
+                      </p>
+                      <h3 className="mt-2 text-xl font-semibold text-[var(--paper-foreground)]">{module.title}</h3>
+                    </div>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: module.accent.soft, color: module.accent.color }}>
+                      <module.Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">{module.description}</p>
+
+                  {isUnavailable ? (
+                    <div
+                      className="mt-5 rounded-[1.2rem] border px-3 py-3 text-sm leading-7 text-[var(--glass-text-muted)]"
+                      style={{
+                        borderColor: isDark ? `${module.accent.color}28` : `${module.accent.color}16`,
+                        background: isDark ? `${module.accent.color}10` : `${module.accent.color}08`,
+                      }}
+                    >
+                      {module.statusNote}
+                    </div>
+                  ) : (
+                    <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: module.accent.color }}>
+                      打开模块
+                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                    </div>
+                  )}
+                </>
+              );
+
+              if (isUnavailable) {
+                return (
+                  <div
+                    key={module.title}
+                    aria-disabled="true"
+                    className={moduleCardClassName}
+                    style={moduleCardStyle}
+                  >
+                    {cardContent}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={module.title}
+                  to={module.route}
+                  className={moduleCardClassName}
+                  style={moduleCardStyle}
+                >
+                  {cardContent}
+                </Link>
+              );
+            })}
           </div>
         </section>
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { HomePage } from './HomePage';
@@ -57,5 +57,13 @@ describe('HomePage', () => {
     expect(duplicateKeyWarnings).toHaveLength(0);
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('marks unavailable modules as disabled', () => {
+    render(<HomePage />);
+
+    expect(screen.getByTestId('home-module-devices').getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByTestId('home-module-games').getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getAllByText('暂不开放')).toHaveLength(2);
   });
 });

@@ -1,10 +1,11 @@
 import { type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, BookOpenText, Library, Sparkles, Globe, Users, Rocket } from "lucide-react";
+import { ArrowRight, BookOpenText, Library, LockKeyhole, Sparkles, Globe, Users, Rocket } from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { PersistentHeader } from "@/components/shared";
+import { cn } from "@/utils/classNames";
 import {
   CoursesModuleIcon,
   DevicesModuleIcon,
@@ -34,7 +35,9 @@ interface ModuleConfig {
   quickLinks: QuickLink[];
   workspaceLabel: string;
   accent: string;
-  inDevelopment?: boolean;
+  status?: "available" | "unavailable";
+  statusLabel?: string;
+  statusMessage?: string;
 }
 
 const MODULES: ModuleConfig[] = [
@@ -63,7 +66,9 @@ const MODULES: ModuleConfig[] = [
     ],
     workspaceLabel: "器件与实验",
     accent: "#14bf96",
-    inDevelopment: true,
+    status: "unavailable",
+    statusLabel: "暂不开放",
+    statusMessage: "器件库与光路搭建仍在优化中，现阶段暂不向学生开放。",
   },
   {
     id: "demos",
@@ -90,6 +95,9 @@ const MODULES: ModuleConfig[] = [
     ],
     workspaceLabel: "游戏挑战",
     accent: "#d48b1e",
+    status: "unavailable",
+    statusLabel: "暂不开放",
+    statusMessage: "挑战关卡与游戏交互仍在调整中，现阶段暂不向学生开放。",
   },
   {
     id: "gallery",
@@ -191,17 +199,24 @@ export function HomePage() {
             <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
               {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
+              const isUnavailable = module.status === "unavailable";
 
               return (
                 <div
                   key={module.id}
-                  className="group relative flex flex-col overflow-hidden rounded-[1.6rem] border bg-[var(--glass-panel-soft)] p-5 transition-all hover:-translate-y-1"
+                  data-testid={`home-module-${module.id}`}
+                  aria-disabled={isUnavailable}
+                  className={cn(
+                    "group relative flex flex-col overflow-hidden rounded-[1.6rem] border bg-[var(--glass-panel-soft)] p-5 transition-all",
+                    isUnavailable ? "cursor-default" : "hover:-translate-y-1",
+                  )}
                   style={{
                     borderColor: theme === "dark" ? `${module.accent}33` : `${module.accent}24`,
                     boxShadow:
                       theme === "dark"
                         ? `0 22px 52px -38px ${module.accent}55, inset 0 0 0 1px rgba(255,255,255,0.03)`
                         : `0 20px 44px -36px ${module.accent}22, inset 0 0 0 1px rgba(255,255,255,0.78)`,
+                    opacity: isUnavailable ? 0.92 : 1,
                   }}
                 >
                   <div
@@ -210,6 +225,19 @@ export function HomePage() {
                       borderColor: theme === "dark" ? `${module.accent}18` : `${module.accent}16`,
                     }}
                   />
+                  {isUnavailable ? (
+                    <div
+                      className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em]"
+                      style={{
+                        color: module.accent,
+                        borderColor: theme === "dark" ? `${module.accent}42` : `${module.accent}28`,
+                        backgroundColor: theme === "dark" ? `${module.accent}18` : `${module.accent}12`,
+                      }}
+                    >
+                      <LockKeyhole className="h-3.5 w-3.5" />
+                      {module.statusLabel}
+                    </div>
+                  ) : null}
                   <div className="flex items-center gap-4">
                     <div
                       className="flex h-12 w-12 items-center justify-center rounded-2xl"
@@ -229,32 +257,46 @@ export function HomePage() {
                   </div>
 
                   <p className="mt-4 text-sm leading-relaxed text-[var(--glass-text-muted)]">
-                    {t(`${module.i18nNamespace}.description`)}
+                    {isUnavailable ? module.statusMessage : t(`${module.i18nNamespace}.description`)}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {module.quickLinks.map((link) => (
-                      <button
-                        key={`${module.id}:${link.labelKey}:${link.path}`}
-                        type="button"
-                        onClick={() => navigate(link.path)}
-                        className="text-xs font-medium text-[var(--paper-link)] hover:underline"
-                      >
-                        {t(link.labelKey)}
-                      </button>
-                    ))}
-                  </div>
+                  {isUnavailable ? (
+                    <div
+                      className="mt-5 rounded-[1.2rem] border px-3 py-3 text-xs leading-6 text-[var(--glass-text-muted)]"
+                      style={{
+                        borderColor: theme === "dark" ? `${module.accent}28` : `${module.accent}18`,
+                        backgroundColor: theme === "dark" ? `${module.accent}10` : `${module.accent}08`,
+                      }}
+                    >
+                      当前先隐藏学生入口，避免进入未完成内容后看到报错信息。
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {module.quickLinks.map((link) => (
+                          <button
+                            key={`${module.id}:${link.labelKey}:${link.path}`}
+                            type="button"
+                            onClick={() => navigate(link.path)}
+                            className="text-xs font-medium text-[var(--paper-link)] hover:underline"
+                          >
+                            {t(link.labelKey)}
+                          </button>
+                        ))}
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate(module.path);
-                    }}
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--paper-link)]"
-                  >
-                    进入学习空间
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(module.path);
+                        }}
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--paper-link)]"
+                      >
+                        进入学习空间
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </button>
+                    </>
+                  )}
                 </div>
               );
             })}
