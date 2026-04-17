@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, MessageSquarePlus, MessageSquare } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCourseDetailStore } from "@/stores/courseStore";
 import { loadCourseViewerModule } from "@/lib/routePreload";
@@ -33,6 +34,7 @@ function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
 export default function CourseViewerPage() {
   const { courseId, experimentId } = useParams<{ courseId?: string; experimentId?: string }>();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -159,7 +161,11 @@ export default function CourseViewerPage() {
       ) : (
         <div>
           <Suspense fallback={<ViewerLoader theme={theme} />}>
-            <CourseViewer course={courseData} theme={theme} />
+            <CourseViewer
+              course={courseData}
+              theme={theme}
+              canDownloadResources={user?.role === "admin"}
+            />
           </Suspense>
 
           <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">

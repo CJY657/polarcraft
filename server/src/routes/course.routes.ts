@@ -226,6 +226,13 @@ router.delete("/:id", requireAdmin, CourseController.deleteCourse);
 router.get("/:id/main-slide", requireAdmin, CourseController.getMainSlide);
 
 /**
+ * @route   GET /api/courses/:id/main-slide/download
+ * @desc    Download main slide for a course
+ * @access  Private (Admin)
+ */
+router.get("/:id/main-slide/download", requireAdmin, CourseController.downloadMainSlide);
+
+/**
  * @route   PUT /api/courses/:id/main-slide
  * @desc    Create or update main slide
  * @access  Private (Admin)
@@ -272,6 +279,13 @@ router.put("/:id/media/reorder", requireAdmin, CourseController.reorderMedia);
  * @access  Private (Admin)
  */
 router.get("/media/:mediaId", requireAdmin, CourseController.getMedia);
+
+/**
+ * @route   GET /api/courses/media/:mediaId/download
+ * @desc    Download media by ID
+ * @access  Private (Admin)
+ */
+router.get("/media/:mediaId/download", requireAdmin, CourseController.downloadMedia);
 
 /**
  * @route   PUT /api/courses/media/:mediaId

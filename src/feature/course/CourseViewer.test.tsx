@@ -210,6 +210,51 @@ describe("CourseViewer media preview regressions", () => {
     expect(screen.queryByTitle("page.courses.fullscreen")).toBeNull();
   });
 
+  it("hides course resource download controls for non-admin viewers", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /实验视频/ })).toBeTruthy();
+    });
+
+    expect(screen.queryByTitle("page.courses.download")).toBeNull();
+  });
+
+  it("opens admin download endpoints instead of raw resource URLs for admins", async () => {
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" canDownloadResources />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle("page.courses.download")).toHaveLength(2);
+    });
+
+    const [pptDownloadButton, previewDownloadButton] =
+      screen.getAllByTitle("page.courses.download");
+
+    fireEvent.click(pptDownloadButton);
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/courses/media/ppt-1/download"),
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    fireEvent.click(previewDownloadButton);
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/courses/media/video-1/download"),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
+
   it("restores video playback position after switching to an image and back", async () => {
     const { container } = render(
       <MemoryRouter>

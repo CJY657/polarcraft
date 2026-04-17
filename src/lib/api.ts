@@ -11,6 +11,11 @@ import { describeApiBaseUrl, resolveApiBaseUrl } from './api-base';
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 const API_TARGET = describeApiBaseUrl(API_BASE_URL);
 
+export function resolveApiEndpoint(endpoint: string): string {
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${normalizedEndpoint}`;
+}
+
 interface ApiResponse<T = any> {
   success: boolean;
   data?: T;

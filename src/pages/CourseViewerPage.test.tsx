@@ -8,6 +8,9 @@ import CourseViewerPage from "./CourseViewerPage";
 
 const fetchCourse = vi.fn();
 const reset = vi.fn();
+const authState = vi.hoisted(() => ({
+  user: null as null | { role: "user" | "admin" },
+}));
 
 const courseStoreState = {
   course: {
@@ -50,7 +53,7 @@ vi.mock("@/contexts/ThemeContext", () => ({
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => ({ user: authState.user }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -81,7 +84,13 @@ vi.mock("@/components/shared", () => ({
 
 vi.mock("@/lib/routePreload", () => ({
   loadCourseViewerModule: async () => ({
-    CourseViewer: ({ course }: { course: { id: string } }) => <div>mock-viewer-{course.id}</div>,
+    CourseViewer: ({
+      course,
+      canDownloadResources,
+    }: {
+      course: { id: string };
+      canDownloadResources?: boolean;
+    }) => <div>mock-viewer-{course.id}-download-{String(canDownloadResources)}</div>,
   }),
 }));
 
@@ -89,6 +98,7 @@ describe("CourseViewerPage", () => {
   beforeEach(() => {
     fetchCourse.mockReset();
     reset.mockReset();
+    authState.user = null;
   });
 
   it("loads the experiment viewer page with the current course context", async () => {
@@ -102,6 +112,20 @@ describe("CourseViewerPage", () => {
 
     expect(fetchCourse).toHaveBeenCalledWith("course1");
     expect(screen.getByText("冰洲石实验")).toBeDefined();
-    expect(await screen.findByText("mock-viewer-course1")).toBeDefined();
+    expect(await screen.findByText("mock-viewer-course1-download-false")).toBeDefined();
+  });
+
+  it("allows only admin users to receive download-enabled viewer props", async () => {
+    authState.user = { role: "admin" };
+
+    render(
+      <MemoryRouter initialEntries={["/experiments/course1"]}>
+        <Routes>
+          <Route path="/experiments/:experimentId" element={<CourseViewerPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("mock-viewer-course1-download-true")).toBeDefined();
   });
 });

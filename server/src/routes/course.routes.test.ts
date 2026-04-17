@@ -19,6 +19,15 @@ const testDoubles = vi.hoisted(() => {
     deleteMediaBatch: vi.fn((_req, res) => {
       res.status(200).json({ route: 'deleteMediaBatch' });
     }),
+    downloadMainSlide: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'downloadMainSlide' });
+    }),
+    downloadMedia: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'downloadMedia' });
+    }),
+    requireAdminMiddleware: vi.fn((_req, _res, next: (error?: unknown) => void) => {
+      next();
+    }),
   };
 });
 
@@ -33,6 +42,14 @@ vi.mock('../controllers/course.controller.js', () => ({
 
         if (property === 'deleteMediaBatch') {
           return testDoubles.deleteMediaBatch;
+        }
+
+        if (property === 'downloadMainSlide') {
+          return testDoubles.downloadMainSlide;
+        }
+
+        if (property === 'downloadMedia') {
+          return testDoubles.downloadMedia;
         }
 
         return testDoubles.passthroughMiddleware;
@@ -56,7 +73,7 @@ vi.mock('../middleware/rate-limit.middleware.js', () => ({
 }));
 
 vi.mock('../middleware/rbac.middleware.js', () => ({
-  requireAdmin: testDoubles.passthroughMiddleware,
+  requireAdmin: testDoubles.requireAdminMiddleware,
 }));
 
 vi.mock('../middleware/upload.middleware.js', () => ({
@@ -105,5 +122,25 @@ describe('course.routes', () => {
     expect(mediaDeleteIndex).toBeLessThan(courseDeleteIndex);
     expect(deleteRoutes[mediaDeleteIndex]?.stack.at(-1)?.handle).toBe(testDoubles.deleteMediaBatch);
     expect(deleteRoutes[courseDeleteIndex]?.stack.at(-1)?.handle).toBe(testDoubles.deleteCourse);
+  });
+
+  it('protects course resource download routes with admin authorization', () => {
+    const getRoutes = courseRoutes.stack
+      .map((layer) => (layer as { route?: MockedDeleteRoute }).route)
+      .filter((route) => Boolean(route?.methods?.get)) as MockedDeleteRoute[];
+
+    const mainSlideDownloadRoute = getRoutes.find(
+      (route) => route.path === '/:id/main-slide/download'
+    );
+    const mediaDownloadRoute = getRoutes.find((route) => route.path === '/media/:mediaId/download');
+
+    expect(mainSlideDownloadRoute?.stack.map((layer) => layer.handle)).toContain(
+      testDoubles.requireAdminMiddleware
+    );
+    expect(mainSlideDownloadRoute?.stack.at(-1)?.handle).toBe(testDoubles.downloadMainSlide);
+    expect(mediaDownloadRoute?.stack.map((layer) => layer.handle)).toContain(
+      testDoubles.requireAdminMiddleware
+    );
+    expect(mediaDownloadRoute?.stack.at(-1)?.handle).toBe(testDoubles.downloadMedia);
   });
 });

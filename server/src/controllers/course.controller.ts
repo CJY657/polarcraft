@@ -6,7 +6,11 @@
  * 处理课程系统的 HTTP 请求
  */
 
+import fs from "fs";
+import path from "path";
 import { Request, Response } from "express";
+import { appPaths } from "../config/paths.js";
+import { uploadConfig } from "../config/upload.config.js";
 import { CourseModel } from "../models/course.model.js";
 import { asyncHandler } from "../middleware/error.middleware.js";
 import { ManagedUploadCleanupService } from "../services/managed-upload-cleanup.service.js";
@@ -142,6 +146,174 @@ function normalizeCoverImageInput(value: unknown): string | null | undefined {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+const LOCAL_RESOURCE_URL_BASE = "http://polarcraft.local";
+
+function stripTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function isRelativeResourceUrl(resourceUrl: string): boolean {
+  return resourceUrl.startsWith("/") || !/^[a-z][a-z\d+.-]*:/i.test(resourceUrl);
+}
+
+function decodeUrlPathname(pathname: string): string {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
+}
+
+function getUrlPathPrefix(value: string): string {
+  try {
+    return stripTrailingSlash(
+      decodeUrlPathname(new URL(value, LOCAL_RESOURCE_URL_BASE).pathname)
+    );
+  } catch {
+    return stripTrailingSlash(value);
+  }
+}
+
+function isPathInside(rootDir: string, targetPath: string): boolean {
+  const relativePath = path.relative(rootDir, targetPath);
+  return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
+}
+
+function getExistingFilePath(rootDirs: string[], relativePath: string): string | null {
+  for (const rootDir of rootDirs) {
+    const resolvedRoot = path.resolve(rootDir);
+    const resolvedPath = path.resolve(resolvedRoot, relativePath);
+
+    if (!isPathInside(resolvedRoot, resolvedPath)) {
+      return null;
+    }
+
+    try {
+      if (fs.statSync(resolvedPath).isFile()) {
+        return resolvedPath;
+      }
+    } catch {
+      // Try the next configured root.
+    }
+  }
+
+  return null;
+}
+
+function resolveLocalCourseResourcePath(resourceUrl: string): string | null {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(resourceUrl, LOCAL_RESOURCE_URL_BASE);
+  } catch {
+    return null;
+  }
+
+  if (!isRelativeResourceUrl(resourceUrl) && parsedUrl.origin !== LOCAL_RESOURCE_URL_BASE) {
+    return null;
+  }
+
+  const pathname = decodeUrlPathname(parsedUrl.pathname);
+  const resourceRoots = [
+    {
+      urlPrefix: getUrlPathPrefix(uploadConfig.publicUrlPrefix),
+      rootDirs: [uploadConfig.uploadDir],
+    },
+    {
+      urlPrefix: "/courses",
+      rootDirs: [
+        path.join(appPaths.frontendDistDir, "courses"),
+        path.join(appPaths.repoRoot, "public", "courses"),
+      ],
+    },
+    {
+      urlPrefix: "/videos",
+      rootDirs: [
+        path.join(appPaths.frontendDistDir, "videos"),
+        path.join(appPaths.repoRoot, "public", "videos"),
+      ],
+    },
+  ];
+
+  for (const { urlPrefix, rootDirs } of resourceRoots) {
+    if (pathname !== urlPrefix && !pathname.startsWith(`${urlPrefix}/`)) {
+      continue;
+    }
+
+    const relativePath = pathname.slice(urlPrefix.length).replace(/^\/+/, "");
+    if (!relativePath) {
+      return null;
+    }
+
+    return getExistingFilePath(rootDirs, relativePath);
+  }
+
+  return null;
+}
+
+function isExternalHttpUrl(resourceUrl: string): boolean {
+  try {
+    const parsedUrl = new URL(resourceUrl, LOCAL_RESOURCE_URL_BASE);
+    return (
+      (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") &&
+      parsedUrl.origin !== LOCAL_RESOURCE_URL_BASE
+    );
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeDownloadName(value: string): string {
+  return value
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
+function getResourcePathname(resourceUrl: string): string {
+  try {
+    return decodeUrlPathname(new URL(resourceUrl, LOCAL_RESOURCE_URL_BASE).pathname);
+  } catch {
+    return resourceUrl;
+  }
+}
+
+function getDownloadFilename(resourceUrl: string, fallbackTitle: string): string {
+  const pathname = getResourcePathname(resourceUrl);
+  const basename = sanitizeDownloadName(path.basename(pathname));
+  const title = sanitizeDownloadName(fallbackTitle);
+  const extension = path.extname(basename);
+
+  if (!title) {
+    return basename || "course-resource";
+  }
+
+  if (path.extname(title)) {
+    return title;
+  }
+
+  return extension ? `${title}${extension}` : title;
+}
+
+function sendCourseResourceDownload(
+  res: Response,
+  resourceUrl: string,
+  fallbackTitle: string
+): void {
+  const localFilePath = resolveLocalCourseResourcePath(resourceUrl);
+  if (localFilePath) {
+    res.download(localFilePath, getDownloadFilename(resourceUrl, fallbackTitle));
+    return;
+  }
+
+  if (isExternalHttpUrl(resourceUrl)) {
+    res.redirect(resourceUrl);
+    return;
+  }
+
+  res.error("资源文件不存在", "RESOURCE_FILE_NOT_FOUND", 404);
 }
 
 export class CourseController {
@@ -310,6 +482,21 @@ export class CourseController {
     }
 
     res.success(transformMainSlideRow(mainSlide));
+  });
+
+  /**
+   * Download main slide
+   * 下载主课件（管理员）
+   */
+  static downloadMainSlide = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const mainSlide = await CourseModel.getMainSlide(id);
+    if (!mainSlide) {
+      return res.error("主课件不存在", "NOT_FOUND", 404);
+    }
+
+    sendCourseResourceDownload(res, mainSlide.url, mainSlide.title_zh || `main-slide-${id}`);
   });
 
   /**
@@ -492,6 +679,21 @@ export class CourseController {
     }
 
     res.success(transformMediaRow(media));
+  });
+
+  /**
+   * Download media resource
+   * 下载媒体资源（管理员）
+   */
+  static downloadMedia = asyncHandler(async (req: Request, res: Response) => {
+    const { mediaId } = req.params;
+
+    const media = await CourseModel.getMediaById(mediaId);
+    if (!media) {
+      return res.error("媒体资源不存在", "NOT_FOUND", 404);
+    }
+
+    sendCourseResourceDownload(res, media.url, media.title_zh || `media-${mediaId}`);
   });
 
   /**

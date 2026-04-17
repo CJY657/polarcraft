@@ -28,12 +28,14 @@ import {
 } from "./mediaReference";
 import { ExperimentDiscussionSection } from "./ExperimentDiscussionSection";
 import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
+import { resolveApiEndpoint } from "@/lib/api";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
 interface CourseViewerProps {
   course: CourseData;
   theme: "dark" | "light";
+  canDownloadResources?: boolean;
 }
 
 // 媒体类型图标映射
@@ -225,6 +227,8 @@ async function detectPptReferencePageMap(arrayBuffer: ArrayBuffer, mediaList: Me
 // PPTX Viewer Component
 interface PptxViewerProps {
   url: string;
+  downloadUrl?: string;
+  canDownload?: boolean;
   preferredPdfUrl?: string;
   theme: "dark" | "light";
   hyperlinks?: PdfHyperlink[];
@@ -238,6 +242,8 @@ interface PptxViewerProps {
 
 function PptxViewer({
   url,
+  downloadUrl,
+  canDownload = false,
   preferredPdfUrl,
   theme,
   hyperlinks = [],
@@ -758,13 +764,15 @@ function PptxViewer({
           <p className={`mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
             Failed to load presentation
           </p>
-          <button
-            onClick={() => window.open(url, "_blank")}
-            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
-          >
-            <Download className="mr-1 inline h-4 w-4" />
-            Download PPTX
-          </button>
+          {canDownload && downloadUrl && (
+            <button
+              onClick={() => window.open(downloadUrl, "_blank", "noopener,noreferrer")}
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+            >
+              <Download className="mr-1 inline h-4 w-4" />
+              Download PPTX
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1004,11 +1012,22 @@ function ViewerModuleLoader({ theme, message }: { theme: "dark" | "light"; messa
   );
 }
 
-export function CourseViewer({ course, theme }: CourseViewerProps) {
+export function CourseViewer({
+  course,
+  theme,
+  canDownloadResources = false,
+}: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
   const courseTitle =
     course.title[i18n.language] || course.title["zh-CN"] || course.title["en-US"] || "";
+  const getMediaDownloadUrl = (media: MediaResource) =>
+    resolveApiEndpoint(`/api/courses/media/${encodeURIComponent(media.id)}/download`);
+  const getMainSlideDownloadUrl = () =>
+    resolveApiEndpoint(`/api/courses/${encodeURIComponent(course.id)}/main-slide/download`);
+  const openDownloadUrl = (downloadUrl: string) => {
+    window.open(downloadUrl, "_blank", "noopener,noreferrer");
+  };
 
   // 当前选中的媒体（用于超链接联动和非 PPT 降级布局）
   const [selectedMedia, setSelectedMedia] = useState<MediaResource | null>(null);
@@ -1387,6 +1406,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
           return (
             <PptxViewer
               url={media.url}
+              downloadUrl={getMediaDownloadUrl(media)}
+              canDownload={canDownloadResources}
               preferredPdfUrl={media.previewPdfUrl}
               theme={theme}
               mediaList={previewMediaList}
@@ -1401,6 +1422,11 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               alt={getMediaTitle(media)}
               loading="lazy"
               decoding="async"
+              onContextMenu={(event) => {
+                if (!canDownloadResources) {
+                  event.preventDefault();
+                }
+              }}
               className="block h-full w-full object-cover"
             />
           );
@@ -1412,9 +1438,15 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
               key={`${media.id}-${previewPlaybackKey}`}
               src={getPreferredMediaUrl(media)}
               controls
+              controlsList="nodownload noremoteplayback"
               playsInline
               autoPlay={shouldAutoplayPreview}
               preload="metadata"
+              onContextMenu={(event) => {
+                if (!canDownloadResources) {
+                  event.preventDefault();
+                }
+              }}
               className="block h-full w-full bg-black object-contain"
               onLoadedMetadata={() => restorePreviewPlaybackPosition(media.id)}
               onTimeUpdate={() => {
@@ -1461,6 +1493,21 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
         <div
           className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}
         >
+          {canDownloadResources && (
+            <div className="mb-3 flex justify-end">
+              <button
+                onClick={() => openDownloadUrl(getMainSlideDownloadUrl())}
+                className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                  theme === "dark"
+                    ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                    : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                }`}
+                title={t("page.courses.download")}
+              >
+                <Download className="h-5 w-5" />
+              </button>
+            </div>
+          )}
           <div className="aspect-video">{renderMainSlide()}</div>
         </div>
       )}
@@ -1744,9 +1791,9 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       </h3>
                     </div>
 
-                    {activePptMedia && (
+                    {activePptMedia && canDownloadResources && (
                       <button
-                        onClick={() => window.open(activePptMedia.url, "_blank")}
+                        onClick={() => openDownloadUrl(getMediaDownloadUrl(activePptMedia))}
                         className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                           theme === "dark"
                             ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
@@ -1770,6 +1817,8 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                       <PptxViewer
                         key={activePptMedia.id}
                         url={activePptMedia.url}
+                        downloadUrl={getMediaDownloadUrl(activePptMedia)}
+                        canDownload={canDownloadResources}
                         preferredPdfUrl={activePptMedia.previewPdfUrl}
                         theme={theme}
                         hyperlinks={activePptHyperlinks}
@@ -1837,17 +1886,19 @@ export function CourseViewer({ course, theme }: CourseViewerProps) {
                             )}
                           </button>
                         )}
-                        <button
-                          onClick={() => window.open(activePreviewMedia.url, "_blank")}
-                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                            theme === "dark"
-                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                          }`}
-                          title={t("page.courses.download")}
-                        >
-                          <Download className="h-5 w-5" />
-                        </button>
+                        {canDownloadResources && (
+                          <button
+                            onClick={() => openDownloadUrl(getMediaDownloadUrl(activePreviewMedia))}
+                            className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                              theme === "dark"
+                                ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                                : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                            }`}
+                            title={t("page.courses.download")}
+                          >
+                            <Download className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

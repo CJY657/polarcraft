@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockCourseModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
   mockCourseModel: {
+    getMainSlide: vi.fn(),
+    getMediaById: vi.fn(),
     getMediaByIds: vi.fn(),
     deleteMediaBatch: vi.fn(),
   },
@@ -24,6 +26,8 @@ function createResponse() {
   return {
     success: vi.fn(),
     error: vi.fn(),
+    download: vi.fn(),
+    redirect: vi.fn(),
   };
 }
 
@@ -109,5 +113,52 @@ describe('CourseController.deleteMediaBatch', () => {
       }
     );
     expect(res.success).toHaveBeenCalledWith({ deletedCount: 2 }, '已删除 2 个媒体资源');
+  });
+});
+
+describe('CourseController resource downloads', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('downloads an existing main slide with an attachment filename', async () => {
+    mockCourseModel.getMainSlide.mockResolvedValue({
+      id: 'slide-1',
+      course_id: 'course1',
+      url: '/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.pdf',
+      title_zh: '主课件',
+      title_en: null,
+    });
+
+    const req = {
+      params: { id: 'course1' },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.downloadMainSlide, req, res);
+
+    expect(mockCourseModel.getMainSlide).toHaveBeenCalledWith('course1');
+    expect(res.download).toHaveBeenCalledWith(
+      expect.stringContaining('/courses/unit1/第一单元——冰洲石和布儒斯特实验介绍.pdf'),
+      '主课件.pdf'
+    );
+    expect(res.error).not.toHaveBeenCalled();
+  });
+
+  it('returns not found when a media download target does not exist', async () => {
+    mockCourseModel.getMediaById.mockResolvedValue(null);
+
+    const req = {
+      params: { mediaId: 'missing-media' },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.downloadMedia, req, res);
+
+    expect(mockCourseModel.getMediaById).toHaveBeenCalledWith('missing-media');
+    expect(res.error).toHaveBeenCalledWith('媒体资源不存在', 'NOT_FOUND', 404);
+    expect(res.download).not.toHaveBeenCalled();
   });
 });
