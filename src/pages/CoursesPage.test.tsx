@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CoursesPage } from "./CoursesPage";
 
-const { mockUnitStore, mockGetPublicUnitCourses } = vi.hoisted(() => ({
+const { mockUnitStore, mockGetPublicUnitCourses, mockCoursesByUnit } = vi.hoisted(() => ({
   mockUnitStore: {
     units: [
       {
@@ -30,6 +30,30 @@ const { mockUnitStore, mockGetPublicUnitCourses } = vi.hoisted(() => ({
     fetchUnits: vi.fn(),
   },
   mockGetPublicUnitCourses: vi.fn(() => new Promise(() => {})),
+  mockCoursesByUnit: {
+    unit1: [
+      {
+        id: "course1",
+        title: { "zh-CN": "冰洲石实验" },
+        description: { "zh-CN": "观察双折射" },
+        color: "#0ea5e9",
+      },
+      {
+        id: "course2",
+        title: { "zh-CN": "反射偏振" },
+        description: { "zh-CN": "观察布儒斯特角" },
+        color: "#0ea5e9",
+      },
+    ],
+    unit2: [
+      {
+        id: "course3",
+        title: { "zh-CN": "色偏振" },
+        description: { "zh-CN": "观察应力色彩" },
+        color: "#f97316",
+      },
+    ],
+  },
 }));
 
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -58,16 +82,20 @@ vi.mock("@/lib/unit.service", () => ({
 }));
 
 vi.mock("@/feature/unit/CourseSelector", () => ({
-  CourseSelector: () => <div>course-selector</div>,
+  CourseSelector: ({ courses }: { courses: unknown[] }) => (
+    <div>course-selector-{courses.length}</div>
+  ),
 }));
 
 describe("CoursesPage", () => {
   beforeEach(() => {
     mockGetPublicUnitCourses.mockReset();
-    mockGetPublicUnitCourses.mockImplementation(() => new Promise(() => {}));
+    mockGetPublicUnitCourses.mockImplementation((unitId: keyof typeof mockCoursesByUnit) =>
+      Promise.resolve(mockCoursesByUnit[unitId] ?? []),
+    );
   });
 
-  it("renders a prominent link back to the home page", () => {
+  it("renders a prominent link back to the home page", async () => {
     render(
       <MemoryRouter>
         <CoursesPage />
@@ -75,11 +103,12 @@ describe("CoursesPage", () => {
     );
 
     expect(screen.getByRole("link", { name: "返回主页" }).getAttribute("href")).toBe("/");
+    await waitFor(() => {
+      expect(mockGetPublicUnitCourses).toHaveBeenCalled();
+    });
   });
 
   it("defaults to all experiments and loads every unit on first render", async () => {
-    mockGetPublicUnitCourses.mockResolvedValue([]);
-
     render(
       <MemoryRouter>
         <CoursesPage />
@@ -92,12 +121,15 @@ describe("CoursesPage", () => {
     });
 
     expect(screen.getByText("查看全部实验")).toBeDefined();
-    expect(screen.getByText("3 个实验")).toBeDefined();
+    expect(screen.getAllByText("3 个实验").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("章节结构").length).toBe(2);
+    expect(screen.getByText("冰洲石实验")).toBeDefined();
+    expect(screen.getByText("反射偏振")).toBeDefined();
+    expect(screen.getByText("色偏振")).toBeDefined();
+    expect(screen.getByText("course-selector-3")).toBeDefined();
   });
 
   it("can switch from a unit back to all experiments", async () => {
-    mockGetPublicUnitCourses.mockResolvedValue([]);
-
     render(
       <MemoryRouter>
         <CoursesPage />
@@ -116,6 +148,7 @@ describe("CoursesPage", () => {
     await waitFor(() => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
     });
+    expect(screen.getByText("course-selector-2")).toBeDefined();
 
     mockGetPublicUnitCourses.mockClear();
 
@@ -125,5 +158,6 @@ describe("CoursesPage", () => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
     });
+    expect(screen.getByText("course-selector-3")).toBeDefined();
   });
 });

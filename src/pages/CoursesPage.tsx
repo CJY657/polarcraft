@@ -62,6 +62,11 @@ export function CoursesPage() {
   const [selectedUnitCoursesLoading, setSelectedUnitCoursesLoading] = useState(false);
   const [selectedUnitCoursesError, setSelectedUnitCoursesError] = useState<string | null>(null);
   const [selectedUnitCoursesReloadKey, setSelectedUnitCoursesReloadKey] = useState(0);
+  const [unitCourseStructures, setUnitCourseStructures] = useState<
+    Record<string, CourseSelectorCourse[]>
+  >({});
+  const [unitCourseStructuresLoading, setUnitCourseStructuresLoading] = useState(false);
+  const [unitCourseStructuresError, setUnitCourseStructuresError] = useState<string | null>(null);
 
   const { units, isLoading: unitsLoading, fetchUnits } = useUnitStore();
 
@@ -167,6 +172,55 @@ export function CoursesPage() {
       isCancelled = true;
     };
   }, [isAllExperimentsSelected, isZh, selectedUnit, selectedUnitCoursesReloadKey, units]);
+
+  useEffect(() => {
+    if (units.length === 0) {
+      setUnitCourseStructures({});
+      setUnitCourseStructuresLoading(false);
+      setUnitCourseStructuresError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setUnitCourseStructuresLoading(true);
+    setUnitCourseStructuresError(null);
+
+    Promise.all(
+      units.map(async (unit) => {
+        const courses = await unitApi.getPublicUnitCourses(unit.id);
+
+        return [unit.id, courses] as const;
+      }),
+    )
+      .then((entries) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setUnitCourseStructures(Object.fromEntries(entries));
+        setUnitCourseStructuresLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setUnitCourseStructures({});
+        setUnitCourseStructuresLoading(false);
+        setUnitCourseStructuresError(
+          error instanceof Error
+            ? error.message
+            : isZh
+              ? "实验加载失败"
+              : "Failed to load experiments",
+        );
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isZh, units]);
 
   const surfaceClass =
     theme === "dark" ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-white";
@@ -331,6 +385,10 @@ export function CoursesPage() {
                     >
                       {units.map((unit) => {
                         const isSelected = selectedUnit?.id === unit.id;
+                        const unitCourses = unitCourseStructures[unit.id] ?? [];
+                        const unitExperimentCount = unit.courseCount || 0;
+                        const isUnitStructureLoading =
+                          unitCourseStructuresLoading && !unitCourseStructures[unit.id];
 
                         return (
                           <button
@@ -379,8 +437,62 @@ export function CoursesPage() {
                                       : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
                                   )}
                                 >
-                                  {unit.courseCount || 0} {isZh ? "个实验" : "experiments"}
+                                  {unitExperimentCount} {isZh ? "个实验" : "experiments"}
                                 </span>
+                              </div>
+                              <div
+                                className={cn(
+                                  "mt-3 rounded-xl border px-3 py-2",
+                                  theme === "dark"
+                                    ? "border-slate-800 bg-slate-950/45"
+                                    : "border-slate-200 bg-white/72",
+                                )}
+                              >
+                                <p
+                                  className={cn(
+                                    "text-[10px] font-bold uppercase tracking-[0.16em]",
+                                    theme === "dark" ? "text-slate-500" : "text-slate-400",
+                                  )}
+                                >
+                                  {isZh ? "章节结构" : "Structure"}
+                                </p>
+                                {isUnitStructureLoading ? (
+                                  <p className={cn("mt-1 text-xs", mutedTextClass)}>
+                                    {isZh ? "加载中..." : "Loading..."}
+                                  </p>
+                                ) : unitCourseStructuresError && unitCourses.length === 0 ? (
+                                  <p className={cn("mt-1 text-xs", mutedTextClass)}>
+                                    {isZh
+                                      ? "结构暂不可用"
+                                      : "Structure unavailable"}
+                                  </p>
+                                ) : unitCourses.length === 0 ? (
+                                  <p className={cn("mt-1 text-xs", mutedTextClass)}>
+                                    {isZh ? "暂无实验章节" : "No experiment chapters"}
+                                  </p>
+                                ) : (
+                                  <ol className="mt-1.5 space-y-1">
+                                    {unitCourses.map((course, index) => (
+                                      <li key={course.id} className="flex items-start gap-2 text-xs">
+                                        <span
+                                          className="mt-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                                          style={{
+                                            backgroundColor:
+                                              theme === "dark"
+                                                ? `${unit.color}24`
+                                                : `${unit.color}14`,
+                                            color: unit.color,
+                                          }}
+                                        >
+                                          {index + 1}
+                                        </span>
+                                        <span className={cn("line-clamp-2", mutedTextClass)}>
+                                          {getLabel(course.title)}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ol>
+                                )}
                               </div>
                             </div>
                           </button>

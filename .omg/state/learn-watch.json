@@ -1,0 +1,12 @@
+{
+  "last_session_id": "bc481e35-491d-4e63-a99d-ca1d4df8e2d5",
+  "last_event_key": "bc481e35-491d-4e63-a99d-ca1d4df8e2d5:transcript:bece28e50166565b28d4d361e88cd786c695c009c046e2410bf19a5f8ae04e72",
+  "last_prompted_session_id": "",
+  "last_prompted_at": "",
+  "last_reason": "short-session",
+  "last_user_message_count": 1,
+  "last_actionable_message_count": 0,
+  "deep_interview_lock_active": false,
+  "deep_interview_lock_source": "/home/cjy/polarcraft/.omg/state/deep-interview.json",
+  "updated_at": "2026-04-17T06:11:38.288Z"
+}
