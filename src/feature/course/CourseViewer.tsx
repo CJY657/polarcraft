@@ -2115,7 +2115,7 @@ export function CourseViewer({
               <div className="flex-1 min-w-0">
                 {selectedMedia ? (
                   <div className="space-y-4">
-                    <div className="aspect-video rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+                    <div className="aspect-video flex items-center justify-center overflow-visible">
                       {renderMedia(selectedMedia)}
                     </div>
                     <div className="flex items-center justify-between px-1">
