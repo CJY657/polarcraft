@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Compass, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowLeft, Compass, LockKeyhole } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -10,7 +10,6 @@ interface ModuleUnavailablePageProps {
   moduleEyebrow: string;
   title: string;
   description: string;
-  note: string;
 }
 
 export function ModuleUnavailablePage({
@@ -19,7 +18,6 @@ export function ModuleUnavailablePage({
   moduleEyebrow,
   title,
   description,
-  note,
 }: ModuleUnavailablePageProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -97,17 +95,6 @@ export function ModuleUnavailablePage({
                 {description}
               </p>
 
-              <div
-                className="mt-6 rounded-[1.8rem] border px-5 py-5"
-                style={{
-                  borderColor: isDark ? `${accent}36` : `${accent}1e`,
-                  background: isDark ? `${accent}12` : `${accent}0d`,
-                }}
-              >
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">当前说明</p>
-                <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">{note}</p>
-              </div>
-
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   to="/"
@@ -124,41 +111,6 @@ export function ModuleUnavailablePage({
                 </Link>
               </div>
             </div>
-
-            <aside className="grid gap-4">
-              {[
-                {
-                  title: "入口状态",
-                  text: "首页与模块地图中的对应入口已经关闭，学生不会再点进未完成页面。",
-                },
-                {
-                  title: "当前原因",
-                  text: "内容、交互或稳定性仍在优化中，先以明确状态替代报错体验。",
-                },
-                {
-                  title: "建议路径",
-                  text: "可先从实验内容、交互模拟和成果展示继续学习，不影响主线使用。",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[1.8rem] border px-5 py-5"
-                  style={{
-                    borderColor: isDark ? `${accent}28` : `${accent}18`,
-                    background: isDark ? "rgba(7, 13, 18, 0.64)" : "rgba(255, 255, 255, 0.78)",
-                  }}
-                >
-                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--paper-border)] bg-[var(--paper-surface-strong)]/85">
-                    <Sparkles
-                      className="h-4 w-4"
-                      style={{ color: accent }}
-                    />
-                  </div>
-                  <h2 className="mt-4 text-lg font-semibold text-[var(--paper-foreground)]">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">{item.text}</p>
-                </div>
-              ))}
-            </aside>
           </div>
         </section>
       </main>

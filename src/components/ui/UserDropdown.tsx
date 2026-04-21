@@ -135,12 +135,6 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
         ]
       : []),
     {
-      id: 'settings',
-      label: t('settings.title', '设置'),
-      icon: Settings,
-      href: '/settings',
-    },
-    {
       id: 'logout',
       label: t('auth.logout', '登出'),
       icon: LogOut,

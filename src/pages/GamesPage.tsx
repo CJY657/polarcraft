@@ -6,9 +6,8 @@ export default function GamesPage() {
       accent="#d48b1e"
       moduleName="游戏化挑战"
       moduleEyebrow="Challenge Mode"
-      title="游戏化挑战正在优化中"
-      description="挑战关卡、游戏交互和相关内容还在调整中，现阶段暂不向学生开放。"
-      note="当前先关闭学生入口，避免进入未完成关卡或跳转后看到报错信息。后续稳定后会再恢复访问。"
+      title="游戏化挑战"
+      description="物理原理变通关策略。2D关卡规划光路、3D体素搭建装置、卡牌对战验证直觉、密室逃脱破解机关。"
     />
   );
 }

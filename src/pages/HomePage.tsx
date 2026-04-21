@@ -37,7 +37,6 @@ interface ModuleConfig {
   accent: string;
   status?: "available" | "unavailable";
   statusLabel?: string;
-  statusMessage?: string;
 }
 
 const MODULES: ModuleConfig[] = [
@@ -68,7 +67,6 @@ const MODULES: ModuleConfig[] = [
     accent: "#14bf96",
     status: "unavailable",
     statusLabel: "暂不开放",
-    statusMessage: "器件库与光路搭建仍在优化中，现阶段暂不向学生开放。",
   },
   {
     id: "demos",
@@ -97,7 +95,6 @@ const MODULES: ModuleConfig[] = [
     accent: "#d48b1e",
     status: "unavailable",
     statusLabel: "暂不开放",
-    statusMessage: "挑战关卡与游戏交互仍在调整中，现阶段暂不向学生开放。",
   },
   {
     id: "gallery",
@@ -257,19 +254,11 @@ export function HomePage() {
                   </div>
 
                   <p className="mt-4 text-sm leading-relaxed text-[var(--glass-text-muted)]">
-                    {isUnavailable ? module.statusMessage : t(`${module.i18nNamespace}.description`)}
+                    {t(`${module.i18nNamespace}.description`)}
                   </p>
 
                   {isUnavailable ? (
-                    <div
-                      className="mt-5 rounded-[1.2rem] border px-3 py-3 text-xs leading-6 text-[var(--glass-text-muted)]"
-                      style={{
-                        borderColor: theme === "dark" ? `${module.accent}28` : `${module.accent}18`,
-                        backgroundColor: theme === "dark" ? `${module.accent}10` : `${module.accent}08`,
-                      }}
-                    >
-                      当前先隐藏学生入口，避免进入未完成内容后看到报错信息。
-                    </div>
+                    null
                   ) : (
                     <>
                       <div className="mt-4 flex flex-wrap gap-2">

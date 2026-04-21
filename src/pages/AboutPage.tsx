@@ -42,7 +42,6 @@ interface ModuleCard {
   accent: AccentConfig;
   spanClassName: string;
   status?: "available" | "unavailable";
-  statusNote?: string;
 }
 
 const PLATFORM_PILLARS: Pillar[] = [
@@ -100,13 +99,12 @@ const MODULE_MAP: ModuleCard[] = [
   {
     title: "游戏挑战",
     route: "/games",
-    description: "挑战任务与交互逻辑仍在优化中，当前暂不向学生开放。",
+    description: "物理原理变通关策略，包含解谜、建造与策略玩法。",
     eyebrow: "Challenge",
     Icon: Orbit,
     accent: { color: "#c58b1d", soft: "rgba(197, 139, 29, 0.12)", glow: "rgba(197, 139, 29, 0.16)" },
     spanClassName: "md:col-span-2",
     status: "unavailable",
-    statusNote: "入口暂时关闭，避免学生点进未完成页面后直接看到报错信息。",
   },
   {
     title: "成果展示",
@@ -345,17 +343,7 @@ export default function AboutPage() {
 
                   <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">{module.description}</p>
 
-                  {isUnavailable ? (
-                    <div
-                      className="mt-5 rounded-[1.2rem] border px-3 py-3 text-sm leading-7 text-[var(--glass-text-muted)]"
-                      style={{
-                        borderColor: isDark ? `${module.accent.color}28` : `${module.accent.color}16`,
-                        background: isDark ? `${module.accent.color}10` : `${module.accent.color}08`,
-                      }}
-                    >
-                      {module.statusNote}
-                    </div>
-                  ) : (
+                  {isUnavailable ? null : (
                     <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: module.accent.color }}>
                       打开模块
                       <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />

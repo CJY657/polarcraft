@@ -70,7 +70,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-white mb-2">Oops! Something went wrong. The new page is developing now.</h2>
+            <h2 className="text-xl font-semibold text-white mb-2">Oops! Something went wrong.</h2>
             <p className="text-gray-400 mb-4 text-sm">
               {this.state.error?.message || "An unexpected error occurred"}
             </p>
@@ -88,16 +88,6 @@ export class ErrorBoundary extends Component<Props, State> {
                 Go Home
               </button>
             </div>
-            {import.meta.env.DEV && this.state.error && (
-              <details className="mt-4 text-left">
-                <summary className="text-gray-500 text-xs cursor-pointer hover:text-gray-400">
-                  Error Details (Dev Only)
-                </summary>
-                <pre className="mt-2 p-2 bg-slate-900 rounded text-xs text-red-400 overflow-auto max-h-40">
-                  {this.state.error.stack}
-                </pre>
-              </details>
-            )}
           </div>
         </div>
       );
