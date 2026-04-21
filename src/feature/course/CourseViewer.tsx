@@ -102,11 +102,22 @@ function getPreferredMediaUrl(media: MediaResource) {
   }
 
   const matchedFilename = media.url.match(/\/courses\/unit2\/([^/?#]+\.mp4)(?:[?#].*)?$/)?.[1];
-  if (!matchedFilename || !OPTIMIZED_UNIT2_VIDEO_FILENAMES.has(matchedFilename)) {
+  if (!matchedFilename) {
     return media.url;
   }
 
-  return `/videos/chromatic-polarization/${matchedFilename}`;
+  let decodedFilename = matchedFilename;
+  try {
+    decodedFilename = decodeURIComponent(matchedFilename);
+  } catch {
+    decodedFilename = matchedFilename;
+  }
+
+  if (!OPTIMIZED_UNIT2_VIDEO_FILENAMES.has(decodedFilename)) {
+    return media.url;
+  }
+
+  return `/videos/chromatic-polarization/${decodedFilename}`;
 }
 
 function fitPresentationSize(width: number, height: number, aspectRatio: number) {
@@ -1230,7 +1241,7 @@ export function CourseViewer({
       return;
     }
 
-    const shouldSyncDeck = options.syncDeck ?? true;
+    const shouldSyncDeck = options.syncDeck ?? false;
     persistPreviewPlaybackPosition();
 
     if (media.type === "video") {
@@ -1417,18 +1428,31 @@ export function CourseViewer({
 
         case "image":
           return (
-            <img
-              src={media.url}
-              alt={getMediaTitle(media)}
-              loading="lazy"
-              decoding="async"
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={
+                isZh
+                  ? `打开完整图片：${getMediaTitle(media)}`
+                  : `Open full image: ${getMediaTitle(media)}`
+              }
               onContextMenu={(event) => {
                 if (!canDownloadResources) {
                   event.preventDefault();
                 }
               }}
-              className="block h-full w-full object-cover"
-            />
+              className={`block h-full w-full bg-black ${
+                isFullscreen ? "cursor-zoom-out" : "cursor-zoom-in"
+              }`}
+            >
+              <img
+                src={media.url}
+                alt={getMediaTitle(media)}
+                loading="lazy"
+                decoding="async"
+                className="block h-full w-full object-contain"
+              />
+            </button>
           );
 
         case "video":
@@ -1865,7 +1889,8 @@ export function CourseViewer({
 
                     {activePreviewMedia && (
                       <div className="flex items-center gap-2">
-                        {activePreviewMedia.type === "video" && (
+                        {(activePreviewMedia.type === "video" ||
+                          activePreviewMedia.type === "image") && (
                           <button
                             onClick={toggleFullscreen}
                             className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${

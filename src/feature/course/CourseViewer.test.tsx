@@ -207,7 +207,77 @@ describe("CourseViewer media preview regressions", () => {
     });
 
     expect(document.querySelector("video")).toBeNull();
-    expect(screen.queryByTitle("page.courses.fullscreen")).toBeNull();
+    expect(screen.getByTitle("page.courses.fullscreen")).toBeTruthy();
+  });
+
+  it("uses optimized unit 2 video sources even when course URLs are encoded", async () => {
+    const encodedUnit2VideoUrl = encodeURI(
+      "/courses/unit2/实验-透明胶条-正交偏振系统-旋转样品视频.mp4"
+    );
+    const encodedVideoCourse: CourseData = {
+      ...courseFixture,
+      media: [
+        courseFixture.media[0],
+        {
+          id: "unit2-video-encoded",
+          type: "video",
+          url: encodedUnit2VideoUrl,
+          title: { "zh-CN": "编码视频" },
+          duration: 21,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={encodedVideoCourse} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector("video")).toBeTruthy();
+    });
+
+    expect(container.querySelector("video")?.getAttribute("src")).toBe(
+      "/videos/chromatic-polarization/实验-透明胶条-正交偏振系统-旋转样品视频.mp4"
+    );
+  });
+
+  it("does not move the deck page when selecting media from the resource list", async () => {
+    const linkedCourse: CourseData = {
+      ...courseFixture,
+      hyperlinks: [
+        {
+          id: "ppt-image-link",
+          sourceMediaId: "ppt-1",
+          page: 2,
+          x: 0.5,
+          y: 0.5,
+          width: 0.2,
+          height: 0.2,
+          targetMediaId: "image-1",
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter>
+        <CourseViewer course={linkedCourse} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /实验图片/ }));
+
+    await waitFor(() => {
+      expect(screen.getByAltText("实验图片")).toBeTruthy();
+    });
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+    expect(screen.queryByText("2 / 2")).toBeNull();
   });
 
   it("hides course resource download controls for non-admin viewers", async () => {
