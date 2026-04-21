@@ -792,7 +792,7 @@ function PptxViewer({
   return (
     <div
       ref={wrapperRef}
-      className="pptx-linked-deck relative flex h-full w-full items-center justify-center overflow-hidden"
+      className="pptx-linked-deck relative flex h-full w-full items-center justify-center overflow-visible"
     >
       <style>
         {`
@@ -902,10 +902,10 @@ function PptxViewer({
       )}
 
       <div
-        className={`relative flex max-h-full max-w-full items-center justify-center overflow-hidden rounded-[28px] border ${
+        className={`relative flex max-h-full max-w-full items-center justify-center overflow-hidden rounded-[28px] border transition-all duration-500 ${
           theme === "dark"
-            ? "border-slate-700/80 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_rgba(15,23,42,0.92)_62%)]"
-            : "border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.28),_rgba(255,255,255,0.98)_62%)]"
+            ? "border-slate-700/80 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_rgba(15,23,42,0.92)_62%)] shadow-2xl shadow-black/40"
+            : "border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.28),_rgba(255,255,255,0.98)_62%)] shadow-xl shadow-slate-200/50"
         }`}
         style={{
           width: `${stageSize.width}px`,
@@ -1441,7 +1441,7 @@ export function CourseViewer({
                   event.preventDefault();
                 }
               }}
-              className={`block h-full w-full bg-black ${
+              className={`relative flex h-full w-full items-center justify-center border-0 bg-transparent p-0 ${
                 isFullscreen ? "cursor-zoom-out" : "cursor-zoom-in"
               }`}
             >
@@ -1450,7 +1450,15 @@ export function CourseViewer({
                 alt={getMediaTitle(media)}
                 loading="lazy"
                 decoding="async"
-                className="block h-full w-full object-contain"
+                className={
+                  isFullscreen
+                    ? "block h-full w-full bg-black object-contain"
+                    : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border bg-black transition-all duration-500 ${
+                        theme === "dark"
+                          ? "border-slate-700/80 shadow-2xl shadow-black/40"
+                          : "border-slate-200 shadow-xl shadow-slate-200/50"
+                      }`
+                }
               />
             </button>
           );
@@ -1471,7 +1479,15 @@ export function CourseViewer({
                   event.preventDefault();
                 }
               }}
-              className="block h-full w-full bg-black object-contain"
+              className={
+                isFullscreen
+                  ? "block h-full w-full bg-black object-contain"
+                  : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border bg-black transition-all duration-500 ${
+                      theme === "dark"
+                        ? "border-slate-700/80 shadow-2xl shadow-black/40"
+                        : "border-slate-200 shadow-xl shadow-slate-200/50"
+                    }`
+              }
               onLoadedMetadata={() => restorePreviewPlaybackPosition(media.id)}
               onTimeUpdate={() => {
                 if (!previewVideoRef.current) {
@@ -1503,7 +1519,7 @@ export function CourseViewer({
       <div
         ref={previewSurfaceRef}
         id="preview-surface"
-        className={`h-full w-full overflow-hidden ${isFullscreen ? "bg-black" : "rounded-xl"}`}
+        className={`flex h-full w-full items-center justify-center overflow-visible ${isFullscreen ? "bg-black" : ""}`}
       >
         {renderMediaBody()}
       </div>
@@ -1831,11 +1847,7 @@ export function CourseViewer({
                   </div>
 
                   <div
-                    className={`aspect-[16/10] lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
-                      theme === "dark"
-                        ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
-                        : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
-                    }`}
+                    className="aspect-[16/10] lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] flex items-center justify-center overflow-visible transition-all duration-500"
                   >
                     {activePptMedia ? (
                       <PptxViewer
@@ -1854,7 +1866,13 @@ export function CourseViewer({
                         activeMediaId={activeHighlightedMediaId}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center p-12 text-center">
+                      <div
+                        className={`flex h-full w-full items-center justify-center p-12 text-center rounded-[28px] border transition-all duration-500 ${
+                          theme === "dark"
+                            ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                            : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
+                        }`}
+                      >
                         <div>
                           <FileText
                             className={`mx-auto mb-4 h-12 w-12 opacity-20 ${theme === "dark" ? "text-white" : "text-slate-900"}`}
@@ -1929,16 +1947,18 @@ export function CourseViewer({
                   </div>
 
                   <div
-                    className={`aspect-video lg:aspect-auto lg:h-[380px] xl:h-[420px] 2xl:h-[480px] overflow-hidden rounded-[28px] border transition-all duration-500 ${
-                      theme === "dark"
-                        ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
-                        : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
-                    }`}
+                    className="aspect-video lg:aspect-auto lg:h-[380px] xl:h-[420px] 2xl:h-[480px] flex items-center justify-center overflow-visible transition-all duration-500"
                   >
                     {activePreviewMedia ? (
                       renderMedia(activePreviewMedia)
                     ) : (
-                      <div className="flex h-full items-center justify-center px-12 text-center">
+                      <div
+                        className={`flex h-full w-full items-center justify-center px-12 text-center rounded-[28px] border transition-all duration-500 ${
+                          theme === "dark"
+                            ? "border-slate-700/80 bg-slate-950/80 shadow-2xl shadow-black/40"
+                            : "border-slate-200 bg-white shadow-xl shadow-slate-200/50"
+                        }`}
+                      >
                         <div className="max-w-[240px]">
                           <div
                             className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl opacity-20 ${theme === "dark" ? "bg-white/10 text-white" : "bg-slate-900/10 text-slate-900"}`}
