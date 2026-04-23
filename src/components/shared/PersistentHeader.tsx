@@ -106,10 +106,7 @@ export function PersistentHeader({
     <header
       className={cn(
         "relative z-50 border-b",
-        isTransparent
-          ? "border-transparent bg-transparent text-white shadow-none"
-          : "border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)]/95 text-[var(--paper-foreground)] shadow-[0_12px_24px_-24px_rgba(36,59,83,0.3)] backdrop-blur",
-        className,
+        className
       )}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
