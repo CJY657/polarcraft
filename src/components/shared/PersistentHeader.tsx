@@ -96,7 +96,7 @@ export function PersistentHeader({
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const moduleTheme = moduleKey ? MODULE_THEMES[moduleKey] ?? null : null;
+  const moduleTheme = moduleKey ? (MODULE_THEMES[moduleKey] ?? null) : null;
   const ModuleIcon =
     moduleKey && moduleKey in ModuleIconMap ? ModuleIconMap[moduleKey as ModuleIconKey] : null;
   const displayName = moduleName || (moduleNameKey ? t(moduleNameKey, moduleNameKey) : null);
@@ -106,7 +106,10 @@ export function PersistentHeader({
     <header
       className={cn(
         "relative z-50 border-b",
-        className
+        isTransparent
+          ? "border-transparent bg-transparent text-white shadow-none"
+          : "border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)]/95 text-[var(--paper-foreground)] shadow-[0_12px_24px_-24px_rgba(36,59,83,0.3)] backdrop-blur",
+        className,
       )}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -153,7 +156,10 @@ export function PersistentHeader({
                 >
                   PolarCraft
                 </p>
-                <p className="truncate text-base font-semibold" style={{ fontFamily: "var(--font-ui-display)" }}>
+                <p
+                  className="truncate text-base font-semibold"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
                   偏振实验平台
                 </p>
               </div>
@@ -176,8 +182,17 @@ export function PersistentHeader({
                         : "text-white/80 hover:bg-white/10 hover:text-white"
                       : isActive
                         ? "bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                        : "text-[var(--glass-text-muted)] hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]",
+                        : moduleTheme?.primary
+                          ? "hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]"
+                          : "text-[var(--glass-text-muted)] hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]",
                   )}
+                  style={
+                    !isTransparent && moduleTheme?.primary && !isActive
+                      ? {
+                          color: moduleTheme.primary,
+                        }
+                      : undefined
+                  }
                 >
                   {item.label}
                 </Link>
@@ -223,7 +238,9 @@ export function PersistentHeader({
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className={cn(
                 "inline-flex h-10 w-10 items-center justify-center rounded-full border lg:hidden",
-                isTransparent ? "border-white/20 bg-black/25 text-white" : "glass-button text-[var(--paper-foreground)]",
+                isTransparent
+                  ? "border-white/20 bg-black/25 text-white"
+                  : "glass-button text-[var(--paper-foreground)]",
               )}
               aria-label={mobileMenuOpen ? "关闭菜单" : "打开菜单"}
             >
@@ -251,14 +268,23 @@ export function PersistentHeader({
                         to={item.path}
                         className={cn(
                           "rounded-2xl border px-4 py-3 text-sm font-medium transition-colors",
-                        isTransparent
-                          ? isActive
+                          isTransparent
+                            ? isActive
                               ? "border-white/24 bg-white/12 text-white"
                               : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                             : isActive
                               ? "border-[var(--paper-link)] bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                              : "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] text-[var(--paper-foreground)] hover:text-[var(--paper-link)]",
+                              : moduleTheme?.primary
+                                ? "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] hover:text-[var(--paper-link)]"
+                                : "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] text-[var(--paper-foreground)] hover:text-[var(--paper-link)]",
                         )}
+                        style={
+                          !isTransparent && moduleTheme?.primary && !isActive
+                            ? {
+                                color: moduleTheme.primary,
+                              }
+                            : undefined
+                        }
                       >
                         {item.label}
                       </Link>
@@ -314,8 +340,15 @@ export function MiniLogo({ size = 24, className }: { size?: number; className?: 
   const { theme } = useTheme();
 
   return (
-    <Link to="/" className={cn("inline-flex items-center", className)}>
-      <PolarCraftLogo size={size} theme={theme} animated={false} />
+    <Link
+      to="/"
+      className={cn("inline-flex items-center", className)}
+    >
+      <PolarCraftLogo
+        size={size}
+        theme={theme}
+        animated={false}
+      />
     </Link>
   );
 }
