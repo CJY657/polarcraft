@@ -182,17 +182,8 @@ export function PersistentHeader({
                         : "text-white/80 hover:bg-white/10 hover:text-white"
                       : isActive
                         ? "bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                        : moduleTheme?.primary
-                          ? "hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]"
-                          : "text-[var(--glass-text-muted)] hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]",
+                        : "text-[var(--glass-text-muted)] hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]",
                   )}
-                  style={
-                    !isTransparent && moduleTheme?.primary && !isActive
-                      ? {
-                          color: moduleTheme.primary,
-                        }
-                      : undefined
-                  }
                 >
                   {item.label}
                 </Link>
@@ -274,17 +265,8 @@ export function PersistentHeader({
                               : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                             : isActive
                               ? "border-[var(--paper-link)] bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                              : moduleTheme?.primary
-                                ? "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] hover:text-[var(--paper-link)]"
-                                : "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] text-[var(--paper-foreground)] hover:text-[var(--paper-link)]",
+                              : "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] text-[var(--paper-foreground)] hover:text-[var(--paper-link)]",
                         )}
-                        style={
-                          !isTransparent && moduleTheme?.primary && !isActive
-                            ? {
-                                color: moduleTheme.primary,
-                              }
-                            : undefined
-                        }
                       >
                         {item.label}
                       </Link>

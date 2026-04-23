@@ -131,24 +131,6 @@ export function PublicProjectExplorePage() {
         variant="glass"
         showBreadcrumb={false}
         className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
-        rightContent={
-          <div className="flex items-center gap-2">
-            <Link
-              to="/lab/projects"
-              className="glass-button inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium"
-            >
-              我的课题
-            </Link>
-            <button
-              onClick={handleCreateProject}
-              disabled={!isSystemHealthy}
-              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" />
-              新建课题
-            </button>
-          </div>
-        }
       />
 
       <main className="research-shell py-6 md:py-8">
@@ -165,6 +147,23 @@ export function PublicProjectExplorePage() {
               <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
                 这里统一列出已有课题的名称、简介、组长和成员。看完现有方向后，如果没有合适的，就直接新建课题。
               </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  to="/lab/projects"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                >
+                  <Users className="h-4 w-4 text-[var(--paper-link)]" />
+                  我的课题
+                </Link>
+                <button
+                  onClick={handleCreateProject}
+                  disabled={!isSystemHealthy}
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  新建课题
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 xl:w-[28rem]">
