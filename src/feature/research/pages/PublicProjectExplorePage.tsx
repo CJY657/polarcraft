@@ -130,7 +130,7 @@ export function PublicProjectExplorePage() {
         moduleKey="labGroup"
         variant="glass"
         showBreadcrumb={false}
-        className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
+        className="sticky top-0 z-40"
       />
 
       <main className="research-shell py-6 md:py-8">
