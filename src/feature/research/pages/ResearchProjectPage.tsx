@@ -97,7 +97,8 @@ export function ResearchProjectPage() {
   }, [project, user]);
   const isReadOnlyMode =
     !projectId?.startsWith("example-")
-    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole && !isAdmin));
+    && !isAdmin
+    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole));
   const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
   const loadAuthenticatedProjectData = useCallback(async (targetProjectId: string) => {
     const [projectData, settingsData, applicationsData] = await Promise.all([
@@ -355,9 +356,9 @@ export function ResearchProjectPage() {
   const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
 
   const statusBadge = getStatusBadge(displayProject.status);
-  const canManageProject = !isExampleProject && isOwner && !isReadOnlyMode;
+  const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
-  const canParticipateInDiscussion = !isExampleProject && Boolean(user && isMember);
+  const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
 
   const handleApplyAction = () => {
     if (isPublicGuestMode) {
@@ -551,7 +552,7 @@ export function ResearchProjectPage() {
                 </p>
               </div>
 
-              {isOwner && !isReadOnlyMode && (
+              {canManageProject && (
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
@@ -582,7 +583,7 @@ export function ResearchProjectPage() {
                 const isSelfRemoval = isSelf && member.role !== 'owner';
                 const canRemove = !!project && isActualProjectMember && !isReadOnlyMode && (
                   isSelfRemoval || // 成员可以移除自己（退出）
-                  (isOwner && member.role !== 'owner' && !isSelf) // 仅组长可以移除其他成员
+                  ((isOwner || isAdmin) && member.role !== 'owner' && !isSelf) // 组长或管理员可以移除其他成员
                 );
                 const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
 
@@ -628,7 +629,7 @@ export function ResearchProjectPage() {
               })}
             </div>
 
-            {isOwner && !isReadOnlyMode && formerMembers.length > 0 && (
+            {canManageProject && formerMembers.length > 0 && (
               <div className="mt-6 border-t border-[var(--glass-stroke)] pt-6">
                 <div className="mb-4">
                   <div className="research-kicker mb-2">Former Members</div>
@@ -687,11 +688,11 @@ export function ResearchProjectPage() {
           </section>
         )}
 
-        {!isExampleProject && projectId && project && isAuthenticated && isMember && (
+        {!isExampleProject && projectId && project && isAuthenticated && canParticipateInDiscussion && (
           <ProjectDiscussionSection
             projectId={projectId}
             currentUserId={user?.id}
-            canModerate={isOwner}
+            canModerate={isOwner || isAdmin}
             canParticipate={canParticipateInDiscussion}
           />
         )}
@@ -699,7 +700,7 @@ export function ResearchProjectPage() {
       </main>
 
       {/* Application Management Dialog */}
-      {!isExampleProject && projectId && isOwner && (
+      {!isExampleProject && projectId && canManageProject && (
         <ApplicationManagementDialog
           isOpen={isApplicationDialogOpen}
           onClose={() => setIsApplicationDialogOpen(false)}

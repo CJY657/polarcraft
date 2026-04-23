@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const membersFind = vi.fn();
+const membersFindOne = vi.fn();
+const membersCountDocuments = vi.fn();
+const projectsFindOne = vi.fn();
+const canvasesCountDocuments = vi.fn();
 const applicationsFind = vi.fn();
 const projectCommentsFind = vi.fn();
 const activityFind = vi.fn();
@@ -13,6 +17,17 @@ vi.mock('../database/connection.js', () => ({
       case 'research_project_members':
         return {
           find: (...args: unknown[]) => membersFind(...args),
+          findOne: (...args: unknown[]) => membersFindOne(...args),
+          countDocuments: (...args: unknown[]) => membersCountDocuments(...args),
+        };
+      case 'research_projects':
+        return {
+          findOne: (...args: unknown[]) => projectsFindOne(...args),
+          find: () => ({ sort: () => ({ toArray: async () => [] }) }),
+        };
+      case 'research_canvases':
+        return {
+          countDocuments: (...args: unknown[]) => canvasesCountDocuments(...args),
         };
       case 'research_project_applications':
         return {
@@ -103,5 +118,61 @@ describe('ResearchModel.getFormerProjectMembers', () => {
         project_id: 'project-1',
       }),
     ]);
+  });
+});
+
+describe('ResearchModel.getProjectAccess', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectsFindOne.mockResolvedValue({
+      id: 'project-1',
+      name_zh: '私有课题',
+      is_public: false,
+    });
+    membersFindOne.mockResolvedValue(null);
+    membersCountDocuments.mockResolvedValue(1);
+    canvasesCountDocuments.mockResolvedValue(0);
+  });
+
+  it('grants admin full project capabilities without creating membership state', async () => {
+    const access = await ResearchModel.getProjectAccess('project-1', 'admin-1', 'admin');
+
+    expect(access).toEqual(
+      expect.objectContaining({
+        membership: null,
+        role: null,
+        isAdmin: true,
+        isMember: false,
+        canRead: true,
+        canWrite: true,
+        canManage: true,
+        canAccessDiscussion: true,
+        canModerate: true,
+      })
+    );
+  });
+
+  it('keeps ordinary non-members limited to public read access', async () => {
+    projectsFindOne.mockResolvedValue({
+      id: 'project-1',
+      name_zh: '公开课题',
+      is_public: true,
+    });
+
+    const access = await ResearchModel.getProjectAccess('project-1', 'candidate-1', 'user');
+
+    expect(access).toEqual(
+      expect.objectContaining({
+        membership: null,
+        role: null,
+        isAdmin: false,
+        isMember: false,
+        canRead: true,
+        canWrite: false,
+        canManage: false,
+        canAccessDiscussion: false,
+        canModerate: false,
+      })
+    );
   });
 });

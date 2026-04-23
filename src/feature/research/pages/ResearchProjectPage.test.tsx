@@ -12,6 +12,8 @@ const mockGetProjectCanvases = vi.fn();
 const mockGetProjectApplications = vi.fn();
 const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
+const mockRemoveProjectMember = vi.fn();
+const mockProjectDiscussionSection = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
@@ -35,7 +37,9 @@ vi.mock("@/components/shared", () => ({
 }));
 
 vi.mock("../components/project/ApplicationManagementDialog", () => ({
-  ApplicationManagementDialog: () => null,
+  ApplicationManagementDialog: ({ isOpen }: { isOpen: boolean }) => (
+    isOpen ? <div>application-management-dialog</div> : null
+  ),
 }));
 
 vi.mock("../components/project/ProjectEditDialog", () => ({
@@ -51,7 +55,10 @@ vi.mock("../components/project/ProjectApplicationForm", () => ({
 }));
 
 vi.mock("../components/project/ProjectDiscussionSection", () => ({
-  ProjectDiscussionSection: () => null,
+  ProjectDiscussionSection: (props: Record<string, unknown>) => {
+    mockProjectDiscussionSection(props);
+    return <div data-testid="project-discussion-section" />;
+  },
 }));
 
 vi.mock("@/components/ui/dialog", () => ({
@@ -64,7 +71,7 @@ vi.mock("@/lib/research.service", () => ({
     getProjectCanvases: (...args: unknown[]) => mockGetProjectCanvases(...args),
     addProjectMember: (...args: unknown[]) => mockAddProjectMember(...args),
     deleteProject: (...args: unknown[]) => mockDeleteProject(...args),
-    removeProjectMember: vi.fn(),
+    removeProjectMember: (...args: unknown[]) => mockRemoveProjectMember(...args),
   },
 }));
 
@@ -129,6 +136,8 @@ describe("ResearchProjectPage", () => {
     mockGetProjectApplications.mockReset();
     mockAddProjectMember.mockReset();
     mockDeleteProject.mockReset();
+    mockRemoveProjectMember.mockReset();
+    mockProjectDiscussionSection.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
       user: { id: "owner-1", username: "owner", role: "user" },
@@ -140,6 +149,7 @@ describe("ResearchProjectPage", () => {
     mockGetProjectApplications.mockResolvedValue([]);
     mockAddProjectMember.mockResolvedValue(undefined);
     mockDeleteProject.mockResolvedValue(undefined);
+    mockRemoveProjectMember.mockResolvedValue(undefined);
   });
 
   it("lets the owner re-add a former member as member", async () => {
@@ -209,6 +219,138 @@ describe("ResearchProjectPage", () => {
 
     await waitFor(() => {
       expect(mockDeleteProject).toHaveBeenCalledWith("project-1", "DELETE");
+    });
+  });
+
+  it("shows management controls for admins without project membership", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "admin-1", username: "admin", role: "admin" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        is_public: false,
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+        ],
+        former_members: [
+          {
+            id: "former-1",
+            project_id: "project-1",
+            user_id: "user-2",
+            role: "member",
+            active: false,
+            joined_at: new Date().toISOString(),
+            removed_at: new Date().toISOString(),
+            username: "旧成员",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+    mockGetProjectApplications.mockResolvedValue([{ id: "application-1", status: "pending" }]);
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect((await screen.findAllByRole("button", { name: "设置" })).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "编辑" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /申请管理/ })).toBeTruthy();
+    expect(screen.getByText("待恢复成员")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "删除课题" })).toBeTruthy();
+  });
+
+  it("passes discussion participation and moderation rights to admins", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "admin-1", username: "admin", role: "admin" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        is_public: false,
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("project-discussion-section")).toBeTruthy();
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: "project-1",
+          currentUserId: "admin-1",
+          canModerate: true,
+          canParticipate: true,
+        })
+      );
+    });
+  });
+
+  it("allows admins to remove non-owner members without showing them as project members", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "admin-1", username: "admin", role: "admin" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject
+      .mockResolvedValueOnce(
+        createProject({
+          member_count: 2,
+          is_public: false,
+          members: [
+            {
+              id: "member-owner",
+              project_id: "project-1",
+              user_id: "owner-1",
+              role: "owner",
+              joined_at: new Date().toISOString(),
+              username: "组长",
+              avatar_url: null,
+            },
+            {
+              id: "member-2",
+              project_id: "project-1",
+              user_id: "member-2",
+              role: "member",
+              joined_at: new Date().toISOString(),
+              username: "普通成员",
+              avatar_url: null,
+            },
+          ],
+        })
+      )
+      .mockResolvedValueOnce(createProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    await screen.findByText("普通成员");
+    expect(screen.queryByText("admin")).toBeNull();
+
+    fireEvent.click(screen.getByTitle("移除成员"));
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+
+    await waitFor(() => {
+      expect(mockRemoveProjectMember).toHaveBeenCalledWith("project-1", "member-2");
     });
   });
 

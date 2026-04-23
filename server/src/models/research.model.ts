@@ -262,10 +262,10 @@ export class ResearchModel {
       isAdmin,
       isMember,
       canRead: isAdmin || isMember || Boolean(project.is_public),
-      canWrite: isMember,
-      canManage: role === 'owner',
-      canAccessDiscussion: isMember,
-      canModerate: role === 'owner',
+      canWrite: isAdmin || isMember,
+      canManage: isAdmin || role === 'owner',
+      canAccessDiscussion: isAdmin || isMember,
+      canModerate: isAdmin || role === 'owner',
     };
   }
 

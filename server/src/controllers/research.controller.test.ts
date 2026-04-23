@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
+const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
   mockResearchModel: {
     getProjectAccess: vi.fn(),
     getUserProjects: vi.fn(),
@@ -8,8 +8,10 @@ const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
     getProjectMembers: vi.fn(),
     getFormerProjectMembers: vi.fn(),
     getProjectMembership: vi.fn(),
+    getProjectDiscussionCommentById: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
+    deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
   },
   mockProfileModel: {
@@ -17,6 +19,9 @@ const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
     getPendingApplication: vi.fn(),
     getApplicationById: vi.fn(),
     updateApplicationStatus: vi.fn(),
+  },
+  mockManagedUploadCleanupService: {
+    cleanupUrls: vi.fn(),
   },
 }));
 
@@ -26,6 +31,10 @@ vi.mock('../models/research.model.js', () => ({
 
 vi.mock('../models/profile.model.js', () => ({
   ProfileModel: mockProfileModel,
+}));
+
+vi.mock('../services/managed-upload-cleanup.service.js', () => ({
+  ManagedUploadCleanupService: mockManagedUploadCleanupService,
 }));
 
 import { ResearchController } from './research.controller.js';
@@ -75,6 +84,41 @@ describe('ResearchController member management', () => {
     mockProfileModel.getPendingApplication.mockResolvedValue(null);
 
     const req = { params: { id: 'project-1' }, user: { sub: 'owner-1' } };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProject, req, res);
+
+    expect(mockResearchModel.getFormerProjectMembers).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({
+        members: expect.any(Array),
+        former_members: expect.any(Array),
+      })
+    );
+  });
+
+  it('includes former_members when the requester is an admin without membership', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', name_zh: '课题', member_count: 1 },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+    ]);
+    mockResearchModel.getFormerProjectMembers.mockResolvedValue([
+      { user_id: 'former-1', role: 'member', username: 'former', removed_at: new Date().toISOString() },
+    ]);
+    mockProfileModel.getPendingApplication.mockResolvedValue(null);
+
+    const req = { params: { id: 'project-1' }, user: { sub: 'admin-1', username: 'admin', role: 'admin' } };
     const res = createResponse();
 
     await invokeHandler(ResearchController.getProject, req, res);
@@ -246,6 +290,35 @@ describe('ResearchController member management', () => {
     expect(mockProfileModel.getProjectApplications).not.toHaveBeenCalled();
   });
 
+  it('allows an admin to view project applications without owner membership', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockProfileModel.getProjectApplications.mockResolvedValue([
+      { id: 'application-1', status: 'pending' },
+    ]);
+
+    const req = {
+      params: { id: 'project-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectApplications, req, res);
+
+    expect(mockProfileModel.getProjectApplications).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith([{ id: 'application-1', status: 'pending' }]);
+  });
+
   it('allows an admin to delete a project without owner membership', async () => {
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -331,6 +404,134 @@ describe('ResearchController member management', () => {
     expect(mockResearchModel.deleteProject).not.toHaveBeenCalled();
   });
 
+  it('allows an admin to remove a non-owner member without membership', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+      { user_id: 'member-1', role: 'member', username: 'member' },
+    ]);
+    mockResearchModel.removeProjectMember.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'project-1', userId: 'member-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.removeProjectMember, req, res);
+
+    expect(mockResearchModel.removeProjectMember).toHaveBeenCalledWith('project-1', 'member-1');
+    expect(res.success).toHaveBeenCalledWith(null, '成员移除成功');
+  });
+
+  it('does not allow an admin to remove the project owner', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+    ]);
+
+    const req = {
+      params: { id: 'project-1', userId: 'owner-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.removeProjectMember, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
+    expect(mockResearchModel.removeProjectMember).not.toHaveBeenCalled();
+  });
+
+  it('rejects member removal by non-owner users', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'member-1', role: 'member', username: 'member' },
+      { user_id: 'member-2', role: 'member', username: 'other' },
+    ]);
+
+    const req = {
+      params: { id: 'project-1', userId: 'member-2' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.removeProjectMember, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('无权移除成员', 'FORBIDDEN', 403);
+    expect(mockResearchModel.removeProjectMember).not.toHaveBeenCalled();
+  });
+
+  it('allows an admin to delete another user project discussion comment', async () => {
+    mockResearchModel.getProjectDiscussionCommentById.mockResolvedValue({
+      id: 'comment-1',
+      project_id: 'project-1',
+      user_id: 'member-1',
+      image_urls: ['/uploads/project-discussion-project-1/comment.png'],
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.deleteProjectDiscussionComment.mockResolvedValue(true);
+    mockManagedUploadCleanupService.cleanupUrls.mockResolvedValue(undefined);
+
+    const req = {
+      params: { id: 'comment-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProjectDiscussionComment, req, res);
+
+    expect(mockResearchModel.deleteProjectDiscussionComment).toHaveBeenCalledWith('comment-1');
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/project-discussion-project-1/comment.png'],
+      { reason: 'research.project-comment.delete:comment-1' }
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '讨论留言删除成功');
+  });
+
   it('approves applications by adding members as member', async () => {
     mockProfileModel.getApplicationById.mockResolvedValue({
       id: 'application-1',
@@ -338,9 +539,18 @@ describe('ResearchController member management', () => {
       user_id: 'candidate-1',
       status: 'pending',
     });
-    mockResearchModel.getProjectMembers.mockResolvedValue([
-      { user_id: 'owner-1', role: 'owner', username: 'owner' },
-    ]);
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
     mockResearchModel.getProjectMembership.mockResolvedValue({
       user_id: 'candidate-1',
       active: false,
@@ -359,5 +569,81 @@ describe('ResearchController member management', () => {
 
     expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'member');
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
+  });
+
+  it('allows an admin to approve applications without owner membership', async () => {
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembership.mockResolvedValue(null);
+    mockProfileModel.updateApplicationStatus.mockResolvedValue(true);
+    mockResearchModel.addProjectMember.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'application-1' },
+      body: { status: 'approved' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateApplicationStatus, req, res);
+
+    expect(mockProfileModel.updateApplicationStatus).toHaveBeenCalledWith(
+      'application-1',
+      'approved',
+      'admin-1',
+      undefined
+    );
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'member');
+    expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
+  });
+
+  it('rejects application status updates by non-owner users', async () => {
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { id: 'application-1' },
+      body: { status: 'approved' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateApplicationStatus, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('无权处理该申请', 'FORBIDDEN', 403);
+    expect(mockProfileModel.updateApplicationStatus).not.toHaveBeenCalled();
+    expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
   });
 });

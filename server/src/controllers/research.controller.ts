@@ -181,8 +181,7 @@ export class ResearchController {
 
     // Get members
     const members = await ResearchModel.getProjectMembers(id);
-    const currentUser = members.find((member: any) => member.user_id === req.user!.sub);
-    const formerMembers = currentUser?.role === 'owner'
+    const formerMembers = access.canManage
       ? await ResearchModel.getFormerProjectMembers(id)
       : undefined;
     const pendingApplication = await ProfileModel.getPendingApplication(id, req.user!.sub);
@@ -320,6 +319,18 @@ export class ResearchController {
     const { id, userId } = req.params;
     const currentUserId = req.user!.sub;
 
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      currentUserId,
+      req.user!.role,
+      'read',
+      '你只能查看公开课题或已加入的课题'
+    );
+    if (!access) {
+      return;
+    }
+
     // 获取项目成员列表
     const members = await ResearchModel.getProjectMembers(id);
     const currentUser = members.find((m: any) => m.user_id === currentUserId);
@@ -341,8 +352,8 @@ export class ResearchController {
       return res.success(null, '已退出课题组');
     }
 
-    // 权限检查：只有 owner 可以移除其他成员
-    if (!currentUser || currentUser.role !== 'owner') {
+    // 权限检查：只有 owner 或系统管理员可以移除其他成员
+    if (!access.canManage) {
       return res.error('无权移除成员', 'FORBIDDEN', 403);
     }
 
@@ -945,9 +956,8 @@ export class ResearchController {
       return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
     }
 
-    const members = await ResearchModel.getProjectMembers(comment.project_id);
-    const currentMember = members.find((member: any) => member.user_id === currentUserId);
-    const canModerate = currentMember?.role === 'owner';
+    const access = await ResearchModel.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
+    const canModerate = access.canModerate;
 
     if (comment.user_id !== currentUserId && !canModerate) {
       return res.error('无权删除该评论', 'FORBIDDEN', 403);
@@ -1206,11 +1216,16 @@ export class ResearchController {
       return res.error('该申请已处理', 'ALREADY_PROCESSED', 400);
     }
 
-    // Check if user is project owner
-    const members = await ResearchModel.getProjectMembers(application.project_id);
-    const reviewer = members.find((m: any) => m.user_id === reviewerId);
-    if (!reviewer || reviewer.role !== 'owner') {
-      return res.error('无权处理该申请', 'FORBIDDEN', 403);
+    const access = await ensureProjectAccess(
+      res,
+      application.project_id,
+      reviewerId,
+      req.user!.role,
+      'manage',
+      '无权处理该申请'
+    );
+    if (!access) {
+      return;
     }
 
     if (status === 'approved') {
