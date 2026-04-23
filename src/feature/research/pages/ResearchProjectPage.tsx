@@ -375,8 +375,8 @@ export function ResearchProjectPage() {
     <div className="research-page min-h-screen">
       <PersistentHeader
         moduleKey="labGroup"
-        moduleNameKey={displayProject.name_zh}
         variant="glass"
+        showBreadcrumb={false}
         className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
         rightContent={
           <div className="flex items-center gap-2">

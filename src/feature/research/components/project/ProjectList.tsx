@@ -122,8 +122,8 @@ export function ProjectList() {
     <div className="research-page min-h-screen">
       <PersistentHeader
         moduleKey="labGroup"
-        moduleNameKey="虚拟课题组"
         variant="glass"
+        showBreadcrumb={false}
         className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
       />
 

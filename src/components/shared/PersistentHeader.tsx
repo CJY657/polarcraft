@@ -172,7 +172,7 @@ export function PersistentHeader({
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
                     isTransparent
                       ? isActive
                         ? "bg-white/14 text-white"
@@ -190,7 +190,7 @@ export function PersistentHeader({
             {moduleKey && displayName && showBreadcrumb ? (
               <div
                 className={cn(
-                  "ml-2 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium",
+                  "ml-2 inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium",
                   isTransparent
                     ? "border-white/18 bg-white/10 text-white"
                     : "border-[var(--paper-link)]/18 bg-[var(--paper-accent-soft)] text-[var(--paper-link)]",
