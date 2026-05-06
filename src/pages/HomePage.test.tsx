@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { HomePage } from './HomePage';
@@ -65,5 +65,28 @@ describe('HomePage', () => {
     expect(screen.getByTestId('home-module-devices').getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByTestId('home-module-games').getAttribute('aria-disabled')).toBe('true');
     expect(screen.getAllByText('暂不开放')).toHaveLength(2);
+  });
+
+  it('offers one clear first-step action from the hero', () => {
+    render(<HomePage />);
+
+    expect(screen.getByTestId('home-hero')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /先看一个模拟/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /从实验内容开始/ }));
+    expect(mockNavigate).toHaveBeenCalledWith('/experiments');
+  });
+
+  it('links simulation shortcuts to available demos', () => {
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link1' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/em-wave');
+
+    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link2' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/birefringence-iceland-spar');
+
+    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link3' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/brewster-angle');
   });
 });

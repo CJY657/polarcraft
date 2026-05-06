@@ -1,7 +1,16 @@
 import { type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, BookOpenText, Library, LockKeyhole, Sparkles, Globe, Users, Rocket } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenText,
+  Globe,
+  Library,
+  LockKeyhole,
+  Rocket,
+  Sparkles,
+  Users,
+} from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { PersistentHeader } from "@/components/shared";
@@ -74,9 +83,9 @@ const MODULES: ModuleConfig[] = [
     path: "/demos",
     IconComponent: DemosModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.theory.link1", path: "/demos/malus-law" },
-      { labelKey: "home.modules.theory.link2", path: "/demos/birefringence" },
-      { labelKey: "home.modules.theory.link3", path: "/demos/stokes-vector" },
+      { labelKey: "home.modules.theory.link1", path: "/demos/em-wave" },
+      { labelKey: "home.modules.theory.link2", path: "/demos/birefringence-iceland-spar" },
+      { labelKey: "home.modules.theory.link3", path: "/demos/brewster-angle" },
     ],
     workspaceLabel: "计算模拟",
     accent: "#0ea5a4",
@@ -124,6 +133,12 @@ const MODULES: ModuleConfig[] = [
   },
 ];
 
+const HERO_STATS = [
+  { value: "4", label: "实验单元" },
+  { value: "5+", label: "交互模拟" },
+  { value: "3", label: "学习阶段" },
+];
+
 const LEARNING_PATH = [
   {
     title: "先进入实验内容",
@@ -153,6 +168,19 @@ export function HomePage() {
         ? "0 28px 68px -52px rgba(24, 101, 242, 0.55), inset 0 0 0 1px rgba(255,255,255,0.04)"
         : "0 24px 56px -46px rgba(24, 101, 242, 0.18), inset 0 0 0 1px rgba(255,255,255,0.72)",
   };
+  const heroStyle = {
+    borderColor: theme === "dark" ? "rgba(130, 178, 255, 0.22)" : "rgba(24, 101, 242, 0.14)",
+    backgroundImage:
+      theme === "dark"
+        ? "linear-gradient(90deg, rgba(5, 13, 18, 0.92) 0%, rgba(7, 18, 23, 0.76) 48%, rgba(7, 18, 23, 0.24) 100%), url('/images/calcite/双折射成像.jpg')"
+        : "linear-gradient(90deg, rgba(246, 251, 248, 0.96) 0%, rgba(246, 251, 248, 0.74) 50%, rgba(246, 251, 248, 0.18) 100%), url('/images/calcite/双折射成像.jpg')",
+    backgroundPosition: "center",
+    backgroundSize: "cover",
+    boxShadow:
+      theme === "dark"
+        ? "0 34px 76px -54px rgba(130, 178, 255, 0.44), inset 0 0 0 1px rgba(255,255,255,0.04)"
+        : "0 28px 64px -52px rgba(24, 101, 242, 0.22), inset 0 0 0 1px rgba(255,255,255,0.82)",
+  };
   const pathSectionStyle = {
     borderColor: theme === "dark" ? "rgba(15, 155, 116, 0.3)" : "rgba(15, 155, 116, 0.18)",
     boxShadow:
@@ -170,6 +198,55 @@ export function HomePage() {
 
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
         <section
+          data-testid="home-hero"
+          className="relative flex min-h-[460px] overflow-hidden rounded-[2.5rem] border px-6 py-8 sm:min-h-[500px] sm:px-10 lg:px-12"
+          style={heroStyle}
+        >
+          <div className="relative z-10 flex max-w-3xl flex-col justify-between gap-10">
+            <div>
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--paper-link)]/20 bg-[var(--paper-surface-strong)]/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-link)] backdrop-blur">
+                <Sparkles className="h-3.5 w-3.5" />
+                Research learning lab
+              </div>
+
+              <h1
+                className="text-5xl font-semibold leading-none text-[var(--paper-foreground)] sm:text-6xl lg:text-7xl"
+                style={{ fontFamily: "var(--font-ui-display)" }}
+              >
+                PolarCraft
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--paper-foreground)]/88 sm:text-xl">
+                把偏振光的历史故事、真实实验、交互模拟和课题实践放到同一条学习路径里。
+                第一次进入时，可以先完成实验内容，再用模拟验证直觉。
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/experiments")}
+                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
+                >
+                  <BookOpenText className="h-4 w-4" />
+                  从实验内容开始
+                </button>
+              </div>
+            </div>
+
+            <div className="grid max-w-xl grid-cols-3 gap-3">
+              {HERO_STATS.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[1.35rem] border border-[var(--paper-border)] bg-[var(--paper-surface-strong)]/78 px-4 py-3 backdrop-blur"
+                >
+                  <p className="text-2xl font-semibold text-[var(--paper-foreground)]">{stat.value}</p>
+                  <p className="mt-1 text-xs font-medium text-[var(--glass-text-muted)]">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section
           className="relative overflow-hidden rounded-[2rem] border bg-[color:var(--paper-surface-strong)] p-6 sm:p-8"
           style={modulesSectionStyle}
         >
@@ -182,12 +259,12 @@ export function HomePage() {
           <div className="relative space-y-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--paper-link)]">Explore all modules</p>
+              <p className="text-sm font-semibold text-[var(--paper-link)]">学习空间</p>
               <h2
                 className="text-3xl font-semibold"
                 style={{ fontFamily: "var(--font-ui-display)" }}
               >
-                直接进入你需要的学习空间
+                选择你现在需要的入口
               </h2>
             </div>
 
@@ -454,7 +531,7 @@ export function HomePage() {
           <div className="relative">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--paper-link)]">Recommended path</p>
+              <p className="text-sm font-semibold text-[var(--paper-link)]">推荐路径</p>
               <h2
                 className="text-3xl font-semibold"
                 style={{ fontFamily: "var(--font-ui-display)" }}
