@@ -31,6 +31,7 @@ import {
 } from "../DemoControls";
 import {
   calculateWalkOffAngle,
+  calculateBirefringenceRayPaths,
   BIREFRINGENT_MATERIALS,
   type BirefringenceParams,
 } from "@/lib/physics/GeometricOptics";
@@ -40,8 +41,12 @@ import {
   IncidentRay,
   OrdinaryRay,
   ExtraordinaryRay,
+  CrystalInternalPaths,
   OpticalAxisIndicator,
   PolarizationIndicators,
+  SplitPointMarker,
+  ExitRayMarkers,
+  ObservationScreen,
   AngleArc,
   // DoubleTextSample, // Disabled: hides the light
   SceneGrid,
@@ -63,6 +68,114 @@ interface BiRefringenceCanvasProps {
   onResetCamera: () => void;
 }
 
+function supportsWebGL() {
+  if (typeof document === "undefined") return true;
+
+  const canvas = document.createElement("canvas");
+  return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+}
+
+function BirefringenceFallbackGraphic({
+  params,
+  showORay,
+  showERay,
+}: {
+  params: BirefringenceParams;
+  showORay: boolean;
+  showERay: boolean;
+}) {
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+  const exitSeparation = rayPaths.oRayEnd.distanceTo(rayPaths.eRayEnd);
+  const spread = Math.max(7, Math.min(18, exitSeparation * 70));
+  const oExitX = 56 - spread / 2;
+  const eExitX = 56 + spread / 2;
+
+  return (
+    <div className="flex h-full items-center justify-center bg-slate-950 p-6 text-slate-100">
+      <div className="w-full max-w-3xl">
+        <svg
+          viewBox="0 0 100 64"
+          className="h-auto w-full"
+          role="img"
+          aria-label="冰洲石双折射光路示意"
+        >
+          <rect x="0" y="0" width="100" height="64" rx="2" fill="#020617" />
+          <polygon
+            points="31,13 70,13 80,46 41,46"
+            fill="#e0f2fe"
+            fillOpacity="0.22"
+            stroke="#bae6fd"
+            strokeWidth="0.8"
+          />
+          <polygon
+            points="38,9 77,9 80,46 70,13"
+            fill="#f8fafc"
+            fillOpacity="0.12"
+            stroke="#bae6fd"
+            strokeWidth="0.45"
+          />
+          <line x1="18" y1="7" x2="44" y2="13" stroke="#facc15" strokeWidth="1.8" />
+          <circle cx="44" cy="13" r="1.5" fill="#facc15" />
+          {showORay && (
+            <>
+              <line x1="44" y1="13" x2={oExitX} y2="46" stroke="#67e8f9" strokeWidth="2.8" />
+              <line
+                x1={oExitX}
+                y1="46"
+                x2={oExitX + 7}
+                y2="58"
+                stroke="#67e8f9"
+                strokeWidth="1.2"
+                strokeDasharray="2 1.4"
+              />
+              <circle cx={oExitX} cy="46" r="1.3" fill="#67e8f9" />
+              <text x={oExitX - 1.5} y="51" fill="#a5f3fc" fontSize="3" textAnchor="middle">
+                o光出射
+              </text>
+            </>
+          )}
+          {showERay && (
+            <>
+              <line x1="44" y1="13" x2={eExitX} y2="46" stroke="#f472b6" strokeWidth="2.8" />
+              <line
+                x1={eExitX}
+                y1="46"
+                x2={eExitX + 13}
+                y2="58"
+                stroke="#f472b6"
+                strokeWidth="1.2"
+                strokeDasharray="2 1.4"
+              />
+              <circle cx={eExitX} cy="46" r="1.3" fill="#f472b6" />
+              <text x={eExitX + 1.5} y="51" fill="#f9a8d4" fontSize="3" textAnchor="middle">
+                e光出射
+              </text>
+            </>
+          )}
+          {showORay && showERay && (
+            <line x1={oExitX} y1="46" x2={eExitX} y2="46" stroke="#fbbf24" strokeWidth="0.8" />
+          )}
+          <text x="12" y="10" fill="#fde68a" fontSize="3.6">
+            入射光
+          </text>
+          <text x="47" y="19" fill="#e0f2fe" fontSize="3.5">
+            晶体内光路
+          </text>
+          <text x="69" y="38" fill="#c4b5fd" fontSize="3.3">
+            e光侧向走离
+          </text>
+        </svg>
+        <p className="mt-3 text-center text-xs text-slate-300">
+          当前浏览器没有可用 WebGL，上方显示等效示意；粗亮线仍表示晶体内部光路。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function BiRefringenceCanvas({
   incidentAngle,
   crystalRotation,
@@ -73,6 +186,7 @@ function BiRefringenceCanvas({
   onResetCamera,
 }: BiRefringenceCanvasProps) {
   const cameraControlRef = useRef<any>(null);
+  const [webglSupported] = useState(supportsWebGL);
 
   // 双折射参数 | Birefringence parameters
   const params: BirefringenceParams = useMemo(
@@ -92,59 +206,91 @@ function BiRefringenceCanvas({
 
   return (
     <div className="relative w-full h-full">
-      <Canvas
-        camera={{ position: [0, 2, 8], fov: 50 }}
-        gl={{ antialias: true, alpha: true }}
-        className="bg-slate-950"
-      >
-        {/* 光照 | Lighting */}
-        <ambientLight intensity={0.4} />
-        <pointLight position={[10, 10, 10]} intensity={0.8} />
-        <pointLight position={[-10, -5, -10]} intensity={0.3} color="#4488ff" />
+      {webglSupported ? (
+        <Canvas
+          camera={{ position: [0, 2, 8], fov: 50 }}
+          gl={{ antialias: true, alpha: true }}
+          className="bg-slate-950"
+        >
+          {/* 光照 | Lighting */}
+          <ambientLight intensity={0.4} />
+          <pointLight position={[10, 10, 10]} intensity={0.8} />
+          <pointLight position={[-10, -5, -10]} intensity={0.3} color="#4488ff" />
 
-        {/* 轨道控制器 | OrbitControls for draggable/rotatable view */}
-        <OrbitControls
-          ref={cameraControlRef}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={3}
-          maxDistance={15}
-          maxPolarAngle={Math.PI}
-          minPolarAngle={0}
+          {/* 轨道控制器 | OrbitControls for draggable/rotatable view */}
+          <OrbitControls
+            ref={cameraControlRef}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+            minDistance={3}
+            maxDistance={15}
+            maxPolarAngle={Math.PI}
+            minPolarAngle={0}
+          />
+
+          {/* 场景网格 | Scene grid */}
+          <SceneGrid />
+
+          {/* 晶体 | Crystal */}
+          <CalciteCrystal rotation={[0, (crystalRotation * Math.PI) / 180, 0]} />
+          <CrystalInternalPaths params={params} showORay={showORay} showERay={showERay} />
+
+          {/* 双像文字样本 | Double text sample - Disabled: hides the light */}
+          {/* <DoubleTextSample show={false} params={params} /> */}
+
+          {/* 光线 | Light rays */}
+          <IncidentRay params={params} animate={animate} />
+          {showORay && <OrdinaryRay params={params} animate={animate} />}
+          {showERay && <ExtraordinaryRay params={params} animate={animate} />}
+          <SplitPointMarker params={params} />
+          <ExitRayMarkers params={params} showORay={showORay} showERay={showERay} />
+          <ObservationScreen params={params} showORay={showORay} showERay={showERay} />
+
+          {/* 光轴指示器 | Optical axis indicator */}
+          <OpticalAxisIndicator />
+
+          {/* 偏振指示器 | Polarization indicators */}
+          <PolarizationIndicators params={params} />
+
+          {/* 角度指示器 | Angle indicator */}
+          <AngleArc angle={incidentAngle} position={[0, 1.2, 0]} />
+
+          {/* 场景标签 | Scene labels */}
+          <SceneLabels params={params} showORay={showORay} showERay={showERay} />
+
+          {/* 预留：反射光（未来功能）| Reserved: Reflected ray (future feature) */}
+          {/* <ReflectedRay params={params} animate={animate} /> */}
+          {/* 预留：波前可视化（未来功能）| Reserved: Wavefront visualization (future feature) */}
+          {/* <WavefrontVisualization params={params} time={0} /> */}
+        </Canvas>
+      ) : (
+        <BirefringenceFallbackGraphic
+          params={params}
+          showORay={showORay}
+          showERay={showERay}
         />
+      )}
 
-        {/* 场景网格 | Scene grid */}
-        <SceneGrid />
-
-        {/* 晶体 | Crystal */}
-        <CalciteCrystal rotation={[0, (crystalRotation * Math.PI) / 180, 0]} />
-
-        {/* 双像文字样本 | Double text sample - Disabled: hides the light */}
-        {/* <DoubleTextSample show={false} params={params} /> */}
-
-        {/* 光线 | Light rays */}
-        <IncidentRay params={params} animate={animate} />
-        {showORay && <OrdinaryRay params={params} animate={animate} />}
-        {showERay && <ExtraordinaryRay params={params} animate={animate} />}
-
-        {/* 光轴指示器 | Optical axis indicator */}
-        <OpticalAxisIndicator />
-
-        {/* 偏振指示器 | Polarization indicators */}
-        <PolarizationIndicators params={params} />
-
-        {/* 角度指示器 | Angle indicator */}
-        <AngleArc angle={incidentAngle} />
-
-        {/* 场景标签 | Scene labels */}
-        <SceneLabels params={params} showORay={showORay} showERay={showERay} />
-
-        {/* 预留：反射光（未来功能）| Reserved: Reflected ray (future feature) */}
-        {/* <ReflectedRay params={params} animate={animate} /> */}
-        {/* 预留：波前可视化（未来功能）| Reserved: Wavefront visualization (future feature) */}
-        {/* <WavefrontVisualization params={params} time={0} /> */}
-      </Canvas>
+      <div className="pointer-events-none absolute left-3 top-3 max-w-[min(360px,calc(100%-5rem))] rounded-lg border border-sky-300/20 bg-slate-950/75 px-3 py-2 text-xs text-slate-100 shadow-lg">
+        <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/80">
+          观察链路
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <span className="mb-1 inline-block h-2 w-2 rounded-full bg-yellow-300" />
+            <p className="leading-snug text-slate-200">入射光进入晶体</p>
+          </div>
+          <div>
+            <span className="mb-1 inline-block h-2 w-2 rounded-full bg-fuchsia-300" />
+            <p className="leading-snug text-slate-200">在分裂点分成 e 光</p>
+          </div>
+          <div>
+            <span className="mb-1 inline-block h-2 w-2 rounded-full bg-cyan-300" />
+            <p className="leading-snug text-slate-200">观察屏出现双像</p>
+          </div>
+        </div>
+      </div>
 
       {/* 重置视角按钮 | Reset camera button overlay */}
       <button
@@ -196,11 +342,25 @@ export function BiRefringenceIcelandSparDemo() {
     () => calculateWalkOffAngle(params),
     [params]
   );
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+  const exitSeparation = useMemo(
+    () => rayPaths.oRayEnd.distanceTo(rayPaths.eRayEnd),
+    [rayPaths]
+  );
+  const splitStrength = Math.min(100, Math.round((exitSeparation / 0.28) * 100));
 
   const calcite = BIREFRINGENT_MATERIALS.calcite;
 
-  // 显著走离角阈值 | Significant walk-off angle threshold
-  const isSignificantWalkOff = walkOffAngle > 2;
+  // 出射端双像分离阈值 | Clear split threshold at the exit side
+  const hasClearSplit = exitSeparation > 0.14;
+  const observationPresets = [
+    { label: "正入射", hint: "几乎重合", incidentAngle: 0, crystalRotation: 0 },
+    { label: "看分裂", hint: "双像拉开", incidentAngle: 35, crystalRotation: 20 },
+    { label: "转走离", hint: "方向改变", incidentAngle: 40, crystalRotation: 90 },
+  ];
 
   // 重置相机处理器 | Reset camera handler
   const handleResetCamera = () => {
@@ -234,7 +394,7 @@ export function BiRefringenceIcelandSparDemo() {
               e光
             </div>
           </div>
-          <div className="p-4" style={{ height: 500 }}>
+          <div className="h-[520px] overflow-hidden">
             <BiRefringenceCanvas
               incidentAngle={incidentAngle}
               crystalRotation={crystalRotation}
@@ -248,38 +408,73 @@ export function BiRefringenceIcelandSparDemo() {
         </div>
 
         {/* 信息面板 | Info Panel */}
-        <div className="lg:w-[320px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
+        <div className="lg:w-[340px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-cyan-400/10">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>参数信息</h3>
+            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>观察结果</h3>
           </div>
           <div className="p-4 space-y-4">
             {/* 当前状态 | Current status */}
             <div
               className={`p-3 rounded-lg border ${
-                isSignificantWalkOff
+                hasClearSplit
                   ? "bg-orange-500/20 border-orange-500/30"
                   : "bg-slate-800/50 border-slate-700/50"
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                {isSignificantWalkOff ? (
+                {hasClearSplit ? (
                   <Sparkles className="w-4 h-4 text-orange-400" />
                 ) : (
                   <FlaskConical className="w-4 h-4 text-cyan-400" />
                 )}
                 <span
                   className={`text-sm font-semibold ${
-                    isSignificantWalkOff ? "text-orange-400" : "text-cyan-400"
+                    hasClearSplit ? "text-orange-400" : "text-cyan-400"
                   }`}
                 >
-                  {isSignificantWalkOff ? "明显的双折射" : "当前状态"}
+                  {hasClearSplit ? "观察屏上已分成两个像" : "两个像接近重合"}
                 </span>
               </div>
               <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                {isSignificantWalkOff
-                  ? `走离角达到 ${walkOffAngle.toFixed(2)}°，o光和e光显著分离`
-                  : "调节入射角和晶体旋转观察双折射现象"}
+                {hasClearSplit
+                  ? `出射端分离 ${exitSeparation.toFixed(2)}，紫色 e 光相对青色 o 光发生侧向走离。`
+                  : "黄光进入晶体后仍会分成 o 光和 e 光，只是当前出射端分离较小。"}
               </p>
+            </div>
+
+            <div className={`rounded-lg border p-3 ${theme === "dark" ? "border-slate-700/60 bg-slate-800/40" : "border-gray-200 bg-white/80"}`}>
+              <div className="mb-2 flex items-center justify-between">
+                <span className={`text-xs font-semibold ${theme === "dark" ? "text-slate-200" : "text-gray-800"}`}>
+                  双像清晰度
+                </span>
+                <span className={`font-mono text-xs ${hasClearSplit ? "text-orange-400" : "text-cyan-400"}`}>
+                  {splitStrength}%
+                </span>
+              </div>
+              <div className={`h-2 overflow-hidden rounded-full ${theme === "dark" ? "bg-slate-700" : "bg-gray-200"}`}>
+                <div
+                  className={hasClearSplit ? "h-full rounded-full bg-orange-400" : "h-full rounded-full bg-cyan-400"}
+                  style={{ width: `${splitStrength}%` }}
+                />
+              </div>
+              <div className={`mt-3 space-y-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-yellow-400" />
+                  <span>黄色入射光在晶体上表面进入。</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-cyan-400" />
+                  <span>青色 o 光按普通折射方向传播。</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-purple-400" />
+                  <span>紫色 e 光因晶体取向产生额外走离。</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-sky-200" />
+                  <span>粗亮实线表示晶体内部光路，虚线表示出射后的延长方向。</span>
+                </div>
+              </div>
             </div>
 
             {/* 数值 | Values */}
@@ -295,9 +490,14 @@ export function BiRefringenceIcelandSparDemo() {
               color="orange"
             />
             <ValueDisplay
-              label="走离角"
+              label="e/o 走离角"
               value={`${walkOffAngle.toFixed(2)}°`}
-              color={isSignificantWalkOff ? "orange" : "cyan"}
+              color={hasClearSplit ? "orange" : "cyan"}
+            />
+            <ValueDisplay
+              label="出射端分离"
+              value={exitSeparation.toFixed(2)}
+              color={hasClearSplit ? "orange" : "cyan"}
             />
 
             {/* 公式 | Formula */}
@@ -312,9 +512,9 @@ export function BiRefringenceIcelandSparDemo() {
         </div>
       </div>
 
-      {/* 走离角警告 | Walk-off angle alert */}
+      {/* 双像提示 | Double image cue */}
       <AnimatePresence>
-        {isSignificantWalkOff && (
+        {hasClearSplit && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -325,19 +525,18 @@ export function BiRefringenceIcelandSparDemo() {
               <Sparkles className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h4 className="font-semibold text-orange-400 mb-1">
-                  明显的双折射现象
+                  双像已经拉开
                 </h4>
                 <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  走离角达到{" "}
+                  观察屏上的两个像相距{" "}
                   <span className="text-orange-400 font-semibold">
-                    {walkOffAngle.toFixed(2)}°
+                    {exitSeparation.toFixed(2)}
                   </span>
-                  ，o光和e光在晶体中沿不同路径传播。
-                  方解石的双折射率Δn ={" "}
+                  。青色 o 光和紫色 e 光偏振方向互相垂直；方解石的双折射率 Δn ={" "}
                   <span className="text-cyan-400 font-semibold">
                     {calcite.deltaN.toFixed(3)}
                   </span>
-                  ，是自然界中最高的之一。
+                  ，所以同一个物点会对应两条可分辨的出射光路。
                 </p>
               </div>
             </div>
@@ -353,40 +552,44 @@ export function BiRefringenceIcelandSparDemo() {
             label="入射角"
             value={incidentAngle}
             min={0}
-            max={89}
+            max={40}
             step={1}
             unit="°"
             onChange={setIncidentAngle}
-            color={isSignificantWalkOff ? "orange" : "cyan"}
+            color={hasClearSplit ? "orange" : "cyan"}
             formatValue={(v) => `${v.toFixed(1)}°`}
           />
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => setIncidentAngle(0)}
-              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
-              type="button"
-            >
-              0°
-            </button>
-            <button
-              onClick={() => setIncidentAngle(30)}
-              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
-              type="button"
-            >
-              30°
-            </button>
-            <button
-              onClick={() => setIncidentAngle(60)}
-              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
-              type="button"
-            >
-              60°
-            </button>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {observationPresets.map((preset) => {
+              const selected =
+                incidentAngle === preset.incidentAngle &&
+                crystalRotation === preset.crystalRotation;
+              return (
+                <button
+                  key={preset.label}
+                  onClick={() => {
+                    setIncidentAngle(preset.incidentAngle);
+                    setCrystalRotation(preset.crystalRotation);
+                  }}
+                  className={`px-2 py-2 text-left text-xs rounded-lg border transition-colors ${
+                    selected
+                      ? "bg-cyan-400/20 text-cyan-200 border-cyan-400/50"
+                      : theme === "dark"
+                        ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-cyan-400/30"
+                        : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-cyan-400/30"
+                  }`}
+                  type="button"
+                >
+                  <span className="block font-semibold">{preset.label}</span>
+                  <span className="block opacity-80">{preset.hint}</span>
+                </button>
+              );
+            })}
           </div>
         </ControlPanel>
 
         {/* 晶体旋转控制 | Crystal rotation control */}
-        <ControlPanel title="晶体控制">
+        <ControlPanel title="晶体取向">
           <SliderControl
             label="晶体旋转"
             value={crystalRotation}
@@ -398,6 +601,9 @@ export function BiRefringenceIcelandSparDemo() {
             color="purple"
             formatValue={(v) => `${v.toFixed(0)}°`}
           />
+          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            晶体取向会改变紫色 e 光的侧向走离方向。
+          </p>
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => setCrystalRotation(0)}
@@ -439,9 +645,9 @@ export function BiRefringenceIcelandSparDemo() {
 
         {/* 显示选项 | Display options */}
         <ControlPanel title="显示选项">
-          <Toggle label="显示o光" checked={showORay} onChange={setShowORay} />
-          <Toggle label="显示e光" checked={showERay} onChange={setShowERay} />
-          <Toggle label="动画" checked={animate} onChange={setAnimate} />
+          <Toggle label="青色 o 光" checked={showORay} onChange={setShowORay} />
+          <Toggle label="紫色 e 光" checked={showERay} onChange={setShowERay} />
+          <Toggle label="光束脉冲" checked={animate} onChange={setAnimate} />
           <div className={`mt-4 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
             <p>
               • <span className="text-yellow-400">黄色</span>: 入射光

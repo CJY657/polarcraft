@@ -180,7 +180,7 @@ export function calculateBirefringenceRayPaths(
   rayLength: number = 3
 ): {
   incidentStart: THREE.Vector3; // 入射光起点 | Incident ray start
-  incidentEnd: THREE.Vector3; // 入射光终点（晶体中心）| Incident ray end (crystal center)
+  incidentEnd: THREE.Vector3; // 入射光进入晶体的位置 | Incident ray entry point
   oRayEnd: THREE.Vector3; // o光终点 | O-ray end point
   eRayEnd: THREE.Vector3; // e光终点 | E-ray end point
   theta_o: number; // o光折射角（弧度）| O-ray refraction angle in radians
@@ -189,35 +189,34 @@ export function calculateBirefringenceRayPaths(
 } {
   const {
     incidentAngle,
-    crystalRotation: _crystalRotation, // Unused: optical axis is vertical, rotation around Y doesn't change physics
+    crystalRotation,
     n_o = BIREFRINGENT_MATERIALS.calcite.n_o,
     n_e = BIREFRINGENT_MATERIALS.calcite.n_e,
   } = params;
 
   const theta_i = (incidentAngle * Math.PI) / 180;
 
-  // 入射光（从空气到晶体中心）| Incident ray (from air to crystal center)
+  // 入射光从晶体上表面进入，而不是从晶体中心进入。
+  const entryY = 1.2;
   const incidentStart = new THREE.Vector3(
     -rayLength * Math.sin(theta_i),
-    rayLength * Math.cos(theta_i),
+    entryY + rayLength * Math.cos(theta_i),
     0
   );
-  const incidentEnd = new THREE.Vector3(0, 0, 0);
+  const incidentEnd = new THREE.Vector3(0, entryY, 0);
 
   // o光路径（严格遵循斯涅尔定律）| O-ray path (follows Snell's law exactly)
   const sinTheta_o = Math.sin(theta_i) / n_o;
   const theta_o = Math.asin(Math.min(1, Math.max(-1, sinTheta_o)));
   const oRayEnd = new THREE.Vector3(
     rayLength * Math.sin(theta_o),
-    -rayLength * Math.cos(theta_o),
+    entryY - rayLength * Math.cos(theta_o),
     0
   );
 
   // e光路径（根据晶体取向偏转）| E-ray path (deviates based on crystal orientation)
-  // 注意：光学轴在场景中是垂直的（Y轴），晶体绕Y轴旋转
-  // 因此 optical axis 与传播方向的夹角主要由 incidentAngle 决定，而不是 crystalRotation
-  // Note: Optical axis is vertical (Y-axis) in the scene, crystal rotates around Y
-  // So the angle between optical axis and propagation direction depends mainly on incidentAngle, not crystalRotation
+  // 入射角决定走离强度，晶体旋转决定走离方向，便于3D观察。
+  // Incident angle controls walk-off magnitude; crystal rotation controls its visible direction.
 
   // 计算波矢量与光学轴的夹角 | Calculate angle between wave vector and optical axis
   // 光学轴沿Y轴（法线方向），入射光与法线夹角为theta_i
@@ -228,10 +227,8 @@ export function calculateBirefringenceRayPaths(
 
   // 使用o-ray的折射角作为波矢量与光学轴的夹角
   // Use o-ray refraction angle as the angle between wave vector and optical axis
-  // 添加晶体旋转对角度的影响（如果光学轴不在法线方向）
-  // Add effect of crystal rotation (if optical axis is not along normal)
-  // 这里简化处理：假设光学轴沿法线（Y轴），晶体绕Y轴旋转不影响光学轴方向
-  // Simplified: optical axis along normal (Y), rotation around Y doesn't change optical axis direction
+  // 这里简化处理：折射角仍由入射角决定，晶体旋转只用于可视化走离方位。
+  // Simplified: refraction angle is incident-angle driven; rotation visualizes walk-off azimuth.
   const thetaFromOpticalAxis = theta_o;
 
   const effective_n_e = calculateEffectiveNe(n_o, n_e, thetaFromOpticalAxis);
@@ -249,11 +246,14 @@ export function calculateBirefringenceRayPaths(
   const maxWalkOffAngle = 6 * Math.PI / 180; // 6度 in radians
   const walkOffFactor = Math.sin(2 * thetaFromOpticalAxis); // 最大在45° | Max at 45°
   const walkOffMagnitude = rayLength * Math.tan(maxWalkOffAngle) * walkOffFactor;
+  const walkOffAzimuth = (crystalRotation * Math.PI) / 180;
+  const walkOffX = walkOffMagnitude * Math.cos(walkOffAzimuth);
+  const walkOffZ = walkOffMagnitude * Math.sin(walkOffAzimuth);
 
   const eRayEnd = new THREE.Vector3(
-    rayLength * Math.sin(theta_e) + walkOffMagnitude,
-    -rayLength * Math.cos(theta_e),
-    walkOffMagnitude * 0.3  // 稍微添加Z方向偏移用于3D效果 | Add small Z offset for 3D effect
+    rayLength * Math.sin(theta_e) + walkOffX,
+    entryY - rayLength * Math.cos(theta_e),
+    walkOffZ
   );
 
   const walkOffAngle = Math.abs(((theta_e - theta_o) * 180) / Math.PI);

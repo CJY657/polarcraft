@@ -183,7 +183,7 @@ function BrewsterAngleCanvas({
 
       // Reflected ray base
       ctx.beginPath();
-      const reflectedColor = isAtBrewsterAngle ? "#ffd700" : "#ff6b35";
+      const reflectedColor = isAtBrewsterAngle ? "#44ff44" : "#ff6b35";
       ctx.strokeStyle = reflectedColor;
       ctx.lineWidth = isAtBrewsterAngle ? 4 : 3;
       ctx.moveTo(cx, cy);
@@ -192,10 +192,10 @@ function BrewsterAngleCanvas({
 
       // Glow effect at Brewster angle
       if (isAtBrewsterAngle) {
-        ctx.shadowColor = "#ffd700";
+        ctx.shadowColor = reflectedColor;
         ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.strokeStyle = "rgba(255, 215, 0, 0.5)";
+        ctx.strokeStyle = "rgba(68, 255, 68, 0.45)";
         ctx.lineWidth = 8;
         ctx.moveTo(cx, cy);
         ctx.lineTo(reflectedEndX, reflectedEndY);
@@ -205,7 +205,7 @@ function BrewsterAngleCanvas({
 
       // Draw wave pattern on reflected ray
       ctx.beginPath();
-      ctx.strokeStyle = `rgba(255, 107, 53, ${isAtBrewsterAngle ? 0.3 : 0.5})`;
+      ctx.strokeStyle = isAtBrewsterAngle ? "rgba(68, 255, 68, 0.45)" : "rgba(255, 107, 53, 0.5)";
       ctx.lineWidth = 2;
       for (let i = 0; i < rayLength; i += 4) {
         const t = i / rayLength;

@@ -33,5 +33,6 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/about")).toBe(false);
     expect(shouldRequireStudentAuth("/gallery")).toBe(false);
     expect(shouldRequireStudentAuth("/demos")).toBe(false);
+    expect(shouldRequireStudentAuth("/demos/em-wave")).toBe(false);
   });
 });

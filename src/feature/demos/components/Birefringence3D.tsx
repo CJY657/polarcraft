@@ -178,6 +178,44 @@ export function QuartzCrystal({
 // 光线组件 | RAY COMPONENTS
 // ============================================================================
 
+function RayArrowHead({
+  start,
+  end,
+  color,
+  size = 0.12,
+}: {
+  start: THREE.Vector3;
+  end: THREE.Vector3;
+  color: string;
+  size?: number;
+}) {
+  const { position, quaternion } = useMemo(() => {
+    const direction = new THREE.Vector3().subVectors(end, start).normalize();
+    const arrowPosition = new THREE.Vector3().lerpVectors(start, end, 0.96);
+    const arrowQuaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction
+    );
+
+    return { position: arrowPosition, quaternion: arrowQuaternion };
+  }, [end, start]);
+
+  return (
+    <mesh position={position} quaternion={quaternion}>
+      <coneGeometry args={[size, size * 2.3, 24]} />
+      <meshBasicMaterial color={color} transparent opacity={0.9} />
+    </mesh>
+  );
+}
+
+function pointAtY(start: THREE.Vector3, end: THREE.Vector3, y: number) {
+  const dy = end.y - start.y;
+  if (Math.abs(dy) < 0.0001) return end.clone();
+
+  const t = Math.max(0, Math.min(1, (y - start.y) / dy));
+  return start.clone().lerp(end, t);
+}
+
 /**
  * 入射光组件 | Incident Ray Component
  *
@@ -206,14 +244,21 @@ export function IncidentRay({
   });
 
   return (
-    <Line
-      ref={lineRef}
-      points={[rayPaths.incidentStart, rayPaths.incidentEnd]}
-      color="#ffdd00"
-      lineWidth={3}
-      opacity={1}
-      transparent
-    />
+    <>
+      <Line
+        ref={lineRef}
+        points={[rayPaths.incidentStart, rayPaths.incidentEnd]}
+        color="#ffdd00"
+        lineWidth={3}
+        opacity={1}
+        transparent
+      />
+      <RayArrowHead
+        start={rayPaths.incidentStart}
+        end={rayPaths.incidentEnd}
+        color="#ffdd00"
+      />
+    </>
   );
 }
 
@@ -246,17 +291,25 @@ export function OrdinaryRay({
   });
 
   return (
-    <Line
-      ref={lineRef}
-      points={[rayPaths.incidentEnd, rayPaths.oRayEnd]}
-      color="#00ffff"
-      lineWidth={2}
-      opacity={0.8}
-      transparent
-      dashed
-      dashScale={5}
-      gapSize={1}
-    />
+    <>
+      <Line
+        ref={lineRef}
+        points={[rayPaths.incidentEnd, rayPaths.oRayEnd]}
+        color="#00ffff"
+        lineWidth={2}
+        opacity={0.8}
+        transparent
+        dashed
+        dashScale={5}
+        gapSize={1}
+      />
+      <RayArrowHead
+        start={rayPaths.incidentEnd}
+        end={rayPaths.oRayEnd}
+        color="#00ffff"
+        size={0.1}
+      />
+    </>
   );
 }
 
@@ -289,17 +342,121 @@ export function ExtraordinaryRay({
   });
 
   return (
-    <Line
-      ref={lineRef}
-      points={[rayPaths.incidentEnd, rayPaths.eRayEnd]}
-      color="#ff00ff"
-      lineWidth={2}
-      opacity={0.8}
-      transparent
-      dashed
-      dashScale={5}
-      gapSize={1}
-    />
+    <>
+      <Line
+        ref={lineRef}
+        points={[rayPaths.incidentEnd, rayPaths.eRayEnd]}
+        color="#ff00ff"
+        lineWidth={2}
+        opacity={0.8}
+        transparent
+        dashed
+        dashScale={5}
+        gapSize={1}
+      />
+      <RayArrowHead
+        start={rayPaths.incidentEnd}
+        end={rayPaths.eRayEnd}
+        color="#ff00ff"
+        size={0.1}
+      />
+    </>
+  );
+}
+
+/**
+ * 晶体内部光路 | Crystal internal ray paths
+ * 用高亮实线单独强调光线在晶体内部传播的那一段 | Highlights the beam segments inside the crystal
+ */
+export function CrystalInternalPaths({
+  params,
+  showORay = true,
+  showERay = true,
+}: {
+  params: BirefringenceParams;
+  showORay?: boolean;
+  showERay?: boolean;
+}) {
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+  const crystalBottomY = -1.2;
+  const oExit = useMemo(
+    () => pointAtY(rayPaths.incidentEnd, rayPaths.oRayEnd, crystalBottomY),
+    [rayPaths]
+  );
+  const eExit = useMemo(
+    () => pointAtY(rayPaths.incidentEnd, rayPaths.eRayEnd, crystalBottomY),
+    [rayPaths]
+  );
+
+  return (
+    <>
+      {showORay && (
+        <>
+          <Line
+            points={[rayPaths.incidentEnd, oExit]}
+            color="#67e8f9"
+            lineWidth={5}
+            opacity={0.98}
+            transparent
+          />
+          <mesh position={oExit}>
+            <sphereGeometry args={[0.06, 20, 20]} />
+            <meshBasicMaterial color="#67e8f9" />
+          </mesh>
+          <Text
+            position={oExit.clone().add(new THREE.Vector3(0.12, 0.08, -0.08))}
+            fontSize={0.08}
+            color="#a5f3fc"
+            anchorX="left"
+          >
+            o光出射
+          </Text>
+        </>
+      )}
+      {showERay && (
+        <>
+          <Line
+            points={[rayPaths.incidentEnd, eExit]}
+            color="#f472b6"
+            lineWidth={5}
+            opacity={0.98}
+            transparent
+          />
+          <mesh position={eExit}>
+            <sphereGeometry args={[0.06, 20, 20]} />
+            <meshBasicMaterial color="#f472b6" />
+          </mesh>
+          <Text
+            position={eExit.clone().add(new THREE.Vector3(0.12, -0.08, 0.08))}
+            fontSize={0.08}
+            color="#f9a8d4"
+            anchorX="left"
+          >
+            e光出射
+          </Text>
+        </>
+      )}
+      {showORay && showERay && (
+        <Line
+          points={[oExit, eExit]}
+          color="#fbbf24"
+          lineWidth={1}
+          opacity={0.7}
+          transparent
+        />
+      )}
+      <Text
+        position={[0.26, 0.38, -0.5]}
+        fontSize={0.1}
+        color="#e0f2fe"
+        anchorX="left"
+      >
+        晶体内光路
+      </Text>
+    </>
   );
 }
 
@@ -388,6 +545,219 @@ export function PolarizationIndicators({ params }: { params: BirefringenceParams
 }
 
 /**
+ * 分裂点标记 | Split point marker
+ * 明确显示一束入射光变成两束光的位置 | Highlights where one incident beam becomes two beams
+ */
+export function SplitPointMarker({ params }: { params: BirefringenceParams }) {
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+
+  return (
+    <group position={rayPaths.incidentEnd}>
+      <mesh>
+        <sphereGeometry args={[0.08, 24, 24]} />
+        <meshBasicMaterial color="#facc15" />
+      </mesh>
+      <mesh>
+        <ringGeometry args={[0.13, 0.18, 32]} />
+        <meshBasicMaterial
+          color="#facc15"
+          transparent
+          opacity={0.35}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <Text
+        position={[0.16, 0.24, 0]}
+        fontSize={0.12}
+        color="#fde68a"
+        anchorX="left"
+        anchorY="middle"
+      >
+        分裂点
+      </Text>
+    </group>
+  );
+}
+
+/**
+ * 出射端标记 | Exit ray markers
+ * 把两条光线的终点和两幅像对应起来 | Connects ray endpoints to the two resulting images
+ */
+export function ExitRayMarkers({
+  params,
+  showORay = true,
+  showERay = true,
+}: {
+  params: BirefringenceParams;
+  showORay?: boolean;
+  showERay?: boolean;
+}) {
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+
+  return (
+    <>
+      {showORay && (
+        <group position={rayPaths.oRayEnd}>
+          <mesh>
+            <sphereGeometry args={[0.07, 20, 20]} />
+            <meshBasicMaterial color="#00ffff" />
+          </mesh>
+          <Text
+            position={[0.12, 0.12, 0]}
+            fontSize={0.1}
+            color="#67e8f9"
+            anchorX="left"
+          >
+            o像
+          </Text>
+        </group>
+      )}
+      {showERay && (
+        <group position={rayPaths.eRayEnd}>
+          <mesh>
+            <sphereGeometry args={[0.07, 20, 20]} />
+            <meshBasicMaterial color="#ff00ff" />
+          </mesh>
+          <Text
+            position={[0.12, -0.12, 0]}
+            fontSize={0.1}
+            color="#f0abfc"
+            anchorX="left"
+          >
+            e像
+          </Text>
+        </group>
+      )}
+    </>
+  );
+}
+
+/**
+ * 观察屏 | Observation screen
+ * 在场景中给出最终观察结果，而不遮挡晶体光路 | Shows the final two-image result without covering the ray path
+ */
+export function ObservationScreen({
+  params,
+  showORay = true,
+  showERay = true,
+}: {
+  params: BirefringenceParams;
+  showORay?: boolean;
+  showERay?: boolean;
+}) {
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+  const exitSeparation = rayPaths.oRayEnd.distanceTo(rayPaths.eRayEnd);
+  const screenSeparation = Math.max(0.22, Math.min(0.86, exitSeparation * 2.8));
+  const oImageX = -screenSeparation / 2;
+  const eImageX = screenSeparation / 2;
+
+  return (
+    <group position={[2.35, -0.75, 0.7]} rotation={[0, -0.35, 0]}>
+      <mesh>
+        <planeGeometry args={[1.85, 1.22]} />
+        <meshBasicMaterial
+          color="#0f172a"
+          transparent
+          opacity={0.78}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <Line
+        points={[
+          new THREE.Vector3(-0.92, -0.61, 0.02),
+          new THREE.Vector3(0.92, -0.61, 0.02),
+          new THREE.Vector3(0.92, 0.61, 0.02),
+          new THREE.Vector3(-0.92, 0.61, 0.02),
+          new THREE.Vector3(-0.92, -0.61, 0.02),
+        ]}
+        color="#38bdf8"
+        lineWidth={1}
+        opacity={0.45}
+        transparent
+      />
+      <Text
+        position={[0, 0.44, 0.04]}
+        fontSize={0.12}
+        color="#e0f2fe"
+        anchorX="center"
+      >
+        观察屏
+      </Text>
+      <Text
+        position={[0, 0.28, 0.04]}
+        fontSize={0.075}
+        color="#cbd5e1"
+        anchorX="center"
+      >
+        一个物点变成两个像
+      </Text>
+
+      {showORay && (
+        <>
+          <mesh position={[oImageX, 0.02, 0.05]}>
+            <circleGeometry args={[0.085, 32]} />
+            <meshBasicMaterial color="#00ffff" />
+          </mesh>
+          <Text
+            position={[oImageX, -0.17, 0.05]}
+            fontSize={0.08}
+            color="#67e8f9"
+            anchorX="center"
+          >
+            o像
+          </Text>
+        </>
+      )}
+      {showERay && (
+        <>
+          <mesh position={[eImageX, 0.02, 0.05]}>
+            <circleGeometry args={[0.085, 32]} />
+            <meshBasicMaterial color="#ff00ff" />
+          </mesh>
+          <Text
+            position={[eImageX, -0.17, 0.05]}
+            fontSize={0.08}
+            color="#f0abfc"
+            anchorX="center"
+          >
+            e像
+          </Text>
+        </>
+      )}
+      {showORay && showERay && (
+        <Line
+          points={[
+            new THREE.Vector3(oImageX, 0.02, 0.06),
+            new THREE.Vector3(eImageX, 0.02, 0.06),
+          ]}
+          color="#fbbf24"
+          lineWidth={1}
+          opacity={0.75}
+          transparent
+        />
+      )}
+      <Text
+        position={[0, -0.43, 0.04]}
+        fontSize={0.075}
+        color="#fbbf24"
+        anchorX="center"
+      >
+        分离 {exitSeparation.toFixed(2)}
+      </Text>
+    </group>
+  );
+}
+
+/**
  * 角度弧指示器 | Angle Arc Indicator
  * 显示入射角 | Shows the incident angle
  *
@@ -399,10 +769,12 @@ export function AngleArc({
   angle,
   radius = 0.8,
   color = "#94a3b8",
+  position = [0, 0, 0],
 }: {
   angle: number;
   radius?: number;
   color?: string;
+  position?: [number, number, number];
 }) {
   const points = useMemo(() => {
     const segments = 32;
@@ -424,7 +796,7 @@ export function AngleArc({
     return pts;
   }, [angle, radius]);
 
-  return <Line points={points} color={color} lineWidth={1} opacity={0.6} />;
+  return <Line points={points} color={color} lineWidth={1} opacity={0.6} position={position} />;
 }
 
 // ============================================================================
@@ -557,18 +929,22 @@ export function SceneLabels({
   showORay?: boolean;
   showERay?: boolean;
 }) {
-  // Calculate ray paths for dynamic label positioning (future use)
-  useMemo(
+  const rayPaths = useMemo(
     () => calculateBirefringenceRayPaths(params, 3),
     [params]
   );
+  const incidentLabel = new THREE.Vector3()
+    .lerpVectors(rayPaths.incidentStart, rayPaths.incidentEnd, 0.45)
+    .add(new THREE.Vector3(-0.15, 0.2, 0));
+  const oRayLabel = rayPaths.oRayEnd.clone().add(new THREE.Vector3(0.12, 0.18, 0));
+  const eRayLabel = rayPaths.eRayEnd.clone().add(new THREE.Vector3(0.12, -0.18, 0.08));
 
   return (
     <>
       {/* 入射光标签 | Incident ray label */}
       <Text
-        position={[-2.5, 2, 0]}
-        fontSize={0.15}
+        position={incidentLabel}
+        fontSize={0.13}
         color="#ffdd00"
         anchorX="left"
       >
@@ -578,8 +954,8 @@ export function SceneLabels({
       {/* o光标签 | O-ray label */}
       {showORay && (
         <Text
-          position={[1.5, -1.5, 0]}
-          fontSize={0.15}
+          position={oRayLabel}
+          fontSize={0.13}
           color="#00ffff"
           anchorX="left"
         >
@@ -590,8 +966,8 @@ export function SceneLabels({
       {/* e光标签 | E-ray label */}
       {showERay && (
         <Text
-          position={[1.5, -2, 0.5]}
-          fontSize={0.15}
+          position={eRayLabel}
+          fontSize={0.13}
           color="#ff00ff"
           anchorX="left"
         >

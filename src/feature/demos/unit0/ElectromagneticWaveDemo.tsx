@@ -252,6 +252,8 @@ export function ElectromagneticWaveDemo() {
     }
     return { paths, generatePath };
   }, [wavelength, amplitude]);
+  const isWaveAnimating = isPlaying && speed > 0 && wavePaths.paths.length > 0;
+  const waveAnimationKey = `wave-speed-${speed}`;
 
   // Selected spectrum region info
   const selectedInfo = useMemo(() => {
@@ -389,13 +391,14 @@ export function ElectromagneticWaveDemo() {
 
                     {/* E-field wave */}
                     <motion.path
+                      key={`e-${waveAnimationKey}`}
                       d={wavePaths.generatePath(0, 1, false)}
                       fill="none"
                       stroke={waveColor}
                       strokeWidth="3"
                       filter="url(#glow)"
                       animate={
-                        isPlaying && wavePaths.paths.length > 0
+                        isWaveAnimating
                           ? {
                               d: wavePaths.paths.map((p) => p.ePath),
                             }
@@ -411,6 +414,7 @@ export function ElectromagneticWaveDemo() {
                     {/* B-field wave */}
                     {showBField && (
                       <motion.path
+                        key={`b-${waveAnimationKey}`}
                         d={wavePaths.generatePath(0, 0.3, true)}
                         fill="none"
                         stroke="#60a5fa"
@@ -418,7 +422,7 @@ export function ElectromagneticWaveDemo() {
                         strokeDasharray="8 4"
                         opacity="0.8"
                         animate={
-                          isPlaying && wavePaths.paths.length > 0
+                          isWaveAnimating
                             ? {
                                 d: wavePaths.paths.map((p) => p.bPath),
                               }
@@ -632,9 +636,9 @@ export function ElectromagneticWaveDemo() {
               <div className="flex-1">
                 <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-xl border border-indigo-500/20 p-4 overflow-hidden">
                   <svg
-                    viewBox="0 0 800 380"
+                    viewBox="0 0 800 430"
                     className="w-full h-auto"
-                    style={{ minHeight: "360px" }}
+                    style={{ minHeight: "390px" }}
                   >
                     <defs>
                       <pattern
@@ -700,7 +704,7 @@ export function ElectromagneticWaveDemo() {
 
                     <rect
                       width="800"
-                      height="380"
+                      height="430"
                       fill="url(#spectrum-grid)"
                     />
 
@@ -869,7 +873,7 @@ export function ElectromagneticWaveDemo() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          transform="translate(50, 270)"
+                          transform="translate(50, 305)"
                         >
                           <rect
                             x="0"
