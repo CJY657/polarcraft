@@ -762,7 +762,7 @@ export function ElectromagneticWaveDemo() {
                     )}
 
                     {/* Spectrum bands */}
-                    <g transform="translate(50, 80)">
+                    <g transform="translate(50, 95)">
                       {SPECTRUM_REGIONS.map((region, index) => {
                         const x = index * 100;
                         const width = 98;

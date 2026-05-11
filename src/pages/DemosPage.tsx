@@ -296,7 +296,7 @@ export function DemosPage() {
       />
 
       {/* Main Container */}
-      <div className={cn("flex", isCompact ? "pt-[52px]" : "pt-[60px]")}>
+      <div className={cn("flex", isCompact ? "pt-[84px]" : "pt-[92px]")}>
         {/* Sidebar - 仅在查看演示时显示 */}
         {currentDemo && !showMuseumHomepage && (
           <aside
@@ -306,9 +306,9 @@ export function DemosPage() {
                 ? cn(
                     "w-72 left-0 bottom-0",
                     showMobileSidebar ? "translate-x-0" : "-translate-x-full",
-                    "pt-14",
+                    "pt-[84px]",
                   )
-                : "w-64 left-0 top-[60px] bottom-0", // 为 footer 留出空间
+                : "w-64 left-0 top-[92px] bottom-0", // 为 footer 留出空间
               theme === "dark"
                 ? "bg-slate-900/95 border-cyan-400/10"
                 : "bg-white/95 border-cyan-200",
