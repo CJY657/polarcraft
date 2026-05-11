@@ -214,6 +214,8 @@ export function shouldRequireStudentAuth(pathname: string) {
       pathname === "/units" ||
       matchPath("/units/:unitId", pathname) ||
       matchPath("/units/:unitId/courses/:courseId", pathname) ||
+      pathname === "/demos" ||
+      matchPath("/demos/:demoId", pathname) ||
       pathname === "/feedback" ||
       pathname === "/profile" ||
       pathname === "/inbox" ||
@@ -266,6 +268,16 @@ function AppRouterContent() {
             <Route
               path="/units/:unitId"
               element={<UnitRedirectPage />}
+            />
+
+            {/* Module 3: 理论模拟 */}
+            <Route
+              path="/demos"
+              element={<DemosPage />}
+            />
+            <Route
+              path="/demos/:demoId"
+              element={<DemosPage />}
             />
 
             {/* Module 6: 虚拟课题 */}
@@ -326,16 +338,6 @@ function AppRouterContent() {
           <Route
             path="/devices"
             element={<DevicesPage />}
-          />
-
-          {/* Module 3: 理论模拟 */}
-          <Route
-            path="/demos"
-            element={<DemosPage />}
-          />
-          <Route
-            path="/demos/:demoId"
-            element={<DemosPage />}
           />
 
           {/* Module 4: 游戏挑战 */}
