@@ -269,7 +269,9 @@ export function ElectromagneticWaveDemo() {
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "wave"
               ? "bg-cyan-500/20 text-cyan-400 shadow-sm"
-              : theme === "dark" ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
+              : theme === "dark"
+                ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50"
+                : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
           }`}
         >
           <Waves className="w-4 h-4" />
@@ -280,7 +282,9 @@ export function ElectromagneticWaveDemo() {
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "spectrum"
               ? "bg-purple-500/20 text-purple-400 shadow-sm"
-              : theme === "dark" ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
+              : theme === "dark"
+                ? "text-gray-400 hover:text-gray-300 hover:bg-slate-700/50"
+                : "text-gray-600 hover:text-gray-700 hover:bg-gray-200/50"
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -473,8 +477,23 @@ export function ElectromagneticWaveDemo() {
                       </text>
                     </g>
 
-                    <foreignObject x="550" y="18" width="150" height="24">
-                      <div {...({ xmlns: "http://www.w3.org/1999/xhtml", style: { fontSize: "11px", color: "#6b7280", display: "flex", alignItems: "center" } } as any)}>
+                    <foreignObject
+                      x="550"
+                      y="18"
+                      width="150"
+                      height="24"
+                    >
+                      <div
+                        {...({
+                          xmlns: "http://www.w3.org/1999/xhtml",
+                          style: {
+                            fontSize: "11px",
+                            color: "#6b7280",
+                            display: "flex",
+                            alignItems: "center",
+                          },
+                        } as any)}
+                      >
                         {MathText({ text: "$c \\approx 2.998 \\times 10^8 \\text{ m/s}$" })}
                       </div>
                     </foreignObject>
@@ -491,8 +510,12 @@ export function ElectromagneticWaveDemo() {
                 </div>
 
                 {/* Visible Spectrum Bar */}
-                <div className={`mt-4 p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}>
-                  <h4 className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}>
+                <div
+                  className={`mt-4 p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}
+                >
+                  <h4
+                    className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}
+                  >
                     {t("demoUi.common.visibleSpectrum")}
                   </h4>
                   <div
@@ -515,7 +538,9 @@ export function ElectromagneticWaveDemo() {
                       layoutId="wavelength-indicator"
                     />
                   </div>
-                  <div className={`flex justify-between text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-1`}>
+                  <div
+                    className={`flex justify-between text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-1`}
+                  >
                     <span>380 nm ({t("demoUi.common.violet")})</span>
                     <span>550 nm ({t("demoUi.common.green")})</span>
                     <span>700 nm ({t("demoUi.common.red")})</span>
@@ -583,7 +608,9 @@ export function ElectromagneticWaveDemo() {
                   {/* 使用精确光速值 c = 2.998×10^8 m/s 计算频率 f = c/λ */}
                   <ValueDisplay
                     label={t("demoUi.common.frequency")}
-                    value={MathText({text:`$ ${(2.998e8 / (wavelength * 1e-9) / 1e14).toFixed(2)} \\times 10^{14} \\text{ Hz} $`})}
+                    value={MathText({
+                      text: `$ ${(2.998e8 / (wavelength * 1e-9) / 1e14).toFixed(2)} \\times 10^{14} \\text{ Hz} $`,
+                    })}
                   />
                 </div>
 
@@ -604,10 +631,15 @@ export function ElectromagneticWaveDemo() {
                 title="电磁波特性"
                 color="cyan"
               >
-                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
+                <ul
+                  className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
+                >
                   <li>• E场和B场相互垂直</li>
                   <li>• 横波：振动方向垂直于传播方向</li>
-                  <li> {MathText({text: "• 真空中速度恒定：$c = 3 \\times 10^8 \\text{ m/s}$"})}</li>
+                  <li>
+                    {" "}
+                    {MathText({ text: "• 真空中速度恒定：$c = 3 \\times 10^8 \\text{ m/s}$" })}
+                  </li>
                 </ul>
                 <Formula className="mt-2">$c = \lambda f$</Formula>
               </InfoCard>
@@ -615,7 +647,9 @@ export function ElectromagneticWaveDemo() {
                 title="与偏振的联系"
                 color="purple"
               >
-                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
+                <ul
+                  className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
+                >
                   <li>• 偏振描述电场振动方向</li>
                   <li>• 自然光包含所有偏振方向</li>
                   <li>• 只有横波才能偏振</li>
@@ -636,9 +670,9 @@ export function ElectromagneticWaveDemo() {
               <div className="flex-1">
                 <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-xl border border-indigo-500/20 p-4 overflow-hidden">
                   <svg
-                    viewBox="0 0 800 430"
+                    viewBox="0 0 800 280"
                     className="w-full h-auto"
-                    style={{ minHeight: "390px" }}
+                    style={{ minHeight: "250px" }}
                   >
                     <defs>
                       <pattern
@@ -704,7 +738,7 @@ export function ElectromagneticWaveDemo() {
 
                     <rect
                       width="800"
-                      height="430"
+                      height="280"
                       fill="url(#spectrum-grid)"
                     />
 
@@ -865,85 +899,74 @@ export function ElectromagneticWaveDemo() {
                         })}
                       </g>
                     )}
-
-                    {/* Selected region info */}
-                    <AnimatePresence>
-                      {selectedInfo && (
-                        <motion.g
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          transform="translate(50, 305)"
-                        >
-                          <rect
-                            x="0"
-                            y="0"
-                            width="700"
-                            height="100"
-                            fill="rgba(30,41,59,0.9)"
-                            rx="8"
-                            stroke={selectedInfo.color}
-                            strokeWidth="1"
-                            strokeOpacity="0.5"
-                          />
-                          <text
-                            x="20"
-                            y="22"
-                            fill={selectedInfo.color}
-                            fontSize="14"
-                            fontWeight="bold"
-                          >
-                            {selectedInfo.name[i18n.language]}
-                          </text>
-                          <text
-                            x="20"
-                            y="42"
-                            fill="#9ca3af"
-                            fontSize="10"
-                          >
-                            波长：
-                            <tspan fill="#e2e8f0">
-                              {formatWavelength(selectedInfo.wavelengthRange[0])} ~{" "}
-                              {formatWavelength(selectedInfo.wavelengthRange[1])}
-                            </tspan>
-                          </text>
-                          <text
-                            x="20"
-                            y="58"
-                            fill="#9ca3af"
-                            fontSize="10"
-                          >
-                            频率：
-                            <tspan fill="#e2e8f0">
-                              {formatScientific(selectedInfo.frequencyRange[0])} ~{" "}
-                              {formatScientific(selectedInfo.frequencyRange[1])} Hz
-                            </tspan>
-                          </text>
-                          <text
-                            x="20"
-                            y="74"
-                            fill="#9ca3af"
-                            fontSize="10"
-                          >
-                            应用：
-                            <tspan fill="#e2e8f0">{selectedInfo.applications[i18n.language]}</tspan>
-                          </text>
-                          <text
-                            x="20"
-                            y="90"
-                            fill="#9ca3af"
-                            fontSize="10"
-                          >
-                            大气：
-                            <tspan fill={selectedInfo.canPenetrate ? "#22c55e" : "#ef4444"}>
-                              {selectedInfo.penetrateInfo[i18n.language]}
-                            </tspan>
-                          </text>
-                        </motion.g>
-                      )}
-                    </AnimatePresence>
                   </svg>
                 </div>
+
+                {/* Selected region info */}
+                <AnimatePresence>
+                  {selectedInfo && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className={`mt-4 p-4 rounded-xl border ${theme === "dark" ? "bg-slate-800/80 border-slate-700/50" : "bg-gray-100 border-gray-300"} shadow-sm`}
+                      style={{ borderLeftWidth: "4px", borderLeftColor: selectedInfo.color }}
+                    >
+                      <h4
+                        className="text-lg font-bold mb-3"
+                        style={{ color: selectedInfo.color }}
+                      >
+                        {selectedInfo.name[i18n.language]}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
+                        <div
+                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                        >
+                          波长：
+                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                            {formatWavelength(selectedInfo.wavelengthRange[0])} ~{" "}
+                            {formatWavelength(selectedInfo.wavelengthRange[1])}
+                          </span>
+                        </div>
+                        <div
+                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                        >
+                          频率：
+                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                            {formatScientific(selectedInfo.frequencyRange[0])} ~{" "}
+                            {formatScientific(selectedInfo.frequencyRange[1])} Hz
+                          </span>
+                        </div>
+                        <div
+                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                        >
+                          应用：
+                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                            {selectedInfo.applications[i18n.language]}
+                          </span>
+                        </div>
+                        <div
+                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                        >
+                          大气：
+                          <span
+                            className={
+                              selectedInfo.canPenetrate
+                                ? theme === "dark"
+                                  ? "text-green-400"
+                                  : "text-green-600"
+                                : theme === "dark"
+                                  ? "text-red-400"
+                                  : "text-red-600"
+                            }
+                          >
+                            {selectedInfo.penetrateInfo[i18n.language]}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <ControlPanel
@@ -1003,10 +1026,17 @@ export function ElectromagneticWaveDemo() {
                 title="光的本质"
                 color="cyan"
               >
-                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
+                <ul
+                  className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
+                >
                   <li>• 光是电磁波，不需要介质</li>
                   <li>• 波长与频率成反比</li>
-                  <li>{MathText({ text: "$c = \\lambda f = 3 \\times 10^8 \\text{ m/s}$", className: "font-mono text-cyan-400" })}</li>
+                  <li>
+                    {MathText({
+                      text: "$c = \\lambda f = 3 \\times 10^8 \\text{ m/s}$",
+                      className: "font-mono text-cyan-400",
+                    })}
+                  </li>
                 </ul>
               </InfoCard>
 
@@ -1014,10 +1044,17 @@ export function ElectromagneticWaveDemo() {
                 title="能量与波长"
                 color="purple"
               >
-                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
+                <ul
+                  className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
+                >
                   <li>• 波长越短，能量越高</li>
                   <li>• 伽马射线能量最高</li>
-                  <li>{MathText({ text: "$E = hf = hc/\\lambda$", className: "font-mono text-purple-400" })}</li>
+                  <li>
+                    {MathText({
+                      text: "$E = hf = hc/\\lambda$",
+                      className: "font-mono text-purple-400",
+                    })}
+                  </li>
                 </ul>
               </InfoCard>
 
@@ -1025,7 +1062,9 @@ export function ElectromagneticWaveDemo() {
                 title="人眼视觉"
                 color="green"
               >
-                <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
+                <ul
+                  className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
+                >
                   <li>• 人眼仅见380-700nm</li>
                   <li>• 对绿光最敏感(~555nm)</li>
                   <li>• 可见光只占极小部分</li>
