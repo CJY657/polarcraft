@@ -1,5 +1,6 @@
 /**
- * Footer Component - site-wide educational footer.
+ * Footer Component — Clay-style cream surface (NOT dark).
+ * Anchors every page with surface-soft #faf5e8 background and ink text.
  */
 
 import { useTranslation } from "react-i18next";
@@ -42,9 +43,7 @@ function FooterLinkList({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--glass-text-muted)]">
-        {title}
-      </p>
+      <p className="clay-caption">{title}</p>
       <div className="mt-4 flex flex-col gap-3">
         {links.map((link) =>
           link.external ? (
@@ -53,7 +52,7 @@ function FooterLinkList({
               href={link.path}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--paper-foreground)] transition-colors hover:text-[var(--paper-link)]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-clay-ink transition-colors hover:text-clay-pink"
             >
               {link.label}
               {link.label === "GitHub" ? <Github className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
@@ -62,7 +61,7 @@ function FooterLinkList({
             <Link
               key={link.path}
               to={link.path}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--paper-foreground)] transition-colors hover:text-[var(--paper-link)]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-clay-ink transition-colors hover:text-clay-pink"
             >
               {link.label}
             </Link>
@@ -79,57 +78,52 @@ export function Footer() {
 
   return (
     <footer
-      className="relative mt-16 border-t border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)]/95 px-4 py-12 text-[var(--paper-foreground)] sm:px-6 lg:px-8"
+      className="relative mt-24 bg-clay-surface-soft px-4 py-20 text-clay-ink sm:px-6 lg:px-8"
       style={{ zIndex: 1000, position: "relative" }}
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-10 border-b border-[var(--paper-border)] pb-10 lg:grid-cols-[minmax(0,1.3fr)_0.85fr_0.85fr_0.85fr]">
-          <div className="space-y-5">
+        <div className="grid gap-12 pb-12 lg:grid-cols-[minmax(0,1.3fr)_0.85fr_0.85fr_0.85fr]">
+          <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="glass-chip flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--paper-border)]">
-                <PolarCraftLogo size={30} theme={theme} animated={false} />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-clay-surface-card">
+                <PolarCraftLogo size={32} theme={theme} animated={false} />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--glass-text-muted)]">
-                  PolarCraft
-                </p>
-                <p className="text-lg font-semibold" style={{ fontFamily: "var(--font-ui-display)" }}>
+                <p className="clay-caption">PolarCraft</p>
+                <p className="clay-display-md mt-1" style={{ fontSize: "1.5rem", lineHeight: 1.2 }}>
                   偏振实验平台
                 </p>
               </div>
             </div>
 
-            <p className="max-w-xl text-sm leading-7 text-[var(--glass-text-muted)]">
+            <p className="max-w-xl text-base leading-7 text-clay-body">
               用实验内容、历史时间线、实验单元、交互模拟与项目协作，把偏振光学组织成更清晰的学习路径。
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Link
-                to="/experiments"
-                className="glass-button glass-button-primary rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-              >
+              <Link to="/experiments" className="clay-button-primary">
                 查看实验
               </Link>
-              <Link
-                to="/lab/explore"
-                className="glass-button rounded-full px-5 py-2.5 text-sm font-semibold text-[var(--paper-link)]"
-              >
+              <Link to="/lab/explore" className="clay-button-secondary">
                 浏览项目
               </Link>
             </div>
           </div>
 
           <FooterLinkList title="Learn" links={LEARN_LINKS} />
-          <FooterLinkList title="Explore" links={EXPLORE_LINKS.map((link) => ({
-            ...link,
-            label: link.label === "平台说明" ? t("footer.about") : link.label,
-          }))} />
+          <FooterLinkList
+            title="Explore"
+            links={EXPLORE_LINKS.map((link) => ({
+              ...link,
+              label: link.label === "平台说明" ? t("footer.about") : link.label,
+            }))}
+          />
           <FooterLinkList title="Resources" links={RESOURCE_LINKS} />
         </div>
 
-        <div className="flex flex-col gap-3 pt-6 text-sm text-[var(--glass-text-muted)] md:flex-row md:items-center md:justify-between">
+        <div className="mt-10 flex flex-col gap-3 border-t border-clay-surface-strong pt-8 text-sm text-clay-muted md:flex-row md:items-center md:justify-between">
           <p>PolarCraft © 2026</p>
-          <p>Inspired by modern learning-platform UI patterns and adapted for this project.</p>
+          <p>A claymation-warm learning platform for polarization optics.</p>
         </div>
       </div>
     </footer>

@@ -1,27 +1,43 @@
 @import "tailwindcss";
 
-/* Theme configuration for shadcn/ui style components */
+/* Theme configuration — Clay cream-canvas + dark-ink + saturated brand cards */
 @theme {
-  --color-background: hsl(156 44% 98%);
-  --color-foreground: hsl(212 34% 22%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(212 34% 22%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(212 34% 22%);
-  --color-primary: hsl(162 80% 39%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(204 70% 97%);
-  --color-secondary-foreground: hsl(212 34% 22%);
-  --color-muted: hsl(156 26% 96%);
-  --color-muted-foreground: hsl(210 14% 45%);
-  --color-accent: hsl(204 70% 97%);
-  --color-accent-foreground: hsl(212 34% 22%);
-  --color-destructive: hsl(356 76% 56%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(158 22% 88%);
-  --color-input: hsl(158 22% 88%);
-  --color-ring: hsl(220 88% 53%);
-  --radius: 1.25rem;
+  --color-background: #fffaf0;
+  --color-foreground: #0a0a0a;
+  --color-card: #fffaf0;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #fffaf0;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #0a0a0a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f0e0;
+  --color-secondary-foreground: #0a0a0a;
+  --color-muted: #faf5e8;
+  --color-muted-foreground: #6a6a6a;
+  --color-accent: #f5f0e0;
+  --color-accent-foreground: #0a0a0a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e5e5;
+  --color-input: #e5e5e5;
+  --color-ring: #0a0a0a;
+  --radius: 0.75rem;
+
+  /* Clay brand palette */
+  --color-clay-canvas: #fffaf0;
+  --color-clay-surface-soft: #faf5e8;
+  --color-clay-surface-card: #f5f0e0;
+  --color-clay-surface-strong: #ebe6d6;
+  --color-clay-ink: #0a0a0a;
+  --color-clay-body: #3a3a3a;
+  --color-clay-muted: #6a6a6a;
+  --color-clay-pink: #ff4d8b;
+  --color-clay-teal: #1a3a3a;
+  --color-clay-lavender: #b8a4ed;
+  --color-clay-peach: #ffb084;
+  --color-clay-ochre: #e8b94a;
+  --color-clay-mint: #a4d4c5;
+  --color-clay-coral: #ff6b5a;
 
   /* Polarization colors */
   --color-polarization-0: #ff4444;
@@ -30,65 +46,65 @@
   --color-polarization-135: #4444ff;
 }
 
-/* Light Mode Overrides */
+/* Light Mode — Clay cream-canvas system */
 html.light {
-  --color-background: hsl(156 44% 98%);
-  --color-foreground: hsl(212 34% 22%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(212 34% 22%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(212 34% 22%);
-  --color-primary: hsl(162 80% 39%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(204 70% 97%);
-  --color-secondary-foreground: hsl(212 34% 22%);
-  --color-muted: hsl(156 26% 96%);
-  --color-muted-foreground: hsl(210 14% 45%);
-  --color-accent: hsl(204 70% 97%);
-  --color-accent-foreground: hsl(212 34% 22%);
-  --color-destructive: hsl(356 76% 56%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(158 22% 88%);
-  --color-input: hsl(158 22% 88%);
-  --color-ring: hsl(220 88% 53%);
-  --paper-bg: #f6fbf8;
-  --paper-surface: #ffffff;
-  --paper-surface-strong: #ffffff;
-  --paper-border: #dbe8e4;
-  --paper-muted: #61706a;
-  --paper-foreground: #243b53;
-  --paper-accent: #14bf96;
-  --paper-accent-strong: #0ea67f;
-  --paper-link: #1865f2;
-  --paper-link-strong: #1153c9;
-  --paper-accent-soft: rgba(20, 191, 150, 0.1);
-  --paper-accent-glow: rgba(20, 191, 150, 0.22);
-  --glass-page-start: #f6fbf8;
-  --glass-page-mid: #fbfdff;
-  --glass-page-end: #f4f9ff;
-  --glass-orb-a: rgba(20, 191, 150, 0.12);
-  --glass-orb-b: rgba(24, 101, 242, 0.08);
-  --glass-orb-c: rgba(12, 166, 127, 0.05);
-  --glass-panel: rgba(255, 255, 255, 0.94);
-  --glass-panel-strong: rgba(255, 255, 255, 0.98);
-  --glass-panel-soft: #f3faf7;
-  --glass-chip: #f7fbf9;
-  --glass-stroke: #dbe8e4;
-  --glass-stroke-strong: #cfe0db;
-  --glass-text-muted: #6f7f79;
+  --color-background: #fffaf0;
+  --color-foreground: #0a0a0a;
+  --color-card: #fffaf0;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #fffaf0;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #0a0a0a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f0e0;
+  --color-secondary-foreground: #0a0a0a;
+  --color-muted: #faf5e8;
+  --color-muted-foreground: #6a6a6a;
+  --color-accent: #f5f0e0;
+  --color-accent-foreground: #0a0a0a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e5e5;
+  --color-input: #e5e5e5;
+  --color-ring: #0a0a0a;
+  --paper-bg: #fffaf0;
+  --paper-surface: #fffaf0;
+  --paper-surface-strong: #faf5e8;
+  --paper-border: #e5e5e5;
+  --paper-muted: #6a6a6a;
+  --paper-foreground: #0a0a0a;
+  --paper-accent: #0a0a0a;
+  --paper-accent-strong: #1f1f1f;
+  --paper-link: #0a0a0a;
+  --paper-link-strong: #1f1f1f;
+  --paper-accent-soft: #f5f0e0;
+  --paper-accent-glow: rgba(255, 77, 139, 0.18);
+  --glass-page-start: #fffaf0;
+  --glass-page-mid: #fffaf0;
+  --glass-page-end: #faf5e8;
+  --glass-orb-a: rgba(255, 77, 139, 0.1);
+  --glass-orb-b: rgba(184, 164, 237, 0.1);
+  --glass-orb-c: rgba(255, 176, 132, 0.08);
+  --glass-panel: #fffaf0;
+  --glass-panel-strong: #fffaf0;
+  --glass-panel-soft: #faf5e8;
+  --glass-chip: #f5f0e0;
+  --glass-stroke: #e5e5e5;
+  --glass-stroke-strong: #d4d4d4;
+  --glass-text-muted: #6a6a6a;
   --glass-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 16px 40px -30px rgba(36, 59, 83, 0.18);
+    0 1px 2px rgba(10, 10, 10, 0.04),
+    0 12px 28px -20px rgba(10, 10, 10, 0.12);
   --glass-shadow-strong:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 24px 48px -34px rgba(36, 59, 83, 0.2);
+    0 1px 2px rgba(10, 10, 10, 0.05),
+    0 18px 36px -24px rgba(10, 10, 10, 0.16);
   --glass-neon:
-    0 0 0 1px rgba(24, 101, 242, 0.1),
-    0 14px 28px -24px rgba(24, 101, 242, 0.18);
-  --glass-grid: rgba(36, 59, 83, 0.035);
+    0 0 0 1px rgba(10, 10, 10, 0.08),
+    0 12px 22px -20px rgba(10, 10, 10, 0.14);
+  --glass-grid: rgba(10, 10, 10, 0.04);
   --body-overlay:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.14) 28%, transparent 60%);
-  --body-accent-blur: rgba(20, 191, 150, 0.16);
+    linear-gradient(180deg, rgba(255, 250, 240, 0.6), rgba(255, 250, 240, 0) 32%);
+  --body-accent-blur: rgba(255, 77, 139, 0.12);
 }
 
 html.dark {
@@ -151,36 +167,56 @@ html.dark {
 }
 
 :root {
-  --paper-link: #1865f2;
-  --paper-link-strong: #1153c9;
+  --paper-link: #0a0a0a;
+  --paper-link-strong: #1f1f1f;
   --font-sans-ui:
-    "Avenir Next",
-    "Segoe UI Variable Text",
-    "Trebuchet MS",
-    "Noto Sans SC",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     "PingFang SC",
+    "Noto Sans SC",
     "Microsoft YaHei UI",
     sans-serif;
   --font-ui-display:
-    "Avenir Next",
-    "Segoe UI Variable Display",
-    "Trebuchet MS",
-    "Noto Sans SC",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     "PingFang SC",
+    "Noto Sans SC",
     "Microsoft YaHei UI",
     sans-serif;
   --font-editorial:
-    "Avenir Next",
-    "Segoe UI Variable Display",
-    "Trebuchet MS",
-    "Noto Sans SC",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     "PingFang SC",
+    "Noto Sans SC",
     "Microsoft YaHei UI",
     sans-serif;
-  --glass-radius-sm: 1rem;
-  --glass-radius-md: 1.5rem;
-  --glass-radius-lg: 2rem;
+  --glass-radius-sm: 0.75rem;
+  --glass-radius-md: 1rem;
+  --glass-radius-lg: 1.5rem;
   --glass-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Clay brand colors (also addressable in light/dark) */
+  --clay-canvas: #fffaf0;
+  --clay-surface-soft: #faf5e8;
+  --clay-surface-card: #f5f0e0;
+  --clay-surface-strong: #ebe6d6;
+  --clay-ink: #0a0a0a;
+  --clay-body: #3a3a3a;
+  --clay-muted: #6a6a6a;
+  --clay-pink: #ff4d8b;
+  --clay-teal: #1a3a3a;
+  --clay-lavender: #b8a4ed;
+  --clay-peach: #ffb084;
+  --clay-ochre: #e8b94a;
+  --clay-mint: #a4d4c5;
+  --clay-coral: #ff6b5a;
+  --clay-display-tracking: -0.025em;
 }
 
 html {
@@ -418,6 +454,181 @@ html {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 
+  /* ===== Clay claymation system ===== */
+  .clay-canvas {
+    background-color: var(--clay-canvas);
+    color: var(--clay-ink);
+  }
+
+  .clay-display {
+    font-family: var(--font-ui-display);
+    font-weight: 500;
+    letter-spacing: var(--clay-display-tracking);
+    line-height: 1.05;
+    color: var(--clay-ink);
+  }
+
+  .clay-display-xl {
+    font-family: var(--font-ui-display);
+    font-weight: 500;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    color: var(--clay-ink);
+  }
+
+  .clay-display-lg {
+    font-family: var(--font-ui-display);
+    font-weight: 500;
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--clay-ink);
+  }
+
+  .clay-display-md {
+    font-family: var(--font-ui-display);
+    font-weight: 500;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--clay-ink);
+  }
+
+  .clay-caption {
+    font-family: var(--font-sans-ui);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--clay-muted);
+  }
+
+  .clay-card {
+    border-radius: 1.5rem;
+    padding: 2rem;
+    color: var(--clay-ink);
+  }
+
+  .clay-card-pink {
+    background-color: var(--clay-pink);
+    color: #ffffff;
+  }
+
+  .clay-card-pink .clay-caption,
+  .clay-card-teal .clay-caption {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .clay-card-teal {
+    background-color: var(--clay-teal);
+    color: #ffffff;
+  }
+
+  .clay-card-lavender {
+    background-color: var(--clay-lavender);
+    color: var(--clay-ink);
+  }
+
+  .clay-card-peach {
+    background-color: var(--clay-peach);
+    color: var(--clay-ink);
+  }
+
+  .clay-card-ochre {
+    background-color: var(--clay-ochre);
+    color: var(--clay-ink);
+  }
+
+  .clay-card-mint {
+    background-color: var(--clay-mint);
+    color: var(--clay-ink);
+  }
+
+  .clay-card-cream {
+    background-color: var(--clay-surface-card);
+    color: var(--clay-ink);
+  }
+
+  .clay-button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 0.75rem;
+    background-color: var(--clay-ink);
+    color: #ffffff;
+    font-family: var(--font-sans-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: background-color 180ms var(--glass-ease), transform 180ms var(--glass-ease);
+  }
+
+  .clay-button-primary:hover {
+    background-color: #1f1f1f;
+    transform: translateY(-1px);
+  }
+
+  .clay-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 0.75rem;
+    background-color: var(--clay-canvas);
+    color: var(--clay-ink);
+    border: 1px solid var(--paper-border);
+    font-family: var(--font-sans-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: border-color 180ms var(--glass-ease), background-color 180ms var(--glass-ease);
+  }
+
+  .clay-button-secondary:hover {
+    border-color: var(--clay-ink);
+  }
+
+  .clay-button-on-color {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 0.75rem;
+    background-color: #ffffff;
+    color: var(--clay-ink);
+    font-family: var(--font-sans-ui);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: transform 180ms var(--glass-ease);
+  }
+
+  .clay-button-on-color:hover {
+    transform: translateY(-1px);
+  }
+
+  .clay-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--clay-surface-card);
+    color: var(--clay-ink);
+    font-family: var(--font-sans-ui);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
   .tech-card {
     @apply bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)];
   }
@@ -451,12 +662,12 @@ body {
   position: relative;
   color: var(--paper-foreground);
   font-family: var(--font-sans-ui);
-  background: var(--glass-page-start);
-  line-height: 1.5;
+  background: var(--clay-canvas);
+  line-height: 1.55;
 }
 
 ::selection {
-  background: var(--paper-link);
+  background: var(--clay-pink);
   color: #ffffff;
 }
 

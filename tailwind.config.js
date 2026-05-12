@@ -62,6 +62,23 @@ export default {
           90: '#44ff44',   // 90° vertical - green
           135: '#4444ff',  // 135° diagonal - blue
         },
+        // Clay claymation palette
+        clay: {
+          canvas: '#fffaf0',
+          'surface-soft': '#faf5e8',
+          'surface-card': '#f5f0e0',
+          'surface-strong': '#ebe6d6',
+          ink: '#0a0a0a',
+          body: '#3a3a3a',
+          muted: '#6a6a6a',
+          pink: '#ff4d8b',
+          teal: '#1a3a3a',
+          lavender: '#b8a4ed',
+          peach: '#ffb084',
+          ochre: '#e8b94a',
+          mint: '#a4d4c5',
+          coral: '#ff6b5a',
+        },
         // Tech/Future Theme Palette
         tech: {
           cyan: {

@@ -36,6 +36,8 @@ interface QuickLink {
   path: string;
 }
 
+type ClayVariant = "pink" | "teal" | "lavender" | "peach" | "ochre" | "cream";
+
 interface ModuleConfig {
   id: string;
   i18nNamespace: string;
@@ -43,10 +45,64 @@ interface ModuleConfig {
   IconComponent: AnimatedIconComponent;
   quickLinks: QuickLink[];
   workspaceLabel: string;
-  accent: string;
+  variant: ClayVariant;
   status?: "available" | "unavailable";
   statusLabel?: string;
 }
+
+const VARIANT_TEXT: Record<ClayVariant, { title: string; body: string; caption: string; iconBg: string; iconFg: string }> = {
+  pink: {
+    title: "text-white",
+    body: "text-white/85",
+    caption: "text-white/70",
+    iconBg: "bg-white/20",
+    iconFg: "text-white",
+  },
+  teal: {
+    title: "text-white",
+    body: "text-white/85",
+    caption: "text-white/70",
+    iconBg: "bg-white/15",
+    iconFg: "text-white",
+  },
+  lavender: {
+    title: "text-clay-ink",
+    body: "text-clay-ink/80",
+    caption: "text-clay-ink/65",
+    iconBg: "bg-white/55",
+    iconFg: "text-clay-ink",
+  },
+  peach: {
+    title: "text-clay-ink",
+    body: "text-clay-ink/80",
+    caption: "text-clay-ink/65",
+    iconBg: "bg-white/55",
+    iconFg: "text-clay-ink",
+  },
+  ochre: {
+    title: "text-clay-ink",
+    body: "text-clay-ink/80",
+    caption: "text-clay-ink/65",
+    iconBg: "bg-white/55",
+    iconFg: "text-clay-ink",
+  },
+  cream: {
+    title: "text-clay-ink",
+    body: "text-clay-body",
+    caption: "text-clay-muted",
+    iconBg: "bg-white",
+    iconFg: "text-clay-ink",
+  },
+};
+
+const VARIANT_CARD_CLASS: Record<ClayVariant, string> = {
+  pink: "clay-card-pink",
+  teal: "clay-card-teal",
+  lavender: "clay-card-lavender",
+  peach: "clay-card-peach",
+  ochre: "clay-card-ochre",
+  cream: "clay-card-cream",
+};
 
 const MODULES: ModuleConfig[] = [
   {
@@ -60,7 +116,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.courses.link3", path: "/experiments" },
     ],
     workspaceLabel: "实验内容",
-    accent: "#1865f2",
+    variant: "pink",
   },
   {
     id: "devices",
@@ -73,7 +129,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.studio.link3", path: "/devices" },
     ],
     workspaceLabel: "器件与实验",
-    accent: "#14bf96",
+    variant: "teal",
     status: "unavailable",
     statusLabel: "暂不开放",
   },
@@ -88,7 +144,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.theory.link3", path: "/demos/brewster-angle" },
     ],
     workspaceLabel: "计算模拟",
-    accent: "#0ea5a4",
+    variant: "lavender",
   },
   {
     id: "games",
@@ -101,7 +157,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.games.link3", path: "/games" },
     ],
     workspaceLabel: "游戏挑战",
-    accent: "#d48b1e",
+    variant: "peach",
     status: "unavailable",
     statusLabel: "暂不开放",
   },
@@ -116,7 +172,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.gallery.link3", path: "/gallery/gallery" },
     ],
     workspaceLabel: "成果归档",
-    accent: "#f59e42",
+    variant: "ochre",
   },
   {
     id: "lab",
@@ -129,7 +185,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.lab.link3", path: "/lab/explore" },
     ],
     workspaceLabel: "研究协作",
-    accent: "#0f9b74",
+    variant: "cream",
   },
 ];
 
@@ -161,425 +217,402 @@ export function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const modulesSectionStyle = {
-    borderColor: theme === "dark" ? "rgba(24, 101, 242, 0.28)" : "rgba(24, 101, 242, 0.16)",
-    boxShadow:
-      theme === "dark"
-        ? "0 28px 68px -52px rgba(24, 101, 242, 0.55), inset 0 0 0 1px rgba(255,255,255,0.04)"
-        : "0 24px 56px -46px rgba(24, 101, 242, 0.18), inset 0 0 0 1px rgba(255,255,255,0.72)",
-  };
-  const heroStyle = {
-    borderColor: theme === "dark" ? "rgba(130, 178, 255, 0.22)" : "rgba(24, 101, 242, 0.14)",
-    backgroundImage:
-      theme === "dark"
-        ? "linear-gradient(90deg, rgba(5, 13, 18, 0.92) 0%, rgba(7, 18, 23, 0.76) 48%, rgba(7, 18, 23, 0.24) 100%), url('/images/calcite/双折射成像.jpg')"
-        : "linear-gradient(90deg, rgba(246, 251, 248, 0.96) 0%, rgba(246, 251, 248, 0.74) 50%, rgba(246, 251, 248, 0.18) 100%), url('/images/calcite/双折射成像.jpg')",
-    backgroundPosition: "center",
-    backgroundSize: "cover",
-    boxShadow:
-      theme === "dark"
-        ? "0 34px 76px -54px rgba(130, 178, 255, 0.44), inset 0 0 0 1px rgba(255,255,255,0.04)"
-        : "0 28px 64px -52px rgba(24, 101, 242, 0.22), inset 0 0 0 1px rgba(255,255,255,0.82)",
-  };
-  const pathSectionStyle = {
-    borderColor: theme === "dark" ? "rgba(15, 155, 116, 0.3)" : "rgba(15, 155, 116, 0.18)",
-    boxShadow:
-      theme === "dark"
-        ? "0 30px 70px -54px rgba(15, 155, 116, 0.48), inset 0 0 0 1px rgba(255,255,255,0.04)"
-        : "0 24px 56px -46px rgba(15, 155, 116, 0.16), inset 0 0 0 1px rgba(255,255,255,0.72)",
-  };
 
   return (
-    <div className="glass-page min-h-screen text-[var(--paper-foreground)]">
-      <PersistentHeader
-        variant="solid"
-        showBreadcrumb={false}
-      />
+    <div className="clay-canvas min-h-screen">
+      <PersistentHeader variant="solid" showBreadcrumb={false} />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex max-w-7xl flex-col gap-24 px-4 pb-24 pt-12 sm:px-6 lg:px-8">
+        {/* ============ HERO BAND — 7/5 split ============ */}
         <section
           data-testid="home-hero"
-          className="relative flex min-h-[460px] overflow-hidden rounded-[2.5rem] border px-6 py-8 sm:min-h-[500px] sm:px-10 lg:px-12"
-          style={heroStyle}
+          className="grid gap-12 lg:grid-cols-12 lg:items-center"
         >
-          <div className="relative z-10 flex max-w-3xl flex-col justify-between gap-10">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--paper-link)]/20 bg-[var(--paper-surface-strong)]/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-link)] backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5" />
-                Research learning lab
-              </div>
+          <div className="lg:col-span-7">
+            <span className="clay-badge">
+              <Sparkles className="h-3.5 w-3.5" />
+              Polarized light × Learning lab
+            </span>
 
-              <h1
-                className="text-5xl font-semibold leading-none text-[var(--paper-foreground)] sm:text-6xl lg:text-7xl"
-                style={{ fontFamily: "var(--font-ui-display)" }}
+            <h1 className="clay-display-xl mt-6">
+              用偏振光<br />打开科学的窗户
+            </h1>
+
+            <p className="mt-6 max-w-xl text-lg leading-7 text-clay-body">
+              把偏振光的历史故事、真实实验、交互模拟和课题实践放到同一条学习路径里。
+              第一次进入时，可以先完成实验内容，再用模拟验证直觉。
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/experiments")}
+                className="clay-button-primary"
               >
-                PolarCraft
-              </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--paper-foreground)]/88 sm:text-xl">
-                把偏振光的历史故事、真实实验、交互模拟和课题实践放到同一条学习路径里。
-                第一次进入时，可以先完成实验内容，再用模拟验证直觉。
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate("/experiments")}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
-                >
-                  <BookOpenText className="h-4 w-4" />
-                  从实验内容开始
-                </button>
-              </div>
+                <BookOpenText className="h-4 w-4" />
+                从实验内容开始
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/lab/explore")}
+                className="clay-button-secondary"
+              >
+                浏览研究项目
+              </button>
             </div>
 
-            <div className="grid max-w-xl grid-cols-3 gap-3">
+            <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6">
               {HERO_STATS.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-[1.35rem] border border-[var(--paper-border)] bg-[var(--paper-surface-strong)]/78 px-4 py-3 backdrop-blur"
-                >
-                  <p className="text-2xl font-semibold text-[var(--paper-foreground)]">{stat.value}</p>
-                  <p className="mt-1 text-xs font-medium text-[var(--glass-text-muted)]">{stat.label}</p>
+                <div key={stat.label}>
+                  <dt
+                    className="text-3xl font-medium text-clay-ink"
+                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
+                  >
+                    {stat.value}
+                  </dt>
+                  <dd className="mt-1 text-sm text-clay-muted">{stat.label}</dd>
                 </div>
               ))}
+            </dl>
+          </div>
+
+          {/* hero-illustration-card per DESIGN.md */}
+          <div className="lg:col-span-5">
+            <div
+              className="relative aspect-square overflow-hidden rounded-[2rem] bg-clay-surface-soft p-6"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 30% 25%, rgba(255, 77, 139, 0.18), transparent 55%), radial-gradient(circle at 75% 75%, rgba(184, 164, 237, 0.22), transparent 55%)",
+              }}
+            >
+              <img
+                src="/images/calcite/双折射成像.jpg"
+                alt="Polarized light illustration"
+                className="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] rounded-[1.5rem] object-cover"
+              />
+              <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between rounded-2xl bg-clay-canvas/95 px-5 py-4 backdrop-blur">
+                <div>
+                  <p className="clay-caption">Featured</p>
+                  <p className="mt-1 text-sm font-semibold text-clay-ink">
+                    冰洲石的双折射成像
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/demos/birefringence-iceland-spar")}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-clay-ink text-white transition-transform hover:translate-x-0.5"
+                  aria-label="查看双折射成像演示"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
-        <section
-          className="relative overflow-hidden rounded-[2rem] border bg-[color:var(--paper-surface-strong)] p-6 sm:p-8"
-          style={modulesSectionStyle}
-        >
-          <div
-            className="pointer-events-none absolute inset-[12px] rounded-[1.45rem] border"
-            style={{
-              borderColor: theme === "dark" ? "rgba(24, 101, 242, 0.16)" : "rgba(24, 101, 242, 0.12)",
-            }}
-          />
-          <div className="relative space-y-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        {/* ============ MODULE FEATURE CARDS — cycling 6-color palette ============ */}
+        <section>
+          <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--paper-link)]">学习空间</p>
-              <h2
-                className="text-3xl font-semibold"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                选择你现在需要的入口
+              <span className="clay-caption">六大学习空间</span>
+              <h2 className="clay-display-lg mt-3">
+                选择你现在<br />需要的入口
               </h2>
             </div>
-
+            <p className="max-w-md text-base text-clay-body">
+              每个模块都是一个独立的学习空间，按颜色快速识别 ——
+              从历史课程到模拟器，再到项目协作。
+            </p>
           </div>
 
-            <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {MODULES.map((module) => {
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isUnavailable = module.status === "unavailable";
+              const variantClass = VARIANT_CARD_CLASS[module.variant];
+              const variantStyle = VARIANT_TEXT[module.variant];
 
               return (
-                <div
+                <article
                   key={module.id}
                   data-testid={`home-module-${module.id}`}
                   aria-disabled={isUnavailable}
                   className={cn(
-                    "group relative flex flex-col overflow-hidden rounded-[1.6rem] border bg-[var(--glass-panel-soft)] p-5 transition-all",
-                    isUnavailable ? "cursor-default" : "hover:-translate-y-1",
+                    "clay-card group relative flex min-h-[320px] flex-col justify-between transition-transform duration-200",
+                    variantClass,
+                    isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1",
                   )}
-                  style={{
-                    borderColor: theme === "dark" ? `${module.accent}33` : `${module.accent}24`,
-                    boxShadow:
-                      theme === "dark"
-                        ? `0 22px 52px -38px ${module.accent}55, inset 0 0 0 1px rgba(255,255,255,0.03)`
-                        : `0 20px 44px -36px ${module.accent}22, inset 0 0 0 1px rgba(255,255,255,0.78)`,
-                    opacity: isUnavailable ? 0.92 : 1,
-                  }}
                 >
-                  <div
-                    className="pointer-events-none absolute inset-[10px] rounded-[1.15rem] border"
-                    style={{
-                      borderColor: theme === "dark" ? `${module.accent}18` : `${module.accent}16`,
-                    }}
-                  />
-                  {isUnavailable ? (
-                    <div
-                      className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.18em]"
-                      style={{
-                        color: module.accent,
-                        borderColor: theme === "dark" ? `${module.accent}42` : `${module.accent}28`,
-                        backgroundColor: theme === "dark" ? `${module.accent}18` : `${module.accent}12`,
-                      }}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={cn(
+                          "flex h-12 w-12 items-center justify-center rounded-2xl",
+                          variantStyle.iconBg,
+                          variantStyle.iconFg,
+                        )}
+                      >
+                        <IconComponent size={28} theme={theme} />
+                      </div>
+                      {isUnavailable && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]",
+                            variantStyle.iconBg,
+                            variantStyle.iconFg,
+                          )}
+                        >
+                          <LockKeyhole className="h-3 w-3" />
+                          {module.statusLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className={cn("clay-caption mt-6", variantStyle.caption)}>
+                      {module.workspaceLabel}
+                    </p>
+                    <h3
+                      className={cn("mt-2 text-2xl font-semibold", variantStyle.title)}
+                      style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
                     >
-                      <LockKeyhole className="h-3.5 w-3.5" />
-                      {module.statusLabel}
-                    </div>
-                  ) : null}
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                      style={{ backgroundColor: `${module.accent}12`, color: module.accent }}
-                    >
-                      <IconComponent
-                        size={30}
-                        theme={theme}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{t(`${module.i18nNamespace}.title`)}</h3>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--paper-link)]">
-                        {module.workspaceLabel}
-                      </p>
-                    </div>
+                      {t(`${module.i18nNamespace}.title`)}
+                    </h3>
+                    <p className={cn("mt-3 text-sm leading-6", variantStyle.body)}>
+                      {t(`${module.i18nNamespace}.description`)}
+                    </p>
                   </div>
 
-                  <p className="mt-4 text-sm leading-relaxed text-[var(--glass-text-muted)]">
-                    {t(`${module.i18nNamespace}.description`)}
-                  </p>
-
-                  {isUnavailable ? (
-                    null
-                  ) : (
-                    <>
-                      <div className="mt-4 flex flex-wrap gap-2">
+                  {!isUnavailable && (
+                    <div className="mt-8">
+                      <div className="mb-4 flex flex-wrap gap-2">
                         {module.quickLinks.map((link) => (
                           <button
                             key={`${module.id}:${link.labelKey}:${link.path}`}
                             type="button"
                             onClick={() => navigate(link.path)}
-                            className="text-xs font-medium text-[var(--paper-link)] hover:underline"
+                            className={cn(
+                              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                              variantStyle.iconBg,
+                              variantStyle.iconFg,
+                              "hover:opacity-90",
+                            )}
                           >
                             {t(link.labelKey)}
                           </button>
                         ))}
                       </div>
-
                       <button
                         type="button"
-                        onClick={() => {
-                          navigate(module.path);
-                        }}
-                        className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--paper-link)]"
+                        onClick={() => navigate(module.path)}
+                        className={cn(
+                          "inline-flex items-center gap-2 text-sm font-semibold",
+                          variantStyle.title,
+                        )}
                       >
                         进入学习空间
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       </button>
-                    </>
+                    </div>
                   )}
-                </div>
+                </article>
               );
             })}
+          </div>
+        </section>
+
+        {/* ============ MISSION BAND — cream surface-soft ============ */}
+        <section className="rounded-[2rem] bg-clay-surface-soft px-8 py-20 text-center sm:px-16">
+          <div className="mx-auto max-w-3xl">
+            <img
+              src={theme === "dark" ? "/images/combined-logo-white.png" : "/images/combined-logo.png"}
+              alt="PolarCraft Logo"
+              className="mx-auto h-12 w-auto object-contain"
+            />
+            <div className="mx-auto mt-6 h-px w-12 bg-clay-surface-strong" />
+
+            <h2 className="clay-display-md mt-8">{t("home.hero.title")}</h2>
+            <p className="mt-3 text-lg font-medium text-clay-body" style={{ letterSpacing: "-0.01em" }}>
+              {t("home.hero.subtitle")}
+            </p>
+
+            <p className="mx-auto mt-8 max-w-2xl text-lg leading-8 text-clay-body">
+              “{t("home.hero.platformIntro")}”
+            </p>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <span className="clay-badge">X-Institute Course</span>
+              <span className="clay-badge">Research Learning</span>
             </div>
           </div>
         </section>
 
-        {/* Platform Narrative / Mission Section */}
-        <section className="relative overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)]/40 p-10 sm:p-16 text-center"
-          style={{
-            borderColor: theme === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
-          }}
-        >
-          {/* Subtle Background Elements */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[var(--paper-link)]/5 blur-[120px] rounded-full" />
-          
-          <div className="relative max-w-4xl mx-auto space-y-8">
-            <div className="flex flex-col items-center gap-6">
-              <img 
-                src={theme === "dark" ? "/images/combined-logo-white.png" : "/images/combined-logo.png"} 
-                alt="PolarCraft Logo" 
-                className="h-12 w-auto object-contain opacity-90"
-              />
-              <div className="h-px w-12 bg-[var(--paper-border)]" />
-            </div>
-
-            <div className="space-y-4">
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[var(--paper-foreground)]" 
-                  style={{ fontFamily: "var(--font-ui-display)" }}>
-                {t("home.hero.title")}
-              </h2>
-              <p className="text-lg md:text-xl font-medium text-[var(--paper-link)] tracking-wide opacity-90">
-                {t("home.hero.subtitle")}
-              </p>
-            </div>
-
-            <div className="mx-auto max-w-3xl">
-              <p className="text-lg md:text-xl leading-loose text-[var(--glass-text-muted)] font-light italic">
-                “{t("home.hero.platformIntro")}”
-              </p>
-            </div>
-
-            <div className="flex justify-center gap-4 pt-4">
-              <div className="px-4 py-1 rounded-full border border-[var(--paper-link)]/20 bg-[var(--paper-link)]/5 text-xs font-semibold text-[var(--paper-link)] tracking-widest uppercase">
-                X-Institute Course
-              </div>
-              <div className="px-4 py-1 rounded-full border border-[var(--paper-border)] bg-[var(--paper-surface-strong)] text-xs font-semibold text-[var(--glass-text-muted)] tracking-widest uppercase">
-                Research Learning
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Promotion Section */}
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Zero-One Academy */}
-          <section
-            className="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] p-8 transition-all hover:shadow-[0_40px_80px_-40px_rgba(30,58,138,0.25)]"
-            style={{
-              borderColor: theme === "dark" ? "rgba(30, 58, 138, 0.3)" : "rgba(30, 58, 138, 0.15)",
-              background: theme === "dark"
-                ? "linear-gradient(145deg, rgba(30, 58, 138, 0.12) 0%, rgba(30, 58, 138, 0.02) 100%)"
-                : "linear-gradient(145deg, rgba(30, 58, 138, 0.05) 0%, rgba(255, 255, 255, 0.5) 100%)",
-            }}
-          >
-            <div className="relative">
+        {/* ============ PROMOTION GRID — lavender + peach feature cards ============ */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="clay-card clay-card-lavender flex flex-col justify-between">
+            <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1E3A8A15] text-[#1E3A8A]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/55 text-clay-ink">
                   <Globe className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#1E3A8A] opacity-70">X-Institute</p>
-                  <h3 className="text-2xl font-bold">深圳零一学院</h3>
+                  <p className="clay-caption text-clay-ink/65">X-Institute</p>
+                  <h3
+                    className="text-2xl font-semibold text-clay-ink"
+                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
+                  >
+                    深圳零一学院
+                  </h3>
                 </div>
               </div>
-              <p className="mt-6 text-base leading-relaxed text-[var(--glass-text-muted)]">
+              <p className="mt-6 text-base leading-7 text-clay-ink/80">
                 由清华大学钱学森力学班创办，致力于发掘和培养极具创新潜质的青少年。
                 通过挑战性问题驱动的学习（Problem-based Learning），连接创意与智能的未来。
               </p>
-              <div className="mt-6 flex flex-wrap gap-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+              <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium text-clay-ink/75">
+                <span className="inline-flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  <span>汇聚顶尖导师与极客</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  汇聚顶尖导师与极客
+                </span>
+                <span className="inline-flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  <span>颠覆式创新教育</span>
-                </div>
+                  颠覆式创新教育
+                </span>
               </div>
             </div>
-            <div className="mt-8 flex items-center justify-between">
-              <a
-                href="https://www.x-institute.org.cn/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/link inline-flex items-center gap-2 text-sm font-bold text-[#1E3A8A] transition-colors"
-              >
-                了解更多关于零一学院
-                <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-              </a>
-            </div>
-            {/* Background Decoration */}
-            <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-[#1E3A8A08] blur-3xl transition-transform group-hover:scale-150" />
-          </section>
+            <a
+              href="https://www.x-institute.org.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-clay-ink hover:translate-x-0.5"
+            >
+              了解更多关于零一学院
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </article>
 
-          {/* PolarCraft (Open Wisdom Lab) */}
-          <section
-            className="group relative flex flex-col justify-between overflow-hidden rounded-[2.5rem] border bg-[color:var(--paper-surface-strong)] p-8 transition-all hover:shadow-[0_40px_80px_-40px_rgba(217,70,160,0.2)]"
-            style={{
-              borderColor: theme === "dark" ? "rgba(217, 70, 160, 0.3)" : "rgba(217, 70, 160, 0.15)",
-              background: theme === "dark"
-                ? "linear-gradient(145deg, rgba(217, 70, 160, 0.12) 0%, rgba(217, 70, 160, 0.02) 100%)"
-                : "linear-gradient(145deg, rgba(217, 70, 160, 0.05) 0%, rgba(255, 255, 255, 0.5) 100%)",
-            }}
-          >
-            <div className="relative">
+          <article className="clay-card clay-card-peach flex flex-col justify-between">
+            <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D946A015] text-[#D946A0]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/55 text-clay-ink">
                   <Rocket className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#D946A0] opacity-70">Open Wisdom Lab</p>
-                  <h3 className="text-2xl font-bold">PolarCraft 数字化实验室</h3>
+                  <p className="clay-caption text-clay-ink/65">Open Wisdom Lab</p>
+                  <h3
+                    className="text-2xl font-semibold text-clay-ink"
+                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
+                  >
+                    PolarCraft 数字化实验室
+                  </h3>
                 </div>
               </div>
-              <p className="mt-6 text-base leading-relaxed text-[var(--glass-text-muted)]">
+              <p className="mt-6 text-base leading-7 text-clay-ink/80">
                 一个基于物理仿真的交互式偏振光学学习平台。
                 我们通过数字化手段，将抽象的光学原理转化为直观的可视化体验，让科学探索变得更有趣、更高效。
               </p>
-              <div className="mt-6 flex flex-wrap gap-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+              <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium text-clay-ink/75">
+                <span className="inline-flex items-center gap-2">
                   <BookOpenText className="h-4 w-4" />
-                  <span>沉浸式实验体验</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm font-medium text-[var(--glass-text-muted)]">
+                  沉浸式实验体验
+                </span>
+                <span className="inline-flex items-center gap-2">
                   <Library className="h-4 w-4" />
-                  <span>丰富的学术资源</span>
-                </div>
+                  丰富的学术资源
+                </span>
               </div>
             </div>
-            <div className="mt-8">
-              <button
-                type="button"
-                onClick={() => navigate("/about")}
-                className="group/link inline-flex items-center gap-2 text-sm font-bold text-[#D946A0] transition-colors"
-              >
-                探索平台的使命与愿景
-                <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-1" />
-              </button>
-            </div>
-             {/* Background Decoration */}
-             <div className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-[#D946A008] blur-3xl transition-transform group-hover:scale-150" />
-          </section>
-        </div>
+            <button
+              type="button"
+              onClick={() => navigate("/about")}
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-clay-ink hover:translate-x-0.5"
+            >
+              探索平台的使命与愿景
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </article>
+        </section>
 
-        <section
-          className="relative overflow-hidden rounded-[2rem] border bg-[color:var(--paper-surface-strong)] p-6 sm:p-8"
-          style={pathSectionStyle}
-        >
-          <div
-            className="pointer-events-none absolute inset-[12px] rounded-[1.45rem] border"
-            style={{
-              borderColor: theme === "dark" ? "rgba(15, 155, 116, 0.16)" : "rgba(15, 155, 116, 0.12)",
-            }}
-          />
-          <div className="relative">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        {/* ============ LEARNING PATH — three product-mockup cards ============ */}
+        <section>
+          <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--paper-link)]">推荐路径</p>
-              <h2
-                className="text-3xl font-semibold"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                如果第一次进入平台，可以按这个顺序开始
+              <span className="clay-caption">推荐路径</span>
+              <h2 className="clay-display-lg mt-3">
+                第一次进入<br />可以按这个顺序开始
               </h2>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--glass-panel-soft)] px-4 py-2 text-sm font-medium text-[var(--paper-foreground)]">
-              <Library className="h-4 w-4 text-[var(--paper-link)]" />
-              适合课堂导入到项目实践的完整路线
-            </div>
+            <p className="inline-flex max-w-xs items-center gap-2 text-base text-clay-body">
+              <Library className="h-5 w-5 text-clay-ink" />
+              适合从课堂导入到项目实践的完整路线
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             {LEARNING_PATH.map((step, index) => (
               <button
                 key={step.path}
                 type="button"
                 onClick={() => navigate(step.path)}
-                className="group relative rounded-[1.75rem] border bg-[var(--glass-panel-soft)] p-5 text-left transition-all hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
-                style={{
-                  borderColor: theme === "dark" ? "rgba(15, 155, 116, 0.22)" : "rgba(15, 155, 116, 0.14)",
-                }}
+                className="group flex flex-col rounded-[1.25rem] border border-clay-surface-strong bg-clay-canvas p-8 text-left transition-transform hover:-translate-y-1"
               >
-                <div
-                  className="pointer-events-none absolute inset-[10px] rounded-[1.2rem] border"
-                  style={{
-                    borderColor: theme === "dark" ? "rgba(15, 155, 116, 0.12)" : "rgba(15, 155, 116, 0.1)",
-                  }}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[var(--paper-link)]">
-                    {index + 1}
-                  </span>
-                  <BookOpenText className="h-5 w-5 text-[var(--paper-link)] transition-transform group-hover:translate-x-1" />
-                </div>
-                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">
-                  {step.description}
-                </p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--paper-link)]">
+                <span
+                  className="text-5xl font-medium text-clay-ink/15"
+                  style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.04em" }}
+                >
+                  0{index + 1}
+                </span>
+                <h3
+                  className="mt-6 text-xl font-semibold text-clay-ink"
+                  style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
+                >
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-clay-body">{step.description}</p>
+                <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-clay-ink">
                   前往此步骤
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </span>
               </button>
             ))}
           </div>
+        </section>
+
+        {/* ============ PRE-FOOTER CTA BAND ============ */}
+        <section className="grid gap-8 rounded-[2rem] bg-clay-surface-soft px-8 py-16 sm:px-16 lg:grid-cols-[1.4fr_0.9fr] lg:items-center">
+          <div>
+            <span className="clay-caption">从这里开始</span>
+            <h2 className="clay-display-md mt-3">
+              把偏振光的<br />学习变成一件有趣的事
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-clay-body">
+              无论你是第一次接触偏振光，还是希望把课堂内容用更具象的方式表达，
+              这里都准备好了实验、模拟和项目作为起点。
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/experiments")}
+                className="clay-button-primary"
+              >
+                进入实验内容
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/demos")}
+                className="clay-button-secondary"
+              >
+                尝试交互模拟
+              </button>
+            </div>
           </div>
+          <div
+            className="relative aspect-square rounded-[1.5rem] bg-clay-surface-card"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 25% 30%, rgba(255, 77, 139, 0.28), transparent 50%), radial-gradient(circle at 78% 70%, rgba(232, 185, 74, 0.32), transparent 55%), radial-gradient(circle at 60% 20%, rgba(184, 164, 237, 0.28), transparent 55%)",
+            }}
+          />
         </section>
       </main>
     </div>

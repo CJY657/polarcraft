@@ -20,18 +20,19 @@ const MODULE_THEMES: Record<
     secondary: string;
   }
 > = {
-  courses: { primary: "#1865f2", secondary: "#75a8ff" },
-  units: { primary: "#14bf96", secondary: "#7adfc5" },
-  unit: { primary: "#14bf96", secondary: "#7adfc5" },
-  demos: { primary: "#0ea5a4", secondary: "#6fd5d4" },
-  gallery: { primary: "#f59e42", secondary: "#f8c27a" },
-  labGroup: { primary: "#0f9b74", secondary: "#5fd0af" },
-  creativeLab: { primary: "#f59e42", secondary: "#f8c27a" },
-  polarquest: { primary: "#c58b1d", secondary: "#e4b554" },
-  course: { primary: "#1865f2", secondary: "#75a8ff" },
-  game3d: { primary: "#c58b1d", secondary: "#e4b554" },
-  game2d: { primary: "#c58b1d", secondary: "#e4b554" },
-  profile: { primary: "#1865f2", secondary: "#75a8ff" },
+  // Clay claymation palette per module
+  courses: { primary: "#ff4d8b", secondary: "#ffb0c6" }, // pink
+  units: { primary: "#a4d4c5", secondary: "#d6ece4" }, // mint
+  unit: { primary: "#a4d4c5", secondary: "#d6ece4" },
+  demos: { primary: "#b8a4ed", secondary: "#d5c7f3" }, // lavender
+  gallery: { primary: "#ffb084", secondary: "#ffd4ba" }, // peach
+  labGroup: { primary: "#1a3a3a", secondary: "#456969" }, // teal
+  creativeLab: { primary: "#ffb084", secondary: "#ffd4ba" },
+  polarquest: { primary: "#e8b94a", secondary: "#f0d488" }, // ochre
+  course: { primary: "#ff4d8b", secondary: "#ffb0c6" },
+  game3d: { primary: "#e8b94a", secondary: "#f0d488" },
+  game2d: { primary: "#e8b94a", secondary: "#f0d488" },
+  profile: { primary: "#1a3a3a", secondary: "#456969" },
 };
 
 const NAV_ITEMS = [
@@ -105,10 +106,10 @@ export function PersistentHeader({
   return (
     <header
       className={cn(
-        "relative z-50 border-b",
+        "relative z-50",
         isTransparent
-          ? "border-transparent bg-transparent text-white shadow-none"
-          : "border-[var(--paper-border)] bg-[color:var(--paper-surface-strong)]/95 text-[var(--paper-foreground)] shadow-[0_12px_24px_-24px_rgba(36,59,83,0.3)] backdrop-blur",
+          ? "border-b border-transparent bg-transparent text-white shadow-none"
+          : "border-b border-clay-surface-strong bg-clay-canvas text-clay-ink",
         className,
       )}
     >
@@ -124,8 +125,8 @@ export function PersistentHeader({
           >
             <div
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
-                !isTransparent && "glass-chip",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                !isTransparent && "bg-clay-surface-card",
               )}
               style={
                 isTransparent
@@ -141,7 +142,7 @@ export function PersistentHeader({
                 theme={theme}
                 animated={false}
                 beamActive={!isTransparent}
-                activeColor={moduleTheme?.primary ?? "#14bf96"}
+                activeColor={moduleTheme?.primary ?? "#ff4d8b"}
                 className="transition-transform duration-200 group-hover:scale-105"
               />
             </div>
@@ -151,14 +152,14 @@ export function PersistentHeader({
                 <p
                   className={cn(
                     "text-[11px] font-semibold uppercase tracking-[0.22em]",
-                    isTransparent ? "text-white/70" : "text-[var(--glass-text-muted)]",
+                    isTransparent ? "text-white/70" : "text-clay-muted",
                   )}
                 >
                   PolarCraft
                 </p>
                 <p
                   className="truncate text-base font-semibold"
-                  style={{ fontFamily: "var(--font-ui-display)" }}
+                  style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.01em" }}
                 >
                   偏振实验平台
                 </p>
@@ -181,8 +182,8 @@ export function PersistentHeader({
                         ? "bg-white/14 text-white"
                         : "text-white/80 hover:bg-white/10 hover:text-white"
                       : isActive
-                        ? "bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                        : "text-[var(--glass-text-muted)] hover:bg-[var(--color-secondary)] hover:text-[var(--paper-link)]",
+                        ? "bg-clay-surface-card text-clay-ink"
+                        : "text-clay-muted hover:bg-clay-surface-card hover:text-clay-ink",
                   )}
                 >
                   {item.label}
@@ -193,16 +194,15 @@ export function PersistentHeader({
             {moduleKey && displayName && showBreadcrumb ? (
               <div
                 className={cn(
-                  "ml-2 inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium",
+                  "ml-2 inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium",
                   isTransparent
-                    ? "border-white/18 bg-white/10 text-white"
-                    : "border-[var(--paper-link)]/18 bg-[var(--paper-accent-soft)] text-[var(--paper-link)]",
+                    ? "border border-white/18 bg-white/10 text-white"
+                    : "bg-clay-surface-card text-clay-ink",
                 )}
                 style={
                   !isTransparent && moduleTheme?.primary
                     ? {
-                        borderColor: `${moduleTheme.primary}22`,
-                        backgroundColor: `${moduleTheme.primary}14`,
+                        backgroundColor: `${moduleTheme.primary}1a`,
                         color: moduleTheme.primary,
                       }
                     : undefined
@@ -228,10 +228,10 @@ export function PersistentHeader({
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-full border lg:hidden",
+                "inline-flex h-10 w-10 items-center justify-center rounded-full lg:hidden",
                 isTransparent
-                  ? "border-white/20 bg-black/25 text-white"
-                  : "glass-button text-[var(--paper-foreground)]",
+                  ? "border border-white/20 bg-black/25 text-white"
+                  : "bg-clay-surface-card text-clay-ink",
               )}
               aria-label={mobileMenuOpen ? "关闭菜单" : "打开菜单"}
             >
@@ -244,7 +244,7 @@ export function PersistentHeader({
           <div
             className={cn(
               "border-t py-3",
-              isTransparent ? "border-white/16" : "border-[var(--paper-border)]",
+              isTransparent ? "border-white/16" : "border-clay-surface-strong",
             )}
           >
             <div className="flex flex-col gap-3 lg:gap-4">
@@ -258,14 +258,14 @@ export function PersistentHeader({
                         key={item.path}
                         to={item.path}
                         className={cn(
-                          "rounded-2xl border px-4 py-3 text-sm font-medium transition-colors",
+                          "rounded-2xl px-4 py-3 text-sm font-medium transition-colors",
                           isTransparent
                             ? isActive
-                              ? "border-white/24 bg-white/12 text-white"
-                              : "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+                              ? "border border-white/24 bg-white/12 text-white"
+                              : "border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
                             : isActive
-                              ? "border-[var(--paper-link)] bg-[var(--paper-accent-soft)] text-[var(--paper-link)]"
-                              : "border-[var(--paper-border)] bg-[var(--glass-panel-soft)] text-[var(--paper-foreground)] hover:text-[var(--paper-link)]",
+                              ? "bg-clay-surface-card text-clay-ink"
+                              : "bg-clay-surface-soft text-clay-body hover:bg-clay-surface-card hover:text-clay-ink",
                         )}
                       >
                         {item.label}
@@ -276,16 +276,15 @@ export function PersistentHeader({
                   {moduleKey && displayName && showBreadcrumb ? (
                     <div
                       className={cn(
-                        "mt-1 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold",
+                        "mt-1 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold",
                         isTransparent
-                          ? "border-white/18 bg-white/10 text-white"
-                          : "border-[var(--paper-link)]/18 bg-[var(--paper-accent-soft)] text-[var(--paper-link)]",
+                          ? "border border-white/18 bg-white/10 text-white"
+                          : "bg-clay-surface-card text-clay-ink",
                       )}
                       style={
                         !isTransparent && moduleTheme?.primary
                           ? {
-                              borderColor: `${moduleTheme.primary}22`,
-                              backgroundColor: `${moduleTheme.primary}12`,
+                              backgroundColor: `${moduleTheme.primary}1a`,
                               color: moduleTheme.primary,
                             }
                           : undefined
