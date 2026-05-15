@@ -21,6 +21,7 @@ import {
   FolderKanban,
   Bell,
   MessageSquareText,
+  Users,
 } from 'lucide-react';
 
 interface UserDropdownProps {
@@ -148,6 +149,12 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       label: t('admin.unitsAndExperiments', '单元与实验'),
       icon: Layers,
       href: '/admin/units',
+    },
+    {
+      id: 'users',
+      label: '用户管理',
+      icon: Users,
+      href: '/admin/users',
     },
     {
       id: 'feedback',

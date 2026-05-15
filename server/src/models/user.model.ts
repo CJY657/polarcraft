@@ -4,7 +4,12 @@
  */
 
 import { getCollection } from '../database/connection.js';
-import { normalizeDocument, pickDefined } from '../database/mongo.util.js';
+import {
+  escapeRegExp,
+  normalizeDocument,
+  normalizeDocuments,
+  pickDefined,
+} from '../database/mongo.util.js';
 import { hashPassword, comparePassword } from '../utils/password.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import {
@@ -14,6 +19,12 @@ import {
   AuthError,
   UserSaltResponse,
 } from '../types/auth.types.js';
+import {
+  AdminUserListItem,
+  AdminUserListResponse,
+  AdminUserStatsResponse,
+  ListAdminUsersOptions,
+} from '../types/user.types.js';
 import { logger } from '../utils/logger.js';
 
 const usersCollection = () => getCollection('users');
@@ -66,6 +77,73 @@ export class UserModel {
     return {
       salt: user.client_salt,
       algorithm: user.client_hash_algorithm,
+    };
+  }
+
+  /**
+   * List users for admin management
+   * 获取管理员用户管理列表
+   */
+  static async listForAdmin(
+    options: Required<Pick<ListAdminUsersOptions, 'limit' | 'offset'>> &
+      Omit<ListAdminUsersOptions, 'limit' | 'offset'>
+  ): Promise<AdminUserListResponse> {
+    const filter: Record<string, unknown> = {};
+
+    if (options.role) {
+      filter.role = options.role;
+    }
+
+    if (options.status) {
+      filter.is_active = options.status === 'active';
+    }
+
+    if (options.search) {
+      const pattern = new RegExp(escapeRegExp(options.search), 'i');
+      filter.$or = [{ username: pattern }, { email: pattern }];
+    }
+
+    const [users, total] = await Promise.all([
+      usersCollection()
+        .find(filter)
+        .project({
+          _id: 0,
+          id: 1,
+          username: 1,
+          email: 1,
+          role: 1,
+          avatar_url: 1,
+          email_verified: 1,
+          is_active: 1,
+          created_at: 1,
+          last_login_at: 1,
+        })
+        .sort({ created_at: -1 })
+        .skip(options.offset)
+        .limit(options.limit)
+        .toArray(),
+      usersCollection().countDocuments(filter),
+    ]);
+
+    return {
+      items: normalizeDocuments<User>(users).map((user) => this.toAdminListItem(user)),
+      total,
+    };
+  }
+
+  /**
+   * Get admin user statistics
+   * 获取管理员用户统计
+   */
+  static async getAdminStats(): Promise<AdminUserStatsResponse> {
+    const [totalRegistered, activeUsers] = await Promise.all([
+      usersCollection().countDocuments({}),
+      usersCollection().countDocuments({ is_active: true }),
+    ]);
+
+    return {
+      total_registered: totalRegistered,
+      active_users: activeUsers,
     };
   }
 
@@ -234,6 +312,24 @@ export class UserModel {
       email_verified: user.email_verified,
       created_at: user.created_at,
       updated_at: user.updated_at,
+      last_login_at: user.last_login_at,
+    };
+  }
+
+  /**
+   * Convert User entity to safe admin list output
+   * 将用户实体转换为安全的管理员列表输出
+   */
+  private static toAdminListItem(user: User): AdminUserListItem {
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      avatar_url: user.avatar_url,
+      email: user.email,
+      email_verified: user.email_verified,
+      is_active: user.is_active,
+      created_at: user.created_at,
       last_login_at: user.last_login_at,
     };
   }

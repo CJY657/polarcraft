@@ -30,6 +30,47 @@ export interface UserProfileResponse {
 }
 
 // =====================================================
+// Admin User Management Types / 管理员用户管理类型
+// =====================================================
+
+/** Admin list status filter / 管理员用户列表状态筛选 */
+export type AdminUserStatusFilter = 'active' | 'inactive';
+
+/** Safe admin-facing user list item / 管理员可见的安全用户列表项 */
+export interface AdminUserListItem {
+  id: string;
+  username: string;
+  role: UserRole;
+  avatar_url: string | null;
+  email: string | null;
+  email_verified: boolean;
+  is_active: boolean;
+  created_at: Date;
+  last_login_at: Date | null;
+}
+
+/** Admin user list options / 管理员用户列表查询参数 */
+export interface ListAdminUsersOptions {
+  search?: string;
+  role?: UserRole;
+  status?: AdminUserStatusFilter;
+  limit?: number;
+  offset?: number;
+}
+
+/** Admin user list response / 管理员用户列表响应 */
+export interface AdminUserListResponse {
+  items: AdminUserListItem[];
+  total: number;
+}
+
+/** Admin user statistics response / 管理员用户统计响应 */
+export interface AdminUserStatsResponse {
+  total_registered: number;
+  active_users: number;
+}
+
+// =====================================================
 // Session Management Types / 会话管理类型
 // =====================================================
 

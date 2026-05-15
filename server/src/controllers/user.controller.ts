@@ -15,8 +15,58 @@ import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 
 export class UserController {
   /**
+   * List users for admin management
+   * 获取管理员用户列表
+   */
+  static listUsersForAdmin = asyncHandler(async (req: Request, res: Response) => {
+    setupResponseHelpers(res);
+
+    const search =
+      typeof req.query.search === 'string' && req.query.search.trim()
+        ? req.query.search.trim()
+        : undefined;
+    const role =
+      req.query.role === 'user' || req.query.role === 'admin'
+        ? req.query.role
+        : undefined;
+    const status =
+      req.query.status === 'active' || req.query.status === 'inactive'
+        ? req.query.status
+        : undefined;
+    const limit =
+      typeof req.query.limit === 'string'
+        ? Number.parseInt(req.query.limit, 10)
+        : undefined;
+    const offset =
+      typeof req.query.offset === 'string'
+        ? Number.parseInt(req.query.offset, 10)
+        : undefined;
+
+    const result = await UserService.listUsersForAdmin({
+      search,
+      role,
+      status,
+      limit,
+      offset,
+    });
+
+    res.success(result);
+  });
+
+  /**
+   * Get admin user statistics
+   * 获取管理员用户统计
+   */
+  static getUserStatsForAdmin = asyncHandler(async (_req: Request, res: Response) => {
+    setupResponseHelpers(res);
+
+    const result = await UserService.getUserStatsForAdmin();
+    res.success(result);
+  });
+
+  /**
    * Get user profile
- * 获取用户资料
+   * 获取用户资料
    */
   static getProfile = asyncHandler(async (req: Request, res: Response) => {
     setupResponseHelpers(res);

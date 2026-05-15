@@ -24,6 +24,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Users,
 } from "lucide-react";
 
 function areUnitsInSameOrder(left: Unit[], right: Unit[]) {
@@ -152,6 +153,18 @@ export default function AdminUnitsPage() {
         )}
         rightContent={
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/admin/users")}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                theme === "dark"
+                  ? "bg-slate-800 text-slate-100 hover:bg-slate-700"
+                  : "bg-white text-slate-700 hover:bg-slate-100"
+              )}
+            >
+              <Users className="w-4 h-4" />
+              用户管理
+            </button>
             <button
               onClick={() => navigate("/admin/feedback")}
               className={cn(

@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/user.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
+import { requireAdmin } from '../middleware/rbac.middleware.js';
 import {
   validateUpdateProfile,
   validateChangePassword,
@@ -17,6 +18,20 @@ const router = Router();
 // All user routes require authentication
 // 所有用户路由都需要认证
 router.use(authenticate);
+
+/**
+ * @route   GET /api/users/stats
+ * @desc    Get admin user statistics
+ * @access  Admin only
+ */
+router.get('/stats', requireAdmin, UserController.getUserStatsForAdmin);
+
+/**
+ * @route   GET /api/users
+ * @desc    List users for admin management
+ * @access  Admin only
+ */
+router.get('/', requireAdmin, UserController.listUsersForAdmin);
 
 /**
  * @route   GET /api/users/profile

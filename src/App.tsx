@@ -114,6 +114,7 @@ const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
 const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin/AdminFeedbackPage"));
+const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
 const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => ({ default: m.AdminRoute })));
 
@@ -395,6 +396,14 @@ function AppRouterContent() {
             element={
               <AdminRoute>
                 <AdminFeedbackPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsersPage />
               </AdminRoute>
             }
           />

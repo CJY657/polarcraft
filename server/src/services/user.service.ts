@@ -14,6 +14,11 @@ import {
   SessionsResponse,
   AuthError,
 } from '../types/auth.types.js';
+import {
+  AdminUserListResponse,
+  AdminUserStatsResponse,
+  ListAdminUsersOptions,
+} from '../types/user.types.js';
 import { TokenService } from './token.service.js';
 import { logger } from '../utils/logger.js';
 
@@ -32,6 +37,33 @@ export class UserService {
    */
   static async getProfile(userId: string): Promise<UserProfile | null> {
     return await UserModel.findById(userId);
+  }
+
+  /**
+   * Get admin user list
+   * 获取管理员用户列表
+   */
+  static async listUsersForAdmin(
+    options: ListAdminUsersOptions = {}
+  ): Promise<AdminUserListResponse> {
+    const limit = this.normalizeLimit(options.limit);
+    const offset = this.normalizeOffset(options.offset);
+
+    return UserModel.listForAdmin({
+      search: options.search,
+      role: options.role,
+      status: options.status,
+      limit,
+      offset,
+    });
+  }
+
+  /**
+   * Get admin user statistics
+   * 获取管理员用户统计
+   */
+  static async getUserStatsForAdmin(): Promise<AdminUserStatsResponse> {
+    return UserModel.getAdminStats();
   }
 
   /**
@@ -133,5 +165,21 @@ export class UserService {
     // TODO: Implement soft delete
     // TODO: 实现软删除
     throw new Error('Account deletion not implemented');
+  }
+
+  private static normalizeLimit(limit?: number): number {
+    if (!Number.isFinite(limit)) {
+      return 20;
+    }
+
+    return Math.min(Math.max(Math.trunc(limit as number), 1), 100);
+  }
+
+  private static normalizeOffset(offset?: number): number {
+    if (!Number.isFinite(offset)) {
+      return 0;
+    }
+
+    return Math.max(Math.trunc(offset as number), 0);
   }
 }
