@@ -176,6 +176,13 @@ export const config = {
       process.env.FEEDBACK_PRODUCT_EMAIL_TO || process.env.FEEDBACK_EMAIL_TO || '',
   },
 
+  // PostHog private API / PostHog 私有接口配置
+  posthog: {
+    appHost: process.env.POSTHOG_APP_HOST?.trim().replace(/\/$/, '') || '',
+    environmentId: process.env.POSTHOG_ENVIRONMENT_ID?.trim() || '',
+    personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY?.trim() || '',
+  },
+
   // Logging / 日志配置
   logging: {
     level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',

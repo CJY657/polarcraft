@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const usersFind = vi.fn();
 const usersCountDocuments = vi.fn();
+const usersFindOne = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
   getCollection: (name: string) => {
     if (name === 'users') {
       return {
         find: (...args: unknown[]) => usersFind(...args),
+        findOne: (...args: unknown[]) => usersFindOne(...args),
         countDocuments: (...args: unknown[]) => usersCountDocuments(...args),
       };
     }
@@ -133,5 +135,37 @@ describe('UserModel admin queries', () => {
     });
     expect(result.items[0]).not.toHaveProperty('password_hash');
     expect(result.items[0]).not.toHaveProperty('client_salt');
+  });
+
+  it('finds inactive users for admin detail lookups without applying the active-user filter', async () => {
+    usersFindOne.mockResolvedValueOnce({
+      id: 'inactive-user',
+      username: 'bob',
+      email: 'bob@example.com',
+      role: 'user',
+      avatar_url: null,
+      email_verified: false,
+      is_active: false,
+      created_at: new Date('2026-05-01T00:00:00.000Z'),
+      updated_at: new Date('2026-05-02T00:00:00.000Z'),
+      last_login_at: null,
+      password_hash: 'secret',
+      client_salt: 'salt',
+      client_hash_algorithm: 'SHA-256',
+    });
+
+    await expect(UserModel.findByIdForAdmin('inactive-user')).resolves.toEqual({
+      id: 'inactive-user',
+      username: 'bob',
+      email: 'bob@example.com',
+      role: 'user',
+      avatar_url: null,
+      email_verified: false,
+      is_active: false,
+      created_at: new Date('2026-05-01T00:00:00.000Z'),
+      last_login_at: null,
+    });
+
+    expect(usersFindOne).toHaveBeenCalledWith({ id: 'inactive-user' });
   });
 });

@@ -62,4 +62,25 @@ describe('adminUserApi', () => {
 
     expect(get).toHaveBeenLastCalledWith('/api/users');
   });
+
+  it('requests PostHog analytics for a single admin-selected user', async () => {
+    get.mockResolvedValue({
+      success: true,
+      data: {
+        status: 'not_found',
+        person: null,
+        summary: null,
+        recent_events: [],
+      },
+    });
+
+    await expect(adminUserApi.getPostHogAnalytics('user-1')).resolves.toEqual({
+      status: 'not_found',
+      person: null,
+      summary: null,
+      recent_events: [],
+    });
+
+    expect(get).toHaveBeenCalledWith('/api/users/user-1/posthog-analytics');
+  });
 });

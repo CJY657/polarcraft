@@ -34,6 +34,17 @@ router.get('/stats', requireAdmin, UserController.getUserStatsForAdmin);
 router.get('/', requireAdmin, UserController.listUsersForAdmin);
 
 /**
+ * @route   GET /api/users/:userId/posthog-analytics
+ * @desc    Get a single user's PostHog analytics
+ * @access  Admin only
+ */
+router.get(
+  '/:userId/posthog-analytics',
+  requireAdmin,
+  UserController.getPostHogAnalyticsForAdmin
+);
+
+/**
  * @route   GET /api/users/profile
  * @desc    Get user profile
  * @access  Private

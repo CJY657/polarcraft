@@ -43,6 +43,16 @@ export class UserModel {
   }
 
   /**
+   * Find user by ID for admin workflows, including inactive users
+   * 管理员按 ID 查找用户（包含停用用户）
+   */
+  static async findByIdForAdmin(id: string): Promise<AdminUserListItem | null> {
+    const user = normalizeDocument<User>(await usersCollection().findOne({ id }));
+
+    return user ? this.toAdminListItem(user) : null;
+  }
+
+  /**
    * Find user by username (includes password hash for authentication)
    * 根据用户名查找用户（包含密码哈希用于认证）
    */

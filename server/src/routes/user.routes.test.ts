@@ -21,6 +21,9 @@ const doubles = vi.hoisted(() => {
     listUsersForAdmin: vi.fn((_req, res) => {
       res.status(200).json({ route: 'list' });
     }),
+    getPostHogAnalyticsForAdmin: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'posthog-analytics' });
+    }),
   };
 });
 
@@ -34,6 +37,7 @@ vi.mock('../controllers/user.controller.js', () => ({
     logoutFromAllSessions: doubles.passthroughMiddleware,
     getUserStatsForAdmin: doubles.getUserStatsForAdmin,
     listUsersForAdmin: doubles.listUsersForAdmin,
+    getPostHogAnalyticsForAdmin: doubles.getPostHogAnalyticsForAdmin,
   },
 }));
 
@@ -60,9 +64,10 @@ function getRoute(path: string) {
 }
 
 describe('user.routes admin endpoints', () => {
-  it('protects admin user statistics and listing routes with admin authorization', () => {
+  it('protects admin user statistics, listing, and PostHog analytics routes with admin authorization', () => {
     const statsRoute = getRoute('/stats');
     const listRoute = getRoute('/');
+    const analyticsRoute = getRoute('/:userId/posthog-analytics');
 
     expect(statsRoute?.methods.get).toBe(true);
     expect(statsRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
@@ -71,5 +76,9 @@ describe('user.routes admin endpoints', () => {
     expect(listRoute?.methods.get).toBe(true);
     expect(listRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
     expect(listRoute?.stack.at(-1)?.handle).toBe(doubles.listUsersForAdmin);
+
+    expect(analyticsRoute?.methods.get).toBe(true);
+    expect(analyticsRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
+    expect(analyticsRoute?.stack.at(-1)?.handle).toBe(doubles.getPostHogAnalyticsForAdmin);
   });
 });

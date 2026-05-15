@@ -16,10 +16,12 @@ import {
 } from '../types/auth.types.js';
 import {
   AdminUserListResponse,
+  AdminUserPostHogAnalyticsResponse,
   AdminUserStatsResponse,
   ListAdminUsersOptions,
 } from '../types/user.types.js';
 import { TokenService } from './token.service.js';
+import { PostHogService } from './posthog.service.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -64,6 +66,21 @@ export class UserService {
    */
   static async getUserStatsForAdmin(): Promise<AdminUserStatsResponse> {
     return UserModel.getAdminStats();
+  }
+
+  /**
+   * Get PostHog analytics for a single user in admin workflows
+   * 管理员查询单个用户的 PostHog 行为数据
+   */
+  static async getPostHogAnalyticsForAdmin(
+    userId: string
+  ): Promise<AdminUserPostHogAnalyticsResponse> {
+    const user = await UserModel.findByIdForAdmin(userId);
+    if (!user) {
+      throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
+    }
+
+    return PostHogService.getUserAnalytics(user.id);
   }
 
   /**

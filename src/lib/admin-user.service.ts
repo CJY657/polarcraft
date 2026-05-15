@@ -25,6 +25,33 @@ export interface AdminUserStats {
   active_users: number;
 }
 
+export interface AdminUserPostHogPerson {
+  id: string;
+  uuid: string | null;
+  created_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface AdminUserPostHogSummary {
+  window_days: 30;
+  event_count_30d: number;
+  pageview_count_30d: number;
+}
+
+export interface AdminUserPostHogRecentEvent {
+  event: string;
+  timestamp: string;
+  route: string | null;
+  url: string | null;
+}
+
+export interface AdminUserPostHogAnalyticsResponse {
+  status: 'ok' | 'not_found' | 'disabled';
+  person: AdminUserPostHogPerson | null;
+  summary: AdminUserPostHogSummary | null;
+  recent_events: AdminUserPostHogRecentEvent[];
+}
+
 export const adminUserApi = {
   async getStats(): Promise<AdminUserStats> {
     const response = await api.get<AdminUserStats>('/api/users/stats');
@@ -73,5 +100,18 @@ export const adminUserApi = {
     }
 
     throw new Error(response.error?.message || '获取用户列表失败');
+  },
+
+  async getPostHogAnalytics(
+    userId: string
+  ): Promise<AdminUserPostHogAnalyticsResponse> {
+    const response = await api.get<AdminUserPostHogAnalyticsResponse>(
+      `/api/users/${userId}/posthog-analytics`
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || '获取用户行为数据失败');
   },
 };

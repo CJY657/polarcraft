@@ -1,12 +1,24 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, RefreshCw, Search, ShieldCheck, UserRound, Users } from 'lucide-react';
+import {
+  Activity,
+  ChevronLeft,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  UserRound,
+  Users,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { PersistentHeader } from '@/components/shared/PersistentHeader';
+import { Dialog } from '@/components/ui/dialog';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   adminUserApi,
   type AdminUserListItem,
+  type AdminUserPostHogAnalyticsResponse,
+  type AdminUserPostHogRecentEvent,
   type AdminUserRoleFilter,
   type AdminUserStats,
   type AdminUserStatusFilter,
@@ -29,6 +41,10 @@ function roleLabel(role: AdminUserListItem['role']): string {
   return role === 'admin' ? '管理员' : '普通用户';
 }
 
+function formatOptionalDateTime(value: string | null | undefined): string {
+  return value ? formatDateTime(value) : '暂无记录';
+}
+
 export default function AdminUsersPage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -44,6 +60,13 @@ export default function AdminUsersPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAnalyticsUser, setSelectedAnalyticsUser] = useState<AdminUserListItem | null>(
+    null
+  );
+  const [analyticsResult, setAnalyticsResult] =
+    useState<AdminUserPostHogAnalyticsResponse | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const loadStats = async () => {
     setIsLoadingStats(true);
@@ -86,6 +109,45 @@ export default function AdminUsersPage() {
     void loadUsers();
   }, [search, role, status, page]);
 
+  useEffect(() => {
+    if (!selectedAnalyticsUser) {
+      setAnalyticsResult(null);
+      setAnalyticsError(null);
+      setIsLoadingAnalytics(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    setAnalyticsResult(null);
+    setAnalyticsError(null);
+    setIsLoadingAnalytics(true);
+
+    void adminUserApi
+      .getPostHogAnalytics(selectedAnalyticsUser.id)
+      .then((result) => {
+        if (!cancelled) {
+          setAnalyticsResult(result);
+        }
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setAnalyticsError(
+            loadError instanceof Error ? loadError.message : '获取用户行为数据失败'
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingAnalytics(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAnalyticsUser]);
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page + 1, totalPages);
 
@@ -96,6 +158,12 @@ export default function AdminUsersPage() {
 
     return `${stats.active_users} 个账号当前可正常使用`;
   }, [stats]);
+
+  const recentAnalyticsEvents = useMemo(() => {
+    return [...(analyticsResult?.recent_events ?? [])].sort((left, right) =>
+      right.timestamp.localeCompare(left.timestamp)
+    );
+  }, [analyticsResult]);
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -351,6 +419,7 @@ export default function AdminUsersPage() {
                     <th className="px-5 py-4 font-medium">账号状态</th>
                     <th className="px-5 py-4 font-medium">注册时间</th>
                     <th className="px-5 py-4 font-medium">最后登录</th>
+                    <th className="px-5 py-4 font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody
@@ -399,6 +468,22 @@ export default function AdminUsersPage() {
                       <td className="px-5 py-4">
                         {item.last_login_at ? formatDateTime(item.last_login_at) : '从未登录'}
                       </td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          aria-label={`查看 ${item.username} 的行为`}
+                          onClick={() => setSelectedAnalyticsUser(item)}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                            theme === 'dark'
+                              ? 'bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/20'
+                              : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+                          )}
+                        >
+                          <Activity className="h-3.5 w-3.5" />
+                          查看行为
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -436,6 +521,15 @@ export default function AdminUsersPage() {
           </div>
         ) : null}
       </div>
+
+      <UserAnalyticsDialog
+        user={selectedAnalyticsUser}
+        result={analyticsResult}
+        recentEvents={recentAnalyticsEvents}
+        isLoading={isLoadingAnalytics}
+        error={analyticsError}
+        onClose={() => setSelectedAnalyticsUser(null)}
+      />
     </div>
   );
 }
@@ -509,5 +603,132 @@ function paginationButtonClass(theme: string) {
     theme === 'dark'
       ? 'bg-slate-800 text-slate-100 hover:bg-slate-700'
       : 'bg-slate-900 text-white hover:bg-slate-800'
+  );
+}
+
+function UserAnalyticsDialog({
+  user,
+  result,
+  recentEvents,
+  isLoading,
+  error,
+  onClose,
+}: {
+  user: AdminUserListItem | null;
+  result: AdminUserPostHogAnalyticsResponse | null;
+  recentEvents: AdminUserPostHogRecentEvent[];
+  isLoading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      isOpen={Boolean(user)}
+      onClose={onClose}
+      className="max-w-3xl border-slate-700 bg-slate-900 text-slate-100"
+      showCloseButton={false}
+    >
+      <div className="max-h-[80vh] overflow-y-auto p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-400">用户行为</p>
+            <h2 className="mt-1 text-xl font-semibold">
+              {user ? `${user.username} 的 PostHog 行为` : 'PostHog 行为'}
+            </h2>
+          </div>
+          <button
+            type="button"
+            aria-label="关闭行为详情"
+            onClick={onClose}
+            className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isLoading ? (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-300">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            正在加载行为数据...
+          </div>
+        ) : null}
+
+        {!isLoading && error ? (
+          <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-4 text-sm text-red-200">
+            {error}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && result?.status === 'disabled' ? (
+          <div className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
+            PostHog 尚未配置
+          </div>
+        ) : null}
+
+        {!isLoading && !error && result?.status === 'not_found' ? (
+          <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-4 text-sm text-slate-300">
+            该用户在 PostHog 中暂无记录
+          </div>
+        ) : null}
+
+        {!isLoading && !error && result?.status === 'ok' ? (
+          <>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <AnalyticsSummaryCard
+                label="最近活跃时间"
+                value={formatOptionalDateTime(result.person?.last_seen_at)}
+              />
+              <AnalyticsSummaryCard
+                label="近 30 天事件数"
+                value={String(result.summary?.event_count_30d ?? 0)}
+              />
+              <AnalyticsSummaryCard
+                label="近 30 天页面访问数"
+                value={String(result.summary?.pageview_count_30d ?? 0)}
+              />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-slate-200">最近 10 条事件</h3>
+              {recentEvents.length === 0 ? (
+                <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-400">
+                  暂无最近事件
+                </div>
+              ) : (
+                <div className="mt-3 overflow-hidden rounded-2xl border border-slate-800">
+                  <ul className="divide-y divide-slate-800">
+                    {recentEvents.map((event) => (
+                      <li
+                        key={`${event.timestamp}-${event.event}-${event.route ?? event.url ?? ''}`}
+                        className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+                      >
+                        <div>
+                          <div className="font-medium text-slate-100">{event.event}</div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {event.route || event.url || '无路由上下文'}
+                          </div>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {formatDateTime(event.timestamp)}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </>
+        ) : null}
+      </div>
+    </Dialog>
+  );
+}
+
+function AnalyticsSummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-4">
+      <div className="text-xs text-slate-400">{label}</div>
+      <div className="mt-2 text-lg font-semibold text-white">{value}</div>
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
+import { PostHogAnalyticsError } from '../services/posthog.service.js';
 
 export class UserController {
   /**
@@ -63,6 +64,28 @@ export class UserController {
     const result = await UserService.getUserStatsForAdmin();
     res.success(result);
   });
+
+  /**
+   * Get a single user's PostHog analytics for admins
+   * 管理员查询单个用户的 PostHog 行为数据
+   */
+  static getPostHogAnalyticsForAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+      setupResponseHelpers(res);
+
+      try {
+        const result = await UserService.getPostHogAnalyticsForAdmin(req.params.userId);
+        res.success(result);
+      } catch (error) {
+        if (error instanceof PostHogAnalyticsError) {
+          res.error(error.message, error.code, error.statusCode);
+          return;
+        }
+
+        throw error;
+      }
+    }
+  );
 
   /**
    * Get user profile

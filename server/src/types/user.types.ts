@@ -70,6 +70,37 @@ export interface AdminUserStatsResponse {
   active_users: number;
 }
 
+/** Admin PostHog person summary / 管理员可见的 PostHog 用户摘要 */
+export interface AdminUserPostHogPerson {
+  id: string;
+  uuid: string | null;
+  created_at: string | null;
+  last_seen_at: string | null;
+}
+
+/** Admin PostHog 30-day summary / 管理员可见的 PostHog 30 天摘要 */
+export interface AdminUserPostHogSummary {
+  window_days: 30;
+  event_count_30d: number;
+  pageview_count_30d: number;
+}
+
+/** Admin PostHog recent event / 管理员可见的 PostHog 最近事件 */
+export interface AdminUserPostHogRecentEvent {
+  event: string;
+  timestamp: string;
+  route: string | null;
+  url: string | null;
+}
+
+/** Admin user PostHog analytics response / 管理员用户 PostHog 行为响应 */
+export interface AdminUserPostHogAnalyticsResponse {
+  status: 'ok' | 'not_found' | 'disabled';
+  person: AdminUserPostHogPerson | null;
+  summary: AdminUserPostHogSummary | null;
+  recent_events: AdminUserPostHogRecentEvent[];
+}
+
 // =====================================================
 // Session Management Types / 会话管理类型
 // =====================================================
