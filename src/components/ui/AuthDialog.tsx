@@ -81,8 +81,12 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   };
 
   const handleForgotPassword = () => {
-    closeDialog();
     navigate('/forgot-password');
+    // Defer closeDialog so the route change commits first. Otherwise ProtectedRoute
+    // (when login was triggered by gating a protected page) sees the dialog close
+    // while it is still mounted and redirects to "/", swallowing the forgot-password
+    // navigation.
+    setTimeout(() => closeDialog(), 0);
   };
 
   return (
