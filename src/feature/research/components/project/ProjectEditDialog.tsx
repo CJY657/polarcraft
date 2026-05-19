@@ -9,7 +9,7 @@ import { X, Save, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
-import { researchApi, type ResearchProject, type UpdateProjectInput } from '@/lib/research.service';
+import { researchApi, type ResearchProject } from '@/lib/research.service';
 
 interface ProjectEditDialogProps {
   isOpen: boolean;
@@ -27,7 +27,11 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     name_en: '',
     description_zh: '',
     description_en: '',
-    status: 'active' as const,
+    research_questions_zh: '',
+    research_hypotheses_zh: '',
+    basic_plan_zh: '',
+    extended_plan_zh: '',
+    status: 'active' as ResearchProject['status'],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,6 +44,10 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         name_en: project.name_en || '',
         description_zh: project.description_zh || '',
         description_en: project.description_en || '',
+        research_questions_zh: project.research_questions_zh || '',
+        research_hypotheses_zh: project.research_hypotheses_zh || '',
+        basic_plan_zh: project.basic_plan_zh || '',
+        extended_plan_zh: project.extended_plan_zh || '',
         status: project.status || 'active',
       });
     }
@@ -64,6 +72,10 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         name_en: formData.name_en || undefined,
         description_zh: formData.description_zh || undefined,
         description_en: formData.description_en || undefined,
+        research_questions_zh: formData.research_questions_zh,
+        research_hypotheses_zh: formData.research_hypotheses_zh,
+        basic_plan_zh: formData.basic_plan_zh,
+        extended_plan_zh: formData.extended_plan_zh,
         status: formData.status,
       });
 
@@ -161,6 +173,86 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
               value={formData.description_zh}
               onChange={(e) => setFormData({ ...formData, description_zh: e.target.value })}
               rows={4}
+              className={cn(
+                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
+                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
+              )}
+            />
+          </div>
+
+          <div>
+            <label className={cn(
+              "block text-sm font-medium mb-1.5",
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            )}>
+              研究问题（中文，每行一个）
+            </label>
+            <textarea
+              value={formData.research_questions_zh}
+              onChange={(e) => setFormData({ ...formData, research_questions_zh: e.target.value })}
+              rows={3}
+              className={cn(
+                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
+                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
+              )}
+            />
+          </div>
+
+          <div>
+            <label className={cn(
+              "block text-sm font-medium mb-1.5",
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            )}>
+              研究假设（中文，每行一个）
+            </label>
+            <textarea
+              value={formData.research_hypotheses_zh}
+              onChange={(e) => setFormData({ ...formData, research_hypotheses_zh: e.target.value })}
+              rows={3}
+              className={cn(
+                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
+                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
+              )}
+            />
+          </div>
+
+          <div>
+            <label className={cn(
+              "block text-sm font-medium mb-1.5",
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            )}>
+              基础问题与实验（中文）
+            </label>
+            <textarea
+              value={formData.basic_plan_zh}
+              onChange={(e) => setFormData({ ...formData, basic_plan_zh: e.target.value })}
+              rows={3}
+              className={cn(
+                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
+                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
+              )}
+            />
+          </div>
+
+          <div>
+            <label className={cn(
+              "block text-sm font-medium mb-1.5",
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            )}>
+              拓展问题、假设与实验（中文）
+            </label>
+            <textarea
+              value={formData.extended_plan_zh}
+              onChange={(e) => setFormData({ ...formData, extended_plan_zh: e.target.value })}
+              rows={3}
               className={cn(
                 "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
                 theme === "dark"

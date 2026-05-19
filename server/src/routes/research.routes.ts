@@ -18,7 +18,7 @@ function buildProjectDiscussionUploadScope(projectId: string): string {
   return `project-discussion-${sanitizedProjectId}`;
 }
 
-async function authorizeProjectDiscussionImageUpload(
+async function authorizeProjectDiscussionUpload(
   req: Request,
   res: Response,
   next: NextFunction
@@ -40,7 +40,7 @@ async function authorizeProjectDiscussionImageUpload(
     }
 
     if (!access.canAccessDiscussion) {
-      res.error('无权上传课题讨论图片', 'FORBIDDEN', 403);
+      res.error('无权上传课题讨论附件', 'FORBIDDEN', 403);
       return;
     }
 
@@ -48,8 +48,6 @@ async function authorizeProjectDiscussionImageUpload(
       ...(typeof req.body === 'object' && req.body !== null ? req.body : {}),
       unitId: uploadScope,
     };
-    req.params.category = 'image';
-
     next();
   } catch (error) {
     next(error);
@@ -285,8 +283,9 @@ router.post('/projects/:projectId/discussion-comments', ResearchController.addPr
  */
 router.post(
   '/projects/:projectId/discussion-images',
-  authorizeProjectDiscussionImageUpload,
+  authorizeProjectDiscussionUpload,
   (req, res, next): void => {
+    req.params.category = 'image';
     res.locals.uploadStartedAt = Date.now();
     logger.info('Project discussion image upload started', {
       projectId: req.params.projectId,
@@ -297,6 +296,37 @@ router.post(
     });
 
     const upload = createUploadMiddleware('image');
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        handleUploadError(err, req, res, next);
+        return;
+      }
+      next();
+    });
+  },
+  UploadController.uploadFile
+);
+
+/**
+ * @route   POST /api/research/projects/:projectId/discussion-videos
+ * @desc    Upload a video for project discussion comments
+ * @access  Private
+ */
+router.post(
+  '/projects/:projectId/discussion-videos',
+  authorizeProjectDiscussionUpload,
+  (req, res, next): void => {
+    req.params.category = 'video';
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Project discussion video upload started', {
+      projectId: req.params.projectId,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
+
+    const upload = createUploadMiddleware('video');
     upload.single('file')(req, res, (err) => {
       if (err) {
         handleUploadError(err, req, res, next);

@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import type { ReactNode } from "react";
 import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -19,6 +20,11 @@ import {
   AlertCircle,
   UserMinus,
   UserPlus,
+  BookOpen,
+  FlaskConical,
+  HelpCircle,
+  Lightbulb,
+  ListChecks,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,12 +49,170 @@ import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
-import { ProjectDiscussionSection } from "../components/project/ProjectDiscussionSection";
+import {
+  ProjectDiscussionSection,
+  type ProjectDiscussionJumpRequest,
+  type ProjectDiscussionJumpTarget,
+  type ProjectDiscussionOutline,
+} from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 function isProjectMember(member: ProjectMember | PublicProjectMember): member is ProjectMember {
   return "user_id" in member && "id" in member;
+}
+
+function splitResearchItems(value?: string | null): string[] {
+  return (value ?? '')
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function hasResearchOutline(outline: ProjectDiscussionOutline): boolean {
+  return Boolean(
+    outline.topicSummary.trim()
+      || outline.basicPlan?.trim()
+      || outline.extendedPlan?.trim()
+      || outline.questions.length > 0
+      || outline.hypotheses.length > 0
+  );
+}
+
+function ResearchInfoSection({
+  outline,
+  canJumpToDiscussion,
+  onJumpToDiscussion,
+}: {
+  outline: ProjectDiscussionOutline;
+  canJumpToDiscussion: boolean;
+  onJumpToDiscussion: (target: ProjectDiscussionJumpTarget) => void;
+}) {
+  const hasQuestions = outline.questions.length > 0;
+  const hasHypotheses = outline.hypotheses.length > 0;
+  const hasPlans = Boolean(outline.basicPlan?.trim() || outline.extendedPlan?.trim());
+
+  if (!hasResearchOutline(outline)) {
+    return null;
+  }
+
+  const renderJumpItem = (
+    label: string,
+    target: ProjectDiscussionJumpTarget,
+    icon: ReactNode,
+    toneClass: string
+  ) => {
+    const className = cn(
+      "group flex min-h-[4rem] items-start gap-3 rounded-[1.1rem] border px-3.5 py-3 text-left transition",
+      toneClass,
+      canJumpToDiscussion && "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.07)]"
+    );
+
+    const content = (
+      <>
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-[var(--paper-foreground)]">
+          {label}
+        </span>
+      </>
+    );
+
+    if (!canJumpToDiscussion) {
+      return <div className={className}>{content}</div>;
+    }
+
+    return (
+      <button type="button" onClick={() => onJumpToDiscussion(target)} className={className}>
+        {content}
+      </button>
+    );
+  };
+
+  return (
+    <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="research-kicker mb-2">Research Information</div>
+          <h2
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: "var(--font-ui-display)" }}
+          >
+            研究信息
+          </h2>
+        </div>
+        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-medium sm:self-auto">
+          <ListChecks className="h-3.5 w-3.5" />
+          问题与假设索引
+        </span>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
+        <div className="research-panel-soft rounded-[1.35rem] p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-[var(--paper-link)]" />
+            <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
+          </div>
+          <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+            {outline.topicSummary || "这个课题还没有补充详细摘要。"}
+          </p>
+        </div>
+
+        {hasPlans && (
+          <div className="grid gap-3">
+            {outline.basicPlan?.trim() && (
+              <div className="research-panel-soft rounded-[1.35rem] p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
+                  <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+                  {outline.basicPlan}
+                </p>
+              </div>
+            )}
+            {outline.extendedPlan?.trim() && (
+              <div className="research-panel-soft rounded-[1.35rem] p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
+                  <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+                  {outline.extendedPlan}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {(hasQuestions || hasHypotheses) && (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {outline.questions.map((question, index) => (
+            <div key={`question-${index}`}>
+              {renderJumpItem(
+                question,
+                { section: "basic", index },
+                <HelpCircle className="h-4 w-4 text-[var(--paper-link)]" />,
+                "border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/7"
+              )}
+            </div>
+          ))}
+          {outline.hypotheses.map((hypothesis, index) => (
+            <div key={`hypothesis-${index}`}>
+              {renderJumpItem(
+                hypothesis,
+                { section: "extended", index },
+                <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />,
+                "border-[#d7994c]/20 bg-[#d7994c]/8"
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function ResearchProjectPage() {
@@ -87,6 +251,7 @@ export function ResearchProjectPage() {
   const [isAddingFormerMemberId, setIsAddingFormerMemberId] = useState<string | null>(null);
   const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
+  const [discussionJumpRequest, setDiscussionJumpRequest] = useState<ProjectDiscussionJumpRequest | null>(null);
 
   const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
   const isAdmin = user?.role === "admin";
@@ -124,6 +289,10 @@ export function ResearchProjectPage() {
       setError(err instanceof Error ? err.message : "加载课题失败");
     }
   }, [isAuthenticated, loadAuthenticatedProjectData, projectId]);
+
+  useEffect(() => {
+    setDiscussionJumpRequest(null);
+  }, [projectId]);
 
   // Fetch project data
   useEffect(() => {
@@ -323,6 +492,10 @@ export function ResearchProjectPage() {
         name_en: exampleProject?.title.en || null,
         description_zh: exampleProject?.description["zh-CN"] || "",
         description_en: null,
+        research_questions_zh: null,
+        research_hypotheses_zh: null,
+        basic_plan_zh: null,
+        extended_plan_zh: null,
         status: "active" as const,
         is_public: true,
         thumbnail: exampleProject?.coverImage || null,
@@ -359,6 +532,14 @@ export function ResearchProjectPage() {
   const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
+  const canShowDiscussionSection = !isExampleProject && Boolean(projectId && project && isAuthenticated && canParticipateInDiscussion);
+  const researchOutline: ProjectDiscussionOutline = {
+    topicSummary: displayProject.description_zh || "",
+    questions: splitResearchItems(displayProject.research_questions_zh),
+    hypotheses: splitResearchItems(displayProject.research_hypotheses_zh),
+    basicPlan: displayProject.basic_plan_zh || "",
+    extendedPlan: displayProject.extended_plan_zh || "",
+  };
 
   const handleApplyAction = () => {
     if (isPublicGuestMode) {
@@ -369,6 +550,13 @@ export function ResearchProjectPage() {
     if (!hasPendingApplication) {
       setIsApplicationFormOpen(true);
     }
+  };
+
+  const handleJumpToDiscussion = (target: ProjectDiscussionJumpTarget) => {
+    setDiscussionJumpRequest((current) => ({
+      ...target,
+      version: (current?.version ?? 0) + 1,
+    }));
   };
 
   return (
@@ -535,6 +723,12 @@ export function ResearchProjectPage() {
           </div>
         </section>
 
+        <ResearchInfoSection
+          outline={researchOutline}
+          canJumpToDiscussion={canShowDiscussionSection}
+          onJumpToDiscussion={handleJumpToDiscussion}
+        />
+
         {/* Members Section */}
         {!isExampleProject && displayMembers.length > 0 && (
           <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
@@ -688,12 +882,14 @@ export function ResearchProjectPage() {
           </section>
         )}
 
-        {!isExampleProject && projectId && project && isAuthenticated && canParticipateInDiscussion && (
+        {canShowDiscussionSection && projectId && (
           <ProjectDiscussionSection
             projectId={projectId}
             currentUserId={user?.id}
             canModerate={isOwner || isAdmin}
             canParticipate={canParticipateInDiscussion}
+            outline={researchOutline}
+            jumpRequest={discussionJumpRequest}
           />
         )}
 

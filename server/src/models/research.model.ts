@@ -73,6 +73,10 @@ function normalizeImageUrls(value: unknown): string[] {
   return [...uniqueUrls];
 }
 
+function normalizeVideoUrls(value: unknown): string[] {
+  return normalizeImageUrls(value);
+}
+
 type LegacyFormerMemberSource = {
   user_id: string;
   role?: string | null;
@@ -283,6 +287,10 @@ export class ResearchModel {
       name_en: data.name_en || null,
       description_zh: data.description_zh || null,
       description_en: data.description_en || null,
+      research_questions_zh: data.research_questions_zh || null,
+      research_hypotheses_zh: data.research_hypotheses_zh || null,
+      basic_plan_zh: data.basic_plan_zh || null,
+      extended_plan_zh: data.extended_plan_zh || null,
       thumbnail: data.thumbnail || null,
       status: data.status || 'draft',
       is_public: data.is_public || false,
@@ -313,6 +321,10 @@ export class ResearchModel {
       name_en: data.name_en,
       description_zh: data.description_zh,
       description_en: data.description_en,
+      research_questions_zh: data.research_questions_zh,
+      research_hypotheses_zh: data.research_hypotheses_zh,
+      basic_plan_zh: data.basic_plan_zh,
+      extended_plan_zh: data.extended_plan_zh,
       thumbnail: data.thumbnail,
       status: data.status,
       is_public: data.is_public,
@@ -977,6 +989,7 @@ export class ResearchModel {
     return comments.map((comment) => ({
       ...comment,
       image_urls: normalizeImageUrls(comment.image_urls),
+      video_urls: normalizeVideoUrls(comment.video_urls),
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
@@ -995,6 +1008,7 @@ export class ResearchModel {
     return {
       ...comment,
       image_urls: normalizeImageUrls(comment.image_urls),
+      video_urls: normalizeVideoUrls(comment.video_urls),
     };
   }
 
@@ -1007,7 +1021,8 @@ export class ResearchModel {
     userId: string,
     content: string,
     parentCommentId: string | null = null,
-    imageUrls: string[] = []
+    imageUrls: string[] = [],
+    videoUrls: string[] = []
   ): Promise<string> {
     const now = new Date();
     const commentId = generateId();
@@ -1019,6 +1034,7 @@ export class ResearchModel {
       parent_comment_id: parentCommentId,
       content,
       image_urls: normalizeImageUrls(imageUrls),
+      video_urls: normalizeVideoUrls(videoUrls),
       is_deleted: false,
       created_at: now,
       updated_at: now,
@@ -1062,7 +1078,7 @@ export class ResearchModel {
     if (childCount > 0) {
       const result = await projectCommentsCollection().updateOne(
         { id: commentId },
-        { $set: { is_deleted: true, content: '', image_urls: [], updated_at: new Date() } }
+        { $set: { is_deleted: true, content: '', image_urls: [], video_urls: [], updated_at: new Date() } }
       );
       logger.info(`Project discussion comment soft deleted: ${commentId}`);
       return result.matchedCount > 0;

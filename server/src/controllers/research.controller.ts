@@ -15,10 +15,11 @@ import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.
 import { logger } from '../utils/logger.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
+const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 
-function normalizeProjectDiscussionImageUrls(value: unknown): string[] | null {
+function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null {
   if (value === undefined || value === null) {
     return [];
   }
@@ -199,9 +200,29 @@ export class ResearchController {
    * 创建项目
    */
   static createProject = asyncHandler(async (req: Request, res: Response) => {
-    const { name_zh, name_en, description_zh, description_en, is_public } = req.body;
+    const {
+      name_zh,
+      name_en,
+      description_zh,
+      description_en,
+      research_questions_zh,
+      research_hypotheses_zh,
+      basic_plan_zh,
+      extended_plan_zh,
+      is_public,
+    } = req.body;
     const projectId = await ResearchModel.createProject(
-      { name_zh, name_en, description_zh, description_en, is_public },
+      {
+        name_zh,
+        name_en,
+        description_zh,
+        description_en,
+        research_questions_zh,
+        research_hypotheses_zh,
+        basic_plan_zh,
+        extended_plan_zh,
+        is_public,
+      },
       req.user!.sub
     );
 
@@ -875,13 +896,18 @@ export class ResearchController {
     const currentUserId = req.user!.sub;
     const rawContent = typeof req.body.content === 'string' ? req.body.content : '';
     const content = rawContent.trim();
-    const imageUrls = normalizeProjectDiscussionImageUrls(req.body.imageUrls);
+    const imageUrls = normalizeProjectDiscussionManagedUrls(req.body.imageUrls);
+    const videoUrls = normalizeProjectDiscussionManagedUrls(req.body.videoUrls);
     const parentCommentId = typeof req.body.parentCommentId === 'string' && req.body.parentCommentId.trim().length > 0
       ? req.body.parentCommentId.trim()
       : null;
 
     if (imageUrls === null) {
-      return res.error('评论图片地址格式无效', 'INVALID_COMMENT_IMAGES', 400);
+      return res.error('评论附件地址格式无效', 'INVALID_COMMENT_IMAGES', 400);
+    }
+
+    if (videoUrls === null) {
+      return res.error('评论视频地址格式无效', 'INVALID_COMMENT_VIDEOS', 400);
     }
 
     if (content.length > 2000) {
@@ -892,8 +918,12 @@ export class ResearchController {
       return res.error(`单条评论最多上传 ${MAX_PROJECT_DISCUSSION_IMAGES} 张图片`, 'TOO_MANY_COMMENT_IMAGES', 400);
     }
 
-    if (!content && (imageUrls?.length ?? 0) === 0) {
-      return res.error('评论内容和图片至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
+    if ((videoUrls?.length ?? 0) > MAX_PROJECT_DISCUSSION_VIDEOS) {
+      return res.error(`单条评论最多上传 ${MAX_PROJECT_DISCUSSION_VIDEOS} 个视频`, 'TOO_MANY_COMMENT_VIDEOS', 400);
+    }
+
+    if (!content && (imageUrls?.length ?? 0) === 0 && (videoUrls?.length ?? 0) === 0) {
+      return res.error('评论内容、图片和视频至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
     }
 
     const access = await ensureProjectAccess(
@@ -924,7 +954,8 @@ export class ResearchController {
       currentUserId,
       content,
       parentCommentId,
-      imageUrls ?? []
+      imageUrls ?? [],
+      videoUrls ?? []
     );
 
     await ResearchModel.logActivity(
@@ -936,6 +967,7 @@ export class ResearchController {
       {
         parent_comment_id: parentCommentId,
         image_count: imageUrls?.length ?? 0,
+        video_count: videoUrls?.length ?? 0,
       }
     );
 
@@ -964,7 +996,7 @@ export class ResearchController {
     }
 
     await ResearchModel.deleteProjectDiscussionComment(id);
-    await ManagedUploadCleanupService.cleanupUrls(comment.image_urls ?? [], {
+    await ManagedUploadCleanupService.cleanupUrls([...(comment.image_urls ?? []), ...(comment.video_urls ?? [])], {
       reason: `research.project-comment.delete:${id}`,
     });
     logger.info(`Project discussion comment deleted by user ${req.user!.username}: ${id}`);
@@ -1316,6 +1348,10 @@ export class ResearchController {
         name_en: project.name_en,
         description_zh: project.description_zh,
         description_en: project.description_en,
+        research_questions_zh: project.research_questions_zh,
+        research_hypotheses_zh: project.research_hypotheses_zh,
+        basic_plan_zh: project.basic_plan_zh,
+        extended_plan_zh: project.extended_plan_zh,
         is_public: project.is_public,
       },
       userId

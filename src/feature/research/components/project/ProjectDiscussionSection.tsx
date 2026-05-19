@@ -7,31 +7,59 @@ import {
   Reply,
   Send,
   Trash2,
+  Video,
   X,
 } from 'lucide-react';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import { cn } from '@/utils/classNames';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
 
+export interface ProjectDiscussionOutline {
+  topicSummary: string;
+  questions: string[];
+  hypotheses: string[];
+  basicPlan?: string;
+  extendedPlan?: string;
+}
+
+export type ProjectDiscussionJumpSection = 'topic' | 'basic' | 'extended';
+
+export interface ProjectDiscussionJumpTarget {
+  section: ProjectDiscussionJumpSection;
+  index?: number;
+}
+
+export interface ProjectDiscussionJumpRequest {
+  section: ProjectDiscussionJumpSection;
+  index?: number;
+  version: number;
+}
+
 interface ProjectDiscussionSectionProps {
   projectId: string;
   canParticipate: boolean;
   canModerate?: boolean;
   currentUserId?: string;
+  outline?: ProjectDiscussionOutline;
+  jumpRequest?: ProjectDiscussionJumpRequest | null;
 }
 
 interface DiscussionTreeComment extends ProjectDiscussionComment {
   replies: DiscussionTreeComment[];
 }
 
-interface DraftImage {
+type DraftAttachmentType = 'image' | 'video';
+
+interface DraftAttachment {
   id: string;
   file: File;
   previewUrl: string;
+  type: DraftAttachmentType;
 }
 
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_COMMENT_IMAGES = 6;
+const MAX_COMMENT_VIDEOS = 2;
 
 function formatCommentTime(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -100,9 +128,9 @@ function expandCommentAncestors(
   return expanded;
 }
 
-function revokeDraftImages(images: DraftImage[]): void {
-  for (const image of images) {
-    URL.revokeObjectURL(image.previewUrl);
+function revokeDraftAttachments(attachments: DraftAttachment[]): void {
+  for (const attachment of attachments) {
+    URL.revokeObjectURL(attachment.previewUrl);
   }
 }
 
@@ -114,35 +142,111 @@ function isSupportedImageFile(file: File): boolean {
   return /\.(jpe?g|png|gif|webp)$/i.test(file.name);
 }
 
-function buildDraftImages(files: FileList | null, remainingSlots: number): {
-  acceptedImages: DraftImage[];
+function isSupportedVideoFile(file: File): boolean {
+  if (file.type.startsWith('video/')) {
+    return true;
+  }
+
+  return /\.(mp4|webm|mov)$/i.test(file.name);
+}
+
+function getDraftAttachmentType(file: File): DraftAttachmentType | null {
+  if (isSupportedImageFile(file)) {
+    return 'image';
+  }
+
+  if (isSupportedVideoFile(file)) {
+    return 'video';
+  }
+
+  return null;
+}
+
+function countDraftAttachments(attachments: DraftAttachment[]): Record<DraftAttachmentType, number> {
+  return attachments.reduce(
+    (counts, attachment) => ({
+      ...counts,
+      [attachment.type]: counts[attachment.type] + 1,
+    }),
+    { image: 0, video: 0 }
+  );
+}
+
+function buildDraftAttachments(
+  files: FileList | null,
+  remainingImageSlots: number,
+  remainingVideoSlots: number
+): {
+  acceptedAttachments: DraftAttachment[];
   invalidCount: number;
-  overflowCount: number;
+  imageOverflowCount: number;
+  videoOverflowCount: number;
 } {
   const selectedFiles = Array.from(files ?? []);
-  const imageFiles = selectedFiles.filter(isSupportedImageFile);
-  const acceptedFiles = imageFiles.slice(0, Math.max(remainingSlots, 0));
+  const acceptedAttachments: DraftAttachment[] = [];
+  let invalidCount = 0;
+  let imageOverflowCount = 0;
+  let videoOverflowCount = 0;
+  let remainingImages = Math.max(remainingImageSlots, 0);
+  let remainingVideos = Math.max(remainingVideoSlots, 0);
 
-  return {
-    acceptedImages: acceptedFiles.map((file) => ({
+  for (const file of selectedFiles) {
+    const type = getDraftAttachmentType(file);
+
+    if (!type) {
+      invalidCount += 1;
+      continue;
+    }
+
+    if (type === 'image') {
+      if (remainingImages <= 0) {
+        imageOverflowCount += 1;
+        continue;
+      }
+      remainingImages -= 1;
+    }
+
+    if (type === 'video') {
+      if (remainingVideos <= 0) {
+        videoOverflowCount += 1;
+        continue;
+      }
+      remainingVideos -= 1;
+    }
+
+    acceptedAttachments.push({
       id: crypto.randomUUID(),
       file,
       previewUrl: URL.createObjectURL(file),
-    })),
-    invalidCount: selectedFiles.length - imageFiles.length,
-    overflowCount: Math.max(imageFiles.length - acceptedFiles.length, 0),
+      type,
+    });
+  }
+
+  return {
+    acceptedAttachments,
+    invalidCount,
+    imageOverflowCount,
+    videoOverflowCount,
   };
 }
 
-function buildImageSelectionMessage(invalidCount: number, overflowCount: number): string | null {
+function buildAttachmentSelectionMessage(
+  invalidCount: number,
+  imageOverflowCount: number,
+  videoOverflowCount: number
+): string | null {
   const messages: string[] = [];
 
   if (invalidCount > 0) {
-    messages.push('只支持 JPG、PNG、GIF、WebP 图片');
+    messages.push('只支持 JPG、PNG、GIF、WebP 图片和 MP4、WebM、MOV 视频');
   }
 
-  if (overflowCount > 0) {
+  if (imageOverflowCount > 0) {
     messages.push(`单条评论最多添加 ${MAX_COMMENT_IMAGES} 张图片`);
+  }
+
+  if (videoOverflowCount > 0) {
+    messages.push(`单条评论最多添加 ${MAX_COMMENT_VIDEOS} 个视频`);
   }
 
   return messages.length > 0 ? messages.join('；') : null;
@@ -163,54 +267,67 @@ function getCommentPreviewText(comment: ProjectDiscussionComment): string {
     return comment.content;
   }
 
-  if (comment.image_urls.length > 0) {
-    return `附带 ${comment.image_urls.length} 张图片`;
+  const videoCount = comment.video_urls?.length ?? 0;
+
+  if (comment.image_urls.length > 0 || videoCount > 0) {
+    return `附带 ${comment.image_urls.length} 张图片、${videoCount} 个视频`;
   }
 
   return '无文字内容';
 }
 
-function DraftImagePreviewList({
-  images,
+function DraftAttachmentPreviewList({
+  attachments,
   onRemove,
   onPreview,
 }: {
-  images: DraftImage[];
-  onRemove: (imageId: string) => void;
-  onPreview: (image: DraftImage) => void;
+  attachments: DraftAttachment[];
+  onRemove: (attachmentId: string) => void;
+  onPreview: (attachment: DraftAttachment) => void;
 }) {
-  if (images.length === 0) {
+  if (attachments.length === 0) {
     return null;
   }
 
   return (
     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {images.map((image) => (
+      {attachments.map((attachment) => (
         <div
-          key={image.id}
+          key={attachment.id}
           className="group relative overflow-hidden rounded-[1rem] border border-[var(--paper-accent)]/14 bg-white/85"
         >
+          {attachment.type === 'image' ? (
+            <button
+              type="button"
+              onClick={() => onPreview(attachment)}
+              className="block h-28 w-full overflow-hidden bg-slate-100"
+            >
+              <img
+                src={attachment.previewUrl}
+                alt={attachment.file.name}
+                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+              />
+            </button>
+          ) : (
+            <div className="h-28 w-full overflow-hidden bg-slate-950">
+              <video
+                src={attachment.previewUrl}
+                controls
+                preload="metadata"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          )}
           <button
             type="button"
-            onClick={() => onPreview(image)}
-            className="block h-28 w-full overflow-hidden bg-slate-100"
-          >
-            <img
-              src={image.previewUrl}
-              alt={image.file.name}
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-            />
-          </button>
-          <button
-            type="button"
-            onClick={() => onRemove(image.id)}
+            onClick={() => onRemove(attachment.id)}
             className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/68 text-white transition hover:bg-black/82"
-            aria-label="移除图片"
+            aria-label={attachment.type === 'image' ? '移除图片' : '移除视频'}
           >
             <X className="h-4 w-4" />
           </button>
           <div className="border-t border-white/70 px-2.5 py-2">
-            <p className="truncate text-xs text-[var(--glass-text-muted)]">{image.file.name}</p>
+            <p className="truncate text-xs text-[var(--glass-text-muted)]">{attachment.file.name}</p>
           </div>
         </div>
       ))}
@@ -218,16 +335,18 @@ function DraftImagePreviewList({
   );
 }
 
-function CommentImageGrid({
+function CommentMediaGrid({
   imageUrls,
+  videoUrls,
   username,
   onPreview,
 }: {
   imageUrls: string[];
+  videoUrls: string[];
   username: string;
   onPreview: (url: string, alt: string) => void;
 }) {
-  if (imageUrls.length === 0) {
+  if (imageUrls.length === 0 && videoUrls.length === 0) {
     return null;
   }
 
@@ -248,6 +367,20 @@ function CommentImageGrid({
           />
         </button>
       ))}
+      {videoUrls.map((url, index) => (
+        <div
+          key={`${url}-${index}`}
+          className="overflow-hidden rounded-[1rem] border border-[var(--paper-accent)]/14 bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.06)]"
+        >
+          <video
+            src={url}
+            controls
+            preload="metadata"
+            className="h-28 w-full object-cover"
+            aria-label={`${username || '用户'} 上传的视频 ${index + 1}`}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -257,6 +390,8 @@ export function ProjectDiscussionSection({
   canParticipate,
   canModerate = false,
   currentUserId,
+  outline,
+  jumpRequest,
 }: ProjectDiscussionSectionProps) {
   const [comments, setComments] = useState<ProjectDiscussionComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -264,13 +399,13 @@ export function ProjectDiscussionSection({
   const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
 
   const [newComment, setNewComment] = useState('');
-  const [newCommentImages, setNewCommentImages] = useState<DraftImage[]>([]);
+  const [newCommentAttachments, setNewCommentAttachments] = useState<DraftAttachment[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyImages, setReplyImages] = useState<Record<string, DraftImage[]>>({});
+  const [replyAttachments, setReplyAttachments] = useState<Record<string, DraftAttachment[]>>({});
   const [replyError, setReplyError] = useState<string | null>(null);
   const [submittingReplyToId, setSubmittingReplyToId] = useState<string | null>(null);
 
@@ -279,8 +414,8 @@ export function ProjectDiscussionSection({
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
 
-  const newCommentImagesRef = useRef<DraftImage[]>([]);
-  const replyImagesRef = useRef<Record<string, DraftImage[]>>({});
+  const newCommentAttachmentsRef = useRef<DraftAttachment[]>([]);
+  const replyAttachmentsRef = useRef<Record<string, DraftAttachment[]>>({});
   const newCommentFileInputRef = useRef<HTMLInputElement | null>(null);
   const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -289,17 +424,17 @@ export function ProjectDiscussionSection({
   const summaryComments = commentTree.slice(0, 3);
 
   useEffect(() => {
-    newCommentImagesRef.current = newCommentImages;
-  }, [newCommentImages]);
+    newCommentAttachmentsRef.current = newCommentAttachments;
+  }, [newCommentAttachments]);
 
   useEffect(() => {
-    replyImagesRef.current = replyImages;
-  }, [replyImages]);
+    replyAttachmentsRef.current = replyAttachments;
+  }, [replyAttachments]);
 
   useEffect(() => {
     return () => {
-      revokeDraftImages(newCommentImagesRef.current);
-      Object.values(replyImagesRef.current).forEach((images) => revokeDraftImages(images));
+      revokeDraftAttachments(newCommentAttachmentsRef.current);
+      Object.values(replyAttachmentsRef.current).forEach((attachments) => revokeDraftAttachments(attachments));
     };
   }, []);
 
@@ -319,8 +454,8 @@ export function ProjectDiscussionSection({
   function clearNewCommentComposer() {
     setNewComment('');
     setSubmitError(null);
-    setNewCommentImages((current) => {
-      revokeDraftImages(current);
+    setNewCommentAttachments((current) => {
+      revokeDraftAttachments(current);
       return [];
     });
   }
@@ -328,9 +463,9 @@ export function ProjectDiscussionSection({
   function clearReplyDraft(commentId: string) {
     setReplyDrafts((current) => ({ ...current, [commentId]: '' }));
     setReplyError(null);
-    setReplyImages((current) => {
-      const existingImages = current[commentId] ?? [];
-      revokeDraftImages(existingImages);
+    setReplyAttachments((current) => {
+      const existingAttachments = current[commentId] ?? [];
+      revokeDraftAttachments(existingAttachments);
       const next = { ...current };
       delete next[commentId];
       return next;
@@ -347,8 +482,8 @@ export function ProjectDiscussionSection({
     setExpandedCommentIds({});
     setLightboxImage(null);
     clearNewCommentComposer();
-    setReplyImages((current) => {
-      Object.values(current).forEach((images) => revokeDraftImages(images));
+    setReplyAttachments((current) => {
+      Object.values(current).forEach((attachments) => revokeDraftAttachments(attachments));
       return {};
     });
   }
@@ -358,28 +493,74 @@ export function ProjectDiscussionSection({
     void loadComments();
   }, [projectId]);
 
-  async function uploadDraftImages(images: DraftImage[]): Promise<string[]> {
-    const uploadedUrls: string[] = [];
-
-    for (const image of images) {
-      const result = await researchApi.uploadProjectDiscussionImage(projectId, image.file);
-      uploadedUrls.push(result.url);
+  useEffect(() => {
+    if (!jumpRequest) {
+      return;
     }
 
-    return uploadedUrls;
+    const targetIdBySection: Record<ProjectDiscussionJumpSection, string> = {
+      topic: 'discussion-topic',
+      basic: jumpRequest.index === undefined ? 'discussion-basic' : `discussion-question-${jumpRequest.index}`,
+      extended: jumpRequest.index === undefined ? 'discussion-extended' : `discussion-hypothesis-${jumpRequest.index}`,
+    };
+    const fallbackTargetId = {
+      topic: 'discussion-topic',
+      basic: 'discussion-basic',
+      extended: 'discussion-extended',
+    }[jumpRequest.section];
+    const targetId = targetIdBySection[jumpRequest.section];
+
+    setIsDiscussionOpen(true);
+
+    const timer = window.setTimeout(() => {
+      (document.getElementById(targetId) ?? document.getElementById(fallbackTargetId))?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [jumpRequest?.section, jumpRequest?.version]);
+
+  async function uploadDraftAttachments(attachments: DraftAttachment[]): Promise<{
+    imageUrls: string[];
+    videoUrls: string[];
+  }> {
+    const imageUrls: string[] = [];
+    const videoUrls: string[] = [];
+
+    for (const attachment of attachments) {
+      if (attachment.type === 'image') {
+        const result = await researchApi.uploadProjectDiscussionImage(projectId, attachment.file);
+        imageUrls.push(result.url);
+      } else {
+        const result = await researchApi.uploadProjectDiscussionVideo(projectId, attachment.file);
+        videoUrls.push(result.url);
+      }
+    }
+
+    return { imageUrls, videoUrls };
   }
 
-  function handleNewCommentImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+  function handleNewCommentAttachmentSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const counts = countDraftAttachments(newCommentAttachments);
+    const { acceptedAttachments, invalidCount, imageOverflowCount, videoOverflowCount } = buildDraftAttachments(
       event.target.files,
-      MAX_COMMENT_IMAGES - newCommentImages.length
+      MAX_COMMENT_IMAGES - counts.image,
+      MAX_COMMENT_VIDEOS - counts.video
     );
 
-    if (acceptedImages.length > 0) {
-      setNewCommentImages((current) => [...current, ...acceptedImages]);
+    if (acceptedAttachments.length > 0) {
+      setNewCommentAttachments((current) => [...current, ...acceptedAttachments]);
     }
 
-    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount);
+    const nextMessage = buildAttachmentSelectionMessage(
+      invalidCount,
+      imageOverflowCount,
+      videoOverflowCount
+    );
     if (nextMessage) {
       setSubmitError(nextMessage);
     } else {
@@ -389,24 +570,30 @@ export function ProjectDiscussionSection({
     event.target.value = '';
   }
 
-  function handleReplyImageSelection(
+  function handleReplyAttachmentSelection(
     commentId: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const currentImages = replyImages[commentId] ?? [];
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+    const currentAttachments = replyAttachments[commentId] ?? [];
+    const counts = countDraftAttachments(currentAttachments);
+    const { acceptedAttachments, invalidCount, imageOverflowCount, videoOverflowCount } = buildDraftAttachments(
       event.target.files,
-      MAX_COMMENT_IMAGES - currentImages.length
+      MAX_COMMENT_IMAGES - counts.image,
+      MAX_COMMENT_VIDEOS - counts.video
     );
 
-    if (acceptedImages.length > 0) {
-      setReplyImages((current) => ({
+    if (acceptedAttachments.length > 0) {
+      setReplyAttachments((current) => ({
         ...current,
-        [commentId]: [...(current[commentId] ?? []), ...acceptedImages],
+        [commentId]: [...(current[commentId] ?? []), ...acceptedAttachments],
       }));
     }
 
-    const nextMessage = buildImageSelectionMessage(invalidCount, overflowCount);
+    const nextMessage = buildAttachmentSelectionMessage(
+      invalidCount,
+      imageOverflowCount,
+      videoOverflowCount
+    );
     if (nextMessage) {
       setReplyError(nextMessage);
     } else {
@@ -439,16 +626,18 @@ export function ProjectDiscussionSection({
     event.preventDefault();
 
     const fileList = createFileListFromArray(imageFiles);
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+    const counts = countDraftAttachments(newCommentAttachments);
+    const { acceptedAttachments, invalidCount, imageOverflowCount, videoOverflowCount } = buildDraftAttachments(
       fileList,
-      MAX_COMMENT_IMAGES - newCommentImages.length
+      MAX_COMMENT_IMAGES - counts.image,
+      MAX_COMMENT_VIDEOS - counts.video
     );
 
-    if (acceptedImages.length > 0) {
-      setNewCommentImages((current) => [...current, ...acceptedImages]);
+    if (acceptedAttachments.length > 0) {
+      setNewCommentAttachments((current) => [...current, ...acceptedAttachments]);
     }
 
-    setSubmitError(buildImageSelectionMessage(invalidCount, overflowCount));
+    setSubmitError(buildAttachmentSelectionMessage(invalidCount, imageOverflowCount, videoOverflowCount));
   }
 
   function handleReplyPaste(
@@ -476,43 +665,45 @@ export function ProjectDiscussionSection({
 
     event.preventDefault();
 
-    const currentImages = replyImages[commentId] ?? [];
+    const currentAttachments = replyAttachments[commentId] ?? [];
     const fileList = createFileListFromArray(imageFiles);
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
+    const counts = countDraftAttachments(currentAttachments);
+    const { acceptedAttachments, invalidCount, imageOverflowCount, videoOverflowCount } = buildDraftAttachments(
       fileList,
-      MAX_COMMENT_IMAGES - currentImages.length
+      MAX_COMMENT_IMAGES - counts.image,
+      MAX_COMMENT_VIDEOS - counts.video
     );
 
-    if (acceptedImages.length > 0) {
-      setReplyImages((current) => ({
+    if (acceptedAttachments.length > 0) {
+      setReplyAttachments((current) => ({
         ...current,
-        [commentId]: [...(current[commentId] ?? []), ...acceptedImages],
+        [commentId]: [...(current[commentId] ?? []), ...acceptedAttachments],
       }));
     }
 
-    setReplyError(buildImageSelectionMessage(invalidCount, overflowCount));
+    setReplyError(buildAttachmentSelectionMessage(invalidCount, imageOverflowCount, videoOverflowCount));
   }
 
-  function handleRemoveNewCommentImage(imageId: string) {
-    setNewCommentImages((current) => {
-      const imageToRemove = current.find((image) => image.id === imageId);
-      if (imageToRemove) {
-        URL.revokeObjectURL(imageToRemove.previewUrl);
+  function handleRemoveNewCommentAttachment(attachmentId: string) {
+    setNewCommentAttachments((current) => {
+      const attachmentToRemove = current.find((attachment) => attachment.id === attachmentId);
+      if (attachmentToRemove) {
+        URL.revokeObjectURL(attachmentToRemove.previewUrl);
       }
-      return current.filter((image) => image.id !== imageId);
+      return current.filter((attachment) => attachment.id !== attachmentId);
     });
   }
 
-  function handleRemoveReplyImage(commentId: string, imageId: string) {
-    setReplyImages((current) => {
-      const existingImages = current[commentId] ?? [];
-      const imageToRemove = existingImages.find((image) => image.id === imageId);
-      if (imageToRemove) {
-        URL.revokeObjectURL(imageToRemove.previewUrl);
+  function handleRemoveReplyAttachment(commentId: string, attachmentId: string) {
+    setReplyAttachments((current) => {
+      const existingAttachments = current[commentId] ?? [];
+      const attachmentToRemove = existingAttachments.find((attachment) => attachment.id === attachmentId);
+      if (attachmentToRemove) {
+        URL.revokeObjectURL(attachmentToRemove.previewUrl);
       }
 
-      const nextImages = existingImages.filter((image) => image.id !== imageId);
-      if (nextImages.length === 0) {
+      const nextAttachments = existingAttachments.filter((attachment) => attachment.id !== attachmentId);
+      if (nextAttachments.length === 0) {
         const next = { ...current };
         delete next[commentId];
         return next;
@@ -520,23 +711,23 @@ export function ProjectDiscussionSection({
 
       return {
         ...current,
-        [commentId]: nextImages,
+        [commentId]: nextAttachments,
       };
     });
   }
 
   async function handleSubmitComment() {
     const content = newComment.trim();
-    if (!content && newCommentImages.length === 0) {
-      setSubmitError('请输入留言内容或至少添加一张图片');
+    if (!content && newCommentAttachments.length === 0) {
+      setSubmitError('请输入留言内容或至少添加一张图片或视频');
       return;
     }
 
     try {
       setIsSubmitting(true);
       setSubmitError(null);
-      const imageUrls = await uploadDraftImages(newCommentImages);
-      await researchApi.addProjectDiscussionComment(projectId, { content, imageUrls });
+      const { imageUrls, videoUrls } = await uploadDraftAttachments(newCommentAttachments);
+      await researchApi.addProjectDiscussionComment(projectId, { content, imageUrls, videoUrls });
       clearNewCommentComposer();
       setIsDiscussionOpen(true);
       await loadComments();
@@ -549,21 +740,22 @@ export function ProjectDiscussionSection({
 
   async function handleSubmitReply(parentCommentId: string) {
     const content = (replyDrafts[parentCommentId] ?? '').trim();
-    const currentReplyImages = replyImages[parentCommentId] ?? [];
+    const currentReplyAttachments = replyAttachments[parentCommentId] ?? [];
 
-    if (!content && currentReplyImages.length === 0) {
-      setReplyError('请输入回复内容或至少添加一张图片');
+    if (!content && currentReplyAttachments.length === 0) {
+      setReplyError('请输入回复内容或至少添加一张图片或视频');
       return;
     }
 
     try {
       setSubmittingReplyToId(parentCommentId);
       setReplyError(null);
-      const imageUrls = await uploadDraftImages(currentReplyImages);
+      const { imageUrls, videoUrls } = await uploadDraftAttachments(currentReplyAttachments);
       await researchApi.addProjectDiscussionComment(projectId, {
         content,
         parentCommentId,
         imageUrls,
+        videoUrls,
       });
       clearReplyDraft(parentCommentId);
       setReplyTargetId(null);
@@ -604,7 +796,9 @@ export function ProjectDiscussionSection({
   function renderComment(comment: DiscussionTreeComment, depth = 0) {
     const isReplying = replyTargetId === comment.id;
     const replyDraft = replyDrafts[comment.id] ?? '';
-    const attachedReplyImages = replyImages[comment.id] ?? [];
+    const attachedReplyAttachments = replyAttachments[comment.id] ?? [];
+    const attachedReplyCounts = countDraftAttachments(attachedReplyAttachments);
+    const commentVideoUrls = comment.video_urls ?? [];
     const hasReplies = comment.replies.length > 0;
     const totalReplyCount = countReplies(comment);
     const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
@@ -646,11 +840,14 @@ export function ProjectDiscussionSection({
                 <>
                   {comment.content.trim() ? (
                     <p className="whitespace-pre-wrap break-words">{comment.content}</p>
-                  ) : comment.image_urls.length > 0 ? (
-                    <p className="text-[var(--glass-text-muted)]">发送了 {comment.image_urls.length} 张图片</p>
+                  ) : comment.image_urls.length > 0 || commentVideoUrls.length > 0 ? (
+                    <p className="text-[var(--glass-text-muted)]">
+                      发送了 {comment.image_urls.length} 张图片、{commentVideoUrls.length} 个视频
+                    </p>
                   ) : null}
-                  <CommentImageGrid
+                  <CommentMediaGrid
                     imageUrls={comment.image_urls}
+                    videoUrls={commentVideoUrls}
                     username={displayUsername}
                     onPreview={(url, alt) => setLightboxImage({ url, alt })}
                   />
@@ -737,32 +934,36 @@ export function ProjectDiscussionSection({
                     replyFileInputRefs.current[comment.id] = node;
                   }}
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
                   multiple
                   className="hidden"
-                  onChange={(event) => handleReplyImageSelection(comment.id, event)}
+                  onChange={(event) => handleReplyAttachmentSelection(comment.id, event)}
                 />
 
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => replyFileInputRefs.current[comment.id]?.click()}
-                    disabled={attachedReplyImages.length >= MAX_COMMENT_IMAGES || submittingReplyToId === comment.id}
+                    disabled={
+                      (attachedReplyCounts.image >= MAX_COMMENT_IMAGES
+                        && attachedReplyCounts.video >= MAX_COMMENT_VIDEOS)
+                      || submittingReplyToId === comment.id
+                    }
                     className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ImagePlus className="h-3.5 w-3.5 text-[var(--paper-link)]" />
-                    添加图片
+                    添加附件
                   </button>
                   <span className="text-xs text-[var(--glass-text-muted)]">
-                    最多 {MAX_COMMENT_IMAGES} 张图片，支持 Ctrl+V 粘贴
+                    最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，支持 Ctrl+V 粘贴图片
                   </span>
                 </div>
 
-                <DraftImagePreviewList
-                  images={attachedReplyImages}
-                  onRemove={(imageId) => handleRemoveReplyImage(comment.id, imageId)}
-                  onPreview={(image) =>
-                    setLightboxImage({ url: image.previewUrl, alt: image.file.name })
+                <DraftAttachmentPreviewList
+                  attachments={attachedReplyAttachments}
+                  onRemove={(attachmentId) => handleRemoveReplyAttachment(comment.id, attachmentId)}
+                  onPreview={(attachment) =>
+                    setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
                   }
                 />
 
@@ -807,6 +1008,20 @@ export function ProjectDiscussionSection({
     );
   }
 
+  const newCommentAttachmentCounts = countDraftAttachments(newCommentAttachments);
+  const outlineQuestions = outline?.questions ?? [];
+  const outlineHypotheses = outline?.hypotheses ?? [];
+  const hasOutline = Boolean(
+    outline
+      && (
+        outline.topicSummary.trim()
+        || outline.basicPlan?.trim()
+        || outline.extendedPlan?.trim()
+        || outlineQuestions.length > 0
+        || outlineHypotheses.length > 0
+      )
+  );
+
   return (
     <>
       <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
@@ -841,6 +1056,87 @@ export function ProjectDiscussionSection({
             </button>
           </div>
         </div>
+
+        {hasOutline && outline && (
+          <div className="mb-4 grid gap-3 rounded-[1.45rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(247,250,255,0.9))] p-4">
+            <div id="discussion-topic" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
+                研究主题
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+                {outline.topicSummary || '这个课题还没有补充详细摘要。'}
+              </p>
+            </div>
+
+            <div id="discussion-basic" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
+              <div className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">
+                基础实验与问题
+              </div>
+              {outline.basicPlan?.trim() && (
+                <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+                  {outline.basicPlan}
+                </p>
+              )}
+              {outlineQuestions.length > 0 && (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {outlineQuestions.map((question, index) => (
+                    <button
+                      key={`discussion-question-${index}`}
+                      id={`discussion-question-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setIsDiscussionOpen(true);
+                        window.setTimeout(() => {
+                          document.getElementById('discussion-comments')?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                          });
+                        }, 0);
+                      }}
+                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[var(--paper-accent)]/12 bg-[var(--paper-accent)]/7 px-3 py-2 text-left text-sm font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[var(--paper-accent)]/11"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div id="discussion-extended" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
+              <div className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">
+                拓展问题、假设与实验
+              </div>
+              {outline.extendedPlan?.trim() && (
+                <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+                  {outline.extendedPlan}
+                </p>
+              )}
+              {outlineHypotheses.length > 0 && (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {outlineHypotheses.map((hypothesis, index) => (
+                    <button
+                      key={`discussion-hypothesis-${index}`}
+                      id={`discussion-hypothesis-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setIsDiscussionOpen(true);
+                        window.setTimeout(() => {
+                          document.getElementById('discussion-comments')?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                          });
+                        }, 0);
+                      }}
+                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3 py-2 text-left text-sm font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[#d7994c]/12"
+                    >
+                      {hypothesis}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {!isDiscussionOpen && (
           <button
@@ -915,6 +1211,18 @@ export function ProjectDiscussionSection({
                         />
                       </div>
                     )}
+                    {comment.image_urls.length === 0 && (comment.video_urls?.length ?? 0) > 0 && !comment.is_deleted && (
+                      <div className="mt-2 overflow-hidden rounded-[0.9rem] border border-white/70 bg-slate-950">
+                        <video
+                          src={comment.video_urls?.[0]}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="h-24 w-full object-cover"
+                          aria-label={`${comment.username || '用户'} 上传的视频预览`}
+                        />
+                      </div>
+                    )}
                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--glass-text-muted)]">
                       {getCommentPreviewText(comment)}
                     </p>
@@ -927,7 +1235,10 @@ export function ProjectDiscussionSection({
 
         {isDiscussionOpen && (
           <>
-            <div className="rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5">
+            <div
+              id="discussion-comments"
+              className="scroll-mt-28 rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5"
+            >
               <textarea
                 value={newComment}
                 onChange={(event) => setNewComment(event.target.value)}
@@ -946,32 +1257,40 @@ export function ProjectDiscussionSection({
               <input
                 ref={newCommentFileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
+                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
                 multiple
                 className="hidden"
-                onChange={handleNewCommentImageSelection}
+                onChange={handleNewCommentAttachmentSelection}
               />
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => newCommentFileInputRef.current?.click()}
-                  disabled={!canParticipate || isSubmitting || newCommentImages.length >= MAX_COMMENT_IMAGES}
+                  disabled={
+                    !canParticipate
+                    || isSubmitting
+                    || (
+                      newCommentAttachmentCounts.image >= MAX_COMMENT_IMAGES
+                      && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
+                    )
+                  }
                   className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
-                  添加图片
+                  <Video className="h-4 w-4 text-[var(--paper-link)]" />
+                  添加附件
                 </button>
                 <span className="text-xs text-[var(--glass-text-muted)]">
-                  最多 {MAX_COMMENT_IMAGES} 张图片，支持 Ctrl+V 粘贴，单条评论可只发图片不写文字
+                  最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，单条评论可只发附件不写文字
                 </span>
               </div>
 
-              <DraftImagePreviewList
-                images={newCommentImages}
-                onRemove={handleRemoveNewCommentImage}
-                onPreview={(image) =>
-                  setLightboxImage({ url: image.previewUrl, alt: image.file.name })
+              <DraftAttachmentPreviewList
+                attachments={newCommentAttachments}
+                onRemove={handleRemoveNewCommentAttachment}
+                onPreview={(attachment) =>
+                  setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
                 }
               />
 

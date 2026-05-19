@@ -18,6 +18,10 @@ export interface ResearchProject {
   name_en: string | null;
   description_zh: string | null;
   description_en: string | null;
+  research_questions_zh?: string | null;
+  research_hypotheses_zh?: string | null;
+  basic_plan_zh?: string | null;
+  extended_plan_zh?: string | null;
   thumbnail: string | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
   is_public: boolean;
@@ -60,6 +64,7 @@ export interface ProjectDiscussionComment {
   parent_comment_id: string | null;
   content: string;
   image_urls: string[];
+  video_urls: string[];
   is_deleted: boolean;
   created_at: string;
   updated_at: string;
@@ -77,11 +82,25 @@ export interface ProjectDiscussionImageUploadResult {
   unitId: string;
 }
 
+export interface ProjectDiscussionVideoUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: 'video';
+  unitId: string;
+}
+
 export interface CreateProjectInput {
   name_zh: string;
   name_en?: string;
   description_zh?: string;
   description_en?: string;
+  research_questions_zh?: string;
+  research_hypotheses_zh?: string;
+  basic_plan_zh?: string;
+  extended_plan_zh?: string;
   is_public?: boolean;
 }
 
@@ -90,6 +109,10 @@ export interface UpdateProjectInput {
   name_en?: string;
   description_zh?: string;
   description_en?: string;
+  research_questions_zh?: string;
+  research_hypotheses_zh?: string;
+  basic_plan_zh?: string;
+  extended_plan_zh?: string;
   thumbnail?: string;
   status?: 'draft' | 'active' | 'completed' | 'archived';
   is_public?: boolean;
@@ -203,7 +226,7 @@ export const researchApi = {
    */
   addProjectDiscussionComment: async (
     projectId: string,
-    input: { content: string; parentCommentId?: string; imageUrls?: string[] }
+    input: { content: string; parentCommentId?: string; imageUrls?: string[]; videoUrls?: string[] }
   ): Promise<{ id: string }> => {
     const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/discussion-comments`, input);
     if (response.success && response.data) {
@@ -228,6 +251,24 @@ export const researchApi = {
       return response.data;
     }
     throw new Error(response.error?.message || '上传讨论图片失败');
+  },
+
+  /**
+   * Upload project discussion video
+   * 上传课题讨论视频
+   */
+  uploadProjectDiscussionVideo: async (
+    projectId: string,
+    file: File
+  ): Promise<ProjectDiscussionVideoUploadResult> => {
+    const response = await api.upload<ProjectDiscussionVideoUploadResult>(
+      `/api/research/projects/${projectId}/discussion-videos`,
+      file
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '上传讨论视频失败');
   },
 
   /**

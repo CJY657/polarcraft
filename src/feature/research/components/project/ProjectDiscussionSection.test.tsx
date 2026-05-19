@@ -7,6 +7,7 @@ import { ProjectDiscussionSection } from './ProjectDiscussionSection';
 
 const mockGetProjectDiscussionComments = vi.fn();
 const mockUploadProjectDiscussionImage = vi.fn();
+const mockUploadProjectDiscussionVideo = vi.fn();
 const mockAddProjectDiscussionComment = vi.fn();
 const mockDeleteProjectDiscussionComment = vi.fn();
 
@@ -19,6 +20,7 @@ vi.mock('@/lib/research.service', () => ({
   researchApi: {
     getProjectDiscussionComments: (...args: unknown[]) => mockGetProjectDiscussionComments(...args),
     uploadProjectDiscussionImage: (...args: unknown[]) => mockUploadProjectDiscussionImage(...args),
+    uploadProjectDiscussionVideo: (...args: unknown[]) => mockUploadProjectDiscussionVideo(...args),
     addProjectDiscussionComment: (...args: unknown[]) => mockAddProjectDiscussionComment(...args),
     deleteProjectDiscussionComment: (...args: unknown[]) => mockDeleteProjectDiscussionComment(...args),
   },
@@ -51,6 +53,7 @@ function createComment(overrides: Record<string, unknown> = {}) {
     updated_at: '2026-04-10T08:00:00.000Z',
     username: '研究员',
     avatar_url: null,
+    video_urls: [],
     ...overrides,
   };
 }
@@ -74,6 +77,11 @@ beforeAll(() => {
     writable: true,
     value: vi.fn(),
   });
+
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    writable: true,
+    value: vi.fn(),
+  });
 });
 
 describe('ProjectDiscussionSection', () => {
@@ -81,6 +89,7 @@ describe('ProjectDiscussionSection', () => {
     vi.clearAllMocks();
     mockGetProjectDiscussionComments.mockResolvedValue([]);
     mockUploadProjectDiscussionImage.mockResolvedValue({ url: '/uploads/test.png' });
+    mockUploadProjectDiscussionVideo.mockResolvedValue({ url: '/uploads/test.mp4' });
     mockAddProjectDiscussionComment.mockResolvedValue({ id: 'new-comment' });
     mockDeleteProjectDiscussionComment.mockResolvedValue(undefined);
   });
@@ -137,6 +146,67 @@ describe('ProjectDiscussionSection', () => {
 
     await waitFor(() => {
       expect(screen.getByAltText('pasted-reply.png')).toBeTruthy();
+    });
+  });
+
+  it('uploads a video attachment with a new comment', async () => {
+    const { container } = render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['video-bytes'], 'demo.mp4', { type: 'video/mp4' });
+
+    fireEvent.change(fileInput, {
+      target: {
+        files: [file],
+      },
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector('video[src="blob:demo.mp4"]')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '发布' }));
+
+    await waitFor(() => {
+      expect(mockUploadProjectDiscussionVideo).toHaveBeenCalledWith('project-1', file);
+    });
+    expect(mockAddProjectDiscussionComment).toHaveBeenCalledWith('project-1', {
+      content: '',
+      imageUrls: [],
+      videoUrls: ['/uploads/test.mp4'],
+    });
+  });
+
+  it('opens the requested discussion subsection when jumped from research info', async () => {
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '研究摘要',
+          questions: ['基础问题'],
+          hypotheses: ['扩展假设'],
+          basicPlan: '基础实验',
+          extendedPlan: '扩展实验',
+        }}
+        jumpRequest={{ section: 'extended', index: 0, version: 1 }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '收起讨论区' })).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
     });
   });
 

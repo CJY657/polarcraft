@@ -125,6 +125,10 @@ export interface CreateProjectWithProfileInput {
     name_en?: string;
     description_zh?: string;
     description_en?: string;
+    research_questions_zh?: string;
+    research_hypotheses_zh?: string;
+    basic_plan_zh?: string;
+    extended_plan_zh?: string;
     is_public?: boolean;
   };
   creatorProfile: {
@@ -149,6 +153,10 @@ export interface PublicProject {
   name_en: string | null;
   description_zh: string | null;
   description_en: string | null;
+  research_questions_zh?: string | null;
+  research_hypotheses_zh?: string | null;
+  basic_plan_zh?: string | null;
+  extended_plan_zh?: string | null;
   thumbnail: string | null;
   status: string;
   visibility: ProjectVisibility;

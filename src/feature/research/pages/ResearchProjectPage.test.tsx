@@ -101,6 +101,10 @@ function createProject(overrides: Partial<ProjectWithMembers> = {}): ProjectWith
     name_en: null,
     description_zh: "课题简介",
     description_en: null,
+    research_questions_zh: null,
+    research_hypotheses_zh: null,
+    basic_plan_zh: null,
+    extended_plan_zh: null,
     thumbnail: null,
     status: "active",
     is_public: true,
@@ -304,6 +308,56 @@ describe("ResearchProjectPage", () => {
         })
       );
     });
+  });
+
+  it("jumps research information into the discussion subsections", async () => {
+    mockGetProject.mockResolvedValue(
+      createProject({
+        research_questions_zh: "气泡条纹与膜厚变化是否相关？\n明暗图样是否受偏振方向影响？",
+        research_hypotheses_zh: "条纹由膜厚变化引起。\n明暗图样由几何与偏振耦合产生。",
+        basic_plan_zh: "先做基础观察，再记录变量。",
+        extended_plan_zh: "继续验证不同角度下的表现。",
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("研究信息")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "气泡条纹与膜厚变化是否相关？" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "明暗图样是否受偏振方向影响？" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "条纹由膜厚变化引起。" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "明暗图样由几何与偏振耦合产生。" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "气泡条纹与膜厚变化是否相关？" }));
+
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            section: "basic",
+            index: 0,
+            version: 1,
+          }),
+        })
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "条纹由膜厚变化引起。" }));
+
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            section: "extended",
+            index: 0,
+            version: 2,
+          }),
+        })
+      );
+    });
+
+    expect(screen.getByText("先做基础观察，再记录变量。")).toBeTruthy();
+    expect(screen.getByText("继续验证不同角度下的表现。")).toBeTruthy();
   });
 
   it("allows admins to remove non-owner members without showing them as project members", async () => {

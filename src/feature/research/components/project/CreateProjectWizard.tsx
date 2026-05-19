@@ -6,13 +6,12 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Check, Info } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
-import { researchApi } from '@/lib/research.service';
 
 interface CreateProjectWizardProps {
   isOpen: boolean;
@@ -39,6 +38,10 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
     name_en: '',
     description_zh: '',
     description_en: '',
+    research_questions_zh: '',
+    research_hypotheses_zh: '',
+    basic_plan_zh: '',
+    extended_plan_zh: '',
     is_public: false,
   });
 
@@ -79,6 +82,10 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         name_en: '',
         description_zh: '',
         description_en: '',
+        research_questions_zh: '',
+        research_hypotheses_zh: '',
+        basic_plan_zh: '',
+        extended_plan_zh: '',
         is_public: false,
       });
       setCreatorData({
@@ -294,6 +301,90 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
                       : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-1.5",
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                )}>
+                  研究问题（中文，每行一个）
+                </label>
+                <textarea
+                  value={projectData.research_questions_zh}
+                  onChange={(e) => setProjectData({ ...projectData, research_questions_zh: e.target.value })}
+                  rows={3}
+                  placeholder="例如：气泡条纹与膜厚变化是否相关？"
+                  className={cn(
+                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-1.5",
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                )}>
+                  研究假设（中文，每行一个）
+                </label>
+                <textarea
+                  value={projectData.research_hypotheses_zh}
+                  onChange={(e) => setProjectData({ ...projectData, research_hypotheses_zh: e.target.value })}
+                  rows={3}
+                  placeholder="例如：明暗图样由球面几何与线偏振耦合产生。"
+                  className={cn(
+                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-1.5",
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                )}>
+                  基础问题与实验（中文）
+                </label>
+                <textarea
+                  value={projectData.basic_plan_zh}
+                  onChange={(e) => setProjectData({ ...projectData, basic_plan_zh: e.target.value })}
+                  rows={3}
+                  placeholder="记录基础实验、变量和第一轮问题。"
+                  className={cn(
+                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-1.5",
+                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                )}>
+                  拓展问题、假设与实验（中文）
+                </label>
+                <textarea
+                  value={projectData.extended_plan_zh}
+                  onChange={(e) => setProjectData({ ...projectData, extended_plan_zh: e.target.value })}
+                  rows={3}
+                  placeholder="记录可继续验证的假设、延展实验和讨论线索。"
+                  className={cn(
+                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
                   )}
                 />
               </div>
