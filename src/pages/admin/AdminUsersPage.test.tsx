@@ -78,6 +78,7 @@ describe('AdminUsersPage', () => {
     );
 
     expect(await screen.findByText('用户管理')).toBeDefined();
+    expect(screen.getByText('账号总览')).toBeDefined();
     expect(await screen.findByText('12')).toBeDefined();
     expect(screen.getByText('9')).toBeDefined();
     expect(screen.getByText('alice')).toBeDefined();
@@ -176,13 +177,13 @@ describe('AdminUsersPage', () => {
       },
       recent_events: [
         {
-          event: 'earlier_event',
+          event: '$pageview',
           timestamp: '2026-05-14T10:00:00.000Z',
           route: '/earlier',
           url: 'https://example.com/earlier',
         },
         {
-          event: 'later_event',
+          event: 'profile_edit',
           timestamp: '2026-05-14T12:00:00.000Z',
           route: '/later',
           url: 'https://example.com/later',
@@ -194,11 +195,75 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('42')).toBeDefined();
     expect(screen.getByText('11')).toBeDefined();
 
-    const laterEvent = screen.getByText('later_event');
-    const earlierEvent = screen.getByText('earlier_event');
+    const laterEvent = screen.getByText('Profile Edit');
+    const earlierEvent = screen.getByText('查看页面');
     expect(
       laterEvent.compareDocumentPosition(earlierEvent) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('renders common analytics events in teacher-friendly language', async () => {
+    getPostHogAnalytics.mockResolvedValue({
+      status: 'ok',
+      person: {
+        id: 'teacher-person',
+        uuid: 'teacher-uuid',
+        created_at: '2026-04-01T00:00:00.000Z',
+        last_seen_at: '2026-05-14T12:00:00.000Z',
+      },
+      summary: {
+        window_days: 30,
+        event_count_30d: 8,
+        pageview_count_30d: 3,
+      },
+      recent_events: [
+        {
+          event: '$pageview',
+          timestamp: '2026-05-14T15:00:00.000Z',
+          route: '/home',
+          url: 'https://example.com/home',
+        },
+        {
+          event: 'auth_login_success',
+          timestamp: '2026-05-14T14:00:00.000Z',
+          route: '/login',
+          url: 'https://example.com/login',
+        },
+        {
+          event: 'auth_register_success',
+          timestamp: '2026-05-14T13:00:00.000Z',
+          route: '/register',
+          url: 'https://example.com/register',
+        },
+        {
+          event: 'project_application_submitted',
+          timestamp: '2026-05-14T12:00:00.000Z',
+          route: '/projects/1',
+          url: 'https://example.com/projects/1',
+        },
+        {
+          event: 'experiment_opened',
+          timestamp: '2026-05-14T11:00:00.000Z',
+          route: '/courses/1',
+          url: 'https://example.com/courses/1',
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
+
+    expect(await screen.findByText('查看页面')).toBeDefined();
+    expect(screen.getByText('登录成功')).toBeDefined();
+    expect(screen.getByText('注册成功')).toBeDefined();
+    expect(screen.getByText('提交课题申请')).toBeDefined();
+    expect(screen.getByText('进入实验')).toBeDefined();
+    expect(screen.queryByText('PostHog')).toBeNull();
   });
 
   it('shows disabled, not found, and failed analytics states explicitly', async () => {
@@ -215,7 +280,7 @@ describe('AdminUsersPage', () => {
         summary: null,
         recent_events: [],
       })
-      .mockRejectedValueOnce(new Error('PostHog 查询失败，请稍后重试'));
+      .mockRejectedValueOnce(new Error('行为数据查询失败，请稍后重试'));
 
     render(
       <MemoryRouter>
@@ -224,15 +289,15 @@ describe('AdminUsersPage', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
-    expect(await screen.findByText('PostHog 尚未配置')).toBeDefined();
+    expect(await screen.findByText('行为统计尚未启用')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: '关闭行为详情' }));
     fireEvent.click(screen.getByRole('button', { name: '查看 bob 的行为' }));
-    expect(await screen.findByText('该用户在 PostHog 中暂无记录')).toBeDefined();
+    expect(await screen.findByText('该用户暂无行为记录')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: '关闭行为详情' }));
     fireEvent.click(screen.getByRole('button', { name: '查看 alice 的行为' }));
-    expect(await screen.findByText('PostHog 查询失败，请稍后重试')).toBeDefined();
+    expect(await screen.findByText('行为数据查询失败，请稍后重试')).toBeDefined();
   });
 
   it('clears the previous analytics result when switching users', async () => {
@@ -296,10 +361,10 @@ describe('AdminUsersPage', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
-    expect(await screen.findByText('alice_event')).toBeDefined();
+    expect(await screen.findByText('Alice Event')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: '查看 bob 的行为' }));
-    expect(screen.queryByText('alice_event')).toBeNull();
+    expect(screen.queryByText('Alice Event')).toBeNull();
     expect(screen.getByText('正在加载行为数据...')).toBeDefined();
 
     resolveBob?.({
@@ -325,6 +390,6 @@ describe('AdminUsersPage', () => {
       ],
     });
 
-    expect(await screen.findByText('bob_event')).toBeDefined();
+    expect(await screen.findByText('Bob Event')).toBeDefined();
   });
 });

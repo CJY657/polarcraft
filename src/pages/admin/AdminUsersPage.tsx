@@ -45,6 +45,38 @@ function formatOptionalDateTime(value: string | null | undefined): string {
   return value ? formatDateTime(value) : '暂无记录';
 }
 
+const ANALYTICS_EVENT_LABELS: Record<string, string> = {
+  $pageview: '查看页面',
+  $identify: '识别用户',
+  $autocapture: '自动采集',
+  $pageleave: '离开页面',
+  auth_login_success: '登录成功',
+  auth_register_success: '注册成功',
+  project_application_submitted: '提交课题申请',
+  experiment_opened: '进入实验',
+};
+
+function formatAnalyticsEventName(eventName: string): string {
+  const mappedLabel = ANALYTICS_EVENT_LABELS[eventName];
+  if (mappedLabel) {
+    return mappedLabel;
+  }
+
+  const cleanedLabel = eventName
+    .replace(/^\$/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/[_./:-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleanedLabel) {
+    return '未知行为';
+  }
+
+  return cleanedLabel.replace(/\b[a-z]/g, (character) => character.toUpperCase());
+}
+
 export default function AdminUsersPage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -132,9 +164,7 @@ export default function AdminUsersPage() {
       })
       .catch((loadError) => {
         if (!cancelled) {
-          setAnalyticsError(
-            loadError instanceof Error ? loadError.message : '获取用户行为数据失败'
-          );
+          setAnalyticsError(loadError instanceof Error ? loadError.message : '获取行为数据失败');
         }
       })
       .finally(() => {
@@ -216,7 +246,7 @@ export default function AdminUsersPage() {
         >
           <div>
             <p className={cn('text-sm', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
-              Admin User Directory
+              账号总览
             </p>
             <h1
               className={cn(
@@ -261,16 +291,16 @@ export default function AdminUsersPage() {
           <SummaryCard
             theme={theme}
             icon={Users}
-            label="累计注册数"
+            label="累计注册账号数"
             value={stats?.total_registered}
             hint={summaryHint}
           />
           <SummaryCard
             theme={theme}
             icon={ShieldCheck}
-            label="当前有效用户"
+            label="当前可用账号"
             value={stats?.active_users}
-            hint="按 is_active=true 统计"
+            hint="仅统计当前可正常使用的账号"
           />
         </div>
 
@@ -631,9 +661,9 @@ function UserAnalyticsDialog({
       <div className="max-h-[80vh] overflow-y-auto p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-400">用户行为</p>
+            <p className="text-sm text-slate-400">行为记录</p>
             <h2 className="mt-1 text-xl font-semibold">
-              {user ? `${user.username} 的 PostHog 行为` : 'PostHog 行为'}
+              {user ? `${user.username} 的行为记录` : '行为记录'}
             </h2>
           </div>
           <button
@@ -661,13 +691,13 @@ function UserAnalyticsDialog({
 
         {!isLoading && !error && result?.status === 'disabled' ? (
           <div className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
-            PostHog 尚未配置
+            行为统计尚未启用
           </div>
         ) : null}
 
         {!isLoading && !error && result?.status === 'not_found' ? (
           <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-950/60 px-4 py-4 text-sm text-slate-300">
-            该用户在 PostHog 中暂无记录
+            该用户暂无行为记录
           </div>
         ) : null}
 
@@ -679,7 +709,7 @@ function UserAnalyticsDialog({
                 value={formatOptionalDateTime(result.person?.last_seen_at)}
               />
               <AnalyticsSummaryCard
-                label="近 30 天事件数"
+                label="近 30 天行为数"
                 value={String(result.summary?.event_count_30d ?? 0)}
               />
               <AnalyticsSummaryCard
@@ -689,10 +719,10 @@ function UserAnalyticsDialog({
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-slate-200">最近 10 条事件</h3>
+              <h3 className="text-sm font-medium text-slate-200">最近 10 条行为</h3>
               {recentEvents.length === 0 ? (
                 <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-400">
-                  暂无最近事件
+                  暂无最近行为
                 </div>
               ) : (
                 <div className="mt-3 overflow-hidden rounded-2xl border border-slate-800">
@@ -703,7 +733,9 @@ function UserAnalyticsDialog({
                         className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
                       >
                         <div>
-                          <div className="font-medium text-slate-100">{event.event}</div>
+                          <div className="font-medium text-slate-100">
+                            {formatAnalyticsEventName(event.event)}
+                          </div>
                           <div className="mt-1 text-xs text-slate-400">
                             {event.route || event.url || '无路由上下文'}
                           </div>

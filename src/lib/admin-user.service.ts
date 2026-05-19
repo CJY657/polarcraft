@@ -112,6 +112,6 @@ export const adminUserApi = {
       return response.data;
     }
 
-    throw new Error(response.error?.message || '获取用户行为数据失败');
+    throw new Error(response.error?.message || '获取行为数据失败');
   },
 };

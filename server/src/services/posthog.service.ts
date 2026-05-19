@@ -28,7 +28,7 @@ export class PostHogAnalyticsError extends Error {
   readonly statusCode = 502;
 
   constructor() {
-    super('PostHog 查询失败，请稍后重试');
+    super('行为数据查询失败，请稍后重试');
     this.name = 'PostHogAnalyticsError';
   }
 }

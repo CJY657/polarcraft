@@ -37,11 +37,7 @@ describe('UserController.getPostHogAnalyticsForAdmin', () => {
     UserController.getPostHogAnalyticsForAdmin(req as never, res as never, next);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(res.error).toHaveBeenCalledWith(
-      'PostHog 查询失败，请稍后重试',
-      'POSTHOG_QUERY_FAILED',
-      502
-    );
+    expect(res.error).toHaveBeenCalledWith('行为数据查询失败，请稍后重试', 'POSTHOG_QUERY_FAILED', 502);
     expect(next).not.toHaveBeenCalled();
   });
 });

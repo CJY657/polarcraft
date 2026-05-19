@@ -169,7 +169,7 @@ describe('PostHogService', () => {
     await expect(PostHogService.getUserAnalytics('user-1')).rejects.toEqual(
       expect.objectContaining({
         name: 'PostHogAnalyticsError',
-        message: 'PostHog 查询失败，请稍后重试',
+        message: '行为数据查询失败，请稍后重试',
       })
     );
 
