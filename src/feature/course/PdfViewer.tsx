@@ -48,6 +48,16 @@ interface PdfTextLine {
 }
 
 const PDF_REFERENCE_OVERLAY_PADDING = 8;
+const EMPTY_HYPERLINKS: PdfHyperlink[] = [];
+const EMPTY_MEDIA_LIST: MediaResource[] = [];
+const MOBILE_PRESENTATION_MAX_WIDTH = 767;
+
+function isMobilePresentationViewport() {
+  return (
+    typeof window !== "undefined" &&
+    Math.min(window.innerWidth, window.innerHeight) <= MOBILE_PRESENTATION_MAX_WIDTH
+  );
+}
 
 function isPdfTextItem(item: unknown): item is PdfTextItem {
   return (
@@ -172,6 +182,8 @@ async function detectReferenceHyperlinks(
 interface PdfViewerProps {
   url: string;
   theme: "dark" | "light";
+  /** Present PDFs as slide decks instead of long mobile documents. */
+  presentationMode?: boolean;
   /** PDF 上的超链接区域 */
   hyperlinks?: PdfHyperlink[];
   /** Used to auto-detect clickable video/photo references from PDF text */
@@ -191,8 +203,9 @@ interface PdfViewerProps {
 function PdfViewer({
   url,
   theme,
-  hyperlinks = [],
-  mediaList = [],
+  presentationMode = false,
+  hyperlinks = EMPTY_HYPERLINKS,
+  mediaList = EMPTY_MEDIA_LIST,
   onHyperlinkClick,
   onFullscreenClick,
   linkedMediaId = null,
@@ -221,15 +234,20 @@ function PdfViewer({
   const [isLandscape, setIsLandscape] = useState<boolean>(
     typeof window !== "undefined" ? window.innerWidth > window.innerHeight : false
   );
+  const [isMobilePresentation, setIsMobilePresentation] = useState(isMobilePresentationViewport);
+  const usesPagedMode = isLandscape || presentationMode;
   const previousIsLandscapeRef = useRef(isLandscape);
+  const suppressNextSlideClickRef = useRef(false);
 
   // 监听屏幕方向变化
   useEffect(() => {
     const handleResize = () => {
       const landscape = window.innerWidth > window.innerHeight;
       setIsLandscape(landscape);
+      setIsMobilePresentation(isMobilePresentationViewport());
     };
 
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -245,8 +263,8 @@ function PdfViewer({
 
       let newScale = 1;
 
-      if (isLandscape) {
-        // 横屏模式：占满整个容器
+      if (usesPagedMode) {
+        // 翻页模式：占满整个容器
         const scaleX = containerWidth / pageWidth;
         const scaleY = containerHeight / pageHeight;
         newScale = Math.min(scaleX, scaleY);
@@ -264,7 +282,7 @@ function PdfViewer({
     resizeObserver.observe(wrapperRef.current);
 
     return () => resizeObserver.disconnect();
-  }, [isLandscape, pageDimensions]);
+  }, [pageDimensions, usesPagedMode]);
 
   // 获取页面尺寸
   const onPageLoadSuccess = useCallback((page: PDFPageProxy) => {
@@ -335,7 +353,7 @@ function PdfViewer({
     const safePage = Math.min(Math.max(page, 1), numPages);
     setCurrentPage(safePage);
 
-    if (isLandscape || !scrollContainerRef.current) {
+    if (usesPagedMode || !scrollContainerRef.current) {
       return;
     }
 
@@ -351,7 +369,7 @@ function PdfViewer({
         block: "start",
       });
     });
-  }, [isLandscape, numPages]);
+  }, [numPages, usesPagedMode]);
 
   useEffect(() => {
     if (previousIsLandscapeRef.current === isLandscape) {
@@ -382,7 +400,7 @@ function PdfViewer({
 
   // 键盘控制（横屏模式）
   useEffect(() => {
-    if (!isLandscape) return;
+    if (!usesPagedMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === " " || e.key === "ArrowDown") {
@@ -396,11 +414,11 @@ function PdfViewer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLandscape, nextPage, prevPage]);
+  }, [nextPage, prevPage, usesPagedMode]);
 
-  // 竖屏模式：滚动时更新当前页码
+  // 竖屏文档模式：滚动时更新当前页码
   useEffect(() => {
-    if (isLandscape || !scrollContainerRef.current) return;
+    if (usesPagedMode || !scrollContainerRef.current) return;
 
     const scrollContainer = scrollContainerRef.current;
     const pages = scrollContainer.querySelectorAll(".pdf-page-wrapper");
@@ -423,11 +441,11 @@ function PdfViewer({
 
     scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
-  }, [isLandscape, numPages]);
+  }, [numPages, usesPagedMode]);
 
-  // 横屏模式：滚轮翻页
+  // 翻页模式：滚轮翻页
   useEffect(() => {
-    if (!isLandscape || !scrollContainerRef.current) return;
+    if (!usesPagedMode || !scrollContainerRef.current) return;
 
     const container = scrollContainerRef.current;
     let wheelTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -457,7 +475,7 @@ function PdfViewer({
       container.removeEventListener("wheel", handleWheel);
       if (wheelTimeout) clearTimeout(wheelTimeout);
     };
-  }, [isLandscape, nextPage, prevPage]);
+  }, [nextPage, prevPage, usesPagedMode]);
 
   // 触摸滑动支持
   const [touchStart, setTouchStart] = useState<number>(0);
@@ -468,19 +486,34 @@ function PdfViewer({
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isLandscape) return;
+    if (!usesPagedMode) return;
 
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStart - touchEnd;
 
     if (Math.abs(diff) > 50) {
+      suppressNextSlideClickRef.current = true;
+
       if (diff > 0) {
         nextPage();
       } else {
         prevPage();
       }
     }
-  }, [isLandscape, touchStart, nextPage, prevPage]);
+  }, [nextPage, prevPage, touchStart, usesPagedMode]);
+
+  const handleSlideClick = useCallback(() => {
+    if (suppressNextSlideClickRef.current) {
+      suppressNextSlideClickRef.current = false;
+      return;
+    }
+
+    if (!presentationMode || !isMobilePresentation) {
+      return;
+    }
+
+    nextPage();
+  }, [isMobilePresentation, nextPage, presentationMode]);
 
   useEffect(() => {
     if (!linkedMediaId || linkedMediaNonce <= 0) {
@@ -575,7 +608,7 @@ function PdfViewer({
       {/* PDF 内容容器 */}
       <div
         ref={scrollContainerRef}
-        className={`w-full h-full ${isLandscape ? "overflow-hidden" : "overflow-y-auto"}`}
+        className={`w-full h-full ${usesPagedMode ? "overflow-hidden" : "overflow-y-auto"}`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -585,16 +618,21 @@ function PdfViewer({
           onLoadError={onDocumentLoadError}
           loading={null}
           error={null}
-          className={isLandscape ? "h-full w-full relative" : ""}
+          className={usesPagedMode ? "h-full w-full relative" : ""}
         >
-          {isLandscape ? (
-            // 横屏模式：预渲染所有页面，只显示当前页
+          {usesPagedMode ? (
+            // 翻页模式：预渲染所有页面，只显示当前页
             numPages > 0 && (
               <div className="h-full w-full relative flex items-center justify-center">
                 {Array.from({ length: numPages }, (_, index) => (
                   <div
                     key={index}
-                    className="pdf-page-wrapper absolute flex items-center justify-center"
+                    className={`pdf-page-wrapper absolute flex items-center justify-center ${
+                      presentationMode && isMobilePresentation && currentPage < numPages
+                        ? "cursor-pointer"
+                        : ""
+                    }`}
+                    onClick={handleSlideClick}
                     style={{
                       display: index + 1 === currentPage ? "flex" : "none",
                     }}
@@ -637,7 +675,10 @@ function PdfViewer({
                                         ? "border-transparent bg-transparent shadow-none hover:border-cyan-100/85 hover:bg-cyan-300/18 hover:shadow-[0_20px_48px_rgba(34,211,238,0.24)] focus-visible:border-cyan-100/85 focus-visible:bg-cyan-300/18 focus-visible:shadow-[0_20px_48px_rgba(34,211,238,0.24)]"
                                         : "border-transparent bg-transparent shadow-none hover:border-cyan-500/80 hover:bg-cyan-400/18 hover:shadow-[0_18px_42px_rgba(14,165,233,0.2)] focus-visible:border-cyan-500/80 focus-visible:bg-cyan-400/18 focus-visible:shadow-[0_18px_42px_rgba(14,165,233,0.2)]"
                                   }`}
-                                  onClick={() => onHyperlinkClick?.(hyperlink.targetMediaId)}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onHyperlinkClick?.(hyperlink.targetMediaId);
+                                  }}
                                   title={hyperlink.targetMediaId}
                                 >
                                   <span
@@ -663,7 +704,7 @@ function PdfViewer({
               </div>
             )
           ) : (
-            // 竖屏模式：显示所有页面，垂直滚动
+            // 竖屏文档模式：显示所有页面，垂直滚动
             Array.from({ length: numPages }, (_, index) => (
               <div
                 key={index}
@@ -707,7 +748,10 @@ function PdfViewer({
                                     ? "border-transparent bg-transparent shadow-none hover:border-cyan-100/85 hover:bg-cyan-300/18 hover:shadow-[0_20px_48px_rgba(34,211,238,0.24)] focus-visible:border-cyan-100/85 focus-visible:bg-cyan-300/18 focus-visible:shadow-[0_20px_48px_rgba(34,211,238,0.24)]"
                                     : "border-transparent bg-transparent shadow-none hover:border-cyan-500/80 hover:bg-cyan-400/18 hover:shadow-[0_18px_42px_rgba(14,165,233,0.2)] focus-visible:border-cyan-500/80 focus-visible:bg-cyan-400/18 focus-visible:shadow-[0_18px_42px_rgba(14,165,233,0.2)]"
                               }`}
-                              onClick={() => onHyperlinkClick?.(hyperlink.targetMediaId)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onHyperlinkClick?.(hyperlink.targetMediaId);
+                              }}
                               title={hyperlink.targetMediaId}
                             >
                               <span
@@ -734,8 +778,8 @@ function PdfViewer({
         </Document>
       </div>
 
-      {/* 横屏模式：翻页控制 */}
-      {isLandscape && !isLoading && numPages > 0 && (
+      {/* 翻页模式：翻页控制 */}
+      {usesPagedMode && !isLoading && numPages > 0 && (
         <>
           {/* 页码显示 */}
           <div
@@ -797,8 +841,8 @@ function PdfViewer({
         </>
       )}
 
-      {/* 竖屏模式：页码显示 */}
-      {!isLandscape && !isLoading && numPages > 0 && (
+      {/* 竖屏文档模式：页码显示 */}
+      {!usesPagedMode && !isLoading && numPages > 0 && (
         <div
           className={`fixed bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-medium z-20 ${
             theme === "dark"

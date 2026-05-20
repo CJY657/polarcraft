@@ -177,6 +177,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 768 });
   global.fetch = vi.fn(async () => ({
     ok: true,
     status: 200,
@@ -203,6 +205,7 @@ describe("CourseViewer media preview regressions", () => {
     const resourceSidebar = container.querySelector("aside");
     const mediaContent = container.querySelector("main");
     const layoutShell = resourceSidebar?.parentElement;
+    const pptDeckFrame = container.querySelector(".pptx-linked-deck")?.parentElement;
 
     expect(layoutShell?.className).toContain("overflow-visible");
     expect(layoutShell?.className).toContain("lg:overflow-hidden");
@@ -211,6 +214,9 @@ describe("CourseViewer media preview regressions", () => {
     expect(resourceSidebar?.className).toContain("lg:overflow-y-auto");
     expect(mediaContent?.className).toContain("overflow-visible");
     expect(mediaContent?.className).toContain("lg:overflow-y-auto");
+    expect(pptDeckFrame?.className).toContain("h-[clamp(188px,58vw,276px)]");
+    expect(pptDeckFrame?.className).toContain("max-h-[calc(100svh-12rem)]");
+    expect(pptDeckFrame?.className).toContain("lg:h-[460px]");
   });
 
   it("renders images in the same main preview area used by video", async () => {
@@ -302,6 +308,74 @@ describe("CourseViewer media preview regressions", () => {
 
     expect(screen.getByText("1 / 2")).toBeTruthy();
     expect(screen.queryByText("2 / 2")).toBeNull();
+  });
+
+  it("does not advance a presentation deck from plain slide clicks on desktop", async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    const slideSurface = container.querySelector(".pptx-linked-deck > div[style]") as HTMLElement;
+    expect(slideSurface).toBeTruthy();
+
+    fireEvent.click(slideSurface);
+
+    expect(screen.getByText("1 / 2")).toBeTruthy();
+    expect(screen.queryByText("2 / 2")).toBeNull();
+  });
+
+  it("advances a presentation deck when the slide surface is clicked on mobile", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
+
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    const slideSurface = container.querySelector(".pptx-linked-deck > div[style]") as HTMLElement;
+    expect(slideSurface).toBeTruthy();
+
+    fireEvent.click(slideSurface);
+
+    await waitFor(() => {
+      expect(screen.getByText("2 / 2")).toBeTruthy();
+    });
+  });
+
+  it("advances a presentation deck when a phone is in landscape orientation", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 844 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 390 });
+
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    const slideSurface = container.querySelector(".pptx-linked-deck > div[style]") as HTMLElement;
+    expect(slideSurface).toBeTruthy();
+
+    fireEvent.click(slideSurface);
+
+    await waitFor(() => {
+      expect(screen.getByText("2 / 2")).toBeTruthy();
+    });
   });
 
   it("hides course resource download controls for non-admin viewers", async () => {

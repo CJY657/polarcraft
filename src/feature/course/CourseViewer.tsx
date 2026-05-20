@@ -75,6 +75,7 @@ type PptRenderMode = "checking" | "pdf" | "pptx";
 type PptxPreviewModule = typeof import("pptx-preview");
 
 const DEFAULT_PPT_ASPECT_RATIO = 16 / 9;
+const MOBILE_PRESENTATION_MAX_WIDTH = 767;
 let pptxPreviewModulePromise: Promise<PptxPreviewModule> | null = null;
 const OPTIMIZED_UNIT2_VIDEO_FILENAMES = new Set([
   "实验-保鲜膜拉伸-平行偏振系统-旋转样品视频.mp4",
@@ -143,6 +144,13 @@ function fitPresentationSize(width: number, height: number, aspectRatio: number)
     width: Math.max(0, Math.floor(fittedWidth)),
     height: Math.max(0, Math.floor(fittedHeight)),
   };
+}
+
+function isMobilePresentationViewport() {
+  return (
+    typeof window !== "undefined" &&
+    Math.min(window.innerWidth, window.innerHeight) <= MOBILE_PRESENTATION_MAX_WIDTH
+  );
 }
 
 function collectReferenceKeysFromPptNode(
@@ -285,6 +293,7 @@ function PptxViewer({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [detectedPageMap, setDetectedPageMap] = useState<Record<string, number>>({});
+  const [isMobilePresentation, setIsMobilePresentation] = useState(isMobilePresentationViewport);
   const currentPageHyperlinks = hyperlinks.filter((hyperlink) => hyperlink.page === currentPage);
   const mediaReferenceSignature = mediaList
     .map(
@@ -312,6 +321,16 @@ function PptxViewer({
     onHyperlinkClickRef.current = onHyperlinkClick;
     getHyperlinkTitleRef.current = getHyperlinkTitle;
   }, [onHyperlinkClick, getHyperlinkTitle]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobilePresentation(isMobilePresentationViewport());
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -740,6 +759,7 @@ function PptxViewer({
         <PdfViewer
           url={pdfFallbackUrl}
           theme={theme}
+          presentationMode
           hyperlinks={hyperlinks}
           onHyperlinkClick={onHyperlinkClick}
           mediaList={mediaList}
@@ -907,6 +927,11 @@ function PptxViewer({
             ? "border-slate-700/80 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_rgba(15,23,42,0.92)_62%)] shadow-2xl shadow-black/40"
             : "border-slate-200 bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.28),_rgba(255,255,255,0.98)_62%)] shadow-xl shadow-slate-200/50"
         }`}
+        onClick={() => {
+          if (isMobilePresentation && currentPage < totalPages) {
+            nextPage();
+          }
+        }}
         style={{
           width: `${stageSize.width}px`,
           height: `${stageSize.height}px`,
@@ -1847,7 +1872,7 @@ export function CourseViewer({
                   </div>
 
                   <div
-                    className="aspect-[16/10] lg:aspect-auto lg:h-[460px] xl:h-[500px] 2xl:h-[560px] flex items-center justify-center overflow-visible transition-all duration-500"
+                    className="flex h-[clamp(188px,58vw,276px)] max-h-[calc(100svh-12rem)] items-center justify-center overflow-visible transition-all duration-500 sm:h-[clamp(220px,54vw,340px)] md:h-[380px] lg:h-[460px] lg:max-h-none xl:h-[500px] 2xl:h-[560px]"
                   >
                     {activePptMedia ? (
                       <PptxViewer
