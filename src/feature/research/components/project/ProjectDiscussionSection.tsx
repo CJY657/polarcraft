@@ -327,7 +327,7 @@ function DraftAttachmentPreviewList({
             <X className="h-4 w-4" />
           </button>
           <div className="border-t border-white/70 px-2.5 py-2">
-            <p className="truncate text-xs text-[var(--glass-text-muted)]">{attachment.file.name}</p>
+            <p className="truncate text-sm text-[var(--glass-text-muted)]">{attachment.file.name}</p>
           </div>
         </div>
       ))}
@@ -815,25 +815,25 @@ export function ProjectDiscussionSection({
         )}
       >
         <div className="flex items-start gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-xs font-semibold text-[var(--paper-link)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
             {(comment.username || 'U').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="text-sm font-semibold text-[var(--paper-foreground)]">
+              <span className="text-base font-semibold text-[var(--paper-foreground)]">
                 {displayUsername}
               </span>
-              <span className="text-xs text-[var(--glass-text-muted)]">
+              <span className="text-sm text-[var(--glass-text-muted)]">
                 {formatCommentTime(comment.created_at)}
               </span>
               {comment.is_deleted && (
-                <span className="rounded-full bg-slate-500/10 px-2 py-0.5 text-xs text-[var(--glass-text-muted)]">
+                <span className="rounded-full bg-slate-500/10 px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
                   已删除
                 </span>
               )}
             </div>
 
-            <div className="mt-1.5 text-sm leading-6 text-[var(--paper-foreground)]">
+            <div className="mt-1.5 text-base leading-6 text-[var(--paper-foreground)]">
               {comment.is_deleted ? (
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
               ) : (
@@ -855,7 +855,7 @@ export function ProjectDiscussionSection({
               )}
             </div>
 
-            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium">
+            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-sm font-medium">
               {canParticipate && !comment.is_deleted && (
                 <button
                   type="button"
@@ -926,7 +926,7 @@ export function ProjectDiscussionSection({
                   rows={2}
                   maxLength={MAX_COMMENT_LENGTH}
                   placeholder="补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）"
-                  className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
+                  className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
                 />
 
                 <input
@@ -949,12 +949,12 @@ export function ProjectDiscussionSection({
                         && attachedReplyCounts.video >= MAX_COMMENT_VIDEOS)
                       || submittingReplyToId === comment.id
                     }
-                    className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ImagePlus className="h-3.5 w-3.5 text-[var(--paper-link)]" />
                     添加附件
                   </button>
-                  <span className="text-xs text-[var(--glass-text-muted)]">
+                  <span className="text-sm text-[var(--glass-text-muted)]">
                     最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，支持 Ctrl+V 粘贴图片
                   </span>
                 </div>
@@ -967,7 +967,7 @@ export function ProjectDiscussionSection({
                   }
                 />
 
-                {replyError && <p className="mt-2 text-xs text-[#b33d3d]">{replyError}</p>}
+                {replyError && <p className="mt-2 text-sm text-[#b33d3d]">{replyError}</p>}
 
                 <div className="mt-2.5 flex flex-wrap justify-end gap-2">
                   <button
@@ -976,7 +976,7 @@ export function ProjectDiscussionSection({
                       setReplyTargetId(null);
                       setReplyError(null);
                     }}
-                    className="glass-button rounded-full px-3 py-1.5 text-xs font-medium"
+                    className="glass-button rounded-full px-3 py-1.5 text-sm font-medium"
                   >
                     收起
                   </button>
@@ -984,7 +984,7 @@ export function ProjectDiscussionSection({
                     type="button"
                     onClick={() => void handleSubmitReply(comment.id)}
                     disabled={submittingReplyToId === comment.id}
-                    className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {submittingReplyToId === comment.id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1036,7 +1036,7 @@ export function ProjectDiscussionSection({
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            <div className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold">
+            <div className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
               <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
               {comments.length} 条留言
             </div>
@@ -1044,7 +1044,7 @@ export function ProjectDiscussionSection({
               type="button"
               onClick={() => setIsDiscussionOpen((current) => !current)}
               aria-expanded={isDiscussionOpen}
-              className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+              className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium"
             >
               {isDiscussionOpen ? '收起讨论区' : '展开讨论区'}
               <ChevronDown
@@ -1063,17 +1063,17 @@ export function ProjectDiscussionSection({
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
                 研究主题
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+              <p className="mt-2 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
                 {outline.topicSummary || '这个课题还没有补充详细摘要。'}
               </p>
             </div>
 
             <div id="discussion-basic" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
-              <div className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">
+              <div className="mb-2 text-base font-semibold text-[var(--paper-foreground)]">
                 基础实验与问题
               </div>
               {outline.basicPlan?.trim() && (
-                <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="mb-3 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
                   {outline.basicPlan}
                 </p>
               )}
@@ -1093,7 +1093,7 @@ export function ProjectDiscussionSection({
                           });
                         }, 0);
                       }}
-                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[var(--paper-accent)]/12 bg-[var(--paper-accent)]/7 px-3 py-2 text-left text-sm font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[var(--paper-accent)]/11"
+                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[var(--paper-accent)]/12 bg-[var(--paper-accent)]/7 px-3 py-2 text-left text-base font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[var(--paper-accent)]/11"
                     >
                       {question}
                     </button>
@@ -1103,11 +1103,11 @@ export function ProjectDiscussionSection({
             </div>
 
             <div id="discussion-extended" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
-              <div className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">
+              <div className="mb-2 text-base font-semibold text-[var(--paper-foreground)]">
                 拓展问题、假设与实验
               </div>
               {outline.extendedPlan?.trim() && (
-                <p className="mb-3 whitespace-pre-wrap text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="mb-3 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
                   {outline.extendedPlan}
                 </p>
               )}
@@ -1127,7 +1127,7 @@ export function ProjectDiscussionSection({
                           });
                         }, 0);
                       }}
-                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3 py-2 text-left text-sm font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[#d7994c]/12"
+                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3 py-2 text-left text-base font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[#d7994c]/12"
                     >
                       {hypothesis}
                     </button>
@@ -1149,14 +1149,14 @@ export function ProjectDiscussionSection({
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
                   Discussion Preview
                 </div>
-                <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
+                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
                   {isLoading
                     ? '正在同步讨论区内容'
                     : commentTree.length === 0
                     ? '讨论区已收起，展开后可以发起第一条讨论'
                     : '讨论区已收起，展开后查看完整留言和回复'}
                 </p>
-                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                <p className="mt-1 text-base text-[var(--glass-text-muted)]">
                   {loadError
                     ? loadError
                     : commentTree.length === 0
@@ -1171,7 +1171,7 @@ export function ProjectDiscussionSection({
                     {summaryComments.map((comment) => (
                       <div
                         key={comment.id}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-[var(--paper-accent)]/16 text-xs font-semibold text-[var(--paper-link)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-[var(--paper-accent)]/16 text-sm font-semibold text-[var(--paper-link)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
                       >
                         {(comment.username || 'U').charAt(0).toUpperCase()}
                       </div>
@@ -1179,7 +1179,7 @@ export function ProjectDiscussionSection({
                   </div>
                 )}
 
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/82 px-3 py-2 text-sm font-medium text-[var(--paper-foreground)]">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/82 px-3 py-2 text-base font-medium text-[var(--paper-foreground)]">
                   点此展开
                   <ChevronDown className="h-4 w-4 text-[var(--paper-link)] transition-transform duration-200 group-hover:translate-y-0.5" />
                 </div>
@@ -1194,7 +1194,7 @@ export function ProjectDiscussionSection({
                     className="rounded-[1.2rem] border border-white/60 bg-white/76 px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-sm font-semibold text-[var(--paper-foreground)]">
+                      <span className="truncate text-base font-semibold text-[var(--paper-foreground)]">
                         {comment.username || '未命名用户'}
                       </span>
                       <span className="text-[11px] text-[var(--glass-text-muted)]">
@@ -1223,7 +1223,7 @@ export function ProjectDiscussionSection({
                         />
                       </div>
                     )}
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                    <p className="mt-2 line-clamp-2 text-base leading-6 text-[var(--glass-text-muted)]">
                       {getCommentPreviewText(comment)}
                     </p>
                   </div>
@@ -1251,7 +1251,7 @@ export function ProjectDiscussionSection({
                     ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
                     : '只有课题成员可以参与讨论'
                 }
-                className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
               />
 
               <input
@@ -1275,13 +1275,13 @@ export function ProjectDiscussionSection({
                       && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
                     )
                   }
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
                   <Video className="h-4 w-4 text-[var(--paper-link)]" />
                   添加附件
                 </button>
-                <span className="text-xs text-[var(--glass-text-muted)]">
+                <span className="text-sm text-[var(--glass-text-muted)]">
                   最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，单条评论可只发附件不写文字
                 </span>
               </div>
@@ -1294,21 +1294,21 @@ export function ProjectDiscussionSection({
                 }
               />
 
-              {submitError && <p className="mt-2 text-sm text-[#b33d3d]">{submitError}</p>}
+              {submitError && <p className="mt-2 text-base text-[#b33d3d]">{submitError}</p>}
               {!canParticipate && (
-                <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                <p className="mt-2 text-base text-[var(--glass-text-muted)]">
                   只有课题成员可以参与讨论。
                 </p>
               )}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs text-[var(--glass-text-muted)]">
+                <span className="text-sm text-[var(--glass-text-muted)]">
                   最多 {MAX_COMMENT_LENGTH} 字
                 </span>
                 <button
                   type="button"
                   onClick={() => void handleSubmitComment()}
                   disabled={!canParticipate || isSubmitting}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1321,25 +1321,25 @@ export function ProjectDiscussionSection({
             </div>
 
             {deleteError && (
-              <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-sm text-[#b33d3d]">
+              <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-base text-[#b33d3d]">
                 {deleteError}
               </div>
             )}
 
             <div className="mt-4">
               {isLoading ? (
-                <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-sm text-[var(--glass-text-muted)]">
+                <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-base text-[var(--glass-text-muted)]">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   正在加载讨论内容
                 </div>
               ) : loadError ? (
-                <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-sm text-[#b33d3d]">
+                <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-base text-[#b33d3d]">
                   {loadError}
                 </div>
               ) : commentTree.length === 0 ? (
                 <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
-                  <p className="text-sm font-medium text-[var(--paper-foreground)]">还没有人开场</p>
-                  <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                  <p className="text-base font-medium text-[var(--paper-foreground)]">还没有人开场</p>
+                  <p className="mt-2 text-base text-[var(--glass-text-muted)]">
                     先抛一个明确问题，后面的回复自然会形成一条清楚的讨论线。
                   </p>
                 </div>

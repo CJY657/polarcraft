@@ -143,7 +143,7 @@ export function ApplicationManagementPanel({
         </h3>
         {pendingApplications.length > 0 && (
           <span className={cn(
-            "px-2 py-1 rounded-full text-sm font-medium",
+            "px-2 py-1 rounded-full text-base font-medium",
             theme === "dark"
               ? "bg-yellow-900/50 text-yellow-400"
               : "bg-yellow-100 text-yellow-700"
@@ -155,7 +155,7 @@ export function ApplicationManagementPanel({
 
       {error && (
         <div className={cn(
-          "mb-4 p-3 rounded-lg text-sm",
+          "mb-4 p-3 rounded-lg text-base",
           theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
         )}>
           {error}
@@ -200,7 +200,7 @@ export function ApplicationManagementPanel({
           {processedApplications.length > 0 && (
             <>
               <div className={cn(
-                "text-sm font-medium pt-4 pb-2",
+                "text-base font-medium pt-4 pb-2",
                 theme === "dark" ? "text-gray-400" : "text-gray-500"
               )}>
                 已处理
@@ -295,7 +295,7 @@ function ApplicationCard({
               {application.display_name}
               {application.username && application.username !== application.display_name && (
                 <span className={cn(
-                  "text-sm ml-2",
+                  "text-base ml-2",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   (@{application.username})
@@ -303,7 +303,7 @@ function ApplicationCard({
               )}
             </div>
             <div className={cn(
-              "text-sm",
+              "text-base",
               theme === "dark" ? "text-gray-400" : "text-gray-500"
             )}>
               {application.organization}
@@ -314,7 +314,7 @@ function ApplicationCard({
 
         <div className="flex items-center gap-3">
           <span className={cn(
-            "px-2 py-1 rounded-full text-xs font-medium",
+            "px-2 py-1 rounded-full text-sm font-medium",
             getStatusBadge(application.status)
           )}>
             {getStatusText(application.status)}
@@ -343,7 +343,7 @@ function ApplicationCard({
             {application.grade && (
               <div>
                 <span className={cn(
-                  "text-sm font-medium",
+                  "text-base font-medium",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   {t('project.application.form.grade')}:
@@ -360,13 +360,13 @@ function ApplicationCard({
             {application.research_experience && (
               <div>
                 <span className={cn(
-                  "text-sm font-medium block mb-1",
+                  "text-base font-medium block mb-1",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   {t('project.application.form.researchExperience')}:
                 </span>
                 <p className={cn(
-                  "text-sm whitespace-pre-wrap",
+                  "text-base whitespace-pre-wrap",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {application.research_experience}
@@ -377,13 +377,13 @@ function ApplicationCard({
             {application.expertise && (
               <div>
                 <span className={cn(
-                  "text-sm font-medium block mb-1",
+                  "text-base font-medium block mb-1",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   {t('project.application.form.expertise')}:
                 </span>
                 <p className={cn(
-                  "text-sm whitespace-pre-wrap",
+                  "text-base whitespace-pre-wrap",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {application.expertise}
@@ -394,13 +394,13 @@ function ApplicationCard({
             {application.motivation && (
               <div>
                 <span className={cn(
-                  "text-sm font-medium block mb-1",
+                  "text-base font-medium block mb-1",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   {t('project.application.form.motivation')}:
                 </span>
                 <p className={cn(
-                  "text-sm whitespace-pre-wrap",
+                  "text-base whitespace-pre-wrap",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {application.motivation}
@@ -409,7 +409,7 @@ function ApplicationCard({
             )}
 
             <div className={cn(
-              "text-xs",
+              "text-sm",
               theme === "dark" ? "text-gray-500" : "text-gray-400"
             )}>
               <Clock className="w-3 h-3 inline mr-1" />
@@ -418,7 +418,7 @@ function ApplicationCard({
 
             {application.review_notes && (
               <div className={cn(
-                "p-2 rounded text-sm",
+                "p-2 rounded text-base",
                 theme === "dark" ? "bg-gray-600/50" : "bg-gray-200"
               )}>
                 <span className="font-medium">{t('profile.application.reviewNotes')}: </span>
@@ -436,7 +436,7 @@ function ApplicationCard({
                   }}
                   disabled={isProcessing}
                   className={cn(
-                    "flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors",
+                    "flex-1 px-3 py-2 rounded-lg text-base font-medium flex items-center justify-center gap-1 transition-colors",
                     theme === "dark"
                       ? "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                       : "bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
@@ -452,7 +452,7 @@ function ApplicationCard({
                   }}
                   disabled={isProcessing}
                   className={cn(
-                    "flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors",
+                    "flex-1 px-3 py-2 rounded-lg text-base font-medium flex items-center justify-center gap-1 transition-colors",
                     theme === "dark"
                       ? "bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                       : "bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"

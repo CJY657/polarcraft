@@ -94,7 +94,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
               {project.name_zh}
             </h3>
 
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+            <p className="mt-2 line-clamp-2 text-base leading-6 text-[var(--glass-text-muted)]">
               {project.description_zh || "还没有项目摘要，进入画布后补充研究目标与实验线索。"}
             </p>
           </div>
@@ -107,7 +107,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="flex flex-wrap gap-2 text-sm">
             <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
               <Users className="h-3.5 w-3.5" />
               {project.member_count} 位成员
@@ -124,7 +124,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
 
           <Link
             to={`/lab/projects/${project.id}`}
-            className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium lg:self-auto"
+            className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium lg:self-auto"
           >
             进入项目
             <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />

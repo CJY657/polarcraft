@@ -122,7 +122,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Project Name (Chinese) */}
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('lab.projectName')} (中文) *
@@ -143,7 +143,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Project Name (English) */}
           {/* <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('lab.projectName')} (English)
@@ -164,7 +164,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Description (Chinese) */}
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('lab.projectDescription')} (中文)
@@ -184,7 +184,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               研究问题（中文，每行一个）
@@ -204,7 +204,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               研究假设（中文，每行一个）
@@ -224,7 +224,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               基础问题与实验（中文）
@@ -244,7 +244,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               拓展问题、假设与实验（中文）
@@ -265,7 +265,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Description (English) */}
           {/* <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('lab.projectDescription')} (English)
@@ -286,7 +286,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Status */}
           <div>
             <label className={cn(
-              "block text-sm font-medium mb-1.5",
+              "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('project.edit.status')}
@@ -310,7 +310,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           {/* Hint about visibility */}
           <div className={cn(
-            "p-3 rounded-lg text-sm",
+            "p-3 rounded-lg text-base",
             theme === "dark" ? "bg-blue-900/30 text-blue-300" : "bg-blue-50 text-blue-700"
           )}>
             <p>{t('project.edit.visibilityHint')}</p>
@@ -319,7 +319,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
           {/* Error */}
           {error && (
             <div className={cn(
-              "p-3 rounded-lg text-sm",
+              "p-3 rounded-lg text-base",
               theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
             )}>
               {error}

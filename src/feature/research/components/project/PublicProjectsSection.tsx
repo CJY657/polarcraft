@@ -98,21 +98,21 @@ export function PublicProjectsSection() {
           >
             适合加入的公开课题
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
+          <p className="mt-2 max-w-2xl text-base leading-6 text-[var(--glass-text-muted)]">
             首页只保留最有加入价值的一小部分课题，先看方向和招募状态，再进入完整发现页深入筛选。
           </p>
         </div>
 
         <Link
           to="/lab/explore"
-          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium"
         >
           查看全部课题
           <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />
         </Link>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2 text-xs">
+      <div className="mb-5 flex flex-wrap gap-2 text-sm">
         <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1.5 font-medium">
           {recruitingCount} 个课题正在招募
         </span>
@@ -124,13 +124,13 @@ export function PublicProjectsSection() {
       {isLoading && (
         <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.55rem] py-14">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--paper-accent)]" />
-          <p className="mt-3 text-sm text-[var(--glass-text-muted)]">正在挑选值得关注的公开课题…</p>
+          <p className="mt-3 text-base text-[var(--glass-text-muted)]">正在挑选值得关注的公开课题…</p>
         </div>
       )}
 
       {error && !isLoading && (
         <div
-          className="rounded-[1.4rem] p-4 text-sm"
+          className="rounded-[1.4rem] p-4 text-base"
           style={{
             border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
             background: "color-mix(in srgb, #d95b5b 10%, transparent)",
@@ -174,20 +174,20 @@ export function PublicProjectsSection() {
                 </div>
               </div>
 
-              <p className="line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+              <p className="line-clamp-3 text-base leading-6 text-[var(--glass-text-muted)]">
                 {project.description_zh || "课题简介待补充，可以先进入查看结构和成员情况。"}
               </p>
 
               {(project.owner_username || project.recruitment_requirements) && (
                 <div className="mt-4 space-y-2">
                   {project.owner_username && (
-                    <p className="text-xs text-[var(--glass-text-muted)]">
+                    <p className="text-sm text-[var(--glass-text-muted)]">
                       组长 <span className="font-semibold text-[var(--paper-foreground)]">{project.owner_username}</span>
                     </p>
                   )}
                   {project.recruitment_requirements && (
                     <p
-                      className="rounded-[1rem] px-3 py-2 text-xs leading-5 text-[var(--paper-foreground)]"
+                      className="rounded-[1rem] px-3 py-2 text-sm leading-5 text-[var(--paper-foreground)]"
                       style={{ background: "color-mix(in srgb, var(--paper-link) 8%, transparent)" }}
                     >
                       {project.recruitment_requirements}
@@ -196,7 +196,7 @@ export function PublicProjectsSection() {
                 </div>
               )}
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <div className="mt-4 flex flex-wrap gap-2 text-sm">
                 <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
                   <Users className="h-3.5 w-3.5" />
                   {project.member_count}
@@ -212,7 +212,7 @@ export function PublicProjectsSection() {
                 <Link
                   to={`/lab/projects/${project.id}`}
                   state={{ readOnly: !project.is_member }}
-                  className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-medium"
+                  className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium"
                 >
                   {project.is_member ? "进入课题" : "查看详情"}
                 </Link>
@@ -221,7 +221,7 @@ export function PublicProjectsSection() {
                   <button
                     onClick={() => handleApplyClick(project)}
                     disabled={project.has_pending_application}
-                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {project.has_pending_application ? "待审核" : project.require_approval ? "提交申请" : "立即加入"}
                   </button>
@@ -235,8 +235,8 @@ export function PublicProjectsSection() {
       {!isLoading && !error && featuredProjects.length === 0 && (
         <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.55rem] py-14 text-center">
           <FlaskConical className="h-10 w-10 text-[var(--glass-text-muted)]" />
-          <p className="mt-4 text-sm font-semibold text-[var(--paper-foreground)]">暂时还没有公开课题</p>
-          <p className="mt-1 text-sm text-[var(--glass-text-muted)]">稍后再来看看，或者先创建自己的研究方向。</p>
+          <p className="mt-4 text-base font-semibold text-[var(--paper-foreground)]">暂时还没有公开课题</p>
+          <p className="mt-1 text-base text-[var(--glass-text-muted)]">稍后再来看看，或者先创建自己的研究方向。</p>
         </div>
       )}
 

@@ -48,7 +48,7 @@ export function ProjectDeleteAction({
           setIsArmed(true);
         }}
         className={cn(
-          "glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-[#a24432] transition-colors hover:text-[#892c1d]",
+          "glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d]",
           className
         )}
       >
@@ -75,14 +75,14 @@ export function ProjectDeleteAction({
             <AlertTriangle className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-[var(--paper-foreground)]">确认删除「{projectName}」</p>
-            <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+            <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除「{projectName}」</p>
+            <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
               删除后会一并移除成员、画布和讨论记录，这个操作无法恢复。
             </p>
             <div className="mt-3 max-w-sm">
               <label
                 htmlFor={confirmationInputId}
-                className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--glass-text-muted)]"
+                className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--glass-text-muted)]"
               >
                 输入大写 DELETE 以确认删除
               </label>
@@ -100,9 +100,9 @@ export function ProjectDeleteAction({
                 autoComplete="off"
                 spellCheck={false}
                 placeholder="DELETE"
-                className="mt-2 w-full rounded-2xl border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-sm text-[var(--paper-foreground)] outline-none transition focus:border-[#cb6a4f] focus:ring-2 focus:ring-[#cb6a4f]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-950/40"
+                className="mt-2 w-full rounded-2xl border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[#cb6a4f] focus:ring-2 focus:ring-[#cb6a4f]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-950/40"
               />
-              <p className="mt-2 text-xs leading-5 text-[var(--glass-text-muted)]">
+              <p className="mt-2 text-sm leading-5 text-[var(--glass-text-muted)]">
                 只有输入完全匹配的 <span className="font-semibold text-[var(--paper-foreground)]">DELETE</span> 才会启用删除按钮。
               </p>
             </div>
@@ -118,7 +118,7 @@ export function ProjectDeleteAction({
               setError(null);
             }}
             disabled={isDeleting}
-            className="glass-button rounded-full px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="glass-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             取消
           </button>
@@ -126,7 +126,7 @@ export function ProjectDeleteAction({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={isDeleting || !isConfirmationValid}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#a24432] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#a24432] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             {isDeleting ? "删除中..." : "确认删除"}
@@ -135,7 +135,7 @@ export function ProjectDeleteAction({
       </div>
 
       {error && (
-        <div className="mt-4 rounded-[1rem] border border-[#cb6a4f]/20 bg-[#cb6a4f]/8 px-4 py-3 text-sm text-[#a24432]">
+        <div className="mt-4 rounded-[1rem] border border-[#cb6a4f]/20 bg-[#cb6a4f]/8 px-4 py-3 text-base text-[#a24432]">
           {error}
         </div>
       )}

@@ -144,13 +144,13 @@ export function PublicProjectExplorePage() {
               >
                 进入虚拟课题组后，先直接看到现有课题
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
                 这里统一列出已有课题的名称、简介、组长和成员。看完现有方向后，如果没有合适的，就直接新建课题。
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   to="/lab/projects"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Users className="h-4 w-4 text-[var(--paper-link)]" />
                   我的课题
@@ -158,7 +158,7 @@ export function PublicProjectExplorePage() {
                 <button
                   onClick={handleCreateProject}
                   disabled={!isSystemHealthy}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   新建课题
@@ -168,19 +168,19 @@ export function PublicProjectExplorePage() {
 
             <div className="grid gap-3 sm:grid-cols-3 xl:w-[28rem]">
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   当前结果
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
               </div>
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   招募中
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{recruitingCount}</p>
               </div>
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   当前模式
                 </p>
                 <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
@@ -194,7 +194,7 @@ export function PublicProjectExplorePage() {
         <section className="research-panel mb-6 rounded-[1.8rem] p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 flex-1">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+              <label className="mb-2 block text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                 搜索课题
               </label>
               <div className="relative">
@@ -204,13 +204,13 @@ export function PublicProjectExplorePage() {
                   placeholder="输入研究方向、方法或课题关键词"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="research-input w-full rounded-[1.15rem] px-12 py-3 text-sm"
+                  className="research-input w-full rounded-[1.15rem] px-12 py-3 text-base"
                 />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <label className="research-chip inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
+              <label className="research-chip inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-base font-medium">
                 <input
                   type="checkbox"
                   checked={recruitingOnly}
@@ -219,7 +219,7 @@ export function PublicProjectExplorePage() {
                 />
                 仅看招募中
               </label>
-              <span className="research-chip inline-flex rounded-full px-4 py-2 text-sm font-medium">
+              <span className="research-chip inline-flex rounded-full px-4 py-2 text-base font-medium">
                 共 {projects.length} 条结果
               </span>
             </div>
@@ -233,8 +233,8 @@ export function PublicProjectExplorePage() {
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">未登录时也可以先浏览现有课题</p>
-                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="text-base font-semibold text-[var(--paper-foreground)]">未登录时也可以先浏览现有课题</p>
+                <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                   想加入课题或新建课题时，再登录即可。
                 </p>
               </div>
@@ -243,14 +243,14 @@ export function PublicProjectExplorePage() {
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => openDialog("login")}
-                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-semibold text-white sm:self-auto"
+                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-semibold text-white sm:self-auto"
               >
                 <LogIn className="h-4 w-4" />
                 登录后申请
               </button>
               <button
                 onClick={() => openDialog("login")}
-                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium sm:self-auto"
+                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium sm:self-auto"
               >
                 <Plus className="h-4 w-4 text-[var(--paper-link)]" />
                 登录后新建
@@ -268,14 +268,14 @@ export function PublicProjectExplorePage() {
               color: "#a45a13",
             }}
           >
-            <p className="text-sm font-medium">研究服务暂时不可用，当前无法加载课题列表或新建课题。</p>
+            <p className="text-base font-medium">研究服务暂时不可用，当前无法加载课题列表或新建课题。</p>
           </div>
         )}
 
         {isLoading && (
           <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.75rem] py-16">
             <Loader2 className="h-7 w-7 animate-spin text-[var(--paper-accent)]" />
-            <p className="mt-4 text-sm text-[var(--glass-text-muted)]">正在检索公开课题…</p>
+            <p className="mt-4 text-base text-[var(--glass-text-muted)]">正在检索公开课题…</p>
           </div>
         )}
 
@@ -288,7 +288,7 @@ export function PublicProjectExplorePage() {
               color: "#b33d3d",
             }}
           >
-            <p className="text-sm font-medium">{error}</p>
+            <p className="text-base font-medium">{error}</p>
           </div>
         )}
 
@@ -315,27 +315,27 @@ export function PublicProjectExplorePage() {
 
                 <div className="mt-4 space-y-3">
                   <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">简介</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
+                    <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">简介</p>
+                    <p className="mt-2 text-base leading-6 text-[var(--paper-foreground)]">
                       {project.description_zh || "暂无课题简介。"}
                     </p>
                   </div>
                   <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">组长</p>
-                    <p className="mt-2 text-sm font-semibold text-[var(--paper-foreground)]">
+                    <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">组长</p>
+                    <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
                       {project.owner_username || "暂未署名"}
                     </p>
                   </div>
                   <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
-                      <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs">
+                      <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
+                      <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
                         <Users className="h-3.5 w-3.5" />
                         {project.member_count}
                         {project.max_members && ` / ${project.max_members}`} 人
                       </span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-[var(--paper-foreground)]">
+                    <p className="mt-2 text-base leading-6 text-[var(--paper-foreground)]">
                       {getMemberSummary(project)}
                     </p>
                   </div>
@@ -345,7 +345,7 @@ export function PublicProjectExplorePage() {
                   <Link
                     to={`/lab/projects/${project.id}`}
                     state={{ readOnly: !project.is_member }}
-                    className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-medium"
+                    className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium"
                   >
                     {project.is_member ? "进入课题" : "查看详情"}
                   </Link>
@@ -354,7 +354,7 @@ export function PublicProjectExplorePage() {
                     <button
                       onClick={() => handleApplyClick(project)}
                       disabled={project.has_pending_application}
-                      className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {project.has_pending_application ? "待审核" : project.require_approval ? "申请加入" : "立即加入"}
                     </button>
@@ -376,7 +376,7 @@ export function PublicProjectExplorePage() {
             >
               没有找到合适的课题
             </h3>
-            <p className="mt-2 max-w-md text-sm leading-6 text-[var(--glass-text-muted)]">
+            <p className="mt-2 max-w-md text-base leading-6 text-[var(--glass-text-muted)]">
               {searchQuery || recruitingOnly
                 ? "换一个关键词，或者取消筛选再试一次。"
                 : "当前还没有公开课题，稍后再回来看看。"}
@@ -384,7 +384,7 @@ export function PublicProjectExplorePage() {
             <button
               onClick={handleCreateProject}
               disabled={!isSystemHealthy}
-              className="glass-button glass-button-primary mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="glass-button glass-button-primary mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Plus className="h-4 w-4" />
               新建课题
@@ -403,14 +403,14 @@ export function PublicProjectExplorePage() {
                 >
                   现有课题不匹配时，直接新建一个
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="mt-2 max-w-2xl text-base leading-6 text-[var(--glass-text-muted)]">
                   看完现有课题后，如果没有匹配方向，就直接从这里发起新的课题。
                 </p>
               </div>
               <button
                 onClick={handleCreateProject}
                 disabled={!isSystemHealthy}
-                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
               >
                 <Plus className="h-4 w-4" />
                 新建课题

@@ -41,14 +41,14 @@ export function MarkdownEditor({
     <div className={cn('relative', className)}>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs text-gray-500">
+        <div className="text-sm text-gray-500">
           支持Markdown: **粗体**, *斜体*, `代码`, [链接](url)
         </div>
         <button
           type="button"
           onClick={() => setShowPreview(!showPreview)}
           className={cn(
-            'flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors',
+            'flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors',
             theme === 'dark'
               ? 'bg-slate-700 hover:bg-slate-600 text-gray-300'
               : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
@@ -72,7 +72,7 @@ export function MarkdownEditor({
           {value ? (
             <MarkdownRenderer content={value} className="prose-sm" />
           ) : (
-            <div className={cn('text-sm text-center', theme === 'dark' ? 'text-gray-600' : 'text-gray-400')}>
+            <div className={cn('text-base text-center', theme === 'dark' ? 'text-gray-600' : 'text-gray-400')}>
               暂无内容
             </div>
           )}
@@ -84,7 +84,7 @@ export function MarkdownEditor({
           placeholder={placeholder}
           rows={rows}
           className={cn(
-            'w-full px-3 py-2 rounded-lg text-sm resize-none font-mono',
+            'w-full px-3 py-2 rounded-lg text-base resize-none font-mono',
             'focus:outline-none focus:ring-2 focus:ring-purple-500',
             theme === 'dark'
               ? 'bg-slate-700 border border-slate-600 text-white placeholder:text-gray-500'
@@ -97,7 +97,7 @@ export function MarkdownEditor({
       {!showPreview && (
         <div
           className={cn(
-            'mt-1 px-2 py-1 rounded text-xs',
+            'mt-1 px-2 py-1 rounded text-sm',
             theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
           )}
         >

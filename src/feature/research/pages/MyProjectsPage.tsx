@@ -152,21 +152,21 @@ export function MyProjectsPage() {
               >
                 登录后再回到这里管理你的研究进度
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
                 个人项目页会集中展示你参与的课题、当前状态和继续推进的入口。现在可以先去发现公开课题，或者直接登录开始创建。
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={() => openDialog("login")}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white"
                 >
                   <LogIn className="h-4 w-4" />
                   立即登录
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   浏览公开课题
@@ -199,7 +199,7 @@ export function MyProjectsPage() {
               >
                 继续推进你的研究项目，而不是重新找入口
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
                 这一页只保留管理自己课题需要的信息：状态、摘要、更新时间，以及继续进入项目的直接入口。
               </p>
 
@@ -207,14 +207,14 @@ export function MyProjectsPage() {
                 <button
                   onClick={handleCreateProject}
                   disabled={!isSystemHealthy}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   创建新课题
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   寻找协作课题
@@ -224,19 +224,19 @@ export function MyProjectsPage() {
 
             <div className="grid gap-3 sm:grid-cols-3 xl:w-[28rem]">
               <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   全部课题
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
               </div>
               <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   进行中
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{activeProjects}</p>
               </div>
               <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   已完成
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">
@@ -253,15 +253,15 @@ export function MyProjectsPage() {
               <div className="flex items-start gap-3">
                 <HealthIcon className={`mt-0.5 h-5 w-5 ${isChecking ? "animate-spin" : ""}`} />
                 <div>
-                  <p className="text-sm font-semibold">{healthDisplay.text}</p>
-                  <p className="mt-1 text-sm opacity-80">当前可能影响创建、进入或同步课题，建议先确认服务状态。</p>
+                  <p className="text-base font-semibold">{healthDisplay.text}</p>
+                  <p className="mt-1 text-base opacity-80">当前可能影响创建、进入或同步课题，建议先确认服务状态。</p>
                 </div>
               </div>
 
               <button
                 onClick={() => checkHealth()}
                 disabled={isChecking}
-                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${isChecking ? "animate-spin" : ""}`} />
                 重新检测
@@ -308,10 +308,10 @@ export function MyProjectsPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5" />
               <div>
-                <p className="text-sm font-semibold">{error}</p>
+                <p className="text-base font-semibold">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="mt-3 inline-flex items-center rounded-full border border-current/20 px-4 py-2 text-sm font-medium"
+                  className="mt-3 inline-flex items-center rounded-full border border-current/20 px-4 py-2 text-base font-medium"
                 >
                   重试
                 </button>
@@ -328,7 +328,7 @@ export function MyProjectsPage() {
               >
                 还没有研究项目，先建立一个主课题
               </h2>
-              <p className="mt-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+              <p className="mt-3 text-base leading-6 text-[var(--glass-text-muted)]">
                 先定义一个清晰的问题域，再把实验、证据和结论补充进画布。等课题结构稳定后，再开放给其他成员加入。
               </p>
 
@@ -336,14 +336,14 @@ export function MyProjectsPage() {
                 <button
                   onClick={handleCreateProject}
                   disabled={!isSystemHealthy}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   创建第一个课题
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   先看别人怎么做
@@ -362,12 +362,12 @@ export function MyProjectsPage() {
                 >
                   全部研究课题
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="mt-2 text-base leading-6 text-[var(--glass-text-muted)]">
                   先看摘要和状态，再进入具体项目，不需要再逐个点开确认基本信息。
                 </p>
               </div>
 
-              <span className="research-chip inline-flex self-start rounded-full px-3 py-1.5 text-xs font-medium sm:self-auto">
+              <span className="research-chip inline-flex self-start rounded-full px-3 py-1.5 text-sm font-medium sm:self-auto">
                 共 {projects.length} 个课题
               </span>
             </div>

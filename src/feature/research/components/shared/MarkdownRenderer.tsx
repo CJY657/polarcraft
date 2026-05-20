@@ -76,7 +76,7 @@ export const CompactMarkdown = memo(({ content }: CompactMarkdownProps) => {
   if (!content) return null;
 
   return (
-    <div className={cn("text-xs text-gray-400")}>
+    <div className={cn("text-sm text-gray-400")}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -84,7 +84,7 @@ export const CompactMarkdown = memo(({ content }: CompactMarkdownProps) => {
           strong: ({ children }) => <span className="font-semibold text-white">{children}</span>,
           em: ({ children }) => <span className="italic">{children}</span>,
           code: ({ children }) => (
-            <code className="text-cyan-400 bg-slate-900/50 px-1 rounded text-xs">{children}</code>
+            <code className="text-cyan-400 bg-slate-900/50 px-1 rounded text-sm">{children}</code>
           ),
           a: ({ children }) => <span className="text-cyan-400 underline">{children}</span>,
           ul: ({ children }) => <ul className="list-disc list-inside my-1 pl-4">{children}</ul>,

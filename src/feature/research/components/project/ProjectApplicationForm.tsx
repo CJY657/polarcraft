@@ -160,7 +160,7 @@ export function ProjectApplicationForm({
               {t('project.application.title')}
             </h2>
             <p className={cn(
-              "text-sm mt-1",
+              "text-base mt-1",
               theme === "dark" ? "text-gray-400" : "text-gray-500"
             )}>
               {project.name_zh}
@@ -186,7 +186,7 @@ export function ProjectApplicationForm({
             theme === "dark" ? "bg-blue-900/30 text-blue-300" : "bg-blue-50 text-blue-700"
           )}>
             <div className="font-medium mb-1">{t('project.settings.recruitmentRequirements')}</div>
-            <div className="text-sm whitespace-pre-wrap">{project.recruitment_requirements}</div>
+            <div className="text-base whitespace-pre-wrap">{project.recruitment_requirements}</div>
           </div>
         )}
 
@@ -207,7 +207,7 @@ export function ProjectApplicationForm({
             {/* Display Name */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.application.form.displayName')}
@@ -237,7 +237,7 @@ export function ProjectApplicationForm({
                     className="w-4 h-4"
                   />
                   <span className={cn(
-                    "text-sm",
+                    "text-base",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}>
                     {t('project.application.form.selectFromProfile')}
@@ -251,7 +251,7 @@ export function ProjectApplicationForm({
                     className="w-4 h-4"
                   />
                   <span className={cn(
-                    "text-sm",
+                    "text-base",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}>
                     {t('project.application.form.enterManually')}
@@ -263,7 +263,7 @@ export function ProjectApplicationForm({
             {formData.useProfile && educations.length > 0 ? (
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.application.form.organization')}
@@ -290,7 +290,7 @@ export function ProjectApplicationForm({
               <>
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-1.5",
+                    "block text-base font-medium mb-1.5",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}>
                     {t('project.application.form.organization')} *
@@ -310,7 +310,7 @@ export function ProjectApplicationForm({
 
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-1.5",
+                    "block text-base font-medium mb-1.5",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}>
                     {t('project.application.form.major')}
@@ -333,7 +333,7 @@ export function ProjectApplicationForm({
             {/* Grade */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.application.form.grade')}
@@ -355,7 +355,7 @@ export function ProjectApplicationForm({
             {/* Research Experience */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.application.form.researchExperience')}
@@ -377,7 +377,7 @@ export function ProjectApplicationForm({
             {/* Expertise */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.application.form.expertise')}
@@ -399,7 +399,7 @@ export function ProjectApplicationForm({
             {/* Motivation */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.application.form.motivation')}
@@ -421,7 +421,7 @@ export function ProjectApplicationForm({
             {/* Error */}
             {error && (
               <div className={cn(
-                "p-3 rounded-lg text-sm",
+                "p-3 rounded-lg text-base",
                 theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
               )}>
                 {error}

@@ -198,7 +198,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
             {stepLabels.map((label, index) => (
               <div key={index} className="flex items-center">
                 <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors",
+                  "flex items-center justify-center w-8 h-8 rounded-full text-base font-medium transition-colors",
                   currentStep > index + 1
                     ? "bg-green-500 text-white"
                     : currentStep === index + 1
@@ -212,7 +212,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   {currentStep > index + 1 ? <Check className="w-4 h-4" /> : index + 1}
                 </div>
                 <span className={cn(
-                  "ml-2 text-sm",
+                  "ml-2 text-base",
                   currentStep === index + 1
                     ? theme === "dark" ? "text-white" : "text-gray-900"
                     : theme === "dark" ? "text-gray-400" : "text-gray-500"
@@ -233,7 +233,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         {/* Error */}
         {error && (
           <div className={cn(
-            "mb-4 p-3 rounded-lg text-sm",
+            "mb-4 p-3 rounded-lg text-base",
             theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
           )}>
             {error}
@@ -247,7 +247,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
             <div className="space-y-4">
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('lab.projectName')} (中文) *
@@ -267,7 +267,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               {/* <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('lab.projectName')} (English)
@@ -287,7 +287,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('lab.projectDescription')} (中文)
@@ -307,7 +307,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   研究问题（中文，每行一个）
@@ -328,7 +328,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   研究假设（中文，每行一个）
@@ -349,7 +349,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   基础问题与实验（中文）
@@ -370,7 +370,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   拓展问题、假设与实验（中文）
@@ -396,7 +396,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
             <div className="space-y-4">
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.application.form.displayName')}
@@ -425,7 +425,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                       className="w-4 h-4"
                     />
                     <span className={cn(
-                      "text-sm",
+                      "text-base",
                       theme === "dark" ? "text-gray-300" : "text-gray-700"
                     )}>
                       {t('project.application.form.selectFromProfile')}
@@ -439,7 +439,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                       className="w-4 h-4"
                     />
                     <span className={cn(
-                      "text-sm",
+                      "text-base",
                       theme === "dark" ? "text-gray-300" : "text-gray-700"
                     )}>
                       {t('project.application.form.enterManually')}
@@ -451,7 +451,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
               {creatorData.useProfile && educations.length > 0 ? (
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-1.5",
+                    "block text-base font-medium mb-1.5",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}>
                     {t('project.application.form.organization')}
@@ -478,7 +478,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 <>
                   <div>
                     <label className={cn(
-                      "block text-sm font-medium mb-1.5",
+                      "block text-base font-medium mb-1.5",
                       theme === "dark" ? "text-gray-300" : "text-gray-700"
                     )}>
                       {t('project.application.form.organization')} *
@@ -498,7 +498,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
                   <div>
                     <label className={cn(
-                      "block text-sm font-medium mb-1.5",
+                      "block text-base font-medium mb-1.5",
                       theme === "dark" ? "text-gray-300" : "text-gray-700"
                     )}>
                       {t('project.application.form.major')}
@@ -520,7 +520,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.application.form.grade')}
@@ -546,7 +546,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
             <div className="space-y-4">
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.settings.visibility')}
@@ -578,7 +578,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 <label
                   htmlFor="require_approval"
                   className={cn(
-                    "text-sm",
+                    "text-base",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}
                 >
@@ -597,7 +597,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 <label
                   htmlFor="is_recruiting"
                   className={cn(
-                    "text-sm",
+                    "text-base",
                     theme === "dark" ? "text-gray-300" : "text-gray-700"
                   )}
                 >
@@ -607,7 +607,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.settings.recruitmentRequirements')}
@@ -628,7 +628,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-1.5",
+                  "block text-base font-medium mb-1.5",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}>
                   {t('project.settings.maxMembers')}

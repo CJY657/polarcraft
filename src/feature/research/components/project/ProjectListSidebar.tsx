@@ -41,14 +41,14 @@ export function ProjectListSidebar({
           >
             我的课题工作台
           </h2>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--glass-text-muted)]">
+          <p className="mt-2 max-w-sm text-base leading-6 text-[var(--glass-text-muted)]">
             集中管理你参与的研究课题，先看进度，再决定继续推进还是扩展新方向。
           </p>
         </div>
 
         <Link
           to="/lab/projects"
-          className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+          className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium"
         >
           全部课题
           <ExternalLink className="h-3.5 w-3.5" />
@@ -57,13 +57,13 @@ export function ProjectListSidebar({
 
       <div className="mb-5 grid grid-cols-2 gap-3">
         <div className="research-metric rounded-[1.35rem] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
             参与课题
           </p>
           <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
         </div>
         <div className="research-metric rounded-[1.35rem] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
             进行中
           </p>
           <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{activeProjects}</p>
@@ -74,14 +74,14 @@ export function ProjectListSidebar({
         <div className="mb-5 flex flex-wrap gap-3">
           <button
             onClick={onCreateProject}
-            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
+            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white"
           >
             <Plus className="h-4 w-4" />
             新建课题
           </button>
           <Link
             to="/lab/explore"
-            className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+            className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium"
           >
             <Search className="h-4 w-4 text-[var(--paper-link)]" />
             浏览公开课题
@@ -94,8 +94,8 @@ export function ProjectListSidebar({
               <LogIn className="h-4 w-4 text-[var(--paper-link)]" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--paper-foreground)]">登录后开启个人研究工作台</p>
-              <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+              <p className="text-base font-semibold text-[var(--paper-foreground)]">登录后开启个人研究工作台</p>
+              <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                 你可以保存画布、管理成员，并持续迭代自己的研究路线。
               </p>
             </div>
@@ -103,14 +103,14 @@ export function ProjectListSidebar({
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => openDialog("login")}
-              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
+              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white"
             >
               <LogIn className="h-4 w-4" />
               立即登录
             </button>
             <Link
               to="/lab/explore"
-              className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium"
+              className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium"
             >
               <Search className="h-4 w-4 text-[var(--paper-link)]" />
               先看公开课题
@@ -123,13 +123,13 @@ export function ProjectListSidebar({
         {isLoading && (
           <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.45rem] py-10">
             <Loader2 className="h-6 w-6 animate-spin text-[var(--paper-accent)]" />
-            <p className="mt-3 text-sm text-[var(--glass-text-muted)]">正在整理你的课题列表…</p>
+            <p className="mt-3 text-base text-[var(--glass-text-muted)]">正在整理你的课题列表…</p>
           </div>
         )}
 
         {error && !isLoading && (
           <div
-            className="rounded-[1.35rem] p-4 text-sm"
+            className="rounded-[1.35rem] p-4 text-base"
             style={{
               border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
               background: "color-mix(in srgb, #d95b5b 10%, transparent)",
@@ -143,8 +143,8 @@ export function ProjectListSidebar({
         {!isAuthenticated && !isLoading && (
           <div className="research-panel-soft rounded-[1.45rem] border border-dashed p-5 text-center">
             <FlaskConical className="mx-auto h-9 w-9 text-[var(--glass-text-muted)]" />
-            <p className="mt-3 text-sm font-medium text-[var(--paper-foreground)]">课题列表会在登录后出现在这里</p>
-            <p className="mt-1 text-sm text-[var(--glass-text-muted)]">当前可以先从右侧公开课题里挑选感兴趣的方向。</p>
+            <p className="mt-3 text-base font-medium text-[var(--paper-foreground)]">课题列表会在登录后出现在这里</p>
+            <p className="mt-1 text-base text-[var(--glass-text-muted)]">当前可以先从右侧公开课题里挑选感兴趣的方向。</p>
           </div>
         )}
 
@@ -163,15 +163,15 @@ export function ProjectListSidebar({
                 <FlaskConical className="h-4 w-4 text-[var(--paper-accent)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">还没有自己的研究课题</p>
-                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="text-base font-semibold text-[var(--paper-foreground)]">还没有自己的研究课题</p>
+                <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                   先创建一个主课题，后续再把问题、实验和结论拆进画布里。
                 </p>
               </div>
             </div>
             <button
               onClick={onCreateProject}
-              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white"
+              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white"
             >
               <Plus className="h-4 w-4" />
               创建第一个课题

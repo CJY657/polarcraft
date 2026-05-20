@@ -106,7 +106,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Visibility */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.settings.visibility')}
@@ -139,7 +139,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
               <label
                 htmlFor="require_approval"
                 className={cn(
-                  "text-sm",
+                  "text-base",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}
               >
@@ -159,7 +159,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
               <label
                 htmlFor="is_recruiting"
                 className={cn(
-                  "text-sm",
+                  "text-base",
                   theme === "dark" ? "text-gray-300" : "text-gray-700"
                 )}
               >
@@ -170,7 +170,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Recruitment Requirements */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.settings.recruitmentRequirements')}
@@ -192,7 +192,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Max Members */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.settings.maxMembers')}
@@ -215,7 +215,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Contact Email */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.settings.contactEmail')}
@@ -237,7 +237,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Discussion Channel */}
             <div>
               <label className={cn(
-                "block text-sm font-medium mb-1.5",
+                "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 {t('project.settings.discussionChannel')}
@@ -259,7 +259,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             {/* Error */}
             {error && (
               <div className={cn(
-                "p-3 rounded-lg text-sm",
+                "p-3 rounded-lg text-base",
                 theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
               )}>
                 {error}

@@ -131,7 +131,7 @@ export function ProjectList() {
         <section className="research-hero mb-8 rounded-[2.2rem] px-6 py-7 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
                 <span className="research-kicker">Virtual Research Lab</span>
                 <span className="research-chip inline-flex rounded-full px-3 py-1 font-medium">
                   {authLoading ? "同步中" : isAuthenticated ? "已登录工作台" : "游客模式"}
@@ -145,7 +145,7 @@ export function ProjectList() {
                 把问题、实验和结论整理进同一张研究地图
               </h1>
 
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)] sm:text-lg">
+              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)] sm:text-lg">
                 这里不是单纯的课题列表，而是一个研究型学习工作台。先管理自己的项目，再发现可加入的公开团队，
                 最后参考成熟示例，把研究路径一步步搭起来。
               </p>
@@ -153,21 +153,21 @@ export function ProjectList() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={handleCreateProject}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white"
                 >
                   <Plus className="h-4 w-4" />
                   {isAuthenticated ? "新建研究课题" : "登录后新建课题"}
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   浏览公开课题
                 </Link>
                 <Link
                   to="/lab/projects"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <FolderOpen className="h-4 w-4 text-[var(--paper-link)]" />
                   查看我的项目
@@ -177,19 +177,19 @@ export function ProjectList() {
 
             <div className="grid gap-3 sm:grid-cols-3 xl:w-[30rem]">
               <div className="research-metric rounded-[1.5rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   我的课题
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
               </div>
               <div className="research-metric rounded-[1.5rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   进行中
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{activeProjects}</p>
               </div>
               <div className="research-metric rounded-[1.5rem] p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
                   示例课题
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">
@@ -206,15 +206,15 @@ export function ProjectList() {
               <div className="flex items-start gap-3">
                 <HealthIcon className={`mt-0.5 h-5 w-5 ${isChecking ? "animate-spin" : ""}`} />
                 <div>
-                  <p className="text-sm font-semibold">{healthDisplay.text}</p>
-                  <p className="mt-1 text-sm opacity-80">当前可能有部分研究功能暂时不可用，建议先检测服务状态。</p>
+                  <p className="text-base font-semibold">{healthDisplay.text}</p>
+                  <p className="mt-1 text-base opacity-80">当前可能有部分研究功能暂时不可用，建议先检测服务状态。</p>
                 </div>
               </div>
 
               <button
                 onClick={() => checkHealth()}
                 disabled={isChecking}
-                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${isChecking ? "animate-spin" : ""}`} />
                 重新检测
@@ -244,12 +244,12 @@ export function ProjectList() {
               >
                 从成熟示例快速理解研究画布
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
+              <p className="mt-2 max-w-2xl text-base leading-6 text-[var(--glass-text-muted)]">
                 如果你还没决定从哪开始，先看这些已经收束完成的示例课题。它们能帮你理解节点、关系和结论该怎样组织。
               </p>
             </div>
 
-            <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-medium sm:self-auto">
+            <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium sm:self-auto">
               <BookOpen className="h-3.5 w-3.5" />
               共 {EXAMPLE_PROJECTS.length} 个示例
             </span>
@@ -283,11 +283,11 @@ export function ProjectList() {
                   >
                     {project.title["zh-CN"]}
                   </h3>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  <p className="mt-2 line-clamp-3 text-base leading-6 text-[var(--glass-text-muted)]">
                     {project.description["zh-CN"]}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <div className="mt-4 flex flex-wrap gap-2 text-sm">
                     <span className="research-chip inline-flex rounded-full px-3 py-1">
                       {project.nodes.length} 个节点
                     </span>
@@ -296,7 +296,7 @@ export function ProjectList() {
                     </span>
                   </div>
 
-                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--paper-link)]">
+                  <div className="mt-5 inline-flex items-center gap-2 text-base font-medium text-[var(--paper-link)]">
                     打开示例
                     <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                   </div>

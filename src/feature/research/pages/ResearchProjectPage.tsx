@@ -113,7 +113,7 @@ function ResearchInfoSection({
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
           {icon}
         </span>
-        <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-[var(--paper-foreground)]">
+        <span className="min-w-0 flex-1 text-base font-medium leading-6 text-[var(--paper-foreground)]">
           {label}
         </span>
       </>
@@ -142,7 +142,7 @@ function ResearchInfoSection({
             研究信息
           </h2>
         </div>
-        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs font-medium sm:self-auto">
+        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium sm:self-auto">
           <ListChecks className="h-3.5 w-3.5" />
           问题与假设索引
         </span>
@@ -152,9 +152,9 @@ function ResearchInfoSection({
         <div className="research-panel-soft rounded-[1.35rem] p-4">
           <div className="mb-3 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-[var(--paper-link)]" />
-            <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
+            <h3 className="text-base font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
           </div>
-          <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
             {outline.topicSummary || "这个课题还没有补充详细摘要。"}
           </p>
         </div>
@@ -165,9 +165,9 @@ function ResearchInfoSection({
               <div className="research-panel-soft rounded-[1.35rem] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
+                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+                <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
                   {outline.basicPlan}
                 </p>
               </div>
@@ -176,9 +176,9 @@ function ResearchInfoSection({
               <div className="research-panel-soft rounded-[1.35rem] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-sm font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
+                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--glass-text-muted)]">
+                <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
                   {outline.extendedPlan}
                 </p>
               </div>
@@ -470,7 +470,7 @@ export function ResearchProjectPage() {
           <p className="text-lg text-[#b33d3d]">{error}</p>
           <Link
             to="/lab/projects"
-            className="glass-button glass-button-primary mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+            className="glass-button glass-button-primary mt-5 inline-flex rounded-full px-5 py-2.5 text-base font-semibold text-white"
           >
             返回课题列表
           </Link>
@@ -572,14 +572,14 @@ export function ResearchProjectPage() {
               <>
                 <button
                   onClick={() => setIsSettingsDialogOpen(true)}
-                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
                 >
                   <Settings className="w-4 h-4" />
                   设置
                 </button>
                 <button
                   onClick={() => setIsEditDialogOpen(true)}
-                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
+                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
                 >
                   <Edit3 className="w-4 h-4" />
                   编辑
@@ -588,7 +588,7 @@ export function ResearchProjectPage() {
             )}
             <Link
               to={backHref}
-              className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium"
+              className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               返回
@@ -606,10 +606,10 @@ export function ResearchProjectPage() {
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--paper-foreground)]">
+                <p className="text-base font-semibold text-[var(--paper-foreground)]">
                   {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
                 </p>
-                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                <p className="mt-1 text-base text-[var(--glass-text-muted)]">
                   {isPublicGuestMode
                     ? "未登录时可以先看课题信息和成员，想申请加入时再登录。"
                     : "如果想参与讨论或协作，请先提交加入申请。"}
@@ -619,7 +619,7 @@ export function ResearchProjectPage() {
             <button
               onClick={handleApplyAction}
               disabled={applyButtonDisabled}
-              className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+              className="glass-button glass-button-primary self-start rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
             >
               {applyBannerButtonLabel}
             </button>
@@ -632,16 +632,16 @@ export function ResearchProjectPage() {
             <div className="max-w-3xl">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="research-kicker">Project Overview</span>
-                <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", statusBadge.className)}>
+                <span className={cn("rounded-full px-3 py-1 text-sm font-semibold", statusBadge.className)}>
                   {statusBadge.label}
                 </span>
                 {displayIsRecruiting && (
-                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-sm font-semibold">
                     招募中
                   </span>
                 )}
                 {displayProject.is_public && (
-                  <span className="research-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium">
+                  <span className="research-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium">
                     <Globe className="h-3.5 w-3.5" />
                     公开课题
                   </span>
@@ -656,10 +656,10 @@ export function ResearchProjectPage() {
               </h1>
 
               {displayProject.name_en && (
-                <p className="mt-2 text-base text-[var(--glass-text-muted)] sm:text-lg">{displayProject.name_en}</p>
+                <p className="mt-2 text-lg text-[var(--glass-text-muted)] sm:text-lg">{displayProject.name_en}</p>
               )}
 
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
                 {displayProject.description_zh || "这个课题还没有补充详细摘要。"}
               </p>
 
@@ -668,7 +668,7 @@ export function ResearchProjectPage() {
                   <button
                     onClick={handleApplyAction}
                     disabled={applyButtonDisabled}
-                    className="glass-button glass-button-primary inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="glass-button glass-button-primary inline-flex items-center justify-center rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applyButtonLabel}
                   </button>
@@ -678,14 +678,14 @@ export function ResearchProjectPage() {
                       <>
                         <button
                           onClick={() => setIsEditDialogOpen(true)}
-                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                         >
                           <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
                           编辑信息
                         </button>
                         <button
                           onClick={() => setIsSettingsDialogOpen(true)}
-                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium"
+                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                         >
                           <Settings className="h-4 w-4 text-[var(--paper-link)]" />
                           协作设置
@@ -706,16 +706,16 @@ export function ResearchProjectPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 xl:w-[26rem]">
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
+                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
                 <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.member_count}</p>
               </div>
               <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">创建时间</p>
-                <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
+                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">创建时间</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
               </div>
               <div className="research-metric rounded-[1.45rem] p-4 sm:col-span-2">
-                <p className="text-xs uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
-                <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
+                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
                   {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
                 </p>
               </div>
@@ -741,7 +741,7 @@ export function ResearchProjectPage() {
                 >
                   研究团队
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                <p className="mt-2 text-base leading-6 text-[var(--glass-text-muted)]">
                   角色与权限说明白，协作会更顺。
                 </p>
               </div>
@@ -750,7 +750,7 @@ export function ResearchProjectPage() {
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
-                    "relative inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-medium transition-all sm:self-auto",
+                    "relative inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium transition-all sm:self-auto",
                     pendingApplicationCount > 0
                       ? "glass-button glass-button-primary text-white"
                       : "glass-button"
@@ -760,7 +760,7 @@ export function ResearchProjectPage() {
                   申请管理
                   {pendingApplicationCount > 0 && (
                     <span className={cn(
-                      "ml-1 min-w-[22px] h-5.5 flex items-center justify-center px-1.5 rounded-full text-xs font-bold",
+                      "ml-1 min-w-[22px] h-5.5 flex items-center justify-center px-1.5 rounded-full text-sm font-bold",
                       "bg-white text-amber-600"
                     )}>
                       {pendingApplicationCount}
@@ -788,7 +788,7 @@ export function ResearchProjectPage() {
                   >
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
+                        "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
                         member.role === "owner"
                           ? "bg-amber-500/20 text-amber-500"
                           : theme === "dark"
@@ -803,7 +803,7 @@ export function ResearchProjectPage() {
                         <span className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</span>
                         {getRoleIcon(member.role)}
                       </div>
-                      <span className="text-xs text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
+                      <span className="text-sm text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
                     </div>
                     {canRemove && (
                       <button
@@ -828,13 +828,13 @@ export function ResearchProjectPage() {
                 <div className="mb-4">
                   <div className="research-kicker mb-2">Former Members</div>
                   <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">待恢复成员</h3>
-                  <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+                  <p className="mt-1 text-base text-[var(--glass-text-muted)]">
                     这些成员曾加入过本课题，组长可以将他们重新拉回，恢复后统一为成员权限。
                   </p>
                 </div>
 
                 {restoreMemberError && (
-                  <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                  <div className="mb-4 rounded-lg bg-red-50 p-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-400">
                     {restoreMemberError}
                   </div>
                 )}
@@ -847,7 +847,7 @@ export function ResearchProjectPage() {
                     >
                       <div
                         className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium",
+                          "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
                           theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
                         )}
                       >
@@ -855,10 +855,10 @@ export function ResearchProjectPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</div>
-                        <div className="text-xs text-[var(--glass-text-muted)]">
+                        <div className="text-sm text-[var(--glass-text-muted)]">
                           上次身份：{getRoleLabel(member.role)}
                         </div>
-                        <div className="text-xs text-[var(--glass-text-muted)]">
+                        <div className="text-sm text-[var(--glass-text-muted)]">
                           {member.removed_at ? `移除于 ${formatDate(member.removed_at)}` : "已离开课题"}
                         </div>
                       </div>
@@ -988,7 +988,7 @@ export function ResearchProjectPage() {
                   {user?.id === memberToRemove.user_id ? "退出课题组" : "移除成员"}
                 </h3>
                 <p className={cn(
-                  "text-sm",
+                  "text-base",
                   theme === "dark" ? "text-gray-400" : "text-gray-500"
                 )}>
                   {user?.id === memberToRemove.user_id
@@ -1001,7 +1001,7 @@ export function ResearchProjectPage() {
 
             {removeMemberError && (
               <div className={cn(
-                "mb-4 p-3 rounded-lg text-sm",
+                "mb-4 p-3 rounded-lg text-base",
                 theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
               )}>
                 {removeMemberError}
@@ -1016,7 +1016,7 @@ export function ResearchProjectPage() {
                 }}
                 disabled={isRemovingMember}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "px-4 py-2 rounded-lg text-base font-medium transition-colors",
                   theme === "dark"
                     ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700",
@@ -1029,7 +1029,7 @@ export function ResearchProjectPage() {
                 onClick={handleRemoveMember}
                 disabled={isRemovingMember}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2",
+                  "px-4 py-2 rounded-lg text-base font-medium transition-colors flex items-center gap-2",
                   theme === "dark"
                     ? "bg-red-600 hover:bg-red-500 text-white"
                     : "bg-red-500 hover:bg-red-600 text-white",
