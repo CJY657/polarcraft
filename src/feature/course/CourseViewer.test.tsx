@@ -189,6 +189,30 @@ beforeEach(() => {
 });
 
 describe("CourseViewer media preview regressions", () => {
+  it("lets the experiment resource and media areas flow on mobile while keeping desktop split scrolling", async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /实验视频/ })).toBeTruthy();
+    });
+
+    const resourceSidebar = container.querySelector("aside");
+    const mediaContent = container.querySelector("main");
+    const layoutShell = resourceSidebar?.parentElement;
+
+    expect(layoutShell?.className).toContain("overflow-visible");
+    expect(layoutShell?.className).toContain("lg:overflow-hidden");
+    expect(layoutShell?.className).toContain("lg:h-[calc(100vh-64px)]");
+    expect(resourceSidebar?.className).toContain("overflow-visible");
+    expect(resourceSidebar?.className).toContain("lg:overflow-y-auto");
+    expect(mediaContent?.className).toContain("overflow-visible");
+    expect(mediaContent?.className).toContain("lg:overflow-y-auto");
+  });
+
   it("renders images in the same main preview area used by video", async () => {
     render(
       <MemoryRouter>

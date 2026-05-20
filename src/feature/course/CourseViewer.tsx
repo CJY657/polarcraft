@@ -1568,7 +1568,7 @@ export function CourseViewer({
 
       {hasPptxLayout && (
         <div
-          className={`flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden border-t transition-all duration-300 ${
+          className={`flex min-h-[calc(100vh-64px)] flex-col overflow-visible border-t transition-all duration-300 lg:h-[calc(100vh-64px)] lg:flex-row lg:overflow-hidden ${
             theme === "dark"
               ? "border-slate-700/70 bg-slate-900/40"
               : "border-slate-200 bg-white/50"
@@ -1576,7 +1576,7 @@ export function CourseViewer({
         >
           {/* 左侧固定边栏：资源总览 */}
           <aside
-            className={`persistent-scrollbar w-full lg:w-[236px] xl:w-[260px] 2xl:w-[288px] flex-shrink-0 h-full overflow-y-auto transition-all duration-300 border-b lg:border-b-0 lg:border-r ${
+            className={`persistent-scrollbar w-full flex-shrink-0 overflow-visible border-b transition-all duration-300 lg:h-full lg:w-[236px] lg:overflow-y-auto lg:border-b-0 lg:border-r xl:w-[260px] 2xl:w-[288px] ${
               theme === "dark"
                 ? "border-slate-700/70 bg-slate-800/40"
                 : "border-slate-200 bg-slate-50/50"
@@ -1810,7 +1810,7 @@ export function CourseViewer({
           </aside>
 
           {/* 右侧：主内容区域（包括演示、视频和讨论） */}
-          <main className="flex-1 h-full overflow-y-auto persistent-scrollbar">
+          <main className="flex-1 overflow-visible lg:h-full lg:overflow-y-auto persistent-scrollbar">
             <div className="mx-auto max-w-[1720px] space-y-4 p-3 lg:p-4">
               {/* 第一行：演示 + 视频 */}
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
