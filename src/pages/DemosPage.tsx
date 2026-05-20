@@ -415,7 +415,7 @@ export function DemosPage() {
         {/* Main Content */}
         <main
           className={cn(
-            "flex-1",
+            "flex-1 min-w-0",
             isCompact ? "p-3" : currentDemo && !showMuseumHomepage ? "ml-64 p-6" : "p-6",
           )}
         >
@@ -423,13 +423,13 @@ export function DemosPage() {
           <div className="mb-6 text-center">
             <h1
               className={cn(
-                "text-5xl font-bold",
+                "text-3xl font-bold sm:text-4xl lg:text-5xl",
                 theme === "dark" ? "text-white" : "text-gray-900",
               )}
             >
               {t("demos.theorySimulation.title", "计算与模拟")}
             </h1>
-            <p className={cn("text-xl mt-2", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+            <p className={cn("mt-2 text-base sm:text-lg lg:text-xl", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
               {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
             </p>
           </div>
@@ -479,7 +479,7 @@ export function DemosPage() {
             <div className="max-w-[1400px] mx-auto">
               {/* 标题和描述 */}
               <div className="mb-5">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
                   {/* 单元徽章 */}
                   <span
                     className={cn(
@@ -496,7 +496,7 @@ export function DemosPage() {
                   <VisualTypeBadge type={currentDemo?.visualType || "2D"} />
                   <h1
                     className={cn(
-                      "text-2xl font-bold",
+                      "w-full text-xl font-bold sm:w-auto sm:text-2xl",
                       theme === "dark" ? "text-white" : "text-gray-900",
                     )}
                   >
@@ -521,7 +521,7 @@ export function DemosPage() {
                     : "bg-gradient-to-br from-white to-gray-50 border-cyan-200",
                 )}
               >
-                <div className="p-5 min-h-[550px]">
+                <div className="p-3 min-h-[420px] sm:p-5 sm:min-h-[550px]">
                   <ErrorBoundary>
                     <Suspense fallback={<DemoLoading />}>
                       {DemoComponent && <DemoComponent />}

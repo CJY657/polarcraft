@@ -78,12 +78,12 @@ export function Footer() {
 
   return (
     <footer
-      className="relative mt-24 bg-clay-surface-soft px-4 py-20 text-clay-ink sm:px-6 lg:px-8"
+      className="relative mt-16 bg-clay-surface-soft px-4 py-12 text-clay-ink sm:mt-20 sm:px-6 sm:py-16 lg:mt-24 lg:px-8 lg:py-20"
       style={{ zIndex: 1000, position: "relative" }}
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 pb-12 lg:grid-cols-[minmax(0,1.3fr)_0.85fr_0.85fr_0.85fr]">
-          <div className="space-y-6">
+        <div className="grid gap-10 pb-10 sm:gap-12 sm:pb-12 md:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_0.85fr_0.85fr_0.85fr]">
+          <div className="space-y-6 md:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-clay-surface-card">
                 <PolarCraftLogo size={32} theme={theme} animated={false} />

@@ -58,10 +58,10 @@ export function ExperimentsPage() {
           </Link>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div
                 className={cn(
-                  "p-4 rounded-2xl shadow-lg shadow-amber-500/10",
+                  "p-4 rounded-2xl shadow-lg shadow-amber-500/10 self-start sm:self-auto",
                   theme === "dark"
                     ? "bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-400 border border-amber-500/20"
                     : "bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 border border-amber-200"
@@ -72,13 +72,13 @@ export function ExperimentsPage() {
               <div>
                 <h1
                   className={cn(
-                    "text-4xl font-black tracking-tight",
+                    "text-3xl font-black tracking-tight sm:text-4xl",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
                   {t("lab.title")}
                 </h1>
-                <p className={cn("text-lg mt-1 opacity-80", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+                <p className={cn("text-base mt-1 opacity-80 sm:text-lg", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
                   {t("lab.description")}
                 </p>
               </div>
@@ -207,15 +207,15 @@ export function ExperimentsPage() {
                 : "bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 hover:border-purple-400"
             )}
           >
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
                 <h3
                   className={cn(
                     "text-xl font-bold mb-2 flex items-center gap-2",
                     theme === "dark" ? "text-white" : "text-gray-900"
                   )}
                 >
-                  <FlaskConical className="w-6 h-6 text-purple-400" />
+                  <FlaskConical className="w-6 h-6 shrink-0 text-purple-400" />
                   虚拟课题组系统
                 </h3>
                 <p
@@ -229,7 +229,7 @@ export function ExperimentsPage() {
               </div>
               <ArrowRight
                 className={cn(
-                  "w-8 h-8 transition-transform group-hover:translate-x-1",
+                  "w-7 h-7 self-end shrink-0 transition-transform group-hover:translate-x-1 sm:self-center sm:w-8 sm:h-8",
                   theme === "dark" ? "text-purple-400" : "text-purple-600"
                 )}
               />

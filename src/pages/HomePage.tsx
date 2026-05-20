@@ -222,11 +222,11 @@ export function HomePage() {
     <div className="clay-canvas min-h-screen">
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-24 px-4 pb-24 pt-12 sm:px-6 lg:px-8">
+      <main className="mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-16 pt-8 sm:gap-20 sm:px-6 sm:pb-20 sm:pt-10 lg:gap-24 lg:px-8 lg:pb-24 lg:pt-12">
         {/* ============ HERO BAND — 7/5 split ============ */}
         <section
           data-testid="home-hero"
-          className="grid gap-12 lg:grid-cols-12 lg:items-center"
+          className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12"
         >
           <div className="lg:col-span-7">
             <span className="clay-badge">
@@ -238,7 +238,7 @@ export function HomePage() {
               用偏振光<br />打开科学的窗户
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-7 text-clay-body">
+            <p className="mt-5 max-w-xl text-base leading-7 text-clay-body sm:mt-6 sm:text-lg">
               把偏振光的历史故事、真实实验、交互模拟和课题实践放到同一条学习路径里。
               第一次进入时，可以先完成实验内容，再用模拟验证直觉。
             </p>
@@ -261,16 +261,16 @@ export function HomePage() {
               </button>
             </div>
 
-            <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6">
+            <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 sm:mt-10 sm:gap-6">
               {HERO_STATS.map((stat) => (
                 <div key={stat.label}>
                   <dt
-                    className="text-3xl font-medium text-clay-ink"
+                    className="text-2xl font-medium text-clay-ink sm:text-3xl"
                     style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
                   >
                     {stat.value}
                   </dt>
-                  <dd className="mt-1 text-sm text-clay-muted">{stat.label}</dd>
+                  <dd className="mt-1 text-xs text-clay-muted sm:text-sm">{stat.label}</dd>
                 </div>
               ))}
             </dl>
@@ -279,7 +279,7 @@ export function HomePage() {
           {/* hero-illustration-card per DESIGN.md */}
           <div className="lg:col-span-5">
             <div
-              className="relative aspect-square overflow-hidden rounded-[2rem] bg-clay-surface-soft p-6"
+              className="relative aspect-square overflow-hidden rounded-[1.5rem] bg-clay-surface-soft p-4 sm:rounded-[2rem] sm:p-6"
               style={{
                 backgroundImage:
                   "radial-gradient(circle at 30% 25%, rgba(255, 77, 139, 0.18), transparent 55%), radial-gradient(circle at 75% 75%, rgba(184, 164, 237, 0.22), transparent 55%)",
@@ -288,19 +288,19 @@ export function HomePage() {
               <img
                 src="/images/calcite/双折射成像.jpg"
                 alt="Polarized light illustration"
-                className="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] rounded-[1.5rem] object-cover"
+                className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] rounded-[1.25rem] object-cover sm:inset-6 sm:h-[calc(100%-3rem)] sm:w-[calc(100%-3rem)] sm:rounded-[1.5rem]"
               />
-              <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between rounded-2xl bg-clay-canvas/95 px-5 py-4 backdrop-blur">
-                <div>
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3 rounded-2xl bg-clay-canvas/95 px-4 py-3 backdrop-blur sm:bottom-8 sm:left-8 sm:right-8 sm:px-5 sm:py-4">
+                <div className="min-w-0">
                   <p className="clay-caption">Featured</p>
-                  <p className="mt-1 text-sm font-semibold text-clay-ink">
+                  <p className="mt-1 truncate text-sm font-semibold text-clay-ink">
                     冰洲石的双折射成像
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate("/demos/birefringence-iceland-spar")}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-clay-ink text-white transition-transform hover:translate-x-0.5"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clay-ink text-white transition-transform hover:translate-x-0.5"
                   aria-label="查看双折射成像演示"
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -312,7 +312,7 @@ export function HomePage() {
 
         {/* ============ MODULE FEATURE CARDS — cycling 6-color palette ============ */}
         <section>
-          <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-8 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <span className="clay-caption">六大学习空间</span>
               <h2 className="clay-display-lg mt-3">
@@ -338,7 +338,7 @@ export function HomePage() {
                   data-testid={`home-module-${module.id}`}
                   aria-disabled={isUnavailable}
                   className={cn(
-                    "clay-card group relative flex min-h-[320px] flex-col justify-between transition-transform duration-200",
+                    "clay-card group relative flex min-h-[280px] flex-col justify-between transition-transform duration-200 sm:min-h-[320px]",
                     variantClass,
                     isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1",
                   )}
@@ -421,7 +421,7 @@ export function HomePage() {
         </section>
 
         {/* ============ MISSION BAND — cream surface-soft ============ */}
-        <section className="rounded-[2rem] bg-clay-surface-soft px-8 py-20 text-center sm:px-16">
+        <section className="rounded-[1.5rem] bg-clay-surface-soft px-6 py-12 text-center sm:rounded-[2rem] sm:px-10 sm:py-16 lg:px-16 lg:py-20">
           <div className="mx-auto max-w-3xl">
             <img
               src={theme === "dark" ? "/images/combined-logo-white.png" : "/images/combined-logo.png"}
@@ -534,7 +534,7 @@ export function HomePage() {
 
         {/* ============ LEARNING PATH — three product-mockup cards ============ */}
         <section>
-          <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-8 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <span className="clay-caption">推荐路径</span>
               <h2 className="clay-display-lg mt-3">
@@ -578,7 +578,7 @@ export function HomePage() {
         </section>
 
         {/* ============ PRE-FOOTER CTA BAND ============ */}
-        <section className="grid gap-8 rounded-[2rem] bg-clay-surface-soft px-8 py-16 sm:px-16 lg:grid-cols-[1.4fr_0.9fr] lg:items-center">
+        <section className="grid gap-8 rounded-[1.5rem] bg-clay-surface-soft px-6 py-10 sm:rounded-[2rem] sm:px-10 sm:py-14 lg:grid-cols-[1.4fr_0.9fr] lg:items-center lg:px-16 lg:py-16">
           <div>
             <span className="clay-caption">从这里开始</span>
             <h2 className="clay-display-md mt-3">

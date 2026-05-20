@@ -148,7 +148,7 @@ export function PersistentHeader({
             </div>
 
             {!compact && (
-              <div className="min-w-0">
+              <div className="hidden min-w-0 sm:block">
                 <p
                   className={cn(
                     "text-[11px] font-semibold uppercase tracking-[0.22em]",
@@ -228,14 +228,16 @@ export function PersistentHeader({
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-full lg:hidden",
+                "inline-flex h-11 w-11 items-center justify-center rounded-full lg:hidden",
                 isTransparent
                   ? "border border-white/20 bg-black/25 text-white"
                   : "bg-clay-surface-card text-clay-ink",
               )}
               aria-label={mobileMenuOpen ? "关闭菜单" : "打开菜单"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="primary-mobile-nav"
             >
-              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
@@ -249,7 +251,7 @@ export function PersistentHeader({
           >
             <div className="flex flex-col gap-3 lg:gap-4">
               {mobileMenuOpen && (
-                <nav className="grid gap-1 lg:hidden">
+                <nav id="primary-mobile-nav" className="grid gap-1 lg:hidden">
                   {NAV_ITEMS.map((item) => {
                     const isActive = isNavItemActive(location.pathname, item.path);
 

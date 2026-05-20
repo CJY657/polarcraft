@@ -90,7 +90,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-6 sm:p-8">
       {/* Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-cyan-400 mb-1">PolarCraft</h2>
@@ -116,7 +116,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             onChange={(e) => setUsername(e.target.value)}
             required
             autoFocus
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
@@ -131,7 +131,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.passwordPlaceholder', '请输入密码')}
           />
         </div>
@@ -238,7 +238,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   };
 
   return (
-    <div className="p-8 max-h-[80vh] overflow-y-auto">
+    <div className="p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
       {/* Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-cyan-400 mb-1">PolarCraft</h2>
@@ -265,7 +265,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             required
             minLength={3}
             autoFocus
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
@@ -279,7 +279,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.emailPlaceholder', '请输入邮箱')}
           />
         </div>
@@ -294,7 +294,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.passwordPlaceholder', '请输入密码')}
           />
 
@@ -341,7 +341,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
             placeholder={t('auth.confirmPasswordPlaceholder', '请再次输入密码')}
           />
         </div>
