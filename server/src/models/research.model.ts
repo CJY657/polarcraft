@@ -564,6 +564,30 @@ export class ResearchModel {
     return membership ? normalizeMembershipRecord(membership) : null;
   }
 
+  static async getProjectMemberCapacity(projectId: string): Promise<{
+    maxMembers: number | null;
+    memberCount: number;
+    isFull: boolean;
+  }> {
+    const [settings, memberCount] = await Promise.all([
+      normalizeDocument<{ max_members?: number | null }>(
+        await projectSettingsCollection().findOne({ project_id: projectId })
+      ),
+      projectMembersCollection().countDocuments(buildActiveMembershipFilter({ project_id: projectId })),
+    ]);
+    const configuredMaxMembers = settings?.max_members;
+    const maxMembers =
+      typeof configuredMaxMembers === 'number' && Number.isFinite(configuredMaxMembers) && configuredMaxMembers > 0
+        ? Math.floor(configuredMaxMembers)
+        : null;
+
+    return {
+      maxMembers,
+      memberCount,
+      isFull: maxMembers !== null && memberCount >= maxMembers,
+    };
+  }
+
   /**
    * Get canvases by project ID
    * 获取项目的画布列表

@@ -8,6 +8,7 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } =
     getProjectMembers: vi.fn(),
     getFormerProjectMembers: vi.fn(),
     getProjectMembership: vi.fn(),
+    getProjectMemberCapacity: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
@@ -15,8 +16,10 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } =
     deleteProject: vi.fn(),
   },
   mockProfileModel: {
+    getOrCreateProjectSettings: vi.fn(),
     getProjectApplications: vi.fn(),
     getPendingApplication: vi.fn(),
+    createApplication: vi.fn(),
     getApplicationById: vi.fn(),
     updateApplicationStatus: vi.fn(),
   },
@@ -60,6 +63,11 @@ async function invokeHandler(
 describe('ResearchController member management', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockResearchModel.getProjectMemberCapacity.mockResolvedValue({
+      maxMembers: null,
+      memberCount: 1,
+      isFull: false,
+    });
   });
 
   it('includes former_members when the requester is the owner', async () => {
@@ -263,6 +271,46 @@ describe('ResearchController member management', () => {
     expect(mockResearchModel.getFormerProjectMembers).toHaveBeenCalledWith('project-1');
     expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'legacy-user', 'member');
     expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
+  });
+
+  it('rejects restoring a former member when the project member limit is reached', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembership.mockResolvedValue({
+      user_id: 'former-1',
+      role: 'member',
+      active: false,
+    });
+    mockResearchModel.getProjectMemberCapacity.mockResolvedValue({
+      maxMembers: 2,
+      memberCount: 2,
+      isFull: true,
+    });
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { userId: 'former-1', role: 'member' },
+      user: { sub: 'owner-1', username: 'owner' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectMember, req, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '该课题组可参与讨论的成员名额已满',
+      'PROJECT_MEMBER_LIMIT_REACHED',
+      400
+    );
+    expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
   });
 
   it('requires owner role to view project applications', async () => {
@@ -571,6 +619,50 @@ describe('ResearchController member management', () => {
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
   });
 
+  it('rejects approving applications when the project member limit is reached', async () => {
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembership.mockResolvedValue(null);
+    mockResearchModel.getProjectMemberCapacity.mockResolvedValue({
+      maxMembers: 2,
+      memberCount: 2,
+      isFull: true,
+    });
+
+    const req = {
+      params: { id: 'application-1' },
+      body: { status: 'approved' },
+      user: { sub: 'owner-1', username: 'owner' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateApplicationStatus, req, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '该课题组可参与讨论的成员名额已满',
+      'PROJECT_MEMBER_LIMIT_REACHED',
+      400
+    );
+    expect(mockProfileModel.updateApplicationStatus).not.toHaveBeenCalled();
+    expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
+  });
+
   it('allows an admin to approve applications without owner membership', async () => {
     mockProfileModel.getApplicationById.mockResolvedValue({
       id: 'application-1',
@@ -645,5 +737,38 @@ describe('ResearchController member management', () => {
     expect(res.error).toHaveBeenCalledWith('无权处理该申请', 'FORBIDDEN', 403);
     expect(mockProfileModel.updateApplicationStatus).not.toHaveBeenCalled();
     expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
+  });
+
+  it('rejects join applications when the project member limit is reached', async () => {
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({
+      visibility: 'public',
+      require_approval: true,
+      is_recruiting: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+      { user_id: 'member-1', role: 'member', username: 'member' },
+    ]);
+    mockResearchModel.getProjectMemberCapacity.mockResolvedValue({
+      maxMembers: 2,
+      memberCount: 2,
+      isFull: true,
+    });
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { motivation: 'I want to help.' },
+      user: { sub: 'candidate-1', username: 'candidate' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createApplication, req, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '该课题组可参与讨论的成员名额已满',
+      'PROJECT_MEMBER_LIMIT_REACHED',
+      400
+    );
+    expect(mockProfileModel.createApplication).not.toHaveBeenCalled();
   });
 });

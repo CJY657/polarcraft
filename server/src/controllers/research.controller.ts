@@ -82,6 +82,17 @@ async function ensureProjectAccess(
   return access;
 }
 
+async function ensureProjectMemberCapacity(res: Response, projectId: string): Promise<boolean> {
+  const capacity = await ResearchModel.getProjectMemberCapacity(projectId);
+
+  if (capacity.isFull) {
+    res.error('该课题组可参与讨论的成员名额已满', 'PROJECT_MEMBER_LIMIT_REACHED', 400);
+    return false;
+  }
+
+  return true;
+}
+
 async function ensureCanvasAccess(
   res: Response,
   canvasId: string,
@@ -316,6 +327,11 @@ export class ResearchController {
 
     if (targetMembership && targetMembership.active !== false) {
       return res.error('该用户已经是当前成员', 'ALREADY_MEMBER', 400);
+    }
+
+    const hasCapacity = await ensureProjectMemberCapacity(res, id);
+    if (!hasCapacity) {
+      return;
     }
 
     await ResearchModel.addProjectMember(id, userId, 'member');
@@ -1205,6 +1221,11 @@ export class ResearchController {
       return res.error('您已经是项目成员', 'ALREADY_MEMBER', 400);
     }
 
+    const hasCapacity = await ensureProjectMemberCapacity(res, id);
+    if (!hasCapacity) {
+      return;
+    }
+
     try {
       const applicationId = await ProfileModel.createApplication(id, userId, req.body);
       const application = await ProfileModel.getApplicationById(applicationId);
@@ -1267,6 +1288,11 @@ export class ResearchController {
       );
       if (applicantMembership && applicantMembership.active !== false) {
         return res.error('该用户已经是项目成员', 'ALREADY_MEMBER', 400);
+      }
+
+      const hasCapacity = await ensureProjectMemberCapacity(res, application.project_id);
+      if (!hasCapacity) {
+        return;
       }
     }
 

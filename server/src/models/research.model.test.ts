@@ -5,6 +5,7 @@ const membersFindOne = vi.fn();
 const membersCountDocuments = vi.fn();
 const projectsFindOne = vi.fn();
 const canvasesCountDocuments = vi.fn();
+const projectSettingsFindOne = vi.fn();
 const applicationsFind = vi.fn();
 const projectCommentsFind = vi.fn();
 const activityFind = vi.fn();
@@ -28,6 +29,10 @@ vi.mock('../database/connection.js', () => ({
       case 'research_canvases':
         return {
           countDocuments: (...args: unknown[]) => canvasesCountDocuments(...args),
+        };
+      case 'research_project_settings':
+        return {
+          findOne: (...args: unknown[]) => projectSettingsFindOne(...args),
         };
       case 'research_project_applications':
         return {
@@ -174,5 +179,41 @@ describe('ResearchModel.getProjectAccess', () => {
         canModerate: false,
       })
     );
+  });
+});
+
+describe('ResearchModel.getProjectMemberCapacity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('treats missing max_members as unlimited capacity', async () => {
+    projectSettingsFindOne.mockResolvedValue({ project_id: 'project-1', max_members: null });
+    membersCountDocuments.mockResolvedValue(4);
+
+    const capacity = await ResearchModel.getProjectMemberCapacity('project-1');
+
+    expect(capacity).toEqual({
+      maxMembers: null,
+      memberCount: 4,
+      isFull: false,
+    });
+  });
+
+  it('reports full capacity when active members reach max_members', async () => {
+    projectSettingsFindOne.mockResolvedValue({ project_id: 'project-1', max_members: 4 });
+    membersCountDocuments.mockResolvedValue(4);
+
+    const capacity = await ResearchModel.getProjectMemberCapacity('project-1');
+
+    expect(membersCountDocuments).toHaveBeenCalledWith({
+      project_id: 'project-1',
+      $or: [{ active: true }, { active: { $exists: false } }],
+    });
+    expect(capacity).toEqual({
+      maxMembers: 4,
+      memberCount: 4,
+      isFull: true,
+    });
   });
 });
