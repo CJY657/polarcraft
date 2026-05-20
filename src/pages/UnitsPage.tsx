@@ -155,35 +155,22 @@ export function UnitsPage() {
                   "glass-panel-strong group cursor-pointer overflow-hidden rounded-[1.9rem] border transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_64px_-34px_rgba(15,42,76,0.3)]"
                 )}
               >
-                {/* Cover Image */}
+                {/* Unit Icon */}
                 <div className="relative h-40 overflow-hidden">
-                  {unit.coverImage ? (
-                    <>
-                      <img
-                        src={unit.coverImage}
-                        alt={getLabel(unit.title)}
-                        className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(8,18,32,0.46)] via-transparent to-transparent" />
-                    </>
-                  ) : (
-                    <>
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          background: `linear-gradient(135deg, ${unit.color}3d 0%, rgba(255,255,255,0.12) 100%)`,
-                        }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div
-                          className="glass-chip flex h-16 w-16 items-center justify-center rounded-[1.25rem]"
-                          style={{ backgroundColor: `${unit.color}24` }}
-                        >
-                          <Layers className="w-8 h-8" style={{ color: unit.color }} />
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${unit.color}3d 0%, rgba(255,255,255,0.12) 100%)`,
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div
+                      className="glass-chip flex h-16 w-16 items-center justify-center rounded-[1.25rem]"
+                      style={{ backgroundColor: `${unit.color}24` }}
+                    >
+                      <Layers className="w-8 h-8" style={{ color: unit.color }} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Content */}
