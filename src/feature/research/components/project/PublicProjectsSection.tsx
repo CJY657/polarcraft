@@ -174,7 +174,7 @@ export function PublicProjectsSection() {
                 </div>
               </div>
 
-              <p className="line-clamp-3 text-base leading-6 text-[var(--glass-text-muted)]">
+              <p className="line-clamp-3 text-lg leading-7 text-[var(--glass-text-muted)]">
                 {project.description_zh || "课题简介待补充，可以先进入查看结构和成员情况。"}
               </p>
 

@@ -94,7 +94,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
               {project.name_zh}
             </h3>
 
-            <p className="mt-2 line-clamp-2 text-base leading-6 text-[var(--glass-text-muted)]">
+            <p className="mt-2 line-clamp-2 text-lg leading-7 text-[var(--glass-text-muted)]">
               {project.description_zh || "还没有项目摘要，进入画布后补充研究目标与实验线索。"}
             </p>
           </div>

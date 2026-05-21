@@ -283,7 +283,7 @@ export function ProjectList() {
                   >
                     {project.title["zh-CN"]}
                   </h3>
-                  <p className="mt-2 line-clamp-3 text-base leading-6 text-[var(--glass-text-muted)]">
+                  <p className="mt-2 line-clamp-3 text-lg leading-7 text-[var(--glass-text-muted)]">
                     {project.description["zh-CN"]}
                   </p>
 

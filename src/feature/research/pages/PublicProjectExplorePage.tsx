@@ -316,7 +316,7 @@ export function PublicProjectExplorePage() {
                 <div className="mt-4 space-y-3">
                   <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
                     <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">简介</p>
-                    <p className="mt-2 text-base leading-6 text-[var(--paper-foreground)]">
+                    <p className="mt-2 text-lg leading-7 text-[var(--paper-foreground)]">
                       {project.description_zh || "暂无课题简介。"}
                     </p>
                   </div>
