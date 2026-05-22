@@ -77,16 +77,16 @@ describe('HomePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/experiments');
   });
 
-  it('links simulation shortcuts to available demos', () => {
+  it('navigates to the module route when a card is clicked', () => {
     render(<HomePage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link1' }));
-    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/em-wave');
+    fireEvent.click(screen.getByTestId('home-module-demos'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/demos');
 
-    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link2' }));
-    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/birefringence-iceland-spar');
+    fireEvent.click(screen.getByTestId('home-module-lab'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/lab/explore');
 
-    fireEvent.click(screen.getByRole('button', { name: 'home.modules.theory.link3' }));
-    expect(mockNavigate).toHaveBeenLastCalledWith('/demos/brewster-angle');
+    fireEvent.click(screen.getByTestId('home-module-gallery'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/gallery');
   });
 });

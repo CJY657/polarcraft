@@ -189,12 +189,6 @@ const MODULES: ModuleConfig[] = [
   },
 ];
 
-const HERO_STATS = [
-  { value: "4", label: "实验单元" },
-  { value: "5+", label: "交互模拟" },
-  { value: "3", label: "学习阶段" },
-];
-
 const LEARNING_PATH = [
   {
     title: "先进入实验内容",
@@ -223,27 +217,26 @@ export function HomePage() {
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
       <main className="mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-16 pt-8 sm:gap-20 sm:px-6 sm:pb-20 sm:pt-10 lg:gap-24 lg:px-8 lg:pb-24 lg:pt-12">
-        {/* ============ HERO BAND — 7/5 split ============ */}
+        {/* ============ LAUNCHER — headline + 6 modules above the fold ============ */}
         <section
           data-testid="home-hero"
-          className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12"
+          className="flex min-h-[calc(100vh-7rem)] flex-col gap-8 sm:gap-10 lg:min-h-[calc(100vh-8rem)]"
         >
-          <div className="lg:col-span-7">
-            <span className="clay-badge">
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <span className="clay-badge self-start">
               <Sparkles className="h-3.5 w-3.5" />
               Polarized light × Learning lab
             </span>
 
-            <h1 className="clay-display-xl mt-6">
+            <h1 className="clay-display-xl">
               用偏振光<br />打开科学的窗户
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-7 text-clay-body sm:mt-6 sm:text-lg">
-              把偏振光的历史故事、真实实验、交互模拟和课题实践放到同一条学习路径里。
-              第一次进入时，可以先完成实验内容，再用模拟验证直觉。
+            <p className="max-w-2xl text-base leading-7 text-clay-body sm:text-lg">
+              历史故事、真实实验、交互模拟与课题研究，六个学习空间一站直达。
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => navigate("/experiments")}
@@ -260,161 +253,89 @@ export function HomePage() {
                 浏览研究项目
               </button>
             </div>
-
-            <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 sm:mt-10 sm:gap-6">
-              {HERO_STATS.map((stat) => (
-                <div key={stat.label}>
-                  <dt
-                    className="text-2xl font-medium text-clay-ink sm:text-3xl"
-                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
-                  >
-                    {stat.value}
-                  </dt>
-                  <dd className="mt-1 text-xs text-clay-muted sm:text-sm">{stat.label}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
-          {/* hero-illustration-card per DESIGN.md */}
-          <div className="lg:col-span-5">
-            <div
-              className="relative aspect-square overflow-hidden rounded-[1.5rem] bg-clay-surface-soft p-4 sm:rounded-[2rem] sm:p-6"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 30% 25%, rgba(255, 77, 139, 0.18), transparent 55%), radial-gradient(circle at 75% 75%, rgba(184, 164, 237, 0.22), transparent 55%)",
-              }}
-            >
-              <img
-                src="/images/calcite/双折射成像.jpg"
-                alt="Polarized light illustration"
-                className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] rounded-[1.25rem] object-cover sm:inset-6 sm:h-[calc(100%-3rem)] sm:w-[calc(100%-3rem)] sm:rounded-[1.5rem]"
-              />
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3 rounded-2xl bg-clay-canvas/95 px-4 py-3 backdrop-blur sm:bottom-8 sm:left-8 sm:right-8 sm:px-5 sm:py-4">
-                <div className="min-w-0">
-                  <p className="clay-caption">Featured</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-clay-ink">
-                    冰洲石的双折射成像
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/demos/birefringence-iceland-spar")}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clay-ink text-white transition-transform hover:translate-x-0.5"
-                  aria-label="查看双折射成像演示"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ MODULE FEATURE CARDS — cycling 6-color palette ============ */}
-        <section>
-          <div className="mb-8 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="clay-caption">六大学习空间</span>
-              <h2 className="clay-display-lg mt-3">
-                选择你现在<br />需要的入口
-              </h2>
-            </div>
-            <p className="max-w-md text-base text-clay-body">
-              每个模块都是一个独立的学习空间，按颜色快速识别 ——
-              从历史课程到模拟器，再到项目协作。
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="-mx-4 flex flex-1 snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 lg:grid-rows-2">
             {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isUnavailable = module.status === "unavailable";
               const variantClass = VARIANT_CARD_CLASS[module.variant];
               const variantStyle = VARIANT_TEXT[module.variant];
+              const isLab = module.id === "lab";
 
               return (
-                <article
+                <button
                   key={module.id}
+                  type="button"
                   data-testid={`home-module-${module.id}`}
                   aria-disabled={isUnavailable}
+                  onClick={() => navigate(module.path)}
                   className={cn(
-                    "clay-card group relative flex min-h-[280px] flex-col justify-between transition-transform duration-200 sm:min-h-[320px]",
+                    "clay-card group relative flex w-[78%] shrink-0 snap-center flex-col p-5 text-left transition-transform duration-200 sm:w-auto sm:p-6",
+                    "min-h-[200px] sm:min-h-[180px] lg:min-h-[200px]",
                     variantClass,
                     isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1",
                   )}
                 >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={cn(
+                        "flex h-11 w-11 items-center justify-center rounded-2xl",
+                        variantStyle.iconBg,
+                        variantStyle.iconFg,
+                      )}
+                    >
+                      <IconComponent size={26} theme={theme} />
+                    </div>
+                    {isUnavailable && (
+                      <span
                         className={cn(
-                          "flex h-12 w-12 items-center justify-center rounded-2xl",
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em]",
                           variantStyle.iconBg,
                           variantStyle.iconFg,
                         )}
                       >
-                        <IconComponent size={28} theme={theme} />
-                      </div>
-                      {isUnavailable && (
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]",
-                            variantStyle.iconBg,
-                            variantStyle.iconFg,
-                          )}
-                        >
-                          <LockKeyhole className="h-3 w-3" />
-                          {module.statusLabel}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className={cn("clay-caption mt-6", variantStyle.caption)}>
-                      {module.workspaceLabel}
-                    </p>
-                    <h3
-                      className={cn("mt-2 text-2xl font-semibold", variantStyle.title)}
-                      style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
-                    >
-                      {t(`${module.i18nNamespace}.title`)}
-                    </h3>
-                    <p className={cn("mt-3 text-sm leading-6", variantStyle.body)}>
-                      {t(`${module.i18nNamespace}.description`)}
-                    </p>
+                        <LockKeyhole className="h-3 w-3" />
+                        {module.statusLabel}
+                      </span>
+                    )}
                   </div>
 
+                  <p className={cn("clay-caption mt-4", variantStyle.caption)}>
+                    {module.workspaceLabel}
+                  </p>
+                  <h3
+                    className={cn(
+                      "mt-1.5 font-semibold",
+                      isLab ? "text-2xl" : "text-xl",
+                      variantStyle.title,
+                    )}
+                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
+                  >
+                    {t(`${module.i18nNamespace}.title`)}
+                  </h3>
+                  <p
+                    className={cn(
+                      "mt-1.5 leading-snug",
+                      isLab ? "text-base line-clamp-3" : "text-sm line-clamp-2",
+                      variantStyle.body,
+                    )}
+                  >
+                    {t(`${module.i18nNamespace}.description`)}
+                  </p>
+
                   {!isUnavailable && (
-                    <div className="mt-8">
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        {module.quickLinks.map((link) => (
-                          <button
-                            key={`${module.id}:${link.labelKey}:${link.path}`}
-                            type="button"
-                            onClick={() => navigate(link.path)}
-                            className={cn(
-                              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                              variantStyle.iconBg,
-                              variantStyle.iconFg,
-                              "hover:opacity-90",
-                            )}
-                          >
-                            {t(link.labelKey)}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => navigate(module.path)}
-                        className={cn(
-                          "inline-flex items-center gap-2 text-sm font-semibold",
-                          variantStyle.title,
-                        )}
-                      >
-                        进入学习空间
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </button>
-                    </div>
+                    <span
+                      className={cn(
+                        "mt-auto pt-3 inline-flex items-center gap-1.5 text-sm font-semibold",
+                        variantStyle.title,
+                      )}
+                    >
+                      进入
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </span>
                   )}
-                </article>
+                </button>
               );
             })}
           </div>
