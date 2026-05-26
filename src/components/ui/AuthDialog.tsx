@@ -92,21 +92,27 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   return (
     <div className="p-6 sm:p-8">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-cyan-400 mb-1">PolarCraft</h2>
-        <p className="text-slate-400 text-sm">{t('auth.loginSubtitle', '登录到您的账号')}</p>
+      <div className="mb-6 flex flex-col items-center text-center">
+        <span className="clay-badge mb-3">PolarCraft</span>
+        <h2
+          className="text-3xl font-semibold text-clay-ink"
+          style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
+        >
+          {t('auth.loginTitle', '欢迎回来')}
+        </h2>
+        <p className="mt-2 text-sm text-clay-body">{t('auth.loginSubtitle', '登录到您的账号')}</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+          <div className="rounded-xl border border-clay-coral/40 bg-clay-coral/10 px-4 py-3 text-sm text-clay-coral">
             {error}
           </div>
         )}
 
         <div>
-          <label htmlFor="login-username" className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="login-username" className="mb-2 block text-sm font-semibold text-clay-ink">
             {t('auth.username', '用户名')}
           </label>
           <input
@@ -116,13 +122,13 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             onChange={(e) => setUsername(e.target.value)}
             required
             autoFocus
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
 
         <div>
-          <label htmlFor="login-password" className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="login-password" className="mb-2 block text-sm font-semibold text-clay-ink">
             {t('auth.password', '密码')}
           </label>
           <input
@@ -131,7 +137,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.passwordPlaceholder', '请输入密码')}
           />
         </div>
@@ -143,9 +149,9 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-800"
+              className="h-4 w-4 rounded border-clay-surface-strong bg-white text-clay-ink focus:ring-clay-ink/20"
             />
-            <label htmlFor="login-remember" className="ml-2 text-sm text-slate-400">
+            <label htmlFor="login-remember" className="ml-2 text-sm text-clay-body">
               {t('auth.rememberMe', '记住我')}
             </label>
           </div>
@@ -153,7 +159,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
           <button
             type="button"
             onClick={handleForgotPassword}
-            className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
+            className="text-sm font-semibold text-clay-ink underline-offset-4 hover:underline"
           >
             {t('auth.forgotPassword', '忘记密码？')}
           </button>
@@ -162,7 +168,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium py-3 px-4 rounded-lg hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="clay-button-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t('auth.loggingIn', '登录中...') : t('auth.login', '登录')}
         </button>
@@ -170,11 +176,11 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
 
       {/* Switch to Register */}
       <div className="mt-6 text-center">
-        <span className="text-slate-400 text-sm">{t('auth.noAccount', '还没有账号？')}</span>
+        <span className="text-sm text-clay-body">{t('auth.noAccount', '还没有账号？')}</span>
         <button
           type="button"
           onClick={onSwitchToRegister}
-          className="text-cyan-400 hover:text-cyan-300 text-sm font-medium ml-1"
+          className="ml-1 text-sm font-semibold text-clay-ink underline-offset-4 hover:underline"
         >
           {t('auth.register', '注册')}
         </button>
@@ -231,30 +237,36 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
   const getStrengthColor = () => {
     switch (passwordStrength.strength) {
-      case 'weak': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'strong': return 'bg-green-500';
+      case 'weak': return 'bg-clay-coral';
+      case 'medium': return 'bg-clay-ochre';
+      case 'strong': return 'bg-clay-mint';
     }
   };
 
   return (
-    <div className="p-6 sm:p-8 max-h-[85vh] overflow-y-auto">
+    <div className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-cyan-400 mb-1">PolarCraft</h2>
-        <p className="text-slate-400 text-sm">{t('auth.registerSubtitle', '创建您的账号')}</p>
+      <div className="mb-6 flex flex-col items-center text-center">
+        <span className="clay-badge mb-3">PolarCraft</span>
+        <h2
+          className="text-3xl font-semibold text-clay-ink"
+          style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
+        >
+          {t('auth.registerTitle', '加入我们')}
+        </h2>
+        <p className="mt-2 text-sm text-clay-body">{t('auth.registerSubtitle', '创建您的账号')}</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
+          <div className="rounded-xl border border-clay-coral/40 bg-clay-coral/10 px-4 py-3 text-sm text-clay-coral">
             {error}
           </div>
         )}
 
         <div>
-          <label htmlFor="register-username" className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="register-username" className="mb-2 block text-sm font-semibold text-clay-ink">
             {t('auth.username', '用户名')} *
           </label>
           <input
@@ -265,27 +277,27 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             required
             minLength={3}
             autoFocus
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
 
         <div>
-          <label htmlFor="register-email" className="block text-sm font-medium text-slate-300 mb-2">
-            {t('auth.email', '邮箱')} ({t('auth.optional', '可选')})
+          <label htmlFor="register-email" className="mb-2 block text-sm font-semibold text-clay-ink">
+            {t('auth.email', '邮箱')} <span className="text-clay-muted font-normal">({t('auth.optional', '可选')})</span>
           </label>
           <input
             id="register-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.emailPlaceholder', '请输入邮箱')}
           />
         </div>
 
         <div>
-          <label htmlFor="register-password" className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="register-password" className="mb-2 block text-sm font-semibold text-clay-ink">
             {t('auth.password', '密码')} *
           </label>
           <input
@@ -294,23 +306,23 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.passwordPlaceholder', '请输入密码')}
           />
 
           {/* Password Strength Indicator */}
           {password && (
             <div className="mt-2">
-              <div className="flex gap-1 mb-1">
-                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 2 ? getStrengthColor() : 'bg-slate-600'}`} />
-                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 3 ? getStrengthColor() : 'bg-slate-600'}`} />
-                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 5 ? getStrengthColor() : 'bg-slate-600'}`} />
+              <div className="mb-1 flex gap-1">
+                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 2 ? getStrengthColor() : 'bg-clay-surface-strong'}`} />
+                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 3 ? getStrengthColor() : 'bg-clay-surface-strong'}`} />
+                <div className={`h-1 flex-1 rounded ${passwordStrength.score >= 5 ? getStrengthColor() : 'bg-clay-surface-strong'}`} />
               </div>
-              <p className="text-xs text-slate-400">
-                密码强度: <span className={`font-medium ${
-                  passwordStrength.strength === 'weak' ? 'text-red-400' :
-                  passwordStrength.strength === 'medium' ? 'text-yellow-400' :
-                  'text-green-400'
+              <p className="text-xs text-clay-muted">
+                密码强度: <span className={`font-semibold ${
+                  passwordStrength.strength === 'weak' ? 'text-clay-coral' :
+                  passwordStrength.strength === 'medium' ? 'text-clay-ochre' :
+                  'text-clay-ink'
                 }`}>
                   {passwordStrength.strength === 'weak' ? '弱' : passwordStrength.strength === 'medium' ? '中' : '强'}
                 </span>
@@ -319,20 +331,20 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
           )}
 
           {/* Password Requirements */}
-          <div className="mt-2 text-xs text-slate-400 space-y-1">
+          <div className="mt-2 space-y-1 text-xs text-clay-muted">
             <p>密码需包含:</p>
-            <ul className="list-disc list-inside space-y-0.5 ml-1">
-              <li className={password.length >= 8 ? 'text-green-400' : ''}>至少 8 个字符</li>
-              <li className={/[a-z]/.test(password) ? 'text-green-400' : ''}>小写字母</li>
-              <li className={/[A-Z]/.test(password) ? 'text-green-400' : ''}>大写字母</li>
-              <li className={/\d/.test(password) ? 'text-green-400' : ''}>数字</li>
-              <li className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'text-green-400' : ''}>特殊字符</li>
+            <ul className="ml-1 list-inside list-disc space-y-0.5">
+              <li className={password.length >= 8 ? 'text-clay-ink font-medium' : ''}>至少 8 个字符</li>
+              <li className={/[a-z]/.test(password) ? 'text-clay-ink font-medium' : ''}>小写字母</li>
+              <li className={/[A-Z]/.test(password) ? 'text-clay-ink font-medium' : ''}>大写字母</li>
+              <li className={/\d/.test(password) ? 'text-clay-ink font-medium' : ''}>数字</li>
+              <li className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'text-clay-ink font-medium' : ''}>特殊字符</li>
             </ul>
           </div>
         </div>
 
         <div>
-          <label htmlFor="register-confirm" className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="register-confirm" className="mb-2 block text-sm font-semibold text-clay-ink">
             {t('auth.confirmPassword', '确认密码')} *
           </label>
           <input
@@ -341,7 +353,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.confirmPasswordPlaceholder', '请再次输入密码')}
           />
         </div>
@@ -349,7 +361,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium py-3 px-4 rounded-lg hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="clay-button-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t('auth.registering', '注册中...') : t('auth.register', '注册')}
         </button>
@@ -357,11 +369,11 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
       {/* Switch to Login */}
       <div className="mt-6 text-center">
-        <span className="text-slate-400 text-sm">{t('auth.hasAccount', '已有账号？')}</span>
+        <span className="text-sm text-clay-body">{t('auth.hasAccount', '已有账号？')}</span>
         <button
           type="button"
           onClick={onSwitchToLogin}
-          className="text-cyan-400 hover:text-cyan-300 text-sm font-medium ml-1"
+          className="ml-1 text-sm font-semibold text-clay-ink underline-offset-4 hover:underline"
         >
           {t('auth.login', '登录')}
         </button>
@@ -390,7 +402,7 @@ export function AuthDialog() {
     <Dialog
       isOpen={isOpen}
       onClose={closeDialog}
-      className="overflow-hidden"
+      className="overflow-hidden bg-clay-canvas border-clay-surface-strong"
     >
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
