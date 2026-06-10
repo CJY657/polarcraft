@@ -45,6 +45,13 @@ router.get(
 );
 
 /**
+ * @route   GET /api/users/:userId/details
+ * @desc    Get a single user's detail (profile + educations + research involvement)
+ * @access  Admin only
+ */
+router.get('/:userId/details', requireAdmin, UserController.getUserDetailForAdmin);
+
+/**
  * @route   GET /api/users/profile
  * @desc    Get user profile
  * @access  Private

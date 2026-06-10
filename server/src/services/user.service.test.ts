@@ -1,13 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { findByIdForAdmin, getUserAnalytics } = vi.hoisted(() => ({
+const {
+  findByIdForAdmin,
+  getUserAnalytics,
+  getUserEducations,
+  getUserMemberships,
+  getUserApplications,
+} = vi.hoisted(() => ({
   findByIdForAdmin: vi.fn(),
   getUserAnalytics: vi.fn(),
+  getUserEducations: vi.fn(),
+  getUserMemberships: vi.fn(),
+  getUserApplications: vi.fn(),
 }));
 
 vi.mock('../models/user.model.js', () => ({
   UserModel: {
     findByIdForAdmin,
+  },
+}));
+
+vi.mock('../models/profile.model.js', () => ({
+  ProfileModel: {
+    getUserEducations,
+    getUserMemberships,
+    getUserApplications,
   },
 }));
 
@@ -62,5 +79,120 @@ describe('UserService.getPostHogAnalyticsForAdmin', () => {
 
     expect(findByIdForAdmin).toHaveBeenCalledWith('inactive-user');
     expect(getUserAnalytics).toHaveBeenCalledWith('inactive-user');
+  });
+});
+
+describe('UserService.getUserDetailForAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects unknown users before loading detail sections', async () => {
+    findByIdForAdmin.mockResolvedValue(null);
+
+    await expect(UserService.getUserDetailForAdmin('missing-user')).rejects.toBeInstanceOf(
+      AuthError
+    );
+    expect(getUserEducations).not.toHaveBeenCalled();
+    expect(getUserMemberships).not.toHaveBeenCalled();
+    expect(getUserApplications).not.toHaveBeenCalled();
+  });
+
+  it('aggregates profile, educations, and research involvement into a safe payload', async () => {
+    const user = {
+      id: 'user-1',
+      username: 'alice',
+      role: 'user',
+      avatar_url: null,
+      email: 'alice@example.com',
+      email_verified: true,
+      is_active: true,
+      created_at: new Date('2026-05-01T00:00:00.000Z'),
+      last_login_at: new Date('2026-06-01T00:00:00.000Z'),
+    };
+    findByIdForAdmin.mockResolvedValue(user);
+    getUserEducations.mockResolvedValue([
+      {
+        id: 'edu-1',
+        user_id: 'user-1',
+        organization: '某某大学',
+        major: '物理学',
+        degree_level: '本科',
+        start_date: '2024-09-01',
+        end_date: null,
+        is_current: true,
+        created_at: new Date('2026-05-01T00:00:00.000Z'),
+        updated_at: new Date('2026-05-01T00:00:00.000Z'),
+      },
+    ]);
+    getUserMemberships.mockResolvedValue([
+      {
+        project_id: 'project-1',
+        project_name: '偏振光课题',
+        role: 'member',
+        joined_at: new Date('2026-05-10T00:00:00.000Z'),
+      },
+    ]);
+    getUserApplications.mockResolvedValue([
+      {
+        id: 'app-1',
+        project_id: 'project-2',
+        user_id: 'user-1',
+        display_name: 'Alice',
+        organization: '某某大学',
+        education_id: 'edu-1',
+        major: '物理学',
+        grade: '大二',
+        research_experience: '有实验经历',
+        expertise: '光学',
+        motivation: '想加入',
+        status: 'pending',
+        reviewed_by: null,
+        reviewed_at: null,
+        review_notes: null,
+        created_at: new Date('2026-06-01T00:00:00.000Z'),
+        updated_at: new Date('2026-06-01T00:00:00.000Z'),
+        project_name: '另一个课题',
+      },
+    ]);
+
+    const result = await UserService.getUserDetailForAdmin('user-1');
+
+    expect(result.user).toEqual(user);
+    expect(result.educations).toEqual([
+      {
+        id: 'edu-1',
+        organization: '某某大学',
+        major: '物理学',
+        degree_level: '本科',
+        start_date: '2024-09-01',
+        end_date: null,
+        is_current: true,
+      },
+    ]);
+    expect(result.research.memberships).toEqual([
+      {
+        project_id: 'project-1',
+        project_name: '偏振光课题',
+        role: 'member',
+        joined_at: new Date('2026-05-10T00:00:00.000Z'),
+      },
+    ]);
+    expect(result.research.applications).toEqual([
+      {
+        id: 'app-1',
+        project_id: 'project-2',
+        project_name: '另一个课题',
+        display_name: 'Alice',
+        organization: '某某大学',
+        major: '物理学',
+        grade: '大二',
+        status: 'pending',
+        created_at: new Date('2026-06-01T00:00:00.000Z'),
+        reviewed_at: null,
+      },
+    ]);
+    // Sensitive review/application internals must not leak into the admin list payload
+    expect(JSON.stringify(result)).not.toContain('motivation');
   });
 });

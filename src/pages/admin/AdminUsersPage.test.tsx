@@ -4,9 +4,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getStats, list, getPostHogAnalytics } = vi.hoisted(() => ({
+const { getStats, list, getDetail, getPostHogAnalytics } = vi.hoisted(() => ({
   getStats: vi.fn(),
   list: vi.fn(),
+  getDetail: vi.fn(),
   getPostHogAnalytics: vi.fn(),
 }));
 
@@ -14,6 +15,7 @@ vi.mock('@/lib/admin-user.service', () => ({
   adminUserApi: {
     getStats,
     list,
+    getDetail,
     getPostHogAnalytics,
   },
 }));
@@ -28,12 +30,25 @@ vi.mock('@/components/shared/PersistentHeader', () => ({
 
 import AdminUsersPage from './AdminUsersPage';
 
+const DEFAULT_LIST_PARAMS = {
+  search: '',
+  role: 'all',
+  status: 'all',
+  sortBy: 'created_at',
+  sortOrder: 'desc',
+  limit: 20,
+  offset: 0,
+};
+
 describe('AdminUsersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getStats.mockResolvedValue({
       total_registered: 12,
       active_users: 9,
+      new_users_7d: 4,
+      recent_logins_7d: 6,
+      unverified_emails: 3,
     });
     list.mockResolvedValue({
       items: [
@@ -62,6 +77,24 @@ describe('AdminUsersPage', () => {
       ],
       total: 2,
     });
+    getDetail.mockResolvedValue({
+      user: {
+        id: 'user-1',
+        username: 'alice',
+        email: 'alice@example.com',
+        role: 'admin',
+        avatar_url: null,
+        email_verified: true,
+        is_active: true,
+        created_at: '2026-05-01T00:00:00.000Z',
+        last_login_at: '2026-05-03T00:00:00.000Z',
+      },
+      educations: [],
+      research: {
+        memberships: [],
+        applications: [],
+      },
+    });
     getPostHogAnalytics.mockResolvedValue({
       status: 'not_found',
       person: null,
@@ -80,19 +113,16 @@ describe('AdminUsersPage', () => {
     expect(await screen.findByText('用户管理')).toBeDefined();
     expect(screen.getByText('账号总览')).toBeDefined();
     expect(await screen.findByText('12')).toBeDefined();
-    expect(screen.getByText('9')).toBeDefined();
+    expect(screen.getByText('4')).toBeDefined();
+    expect(screen.getByText('6')).toBeDefined();
+    expect(screen.getByText('3')).toBeDefined();
     expect(screen.getByText('alice')).toBeDefined();
     expect(screen.getByText('alice@example.com')).toBeDefined();
-    expect(screen.getByRole('button', { name: '查看 alice 的行为' })).toBeDefined();
+    expect(screen.getByText('从未登录')).toBeDefined();
+    expect(screen.getByRole('button', { name: '查看 alice 的详情' })).toBeDefined();
 
     await waitFor(() => {
-      expect(list).toHaveBeenCalledWith({
-        search: '',
-        role: 'all',
-        status: 'all',
-        limit: 20,
-        offset: 0,
-      });
+      expect(list).toHaveBeenCalledWith(DEFAULT_LIST_PARAMS);
     });
   });
 
@@ -111,16 +141,126 @@ describe('AdminUsersPage', () => {
 
     await waitFor(() => {
       expect(list).toHaveBeenLastCalledWith({
-        search: '',
+        ...DEFAULT_LIST_PARAMS,
         role: 'admin',
-        status: 'all',
-        limit: 20,
-        offset: 0,
       });
     });
   });
 
-  it('loads and renders a selected user analytics dialog, sorting recent events newest first', async () => {
+  it('toggles sorting when a sortable header is clicked', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('alice');
+
+    fireEvent.click(screen.getByRole('button', { name: '按最后登录排序' }));
+
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith({
+        ...DEFAULT_LIST_PARAMS,
+        sortBy: 'last_login_at',
+        sortOrder: 'desc',
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '按最后登录排序' }));
+
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith({
+        ...DEFAULT_LIST_PARAMS,
+        sortBy: 'last_login_at',
+        sortOrder: 'asc',
+      });
+    });
+  });
+
+  it('loads the user detail with educations and research involvement', async () => {
+    getDetail.mockResolvedValue({
+      user: {
+        id: 'user-1',
+        username: 'alice',
+        email: 'alice@example.com',
+        role: 'admin',
+        avatar_url: null,
+        email_verified: true,
+        is_active: true,
+        created_at: '2026-05-01T00:00:00.000Z',
+        last_login_at: '2026-05-03T00:00:00.000Z',
+      },
+      educations: [
+        {
+          id: 'edu-1',
+          organization: '某某大学',
+          major: '物理学',
+          degree_level: '本科',
+          start_date: '2024-09-01',
+          end_date: null,
+          is_current: true,
+        },
+      ],
+      research: {
+        memberships: [
+          {
+            project_id: 'project-1',
+            project_name: '偏振光课题',
+            role: 'owner',
+            joined_at: '2026-05-10T00:00:00.000Z',
+          },
+        ],
+        applications: [
+          {
+            id: 'app-1',
+            project_id: 'project-2',
+            project_name: '另一个课题',
+            display_name: 'Alice',
+            organization: '某某大学',
+            major: '物理学',
+            grade: '大二',
+            status: 'pending',
+            created_at: '2026-06-01T00:00:00.000Z',
+            reviewed_at: null,
+          },
+        ],
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
+
+    expect(getDetail).toHaveBeenCalledWith('user-1');
+    expect(getPostHogAnalytics).toHaveBeenCalledWith('user-1');
+
+    expect(await screen.findByText('某某大学')).toBeDefined();
+    expect(screen.getByText('物理学')).toBeDefined();
+    expect(screen.getByText('本科')).toBeDefined();
+    expect(screen.getByText('偏振光课题')).toBeDefined();
+    expect(screen.getByText('负责人')).toBeDefined();
+    expect(screen.getByText('另一个课题')).toBeDefined();
+    expect(screen.getByText('待审核')).toBeDefined();
+  });
+
+  it('shows empty hints when a user has no educations or research involvement', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
+
+    expect(await screen.findByText('该用户还没有填写教育经历')).toBeDefined();
+    expect(screen.getByText('该用户尚未加入或申请任何课题组')).toBeDefined();
+  });
+
+  it('loads and renders analytics in the detail dialog, sorting recent events newest first', async () => {
     let resolveAnalytics:
       | ((value: {
           status: 'ok';
@@ -157,7 +297,7 @@ describe('AdminUsersPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
 
     expect(screen.getByText('正在加载行为数据...')).toBeDefined();
     expect(getPostHogAnalytics).toHaveBeenCalledWith('user-1');
@@ -214,7 +354,7 @@ describe('AdminUsersPage', () => {
       summary: {
         window_days: 30,
         event_count_30d: 8,
-        pageview_count_30d: 3,
+        pageview_count_30d: 5,
       },
       recent_events: [
         {
@@ -256,7 +396,7 @@ describe('AdminUsersPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
 
     expect(await screen.findByText('查看页面')).toBeDefined();
     expect(screen.getByText('登录成功')).toBeDefined();
@@ -288,15 +428,15 @@ describe('AdminUsersPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
     expect(await screen.findByText('行为统计尚未启用')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭行为详情' }));
-    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的行为' }));
+    fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
     expect(await screen.findByText('该用户暂无行为记录')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭行为详情' }));
-    fireEvent.click(screen.getByRole('button', { name: '查看 alice 的行为' }));
+    fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看 alice 的详情' }));
     expect(await screen.findByText('行为数据查询失败，请稍后重试')).toBeDefined();
   });
 
@@ -360,10 +500,10 @@ describe('AdminUsersPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的行为' }));
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
     expect(await screen.findByText('Alice Event')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的行为' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
     expect(screen.queryByText('Alice Event')).toBeNull();
     expect(screen.getByText('正在加载行为数据...')).toBeDefined();
 
@@ -391,5 +531,34 @@ describe('AdminUsersPage', () => {
     });
 
     expect(await screen.findByText('Bob Event')).toBeDefined();
+  });
+
+  it('exports the filtered list as CSV', async () => {
+    const createObjectURL = vi.fn(() => 'blob:mock');
+    const revokeObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('alice');
+
+    fireEvent.click(screen.getByRole('button', { name: /导出 CSV/ }));
+
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith({
+        ...DEFAULT_LIST_PARAMS,
+        limit: 100,
+        offset: 0,
+      });
+    });
+
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock');
+    });
   });
 });

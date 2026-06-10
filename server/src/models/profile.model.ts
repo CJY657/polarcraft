@@ -372,6 +372,45 @@ export class ProfileModel {
   }
 
   /**
+   * Get user's active project memberships with project names
+   * 获取用户的有效课题组成员关系（含课题名称）
+   */
+  static async getUserMemberships(
+    userId: string
+  ): Promise<Array<{
+    project_id: string;
+    project_name: string | null;
+    role: 'owner' | 'member';
+    joined_at: Date | string | null;
+  }>> {
+    const memberships = normalizeDocuments<{
+      project_id: string;
+      role?: string | null;
+      joined_at?: Date | string | null;
+    }>(
+      await projectMembersCollection()
+        .find(buildActiveMembershipFilter({ user_id: userId }))
+        .project({ _id: 0, project_id: 1, role: 1, joined_at: 1 })
+        .toArray()
+    );
+
+    if (memberships.length === 0) {
+      return [];
+    }
+
+    const projectNameMap = await getProjectNameMap(
+      memberships.map((membership) => membership.project_id)
+    );
+
+    return memberships.map((membership) => ({
+      project_id: membership.project_id,
+      project_name: projectNameMap.get(membership.project_id) ?? null,
+      role: normalizeProjectRole(membership.role) ?? 'member',
+      joined_at: membership.joined_at ?? null,
+    }));
+  }
+
+  /**
    * Get pending application for user and project
    * 获取用户对项目的待处理申请
    */

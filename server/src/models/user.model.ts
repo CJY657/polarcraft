@@ -113,6 +113,9 @@ export class UserModel {
       filter.$or = [{ username: pattern }, { email: pattern }];
     }
 
+    const sortBy = options.sortBy ?? 'created_at';
+    const sortOrder = options.sortOrder === 'asc' ? 1 : -1;
+
     const [users, total] = await Promise.all([
       usersCollection()
         .find(filter)
@@ -128,7 +131,7 @@ export class UserModel {
           created_at: 1,
           last_login_at: 1,
         })
-        .sort({ created_at: -1 })
+        .sort({ [sortBy]: sortOrder })
         .skip(options.offset)
         .limit(options.limit)
         .toArray(),
@@ -146,14 +149,23 @@ export class UserModel {
    * 获取管理员用户统计
    */
   static async getAdminStats(): Promise<AdminUserStatsResponse> {
-    const [totalRegistered, activeUsers] = await Promise.all([
-      usersCollection().countDocuments({}),
-      usersCollection().countDocuments({ is_active: true }),
-    ]);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalRegistered, activeUsers, newUsers7d, recentLogins7d, unverifiedEmails] =
+      await Promise.all([
+        usersCollection().countDocuments({}),
+        usersCollection().countDocuments({ is_active: true }),
+        usersCollection().countDocuments({ created_at: { $gte: sevenDaysAgo } }),
+        usersCollection().countDocuments({ last_login_at: { $gte: sevenDaysAgo } }),
+        usersCollection().countDocuments({ is_active: true, email_verified: false }),
+      ]);
 
     return {
       total_registered: totalRegistered,
       active_users: activeUsers,
+      new_users_7d: newUsers7d,
+      recent_logins_7d: recentLogins7d,
+      unverified_emails: unverifiedEmails,
     };
   }
 

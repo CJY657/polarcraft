@@ -2,6 +2,8 @@ import { api } from './api';
 
 export type AdminUserRoleFilter = 'all' | 'user' | 'admin';
 export type AdminUserStatusFilter = 'all' | 'active' | 'inactive';
+export type AdminUserSortField = 'created_at' | 'last_login_at';
+export type AdminUserSortOrder = 'asc' | 'desc';
 
 export interface AdminUserListItem {
   id: string;
@@ -23,6 +25,48 @@ export interface AdminUserListResult {
 export interface AdminUserStats {
   total_registered: number;
   active_users: number;
+  new_users_7d: number;
+  recent_logins_7d: number;
+  unverified_emails: number;
+}
+
+export interface AdminUserEducationItem {
+  id: string;
+  organization: string;
+  major: string;
+  degree_level: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+}
+
+export interface AdminUserResearchMembershipItem {
+  project_id: string;
+  project_name: string | null;
+  role: 'owner' | 'member';
+  joined_at: string | null;
+}
+
+export interface AdminUserResearchApplicationItem {
+  id: string;
+  project_id: string;
+  project_name: string | null;
+  display_name: string;
+  organization: string;
+  major: string | null;
+  grade: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface AdminUserDetail {
+  user: AdminUserListItem;
+  educations: AdminUserEducationItem[];
+  research: {
+    memberships: AdminUserResearchMembershipItem[];
+    applications: AdminUserResearchApplicationItem[];
+  };
 }
 
 export interface AdminUserPostHogPerson {
@@ -68,6 +112,8 @@ export const adminUserApi = {
     status?: AdminUserStatusFilter;
     limit?: number;
     offset?: number;
+    sortBy?: AdminUserSortField;
+    sortOrder?: AdminUserSortOrder;
   } = {}): Promise<AdminUserListResult> {
     const search = new URLSearchParams();
 
@@ -91,6 +137,14 @@ export const adminUserApi = {
       search.set('offset', String(params.offset));
     }
 
+    if (params.sortBy) {
+      search.set('sort_by', params.sortBy);
+    }
+
+    if (params.sortOrder) {
+      search.set('sort_order', params.sortOrder);
+    }
+
     const query = search.toString();
     const response = await api.get<AdminUserListResult>(
       `/api/users${query ? `?${query}` : ''}`
@@ -100,6 +154,15 @@ export const adminUserApi = {
     }
 
     throw new Error(response.error?.message || '获取用户列表失败');
+  },
+
+  async getDetail(userId: string): Promise<AdminUserDetail> {
+    const response = await api.get<AdminUserDetail>(`/api/users/${userId}/details`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || '获取用户详情失败');
   },
 
   async getPostHogAnalytics(

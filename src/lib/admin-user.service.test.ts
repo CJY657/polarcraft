@@ -49,10 +49,12 @@ describe('adminUserApi', () => {
       status: 'inactive',
       limit: 20,
       offset: 40,
+      sortBy: 'last_login_at',
+      sortOrder: 'asc',
     });
 
     expect(get).toHaveBeenCalledWith(
-      '/api/users?search=alice&role=admin&status=inactive&limit=20&offset=40'
+      '/api/users?search=alice&role=admin&status=inactive&limit=20&offset=40&sort_by=last_login_at&sort_order=asc'
     );
 
     await adminUserApi.list({
@@ -61,6 +63,35 @@ describe('adminUserApi', () => {
     });
 
     expect(get).toHaveBeenLastCalledWith('/api/users');
+  });
+
+  it('requests a single user detail for admins', async () => {
+    const detail = {
+      user: {
+        id: 'user-1',
+        username: 'alice',
+        role: 'user',
+        avatar_url: null,
+        email: 'alice@example.com',
+        email_verified: true,
+        is_active: true,
+        created_at: '2026-05-01T00:00:00.000Z',
+        last_login_at: null,
+      },
+      educations: [],
+      research: {
+        memberships: [],
+        applications: [],
+      },
+    };
+    get.mockResolvedValue({
+      success: true,
+      data: detail,
+    });
+
+    await expect(adminUserApi.getDetail('user-1')).resolves.toEqual(detail);
+
+    expect(get).toHaveBeenCalledWith('/api/users/user-1/details');
   });
 
   it('requests PostHog analytics for a single admin-selected user', async () => {

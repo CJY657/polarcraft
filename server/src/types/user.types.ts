@@ -36,6 +36,12 @@ export interface UserProfileResponse {
 /** Admin list status filter / 管理员用户列表状态筛选 */
 export type AdminUserStatusFilter = 'active' | 'inactive';
 
+/** Admin list sortable fields / 管理员用户列表可排序字段 */
+export type AdminUserSortField = 'created_at' | 'last_login_at';
+
+/** Admin list sort order / 管理员用户列表排序方向 */
+export type AdminUserSortOrder = 'asc' | 'desc';
+
 /** Safe admin-facing user list item / 管理员可见的安全用户列表项 */
 export interface AdminUserListItem {
   id: string;
@@ -56,6 +62,8 @@ export interface ListAdminUsersOptions {
   status?: AdminUserStatusFilter;
   limit?: number;
   offset?: number;
+  sortBy?: AdminUserSortField;
+  sortOrder?: AdminUserSortOrder;
 }
 
 /** Admin user list response / 管理员用户列表响应 */
@@ -68,6 +76,52 @@ export interface AdminUserListResponse {
 export interface AdminUserStatsResponse {
   total_registered: number;
   active_users: number;
+  new_users_7d: number;
+  recent_logins_7d: number;
+  unverified_emails: number;
+}
+
+/** Admin-visible education record / 管理员可见的教育经历 */
+export interface AdminUserEducationItem {
+  id: string;
+  organization: string;
+  major: string;
+  degree_level: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+}
+
+/** Admin-visible research project membership / 管理员可见的课题组成员关系 */
+export interface AdminUserResearchMembershipItem {
+  project_id: string;
+  project_name: string | null;
+  role: 'owner' | 'member';
+  joined_at: Date | string | null;
+}
+
+/** Admin-visible research project application / 管理员可见的课题申请 */
+export interface AdminUserResearchApplicationItem {
+  id: string;
+  project_id: string;
+  project_name: string | null;
+  display_name: string;
+  organization: string;
+  major: string | null;
+  grade: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  created_at: Date | string;
+  reviewed_at: Date | string | null;
+}
+
+/** Admin user detail response / 管理员用户详情响应 */
+export interface AdminUserDetailResponse {
+  user: AdminUserListItem;
+  educations: AdminUserEducationItem[];
+  research: {
+    memberships: AdminUserResearchMembershipItem[];
+    applications: AdminUserResearchApplicationItem[];
+  };
 }
 
 /** Admin PostHog person summary / 管理员可见的 PostHog 用户摘要 */

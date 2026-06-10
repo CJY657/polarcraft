@@ -7,6 +7,7 @@
  */
 
 import { UserModel } from '../models/user.model.js';
+import { ProfileModel } from '../models/profile.model.js';
 import {
   UserProfile,
   UpdateProfileInput,
@@ -15,6 +16,7 @@ import {
   AuthError,
 } from '../types/auth.types.js';
 import {
+  AdminUserDetailResponse,
   AdminUserListResponse,
   AdminUserPostHogAnalyticsResponse,
   AdminUserStatsResponse,
@@ -57,7 +59,54 @@ export class UserService {
       status: options.status,
       limit,
       offset,
+      sortBy: options.sortBy,
+      sortOrder: options.sortOrder,
     });
+  }
+
+  /**
+   * Get admin user detail (profile + educations + research involvement)
+   * 获取管理员用户详情（资料 + 教育经历 + 课题组参与）
+   */
+  static async getUserDetailForAdmin(userId: string): Promise<AdminUserDetailResponse> {
+    const user = await UserModel.findByIdForAdmin(userId);
+    if (!user) {
+      throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
+    }
+
+    const [educations, memberships, applications] = await Promise.all([
+      ProfileModel.getUserEducations(userId),
+      ProfileModel.getUserMemberships(userId),
+      ProfileModel.getUserApplications(userId),
+    ]);
+
+    return {
+      user,
+      educations: educations.map((education) => ({
+        id: education.id,
+        organization: education.organization,
+        major: education.major,
+        degree_level: education.degree_level,
+        start_date: education.start_date,
+        end_date: education.end_date,
+        is_current: education.is_current,
+      })),
+      research: {
+        memberships,
+        applications: applications.map((application) => ({
+          id: application.id,
+          project_id: application.project_id,
+          project_name: application.project_name ?? null,
+          display_name: application.display_name,
+          organization: application.organization,
+          major: application.major,
+          grade: application.grade,
+          status: application.status,
+          created_at: application.created_at,
+          reviewed_at: application.reviewed_at,
+        })),
+      },
+    };
   }
 
   /**

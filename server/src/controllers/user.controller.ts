@@ -42,6 +42,14 @@ export class UserController {
       typeof req.query.offset === 'string'
         ? Number.parseInt(req.query.offset, 10)
         : undefined;
+    const sortBy =
+      req.query.sort_by === 'created_at' || req.query.sort_by === 'last_login_at'
+        ? req.query.sort_by
+        : undefined;
+    const sortOrder =
+      req.query.sort_order === 'asc' || req.query.sort_order === 'desc'
+        ? req.query.sort_order
+        : undefined;
 
     const result = await UserService.listUsersForAdmin({
       search,
@@ -49,8 +57,21 @@ export class UserController {
       status,
       limit,
       offset,
+      sortBy,
+      sortOrder,
     });
 
+    res.success(result);
+  });
+
+  /**
+   * Get a single user's detail for admin management
+   * 获取管理员用户详情
+   */
+  static getUserDetailForAdmin = asyncHandler(async (req: Request, res: Response) => {
+    setupResponseHelpers(res);
+
+    const result = await UserService.getUserDetailForAdmin(req.params.userId);
     res.success(result);
   });
 
