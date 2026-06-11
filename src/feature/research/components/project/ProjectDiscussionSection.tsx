@@ -1027,7 +1027,6 @@ export function ProjectDiscussionSection({
       <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="research-kicker mb-2">Discussion</div>
             <h2
               className="text-2xl font-semibold text-[var(--paper-foreground)]"
               style={{ fontFamily: 'var(--font-ui-display)' }}

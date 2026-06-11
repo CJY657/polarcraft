@@ -419,9 +419,9 @@ html {
 
   .research-kicker {
     color: var(--paper-accent-strong);
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 

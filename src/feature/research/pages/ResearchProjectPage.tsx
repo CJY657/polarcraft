@@ -134,7 +134,6 @@ function ResearchInfoSection({
     <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="research-kicker mb-2">Research Information</div>
           <h2
             className="text-2xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: "var(--font-ui-display)" }}
@@ -631,7 +630,7 @@ export function ResearchProjectPage() {
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="research-kicker">Project Overview</span>
+                <span className="research-kicker">课题详情</span>
                 <span className={cn("rounded-full px-3 py-1 text-sm font-semibold", statusBadge.className)}>
                   {statusBadge.label}
                 </span>
@@ -734,7 +733,6 @@ export function ResearchProjectPage() {
           <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="research-kicker mb-2">Research Team</div>
                 <h2
                   className="text-2xl font-semibold text-[var(--paper-foreground)]"
                   style={{ fontFamily: "var(--font-ui-display)" }}
@@ -826,7 +824,6 @@ export function ResearchProjectPage() {
             {canManageProject && formerMembers.length > 0 && (
               <div className="mt-6 border-t border-[var(--glass-stroke)] pt-6">
                 <div className="mb-4">
-                  <div className="research-kicker mb-2">Former Members</div>
                   <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">待恢复成员</h3>
                   <p className="mt-1 text-base text-[var(--glass-text-muted)]">
                     这些成员曾加入过本课题，组长可以将他们重新拉回，恢复后统一为成员权限。

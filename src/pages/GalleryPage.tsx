@@ -77,15 +77,6 @@ export function ExperimentsPage() {
             }}
           />
           <div className="relative">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-accent)]">
-                Creative Archive
-              </span>
-              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
-                {activeTab === "gallery" ? "实验展示" : "创意作品"}
-              </span>
-            </div>
-
             <h1 className={cn("mb-2 text-3xl font-bold text-[var(--paper-foreground)]")} style={{ fontFamily: "var(--font-ui-display)" }}>
               {t("works.title")}
             </h1>

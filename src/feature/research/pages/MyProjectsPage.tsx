@@ -145,7 +145,7 @@ export function MyProjectsPage() {
         <main className="research-shell py-8">
           <section className="research-hero rounded-[2rem] px-6 py-8 sm:px-8">
             <div className="max-w-3xl">
-              <div className="research-kicker mb-3">My Research Projects</div>
+              <div className="research-kicker mb-3">我的课题</div>
               <h1
                 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.08] text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
@@ -192,7 +192,7 @@ export function MyProjectsPage() {
         <section className="research-hero mb-8 rounded-[2.1rem] px-6 py-7 sm:px-8">
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <div className="research-kicker mb-3">My Project Desk</div>
+              <div className="research-kicker mb-3">我的课题</div>
               <h1
                 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.08] text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
@@ -273,7 +273,6 @@ export function MyProjectsPage() {
         {isLoading ? (
           <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
             <div className="mb-5">
-              <div className="research-kicker mb-2">All Projects</div>
               <h2
                 className="text-2xl font-semibold text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
@@ -321,7 +320,6 @@ export function MyProjectsPage() {
         ) : projects.length === 0 ? (
           <section className="research-panel rounded-[1.9rem] p-6 sm:p-7">
             <div className="max-w-2xl">
-              <div className="research-kicker mb-2">Start Here</div>
               <h2
                 className="text-2xl font-semibold text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
@@ -355,7 +353,6 @@ export function MyProjectsPage() {
           <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="research-kicker mb-2">All Projects</div>
                 <h2
                   className="text-2xl font-semibold text-[var(--paper-foreground)]"
                   style={{ fontFamily: "var(--font-ui-display)" }}

@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  BookOpenText,
   Compass,
   FlaskConical,
   GalleryVerticalEnd,
@@ -37,7 +36,6 @@ interface ModuleCard {
   title: string;
   route: string;
   description: string;
-  eyebrow: string;
   Icon: LucideIcon;
   accent: AccentConfig;
   spanClassName: string;
@@ -73,7 +71,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "实验内容",
     route: "/experiments",
     description: "用课程、材料与实验叙事建立第一层理解，让用户知道为什么学、从哪里进入。",
-    eyebrow: "Experiment Core",
     Icon: FlaskConical,
     accent: { color: "#1865f2", soft: "rgba(24, 101, 242, 0.12)", glow: "rgba(24, 101, 242, 0.16)" },
     spanClassName: "md:col-span-3",
@@ -82,7 +79,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "历史时间线",
     route: "/chronicles",
     description: "把偏振光学放回科学史现场，让概念、人物和问题演化彼此连通。",
-    eyebrow: "Chronicles",
     Icon: LibraryBig,
     accent: { color: "#8a5cf6", soft: "rgba(138, 92, 246, 0.11)", glow: "rgba(138, 92, 246, 0.16)" },
     spanClassName: "md:col-span-3",
@@ -91,7 +87,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "交互模拟",
     route: "/demos",
     description: "把公式、参数和图像放进同一个交互界面，让推导和现象可以来回切换。",
-    eyebrow: "Simulation",
     Icon: Compass,
     accent: { color: "#0ea5a4", soft: "rgba(14, 165, 164, 0.12)", glow: "rgba(14, 165, 164, 0.16)" },
     spanClassName: "md:col-span-2",
@@ -100,7 +95,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "游戏挑战",
     route: "/games",
     description: "物理原理变通关策略，包含解谜、建造与策略玩法。",
-    eyebrow: "Challenge",
     Icon: Orbit,
     accent: { color: "#c58b1d", soft: "rgba(197, 139, 29, 0.12)", glow: "rgba(197, 139, 29, 0.16)" },
     spanClassName: "md:col-span-2",
@@ -110,7 +104,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "成果展示",
     route: "/gallery",
     description: "让实验记录、文创作品和表达能力成为学习链路的一部分，而不是课后附加项。",
-    eyebrow: "Archive",
     Icon: GalleryVerticalEnd,
     accent: { color: "#f59e42", soft: "rgba(245, 158, 66, 0.12)", glow: "rgba(245, 158, 66, 0.16)" },
     spanClassName: "md:col-span-2",
@@ -119,7 +112,6 @@ const MODULE_MAP: ModuleCard[] = [
     title: "研究协作",
     route: "/lab/explore",
     description: "把开放问题、课题协作和画布式研究工具连接起来，允许学习继续生长。",
-    eyebrow: "Open Lab",
     Icon: Users,
     accent: { color: "#0f9b74", soft: "rgba(15, 155, 116, 0.12)", glow: "rgba(15, 155, 116, 0.16)" },
     spanClassName: "md:col-span-6 lg:col-span-2",
@@ -196,12 +188,7 @@ export default function AboutPage() {
 
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:gap-10">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-link)] backdrop-blur-sm">
-                <BookOpenText className="h-3.5 w-3.5" />
-                Platform Note
-              </div>
-
-              <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl lg:text-[3.7rem]" style={{ fontFamily: "var(--font-ui-display)" }}>
+              <h1 className="text-4xl font-semibold leading-tight sm:text-5xl lg:text-[3.7rem]" style={{ fontFamily: "var(--font-ui-display)" }}>
                 把偏振光学拆成
                 <span className="block text-[var(--paper-link)]">可进入、可实验、可协作的学习空间</span>
               </h1>
@@ -248,10 +235,7 @@ export default function AboutPage() {
                     boxShadow: `0 22px 42px -34px ${item.accent}33`,
                   }}
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: item.accent }}>
-                    Design Principle
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">{item.title}</h3>
+                  <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-7 text-[var(--glass-text-muted)]">{item.text}</p>
                 </div>
               ))}
@@ -261,7 +245,7 @@ export default function AboutPage() {
 
         <section className="rounded-[2.3rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8 sm:px-8 sm:py-9" style={sectionStyle}>
           <SectionHeader
-            eyebrow="Why This Platform"
+            eyebrow="平台定位"
             title="平台想解决的，不是“内容不够”，而是“学习链路断了”"
             description="很多光学平台已经有资料，但学习者仍然容易卡在三个地方：概念进入门槛高，实验现象与模型脱节，以及学完后缺少表达和延伸的出口。PolarCraft 试图把这三段重新接起来。"
           />
@@ -292,7 +276,7 @@ export default function AboutPage() {
 
         <section className="rounded-[2.3rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8 sm:px-8 sm:py-9" style={sectionStyle}>
           <SectionHeader
-            eyebrow="Module Map"
+            eyebrow="模块地图"
             title="六个入口，不是六个孤岛"
             description="每个模块都有自己的进入方式，但它们被设计成一张互相导流的地图。用户可以从课程进入模拟，也可以从作品回到课程，再从研究项目提出新的实验问题。"
           />
@@ -331,10 +315,7 @@ export default function AboutPage() {
 
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: module.accent.color }}>
-                        {module.eyebrow}
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold text-[var(--paper-foreground)]">{module.title}</h3>
+                      <h3 className="text-xl font-semibold text-[var(--paper-foreground)]">{module.title}</h3>
                     </div>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: module.accent.soft, color: module.accent.color }}>
                       <module.Icon className="h-5 w-5" />
@@ -382,7 +363,7 @@ export default function AboutPage() {
         <section className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-[2.3rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8 sm:px-8 sm:py-9" style={sectionStyle}>
             <SectionHeader
-              eyebrow="Learning Flow"
+              eyebrow="学习流程"
               title="理想中的使用方式"
               description="这个平台更像一张经过编排的学习工作台，而不是传统导航菜单。不同页面承担的是不同认知阶段的任务。"
             />
@@ -403,8 +384,7 @@ export default function AboutPage() {
           </div>
 
           <aside className="rounded-[2.3rem] border bg-[color:var(--paper-surface-strong)] px-6 py-8" style={sectionStyle}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--paper-link)]">Who It Serves</p>
-            <h2 className="mt-3 text-3xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
+            <h2 className="text-3xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
               适合谁
             </h2>
 
@@ -435,7 +415,7 @@ export default function AboutPage() {
 
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(280px,0.92fr)] lg:items-center">
             <div className="pl-4 sm:pl-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b85c38]">Feedback Desk</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b85c38]">意见反馈</p>
               <h2 className="mt-3 text-3xl font-semibold text-[var(--paper-foreground)] sm:text-4xl" style={{ fontFamily: "var(--font-ui-display)" }}>
                 反馈现在有独立入口，不再挂在关于页末尾。
               </h2>
@@ -510,7 +490,7 @@ export default function AboutPage() {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--paper-link)]/35 to-transparent" />
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--paper-link)]">Next Step</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--paper-link)]">下一步</p>
               <h2 className="mt-3 text-3xl font-semibold text-[var(--paper-foreground)] sm:text-4xl" style={{ fontFamily: "var(--font-ui-display)" }}>
                 如果你想验证这套设计是否成立，最好的方式是直接进入模块。
               </h2>

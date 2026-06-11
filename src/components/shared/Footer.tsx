@@ -110,20 +110,20 @@ export function Footer() {
             </div>
           </div>
 
-          <FooterLinkList title="Learn" links={LEARN_LINKS} />
+          <FooterLinkList title="学习" links={LEARN_LINKS} />
           <FooterLinkList
-            title="Explore"
+            title="探索"
             links={EXPLORE_LINKS.map((link) => ({
               ...link,
               label: link.label === "平台说明" ? t("footer.about") : link.label,
             }))}
           />
-          <FooterLinkList title="Resources" links={RESOURCE_LINKS} />
+          <FooterLinkList title="链接" links={RESOURCE_LINKS} />
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-clay-surface-strong pt-8 text-sm text-clay-muted md:flex-row md:items-center md:justify-between">
           <p>PolarCraft © 2026</p>
-          <p>A claymation-warm learning platform for polarization optics.</p>
+          <p>用偏振光打开科学的窗户</p>
         </div>
       </div>
     </footer>

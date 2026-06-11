@@ -137,7 +137,7 @@ export function PublicProjectExplorePage() {
         <section className="research-hero mb-8 rounded-[2.15rem] px-6 py-7 sm:px-8">
           <div className="flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <div className="research-kicker mb-3">Explore Public Projects</div>
+              <div className="research-kicker mb-3">公开课题</div>
               <h1
                 className="text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
@@ -396,7 +396,6 @@ export function PublicProjectExplorePage() {
           <section className="research-panel mt-6 rounded-[1.8rem] p-5 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="research-kicker mb-2">Create Project</div>
                 <h2
                   className="text-xl font-semibold text-[var(--paper-foreground)]"
                   style={{ fontFamily: "var(--font-ui-display)" }}

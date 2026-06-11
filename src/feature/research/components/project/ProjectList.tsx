@@ -132,7 +132,7 @@ export function ProjectList() {
           <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-                <span className="research-kicker">Virtual Research Lab</span>
+                <span className="research-kicker">虚拟课题组</span>
                 <span className="research-chip inline-flex rounded-full px-3 py-1 font-medium">
                   {authLoading ? "同步中" : isAuthenticated ? "已登录工作台" : "游客模式"}
                 </span>
@@ -237,7 +237,7 @@ export function ProjectList() {
         <section className="research-panel rounded-[2rem] p-6 sm:p-7">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="research-kicker mb-2">Reference Projects</div>
+              <div className="research-kicker mb-2">示例课题</div>
               <h2
                 className="text-2xl font-semibold text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}

@@ -223,11 +223,6 @@ export function HomePage() {
           className="flex min-h-[calc(100vh-7rem)] flex-col gap-8 sm:gap-10 lg:min-h-[calc(100vh-8rem)]"
         >
           <div className="flex flex-col gap-4 sm:gap-5">
-            <span className="clay-badge self-start">
-              <Sparkles className="h-3.5 w-3.5" />
-              Polarized light × Learning lab
-            </span>
-
             <h1 className="clay-display-xl">
               用偏振光<br />打开科学的窗户
             </h1>
@@ -359,11 +354,6 @@ export function HomePage() {
             <p className="mx-auto mt-8 max-w-2xl text-lg leading-8 text-clay-body">
               “{t("home.hero.platformIntro")}”
             </p>
-
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <span className="clay-badge">X-Institute Course</span>
-              <span className="clay-badge">Research Learning</span>
-            </div>
           </div>
         </section>
 

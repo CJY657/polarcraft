@@ -91,7 +91,6 @@ export function PublicProjectsSection() {
     <section className="research-panel rounded-[1.8rem] p-5 md:p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <div className="research-kicker mb-2">Open Research</div>
           <h2
             className="text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: "var(--font-ui-display)" }}

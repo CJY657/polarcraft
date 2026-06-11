@@ -62,15 +62,6 @@ export function UnitsPage() {
           />
 
           <div className="relative">
-            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
-              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--paper-accent)]">
-                Direct Entry
-              </span>
-              <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
-                {isZh ? "单元直达实验" : "Unit to experiment"}
-              </span>
-            </div>
-
             <h2 className="mb-3 text-2xl font-bold text-[var(--paper-foreground)] sm:text-3xl" style={{ fontFamily: "var(--font-ui-display)" }}>
               {isZh ? "实验单元" : "Experiment Units"}
             </h2>
@@ -79,31 +70,6 @@ export function UnitsPage() {
                 ? "选择单元后直接进入实验内容，减少中间跳转。"
                 : "Choose a unit to open its experiment directly, without the extra overview step."}
             </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
-                  Units
-                </p>
-                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">{units.length}</p>
-              </div>
-              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
-                  Slides
-                </p>
-                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">
-                  {units.filter((unit) => unit.mainSlide).length}
-                </p>
-              </div>
-              <div className="glass-panel-soft rounded-[1.4rem] border px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-muted)]">
-                  Experiments
-                </p>
-                <p className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]">
-                  {units.reduce((count, unit) => count + (unit.courseCount || 0), 0)}
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 
