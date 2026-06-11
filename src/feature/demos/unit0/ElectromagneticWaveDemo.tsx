@@ -1,12 +1,11 @@
 /**
  * ElectromagneticWaveDemo
  *
- * Features:
- * - Tab-based navigation between Wave View and Spectrum View
- * - Interactive wave animation with E/B field toggle
- * - Full electromagnetic spectrum with applications
- * - Wavelength-to-color conversion
- * - Difficulty-aware content display
+ * 电磁波演示：
+ * - 波动视图：Canvas 斜二测投影下的真实电磁波结构 ——
+ *   E 场（竖直面，颜色随波长）与 B 场（水平面，蓝色）相互垂直、同相位，
+ *   绸带填充 + 矢量箭头 + 波峰追踪点，基于时间的平滑动画
+ * - 波谱视图：完整电磁波谱、大气穿透性与尺度对比
  */
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +20,8 @@ import {
   InfoCard,
   Formula,
 } from "../DemoControls";
+import { DemoStage } from "../components/DemoLayout";
+import { useDemoCanvas } from "../hooks/useDemoCanvas";
 import MathText from "@/components/shared/MathText";
 
 type ViewMode = "wave" | "spectrum";
@@ -166,6 +167,297 @@ function formatWavelength(meters: number): string {
   return `${(meters * 1e15).toFixed(1)} fm`;
 }
 
+// Convert wavelength to RGB color
+function wavelengthToRGB(wl: number): string {
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (wl >= 380 && wl < 440) {
+    r = -(wl - 440) / (440 - 380);
+    b = 1;
+  } else if (wl >= 440 && wl < 490) {
+    g = (wl - 440) / (490 - 440);
+    b = 1;
+  } else if (wl >= 490 && wl < 510) {
+    g = 1;
+    b = -(wl - 510) / (510 - 490);
+  } else if (wl >= 510 && wl < 580) {
+    r = (wl - 510) / (580 - 510);
+    g = 1;
+  } else if (wl >= 580 && wl < 645) {
+    r = 1;
+    g = -(wl - 645) / (645 - 580);
+  } else if (wl >= 645 && wl <= 700) {
+    r = 1;
+  }
+  return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+// ----------------------------------------------------------------------------
+// 电磁波 3D 投影画布
+// ----------------------------------------------------------------------------
+
+const EMW_W = 680;
+const EMW_H = 360;
+const COLOR_B = "#60a5fa";
+
+function EMWaveCanvas({
+  wavelength,
+  amplitude,
+  speed,
+  showBField,
+  isPlaying,
+  waveColor,
+}: {
+  wavelength: number;
+  amplitude: number;
+  speed: number;
+  showBField: boolean;
+  isPlaying: boolean;
+  waveColor: string;
+}) {
+  const canvasRef = useDemoCanvas({
+    width: EMW_W,
+    height: EMW_H,
+    paused: !isPlaying || speed <= 0,
+    timeScale: Math.max(speed, 0.0001),
+    draw: ({ ctx, width, height, time }) => {
+      const ox = 76;
+      const oy = height / 2;
+      const zLen = width - 140;
+      // 波长 380-700nm → 屏幕上 76-148px 周期
+      const pxPerWl = 76 + ((wavelength - 380) / 320) * 72;
+      const k = (Math.PI * 2) / pxPerWl;
+      const omega = 2.6; // 基准角频率（time 已按速度缩放）
+      const phase = (z: number) => k * z - omega * time;
+      const ampB = amplitude * 0.55;
+
+      // 斜二测投影：z 向右，y 向上（E 场），x 斜向（B 场）
+      const EXX = 0.45,
+        EXY = 0.33;
+      const proj = (bx: number, ey: number, z: number): [number, number] => [
+        ox + z + bx * EXX,
+        oy + bx * EXY - ey,
+      ];
+
+      // 背景
+      ctx.fillStyle = "#070d1a";
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = "rgba(100, 150, 255, 0.05)";
+      ctx.lineWidth = 1;
+      for (let gx = 0; gx < width; gx += 40) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, height);
+        ctx.stroke();
+      }
+
+      // 坐标轴
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.6)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(ox - 26, oy);
+      ctx.lineTo(ox + zLen + 30, oy);
+      ctx.stroke();
+      ctx.fillStyle = "#94a3b8";
+      ctx.beginPath();
+      ctx.moveTo(ox + zLen + 40, oy);
+      ctx.lineTo(ox + zLen + 30, oy - 4);
+      ctx.lineTo(ox + zLen + 30, oy + 4);
+      ctx.closePath();
+      ctx.fill();
+      // E 轴（竖直）
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+      ctx.beginPath();
+      ctx.moveTo(ox, oy + amplitude + 18);
+      ctx.lineTo(ox, oy - amplitude - 18);
+      ctx.stroke();
+      // B 轴（斜向）
+      if (showBField) {
+        ctx.strokeStyle = "rgba(96, 165, 250, 0.35)";
+        ctx.beginPath();
+        ctx.moveTo(ox - (ampB + 16) * EXX, oy - (ampB + 16) * EXY);
+        ctx.lineTo(ox + (ampB + 16) * EXX, oy + (ampB + 16) * EXY);
+        ctx.stroke();
+      }
+
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("传播方向", ox + zLen - 28, oy + 20);
+      ctx.fillStyle = waveColor;
+      ctx.fillText("E", ox + 8, oy - amplitude - 8);
+      if (showBField) {
+        ctx.fillStyle = COLOR_B;
+        ctx.fillText("B", ox + (ampB + 16) * EXX + 6, oy + (ampB + 16) * EXY + 8);
+      }
+
+      const STEP = 3;
+
+      // B 场绸带 + 曲线（水平面内振动 → 投影为斜向）
+      if (showBField) {
+        ctx.save();
+        ctx.beginPath();
+        for (let z = 0; z <= zLen; z += STEP) {
+          const b = ampB * Math.sin(phase(z));
+          const [sx, sy] = proj(b, 0, z);
+          if (z === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        for (let z = zLen; z >= 0; z -= STEP) {
+          const [sx, sy] = proj(0, 0, z);
+          ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "rgba(96, 165, 250, 0.09)";
+        ctx.fill();
+
+        ctx.strokeStyle = COLOR_B;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = COLOR_B;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        for (let z = 0; z <= zLen; z += STEP) {
+          const b = ampB * Math.sin(phase(z));
+          const [sx, sy] = proj(b, 0, z);
+          if (z === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // B 矢量箭头
+        ctx.save();
+        ctx.strokeStyle = "rgba(96, 165, 250, 0.7)";
+        ctx.fillStyle = "rgba(96, 165, 250, 0.7)";
+        ctx.lineWidth = 1.4;
+        for (let z = pxPerWl / 4; z <= zLen; z += pxPerWl / 2) {
+          const b = ampB * Math.sin(phase(z));
+          if (Math.abs(b) < 3) continue;
+          const [x0, y0] = proj(0, 0, z);
+          const [x1, y1] = proj(b, 0, z);
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+          const ang = Math.atan2(y1 - y0, x1 - x0);
+          ctx.save();
+          ctx.translate(x1, y1);
+          ctx.rotate(ang);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(-5, -2.6);
+          ctx.lineTo(-5, 2.6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      // E 场绸带 + 曲线（竖直面）
+      ctx.save();
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const e = amplitude * Math.sin(phase(z));
+        const [sx, sy] = proj(0, e, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      for (let z = zLen; z >= 0; z -= STEP) {
+        const [sx, sy] = proj(0, 0, z);
+        ctx.lineTo(sx, sy);
+      }
+      ctx.closePath();
+      const ribbonColor = waveColor.replace("rgb", "rgba").replace(")", ", 0.12)");
+      ctx.fillStyle = ribbonColor;
+      ctx.fill();
+
+      ctx.strokeStyle = waveColor;
+      ctx.lineWidth = 2.8;
+      ctx.shadowColor = waveColor;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const e = amplitude * Math.sin(phase(z));
+        const [sx, sy] = proj(0, e, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // E 矢量箭头
+      ctx.save();
+      ctx.strokeStyle = waveColor;
+      ctx.fillStyle = waveColor;
+      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 1.4;
+      for (let z = 0; z <= zLen; z += pxPerWl / 2) {
+        const e = amplitude * Math.sin(phase(z));
+        if (Math.abs(e) < 3) continue;
+        const [x0, y0] = proj(0, 0, z);
+        const [x1, y1] = proj(0, e, z);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+        const dir = e > 0 ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 - 2.8, y1 + dir * 5);
+        ctx.lineTo(x1 + 2.8, y1 + dir * 5);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 波峰追踪点（随波以相速度前进，体现"波在跑"）
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const crestPhase = Math.PI / 2 + omega * time; // E 最大处 kz = π/2 + ωt
+      let zCrest = ((crestPhase / k) % pxPerWl + pxPerWl) % pxPerWl;
+      for (; zCrest <= zLen; zCrest += pxPerWl) {
+        const [sx, sy] = proj(0, amplitude, zCrest);
+        const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 9);
+        glow.addColorStop(0, "rgba(255,255,255,0.9)");
+        glow.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 波长标尺（静态参考）
+      const ruleY = oy + amplitude + 28;
+      const ruleX = ox + 30;
+      ctx.strokeStyle = "#64748b";
+      ctx.fillStyle = "#94a3b8";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ruleX, ruleY - 5);
+      ctx.lineTo(ruleX, ruleY + 5);
+      ctx.moveTo(ruleX, ruleY);
+      ctx.lineTo(ruleX + pxPerWl, ruleY);
+      ctx.moveTo(ruleX + pxPerWl, ruleY - 5);
+      ctx.lineTo(ruleX + pxPerWl, ruleY + 5);
+      ctx.stroke();
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`λ = ${wavelength} nm`, ruleX + pxPerWl / 2, ruleY + 16);
+
+      // 角落提示
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(148,163,184,0.6)";
+      ctx.fillText("E ⊥ B ⊥ 传播方向，且 E、B 同相位", width - 14, 22);
+    },
+  });
+
+  return <canvas ref={canvasRef} className="mx-auto block rounded-lg" />;
+}
+
 export function ElectromagneticWaveDemo() {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -185,75 +477,7 @@ export function ElectromagneticWaveDemo() {
   const [showAtmosphere, setShowAtmosphere] = useState(true);
   const [showSizeComparison, setShowSizeComparison] = useState(true);
 
-  // Convert wavelength to RGB color
-  const wavelengthToRGB = (wl: number): string => {
-    let r = 0,
-      g = 0,
-      b = 0;
-    if (wl >= 380 && wl < 440) {
-      r = -(wl - 440) / (440 - 380);
-      b = 1;
-    } else if (wl >= 440 && wl < 490) {
-      g = (wl - 440) / (490 - 440);
-      b = 1;
-    } else if (wl >= 490 && wl < 510) {
-      g = 1;
-      b = -(wl - 510) / (510 - 490);
-    } else if (wl >= 510 && wl < 580) {
-      r = (wl - 510) / (580 - 510);
-      g = 1;
-    } else if (wl >= 580 && wl < 645) {
-      r = 1;
-      g = -(wl - 645) / (645 - 580);
-    } else if (wl >= 645 && wl <= 700) {
-      r = 1;
-    }
-    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
-  };
-
   const waveColor = wavelengthToRGB(wavelength);
-  const animationDuration = speed > 0 ? 4 / speed : 1000;
-
-  // Wave path generation
-  // 科学说明：电磁波中E场和B场同相位（同时达到最大和最小值），
-  // 两者振动方向相互垂直，且都垂直于传播方向。
-  // 真空中 |B| = |E|/c，但为了可视化目的，B场振幅按比例缩小显示。
-  const wavePaths = useMemo(() => {
-    const generatePath = (
-      phaseOffset: number,
-      amplitudeScale: number,
-      isVertical: boolean = false,
-    ) => {
-      const width = 600;
-      const centerY = 150;
-      const points: string[] = [];
-      const pixelsPerWavelength = 80 + (wavelength - 400) / 4;
-
-      for (let x = 0; x <= width; x += 2) {
-        const waveX = ((x + phaseOffset) / pixelsPerWavelength) * 2 * Math.PI;
-        // E场和B场使用相同的sin函数（同相位），只是振动方向不同
-        // E场在垂直平面振动（y方向），B场在水平平面振动（用y偏移模拟z方向）
-        const y = isVertical
-          ? centerY + amplitude * amplitudeScale * Math.sin(waveX) // B场同相位
-          : centerY - amplitude * amplitudeScale * Math.sin(waveX); // E场
-        points.push(`${x + 50},${y}`);
-      }
-
-      return `M ${points.join(" L ")}`;
-    };
-
-    const paths = [];
-    for (let phase = 0; phase <= 200; phase += 10) {
-      paths.push({
-        phase,
-        ePath: generatePath(phase, 1, false),
-        bPath: generatePath(phase, 0.3, true),
-      });
-    }
-    return { paths, generatePath };
-  }, [wavelength, amplitude]);
-  const isWaveAnimating = isPlaying && speed > 0 && wavePaths.paths.length > 0;
-  const waveAnimationKey = `wave-speed-${speed}`;
 
   // Selected spectrum region info
   const selectedInfo = useMemo(() => {
@@ -263,7 +487,7 @@ export function ElectromagneticWaveDemo() {
   return (
     <div className="space-y-6">
       {/* View Mode Tabs */}
-      <div className="flex gap-2 p-1 bg-slate-800/50 rounded-lg w-fit">
+      <div className={`flex gap-2 p-1 rounded-lg w-fit ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"}`}>
         <button
           onClick={() => setViewMode("wave")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -302,221 +526,36 @@ export function ElectromagneticWaveDemo() {
             transition={{ duration: 0.2 }}
           >
             {/* Wave View Content */}
-            <div className="flex gap-6 flex-col lg:flex-row">
-              <div className="flex-1">
-                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 rounded-xl border border-blue-500/20 p-4 overflow-hidden">
-                  <svg
-                    viewBox="0 0 700 300"
-                    className="w-full h-auto"
-                    style={{ minHeight: "280px" }}
-                  >
-                    <defs>
-                      <pattern
-                        id="grid"
-                        width="40"
-                        height="40"
-                        patternUnits="userSpaceOnUse"
-                      >
-                        <path
-                          d="M 40 0 L 0 0 0 40"
-                          fill="none"
-                          stroke="rgba(100,150,255,0.08)"
-                          strokeWidth="1"
-                        />
-                      </pattern>
-                      <filter id="glow">
-                        <feGaussianBlur
-                          stdDeviation="3"
-                          result="coloredBlur"
-                        />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <rect
-                      width="700"
-                      height="300"
-                      fill="url(#grid)"
-                    />
-
-                    {/* Axes */}
-                    <line
-                      x1="50"
-                      y1="150"
-                      x2="670"
-                      y2="150"
-                      stroke="#4b5563"
-                      strokeWidth="1.5"
-                    />
-                    <line
-                      x1="50"
-                      y1="50"
-                      x2="50"
-                      y2="250"
-                      stroke="#4b5563"
-                      strokeWidth="1.5"
-                    />
-                    <polygon
-                      points="670,150 660,145 660,155"
-                      fill="#4b5563"
-                    />
-                    <polygon
-                      points="50,50 45,60 55,60"
-                      fill="#4b5563"
-                    />
-                    <text
-                      x="680"
-                      y="155"
-                      fill="#9ca3af"
-                      fontSize="14"
-                    >
-                      x
-                    </text>
-                    <text
-                      x="55"
-                      y="45"
-                      fill="#9ca3af"
-                      fontSize="14"
-                    >
-                      E
-                    </text>
-                    {showBField && (
-                      <text
-                        x="55"
-                        y="265"
-                        fill="#60a5fa"
-                        fontSize="12"
-                      >
-                        B
-                      </text>
-                    )}
-
-                    {/* E-field wave */}
-                    <motion.path
-                      key={`e-${waveAnimationKey}`}
-                      d={wavePaths.generatePath(0, 1, false)}
-                      fill="none"
-                      stroke={waveColor}
-                      strokeWidth="3"
-                      filter="url(#glow)"
-                      animate={
-                        isWaveAnimating
-                          ? {
-                              d: wavePaths.paths.map((p) => p.ePath),
-                            }
-                          : {}
-                      }
-                      transition={{
-                        duration: animationDuration,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    />
-
-                    {/* B-field wave */}
-                    {showBField && (
-                      <motion.path
-                        key={`b-${waveAnimationKey}`}
-                        d={wavePaths.generatePath(0, 0.3, true)}
-                        fill="none"
-                        stroke="#60a5fa"
-                        strokeWidth="2"
-                        strokeDasharray="8 4"
-                        opacity="0.8"
-                        animate={
-                          isWaveAnimating
-                            ? {
-                                d: wavePaths.paths.map((p) => p.bPath),
-                              }
-                            : {}
-                        }
-                        transition={{
-                          duration: animationDuration,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      />
-                    )}
-
-                    {/* Wavelength marker */}
-                    <g transform="translate(150, 220)">
-                      <line
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="15"
-                        stroke="#6b7280"
-                        strokeWidth="1"
-                      />
-                      <line
-                        x1={80 + (wavelength - 400) / 4}
-                        y1="0"
-                        x2={80 + (wavelength - 400) / 4}
-                        y2="15"
-                        stroke="#6b7280"
-                        strokeWidth="1"
-                      />
-                      <line
-                        x1="0"
-                        y1="8"
-                        x2={80 + (wavelength - 400) / 4}
-                        y2="8"
-                        stroke="#6b7280"
-                        strokeWidth="1"
-                      />
-                      <text
-                        x={(80 + (wavelength - 400) / 4) / 2}
-                        y="30"
-                        fill="#9ca3af"
-                        fontSize="11"
-                        textAnchor="middle"
-                      >
-                        λ = {wavelength} nm
-                      </text>
-                    </g>
-
-                    <foreignObject
-                      x="550"
-                      y="18"
-                      width="150"
-                      height="24"
-                    >
-                      <div
-                        {...({
-                          xmlns: "http://www.w3.org/1999/xhtml",
-                          style: {
-                            fontSize: "11px",
-                            color: "#6b7280",
-                            display: "flex",
-                            alignItems: "center",
-                          },
-                        } as any)}
-                      >
-                        {MathText({ text: "$c \\approx 2.998 \\times 10^8 \\text{ m/s}$" })}
-                      </div>
-                    </foreignObject>
-                    <rect
-                      x="580"
-                      y="50"
-                      width="70"
-                      height="20"
-                      rx="4"
-                      fill={waveColor}
-                      opacity="0.8"
-                    />
-                  </svg>
-                </div>
+            <div className="flex gap-5 flex-col lg:flex-row">
+              <div className="flex-1 min-w-0 space-y-4">
+                <DemoStage
+                  title="电磁波传播结构"
+                  subtitle="斜二测投影"
+                  legend={[
+                    { color: waveColor, label: "电场 E", shape: "line" },
+                    ...(showBField
+                      ? [{ color: COLOR_B, label: "磁场 B", shape: "line" as const }]
+                      : []),
+                  ]}
+                >
+                  <EMWaveCanvas
+                    wavelength={wavelength}
+                    amplitude={amplitude}
+                    speed={speed}
+                    showBField={showBField}
+                    isPlaying={isPlaying}
+                    waveColor={waveColor}
+                  />
+                </DemoStage>
 
                 {/* Visible Spectrum Bar */}
                 <div
-                  className={`mt-4 p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}
+                  className={`p-4 rounded-xl ${theme === "dark" ? "bg-slate-800/50 border-slate-700/50" : "bg-gray-100/50 border-gray-300/50"} border`}
                 >
                   <h4
                     className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}
                   >
-                    {t("demoUi.common.visibleSpectrum")}
+                    {t("demoUi.common.visibleSpectrum")}（点击选择波长）
                   </h4>
                   <div
                     className="h-8 rounded cursor-pointer relative"
@@ -533,7 +572,7 @@ export function ElectromagneticWaveDemo() {
                     }}
                   >
                     <motion.div
-                      className="absolute top-0 w-1 h-full bg-white/80 rounded"
+                      className="absolute top-0 w-1.5 h-full bg-white rounded shadow-[0_0_8px_rgba(255,255,255,0.9)]"
                       style={{ left: `${((wavelength - 380) / 320) * 100}%` }}
                       layoutId="wavelength-indicator"
                     />
@@ -550,7 +589,7 @@ export function ElectromagneticWaveDemo() {
 
               <ControlPanel
                 title={t("demoUi.lightWave.waveParameters")}
-                className="w-full lg:w-72"
+                className="w-full lg:w-72 flex-shrink-0"
               >
                 <SliderControl
                   label={t("demoUi.common.wavelength")}
@@ -601,10 +640,15 @@ export function ElectromagneticWaveDemo() {
                 </motion.button>
 
                 <div className="pt-2 border-t border-slate-700">
-                  <ValueDisplay
-                    label={t("demoUi.common.color")}
-                    value={waveColor}
-                  />
+                  <div className="flex justify-between items-center py-1">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      {t("demoUi.common.color")}
+                    </span>
+                    <span
+                      className="inline-block w-10 h-4 rounded"
+                      style={{ backgroundColor: waveColor, boxShadow: `0 0 8px ${waveColor}` }}
+                    />
+                  </div>
                   {/* 使用精确光速值 c = 2.998×10^8 m/s 计算频率 f = c/λ */}
                   <ValueDisplay
                     label={t("demoUi.common.frequency")}
@@ -634,11 +678,11 @@ export function ElectromagneticWaveDemo() {
                 <ul
                   className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
                 >
-                  <li>• E场和B场相互垂直</li>
+                  <li>• E场和B场相互垂直、同相位（同时达到最大）</li>
                   <li>• 横波：振动方向垂直于传播方向</li>
                   <li>
                     {" "}
-                    {MathText({ text: "• 真空中速度恒定：$c = 3 \\times 10^8 \\text{ m/s}$" })}
+                    {MathText({ text: "• 真空中速度恒定：$c = 3 \\times 10^8 \\text{ m/s}$，且 $|B| = |E|/c$" })}
                   </li>
                 </ul>
                 <Formula className="mt-2">$c = \lambda f$</Formula>
@@ -650,7 +694,7 @@ export function ElectromagneticWaveDemo() {
                 <ul
                   className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}
                 >
-                  <li>• 偏振描述电场振动方向</li>
+                  <li>• 偏振描述电场E的振动方向（图中竖直面）</li>
                   <li>• 自然光包含所有偏振方向</li>
                   <li>• 只有横波才能偏振</li>
                 </ul>
@@ -666,13 +710,13 @@ export function ElectromagneticWaveDemo() {
             transition={{ duration: 0.2 }}
           >
             {/* Spectrum View Content */}
-            <div className="flex gap-6 flex-col lg:flex-row">
-              <div className="flex-1">
-                <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-xl border border-indigo-500/20 p-4 overflow-hidden">
+            <div className="flex gap-5 flex-col lg:flex-row">
+              <div className="flex-1 min-w-0">
+                <DemoStage title="电磁波谱全景" subtitle="点击波段查看详情">
                   <svg
-                    viewBox="0 0 800 280"
+                    viewBox="0 0 800 260"
                     className="w-full h-auto"
-                    style={{ minHeight: "250px" }}
+                    style={{ minHeight: "230px" }}
                   >
                     <defs>
                       <pattern
@@ -738,24 +782,13 @@ export function ElectromagneticWaveDemo() {
 
                     <rect
                       width="800"
-                      height="280"
+                      height="260"
                       fill="url(#spectrum-grid)"
                     />
 
-                    <text
-                      x="400"
-                      y="25"
-                      textAnchor="middle"
-                      fill="#e2e8f0"
-                      fontSize="16"
-                      fontWeight="bold"
-                    >
-                      电磁波谱
-                    </text>
-
                     {/* Atmosphere penetration */}
                     {showAtmosphere && (
-                      <g transform="translate(50, 40)">
+                      <g transform="translate(50, 20)">
                         <text
                           x="0"
                           y="0"
@@ -796,7 +829,7 @@ export function ElectromagneticWaveDemo() {
                     )}
 
                     {/* Spectrum bands */}
-                    <g transform="translate(50, 95)">
+                    <g transform="translate(50, 75)">
                       {SPECTRUM_REGIONS.map((region, index) => {
                         const x = index * 100;
                         const width = 98;
@@ -864,7 +897,7 @@ export function ElectromagneticWaveDemo() {
 
                     {/* Size comparison */}
                     {showSizeComparison && (
-                      <g transform="translate(50, 200)">
+                      <g transform="translate(50, 180)">
                         <text
                           x="0"
                           y="0"
@@ -900,7 +933,7 @@ export function ElectromagneticWaveDemo() {
                       </g>
                     )}
                   </svg>
-                </div>
+                </DemoStage>
 
                 {/* Selected region info */}
                 <AnimatePresence>
@@ -971,7 +1004,7 @@ export function ElectromagneticWaveDemo() {
 
               <ControlPanel
                 title="显示选项"
-                className="w-full lg:w-72"
+                className="w-full lg:w-72 flex-shrink-0"
               >
                 <Toggle
                   label="显示大气穿透性"
@@ -985,7 +1018,7 @@ export function ElectromagneticWaveDemo() {
                 />
 
                 <div className="border-t border-slate-700 pt-4 mt-4">
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">选择波段</h4>
+                  <h4 className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}>选择波段</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {SPECTRUM_REGIONS.map((region) => (
                       <button
@@ -994,7 +1027,9 @@ export function ElectromagneticWaveDemo() {
                         className={`px-2 py-1.5 rounded text-xs transition-all ${
                           selectedRegion === region.id
                             ? "bg-opacity-30 border"
-                            : "bg-slate-800/50 border border-transparent hover:border-slate-600"
+                            : theme === "dark"
+                              ? "bg-slate-800/50 border border-transparent hover:border-slate-600"
+                              : "bg-gray-100 border border-transparent hover:border-gray-300"
                         }`}
                         style={{
                           backgroundColor:

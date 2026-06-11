@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Sparkles, FlaskConical, RotateCcw } from "lucide-react";
+import { Sparkles, FlaskConical, RotateCcw, BookOpen } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   SliderControl,
@@ -29,6 +29,7 @@ import {
   Toggle,
   ListItem,
 } from "../DemoControls";
+import { DemoStage, DemoSection } from "../components/DemoLayout";
 import {
   calculateWalkOffAngle,
   calculateBirefringenceRayPaths,
@@ -41,6 +42,7 @@ import {
   IncidentRay,
   OrdinaryRay,
   ExtraordinaryRay,
+  PhotonFlow,
   CrystalInternalPaths,
   OpticalAxisIndicator,
   PolarizationIndicators,
@@ -210,12 +212,18 @@ function BiRefringenceCanvas({
         <Canvas
           camera={{ position: [0, 2, 8], fov: 50 }}
           gl={{ antialias: true, alpha: true }}
+          dpr={[1, 2]}
           className="bg-slate-950"
         >
+          {/* 场景氛围 | Scene atmosphere */}
+          <color attach="background" args={["#070d1a"]} />
+          <fog attach="fog" args={["#070d1a", 14, 30]} />
+
           {/* 光照 | Lighting */}
-          <ambientLight intensity={0.4} />
-          <pointLight position={[10, 10, 10]} intensity={0.8} />
-          <pointLight position={[-10, -5, -10]} intensity={0.3} color="#4488ff" />
+          <ambientLight intensity={0.45} />
+          <pointLight position={[10, 10, 10]} intensity={0.9} />
+          <pointLight position={[-10, -5, -10]} intensity={0.35} color="#4488ff" />
+          <pointLight position={[0, 6, -8]} intensity={0.25} color="#f0abfc" />
 
           {/* 轨道控制器 | OrbitControls for draggable/rotatable view */}
           <OrbitControls
@@ -243,6 +251,13 @@ function BiRefringenceCanvas({
           <IncidentRay params={params} animate={animate} />
           {showORay && <OrdinaryRay params={params} animate={animate} />}
           {showERay && <ExtraordinaryRay params={params} animate={animate} />}
+          {/* 光子脉冲流：直观展示一束光分裂为两束 | Photon pulses splitting in two */}
+          <PhotonFlow
+            params={params}
+            showORay={showORay}
+            showERay={showERay}
+            enabled={animate}
+          />
           <SplitPointMarker params={params} />
           <ExitRayMarkers params={params} showORay={showORay} showERay={showERay} />
           <ObservationScreen params={params} showORay={showORay} showERay={showERay} />
@@ -368,32 +383,22 @@ export function BiRefringenceIcelandSparDemo() {
   };
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      {/* 标题部分 | Title Section */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
-          {t("basics.demos.birefringenceIcelandSpar.title") || "双折射效应"}
-        </h2>
-        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>
-          {t("basics.demos.birefringenceIcelandSpar.description") || "方解石等晶体将一束光分裂为o光和e光的现象"}
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-5 h-full">
       {/* 主要可视化区域 | Main visualization area */}
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* 画布 | Canvas */}
-        <div className="flex-1 bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10 flex items-center justify-between">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>3D晶体演示</h3>
-            <div className={`flex items-center gap-2 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              <span className="inline-block w-2 h-2 rounded-full bg-yellow-400" />
-              入射光
-              <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 ml-2" />
-              o光
-              <span className="inline-block w-2 h-2 rounded-full bg-purple-400 ml-2" />
-              e光
-            </div>
-          </div>
+        <DemoStage
+          className="flex-1 min-w-0 w-full"
+          title="3D晶体演示"
+          subtitle="拖动旋转 · 滚轮缩放"
+          legend={[
+            { color: "#ffdd00", label: "入射光" },
+            { color: "#00ffff", label: "o光" },
+            { color: "#ff00ff", label: "e光" },
+            { color: "#ff8800", label: "光轴" },
+          ]}
+          bodyClassName="p-0"
+        >
           <div className="h-[520px] overflow-hidden">
             <BiRefringenceCanvas
               incidentAngle={incidentAngle}
@@ -405,11 +410,11 @@ export function BiRefringenceIcelandSparDemo() {
               onResetCamera={handleResetCamera}
             />
           </div>
-        </div>
+        </DemoStage>
 
         {/* 信息面板 | Info Panel */}
-        <div className="lg:w-[340px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10">
+        <div className={`w-full lg:w-[340px] flex-shrink-0 rounded-2xl border overflow-hidden ${theme === "dark" ? "bg-slate-900/50 border-cyan-400/20" : "bg-white border-cyan-200"}`}>
+          <div className={`px-4 py-3 border-b ${theme === "dark" ? "border-cyan-400/10" : "border-cyan-100"}`}>
             <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>观察结果</h3>
           </div>
           <div className="p-4 space-y-4">
@@ -671,6 +676,7 @@ export function BiRefringenceIcelandSparDemo() {
       </div>
 
       {/* 信息卡片 | Info Cards */}
+      <DemoSection title="原理与应用" icon={<BookOpen className="w-3.5 h-3.5" />}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InfoCard title="维京人的秘密导航晶体" color="cyan">
           <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
@@ -700,12 +706,10 @@ export function BiRefringenceIcelandSparDemo() {
         </InfoCard>
       </div>
 
+      </DemoSection>
+
       {/* 思考题 | Thinking Questions */}
-      <div className={`${theme === "dark" ? "bg-slate-900/50 border-cyan-400/20" : "bg-gray-100/50 border-cyan-600/20"} rounded-xl border p-4`}>
-        <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"} mb-3 flex items-center gap-2`}>
-          <FlaskConical className="w-4 h-4 text-cyan-400" />
-          思考题
-        </h3>
+      <DemoSection title="思考题" icon={<FlaskConical className="w-3.5 h-3.5" />}>
         <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
           <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q1:</span> {(t("basics.demos.birefringenceIcelandSpar.questions.guided", { returnObjects: true }) as string[])[0] || "为什么透过方解石观看文字会产生双像？"}
@@ -720,7 +724,7 @@ export function BiRefringenceIcelandSparDemo() {
             <span className="text-cyan-400 font-semibold">Q4:</span> {(t("basics.demos.birefringenceIcelandSpar.questions.guided_research", { returnObjects: true }) as string[])[0] || "旋转方解石晶体时，两个像会怎么变化？"}
           </div>
         </div>
-      </div>
+      </DemoSection>
 
       {/* 预留：DIY实验部分（未来功能）| Reserved: DIY experiment section (future feature) */}
       {/* <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4">

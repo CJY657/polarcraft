@@ -1,15 +1,26 @@
 /**
  * BrewsterAngleDemo.tsx
  *
- * Demonstration of Brewster's Angle phenomenon.
- * When unpolarized light hits a surface at Brewster's angle,
- * the reflected light is perfectly polarized perpendicular to the plane of incidence.
+ * 布鲁斯特角演示 —— 由真实菲涅耳方程驱动。
+ *
+ * 物理引擎：
+ * - 反射/折射光的亮度与偏振分量全部来自 lib/physics/Fresnel 的 Rs/Rp/Ts/Tp
+ * - 在布鲁斯特角处 P 分量自然消失（物理结果，而非硬编码）
+ * - 支持玻璃→空气方向：超过临界角进入全反射区，并绘制倏逝波提示
+ *
+ * 交互：
+ * - 直接在光路图上拖动可改变入射角
+ * - 反射率曲线图上点击/拖动也可设置角度
+ *
+ * 约定（与教材一致）：
+ * - 入射面即屏幕平面
+ * - S 偏振 ⊥ 入射面（指向屏幕外）→ 用 ⊙ 圆点表示
+ * - P 偏振 ∥ 入射面 → 用与光线垂直的双向箭头表示
  */
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { Target, Sparkles, FlaskConical, Lightbulb } from "lucide-react";
+import { Target, Sparkles, FlaskConical, Lightbulb, BookOpen } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   SliderControl,
@@ -19,594 +30,769 @@ import {
   Formula,
   Toggle,
   PresetButtons,
+  AnimatedValue,
 } from "../DemoControls";
+import { DemoStage, DemoSection } from "../components/DemoLayout";
+import { useDemoCanvas, pointerToCanvas } from "../hooks/useDemoCanvas";
+import {
+  fresnelCoefficients,
+  brewsterAngleDeg,
+  criticalAngleDeg,
+  unpolarizedReflectance,
+  reflectedDegreeOfPolarization,
+  sampleReflectanceCurve,
+  type FresnelResult,
+} from "@/lib/physics/Fresnel";
 
-// Material presets
+// 介质预设
 const MATERIAL_PRESETS = [
-  {
-    label: { "zh-CN": "空气→玻璃" },
-    n1: 1.0,
-    n2: 1.5,
-    color: "#60a5fa",
-  },
-  {
-    label: { "zh-CN": "空气→水" },
-    n1: 1.0,
-    n2: 1.33,
-    color: "#22d3ee",
-  },
-  {
-    label: { "zh-CN": "空气→钻石" },
-    n1: 1.0,
-    n2: 2.42,
-    color: "#a78bfa",
-  },
+  { label: { "zh-CN": "空气→玻璃" }, n1: 1.0, n2: 1.5 },
+  { label: { "zh-CN": "空气→水" }, n1: 1.0, n2: 1.33 },
+  { label: { "zh-CN": "空气→钻石" }, n1: 1.0, n2: 2.42 },
+  { label: { "zh-CN": "玻璃→空气" }, n1: 1.5, n2: 1.0 },
 ];
 
-// Canvas component for Brewster Angle visualization
-function BrewsterAngleCanvas({
-  incidentAngle,
-  n1,
-  n2,
-  brewsterAngle,
-  isAtBrewsterAngle,
-  animate,
-}: {
-  incidentAngle: number;
-  n1: number;
-  n2: number;
-  brewsterAngle: number;
-  isAtBrewsterAngle: boolean;
-  animate: boolean;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timeRef = useRef(0);
-  const animationRef = useRef<number | undefined>(undefined);
+const COLOR_S = "#4ade80"; // S 偏振（⊥入射面，⊙）
+const COLOR_P = "#fbbf24"; // P 偏振（∥入射面，↕）
+const COLOR_INCIDENT = "#fff7ce";
+const COLOR_REFLECT = "#ffd166";
+const COLOR_REFRACT = "#5eead4";
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+// ----------------------------------------------------------------------------
+// 绘制辅助
+// ----------------------------------------------------------------------------
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = 600;
-    const height = 400;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.scale(dpr, dpr);
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const rayLength = 180;
-
-    const draw = () => {
-      // Clear canvas
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw media backgrounds
-      // Upper medium (n1) - air
-      ctx.fillStyle = "rgba(100, 200, 255, 0.08)";
-      ctx.fillRect(0, 0, width, cy);
-
-      // Lower medium (n2) - glass/water/diamond
-      const mediumOpacity = 0.08 + (n2 - 1) * 0.05;
-      ctx.fillStyle = `rgba(150, 255, 200, ${mediumOpacity})`;
-      ctx.fillRect(0, cy, width, height - cy);
-
-      // Draw medium labels
-      ctx.fillStyle = "#64748b";
-      ctx.font = "13px sans-serif";
-      ctx.fillText(`n₁ = ${n1.toFixed(2)}`, 20, cy - 15);
-      ctx.fillText(`n₂ = ${n2.toFixed(2)}`, 20, cy + 25);
-
-      // Draw boundary line (thick)
-      ctx.beginPath();
-      ctx.strokeStyle = "#475569";
-      ctx.lineWidth = 3;
-      ctx.moveTo(0, cy);
-      ctx.lineTo(width, cy);
-      ctx.stroke();
-
-      // Draw normal line (dashed)
-      ctx.beginPath();
-      ctx.strokeStyle = "#64748b";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([8, 4]);
-      ctx.moveTo(cx, 20);
-      ctx.lineTo(cx, height - 20);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Calculate angles
-      const angleRad = (incidentAngle * Math.PI) / 180;
-
-      // Calculate refracted angle using Snell's law: n1*sin(θ1) = n2*sin(θ2)
-      const sinRefracted = (n1 * Math.sin(angleRad)) / n2;
-      const refractedAngleRad = Math.asin(Math.min(1, Math.max(-1, sinRefracted)));
-
-      // Wave animation offset
-      const waveOffset = animate ? timeRef.current * 2 : 0;
-
-      // Draw incident ray (from upper left)
-      const incidentStartX = cx - rayLength * Math.sin(angleRad);
-      const incidentStartY = cy - rayLength * Math.cos(angleRad);
-
-      // Incident ray base
-      ctx.beginPath();
-      ctx.strokeStyle = "#ff6b35";
-      ctx.lineWidth = 3;
-      ctx.moveTo(incidentStartX, incidentStartY);
-      ctx.lineTo(cx, cy);
-      ctx.stroke();
-
-      // Draw wave pattern on incident ray
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 107, 53, 0.5)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < rayLength; i += 4) {
-        const t = i / rayLength;
-        const x = incidentStartX + t * (cx - incidentStartX);
-        const y = incidentStartY + t * (cy - incidentStartY);
-        const wavePhase = (i - waveOffset) * 0.1;
-        const perpX = Math.cos(angleRad);
-        const perpY = -Math.sin(angleRad);
-        const waveOffsetDist = 5 * Math.sin(wavePhase);
-
-        if (i === 0) {
-          ctx.moveTo(x + perpX * waveOffsetDist, y + perpY * waveOffsetDist);
-        } else {
-          ctx.lineTo(x + perpX * waveOffsetDist, y + perpY * waveOffsetDist);
-        }
-      }
-      ctx.stroke();
-
-      // Draw polarization indicators on incident ray (both P and S)
-      drawPolarizationIndicatorsOnRay(
-        ctx,
-        incidentStartX,
-        incidentStartY,
-        cx,
-        cy,
-        0.3,
-        0.7,
-        waveOffset,
-      );
-
-      // Draw reflected ray (to upper right)
-      const reflectedEndX = cx + rayLength * Math.sin(angleRad);
-      const reflectedEndY = cy - rayLength * Math.cos(angleRad);
-
-      // Reflected ray base
-      ctx.beginPath();
-      const reflectedColor = isAtBrewsterAngle ? "#44ff44" : "#ff6b35";
-      ctx.strokeStyle = reflectedColor;
-      ctx.lineWidth = isAtBrewsterAngle ? 4 : 3;
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(reflectedEndX, reflectedEndY);
-      ctx.stroke();
-
-      // Glow effect at Brewster angle
-      if (isAtBrewsterAngle) {
-        ctx.shadowColor = reflectedColor;
-        ctx.shadowBlur = 20;
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(68, 255, 68, 0.45)";
-        ctx.lineWidth = 8;
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(reflectedEndX, reflectedEndY);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-
-      // Draw wave pattern on reflected ray
-      ctx.beginPath();
-      ctx.strokeStyle = isAtBrewsterAngle ? "rgba(68, 255, 68, 0.45)" : "rgba(255, 107, 53, 0.5)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < rayLength; i += 4) {
-        const t = i / rayLength;
-        const x = cx + t * (reflectedEndX - cx);
-        const y = cy + t * (reflectedEndY - cy);
-        const wavePhase = (i + waveOffset) * 0.1;
-        const perpX = -Math.cos(angleRad);
-        const perpY = -Math.sin(angleRad);
-        const waveOffsetDist = 5 * Math.sin(wavePhase);
-
-        if (i === 0) {
-          ctx.moveTo(x + perpX * waveOffsetDist, y + perpY * waveOffsetDist);
-        } else {
-          ctx.lineTo(x + perpX * waveOffsetDist, y + perpY * waveOffsetDist);
-        }
-      }
-      ctx.stroke();
-
-      // Draw polarization indicators on reflected ray
-      // At Brewster angle, P-component (parallel) is zero!
-      const pAmplitude = isAtBrewsterAngle ? 0 : 0.3;
-      drawPolarizationIndicatorsOnRay(
-        ctx,
-        cx,
-        cy,
-        reflectedEndX,
-        reflectedEndY,
-        pAmplitude,
-        0.7,
-        waveOffset,
-      );
-
-      // Draw refracted ray (into lower medium)
-      const refractedEndX = cx + rayLength * Math.sin(refractedAngleRad);
-      const refractedEndY = cy + rayLength * Math.cos(refractedAngleRad);
-
-      // Refracted ray base
-      ctx.beginPath();
-      ctx.strokeStyle = "#22d3ee";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(refractedEndX, refractedEndY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Draw angle arcs
-      // Incident angle arc
-      drawAngleArc(ctx, cx, cy, -Math.PI / 2 - angleRad, -Math.PI / 2, `θᵢ = ${incidentAngle.toFixed(1)}°`, 40);
-
-      // Reflected angle arc
-      drawAngleArc(ctx, cx, cy, -Math.PI / 2, -Math.PI / 2 + angleRad, `θᵣ = ${incidentAngle.toFixed(1)}°`, 40);
-
-      // Refracted angle arc
-      drawAngleArc(
-        ctx,
-        cx,
-        cy,
-        Math.PI / 2 - refractedAngleRad,
-        Math.PI / 2,
-        `θₜ = ${(refractedAngleRad * 180 / Math.PI).toFixed(1)}°`,
-        55,
-      );
-
-      // Draw angle between reflected and refracted (should be 90° at Brewster)
-      const angleBetween = angleRad + refractedAngleRad;
-      if (angleBetween > 0.1) {
-        const isRightAngle = Math.abs(angleBetween - Math.PI / 2) < 0.05;
-        ctx.beginPath();
-        ctx.strokeStyle = isRightAngle && isAtBrewsterAngle ? "#ffd700" : "#64748b";
-        ctx.lineWidth = isRightAngle ? 2 : 1;
-        ctx.arc(cx, cy, 70, -Math.PI / 2 + angleRad, Math.PI / 2 - refractedAngleRad);
-        ctx.stroke();
-
-        if (isRightAngle && isAtBrewsterAngle) {
-          // Draw right angle symbol
-          ctx.fillStyle = "#ffd700";
-          ctx.font = "bold 12px sans-serif";
-          ctx.fillText("90°", cx + 75, cy - 5);
-        }
-      }
-
-      // Draw polarization legend
-      drawPolarizationLegend(ctx, width, height, isAtBrewsterAngle);
-
-      // Draw Brewster angle badge
-      if (isAtBrewsterAngle) {
-        ctx.fillStyle = "rgba(255, 215, 0, 0.2)";
-        ctx.fillRect(width / 2 - 80, 15, 160, 35);
-        ctx.strokeStyle = "#ffd700";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(width / 2 - 80, 15, 160, 35);
-
-        ctx.fillStyle = "#ffd700";
-        ctx.font = "bold 14px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("🎯 布鲁斯特角!", width / 2, 38);
-        ctx.textAlign = "left";
-      }
-
-      if (animate) {
-        timeRef.current += 1;
-      }
-      animationRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [incidentAngle, n1, n2, brewsterAngle, isAtBrewsterAngle, animate]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="rounded-lg border border-cyan-400/20 w-full"
-      style={{ maxWidth: 600, height: 400 }}
-    />
-  );
-}
-
-// Helper function to draw polarization indicators on a ray
-function drawPolarizationIndicatorsOnRay(
+function drawBeam(
   ctx: CanvasRenderingContext2D,
   x1: number,
   y1: number,
   x2: number,
   y2: number,
-  pAmplitude: number,
-  sAmplitude: number,
-  waveOffset: number,
+  color: string,
+  width: number,
+  alpha: number,
+) {
+  if (alpha <= 0.004) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color;
+  ctx.lineCap = "round";
+  ctx.shadowColor = color;
+  // 外层光晕
+  ctx.shadowBlur = 18;
+  ctx.lineWidth = width * 2.2;
+  ctx.globalAlpha = alpha * 0.25;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  // 主光束
+  ctx.shadowBlur = 8;
+  ctx.lineWidth = width;
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** 沿光束移动的光子脉冲（加色混合，制造"光在流动"的感觉） */
+function drawPulses(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  color: string,
+  alpha: number,
+  time: number,
+  phaseOffset: number,
+) {
+  if (alpha <= 0.01) return;
+  const count = 4;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < count; i++) {
+    const u = ((time * 0.55 + i / count + phaseOffset) % 1 + 1) % 1;
+    const x = x1 + (x2 - x1) * u;
+    const y = y1 + (y2 - y1) * u;
+    const fade = Math.sin(u * Math.PI); // 两端淡入淡出
+    const r = 3.2;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = alpha * fade * 0.8;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 3.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * 光线上的偏振标记。
+ * sAmp: S 分量振幅(0..1) → ⊙ 圆点；pAmp: P 分量振幅(0..1) → 垂直于光线的双向箭头。
+ */
+function drawPolarizationMarkers(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  sAmp: number,
+  pAmp: number,
+  time: number,
 ) {
   const dx = x2 - x1;
   const dy = y2 - y1;
-  const length = Math.sqrt(dx * dx + dy * dy);
-  const numIndicators = 5;
+  const len = Math.hypot(dx, dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
 
-  for (let i = 1; i < numIndicators; i++) {
-    const t = i / numIndicators;
-    const x = x1 + t * dx;
-    const y = y1 + t * dy;
+  for (let i = 1; i <= 3; i++) {
+    const t = 0.22 + (i - 1) * 0.26;
+    const x = x1 + dx * t;
+    const y = y1 + dy * t;
+    const breathe = 0.8 + 0.2 * Math.sin(time * 5 + i * 1.8);
 
-    // P-polarization (dots along the ray - parallel to plane of incidence)
-    if (pAmplitude > 0.05) {
+    // S 偏振：⊙（指向屏幕外）
+    if (sAmp > 0.045) {
+      const r = 5.5 * Math.min(1, sAmp) * breathe;
+      ctx.save();
+      ctx.strokeStyle = COLOR_S;
+      ctx.fillStyle = COLOR_S;
+      ctx.shadowColor = COLOR_S;
+      ctx.shadowBlur = 6;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.fillStyle = "#fbbf24";
-      const dotSize = 4 + 2 * Math.sin((i * 10 - waveOffset) * 0.1);
-      ctx.arc(x, y, dotSize * pAmplitude, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(1, r * 0.28), 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
 
-    // S-polarization (perpendicular arrows)
-    if (sAmplitude > 0.05) {
-      const perpX = -dy / length;
-      const perpY = dx / length;
-      const arrowLength = 12 * sAmplitude * (0.8 + 0.2 * Math.sin((i * 10 - waveOffset) * 0.1));
-
-      ctx.beginPath();
-      ctx.strokeStyle = "#44ff44";
+    // P 偏振：垂直于光线的双向箭头（在入射面内振动）
+    if (pAmp > 0.045) {
+      const half = 13 * Math.min(1, pAmp) * breathe;
+      const hx = perpX * half;
+      const hy = perpY * half;
+      ctx.save();
+      ctx.strokeStyle = COLOR_P;
+      ctx.shadowColor = COLOR_P;
+      ctx.shadowBlur = 6;
       ctx.lineWidth = 2;
-      ctx.moveTo(x - perpX * arrowLength / 2, y - perpY * arrowLength / 2);
-      ctx.lineTo(x + perpX * arrowLength / 2, y + perpY * arrowLength / 2);
-      ctx.stroke();
-
-      // Arrow heads
-      const headSize = 3;
+      ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(x + perpX * arrowLength / 2, y + perpY * arrowLength / 2);
-      ctx.lineTo(
-        x + perpX * arrowLength / 2 - perpX * headSize + perpY * headSize,
-        y + perpY * arrowLength / 2 - perpY * headSize - perpX * headSize
-      );
-      ctx.moveTo(x + perpX * arrowLength / 2, y + perpY * arrowLength / 2);
-      ctx.lineTo(
-        x + perpX * arrowLength / 2 - perpX * headSize - perpY * headSize,
-        y + perpY * arrowLength / 2 - perpY * headSize + perpX * headSize
-      );
+      ctx.moveTo(x - hx, y - hy);
+      ctx.lineTo(x + hx, y + hy);
       ctx.stroke();
+      // 两端箭头
+      const head = 3.4;
+      for (const sign of [1, -1]) {
+        const tipX = x + hx * sign;
+        const tipY = y + hy * sign;
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(tipX - sign * (perpX * head + (dx / len) * head), tipY - sign * (perpY * head + (dy / len) * head));
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(tipX - sign * (perpX * head - (dx / len) * head), tipY - sign * (perpY * head - (dy / len) * head));
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 }
 
-// Helper function to draw angle arc
-function drawAngleArc(
+function drawAngleWedge(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
   startAngle: number,
   endAngle: number,
-  label: string,
   radius: number,
+  color: string,
+  label: string,
 ) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.1;
   ctx.beginPath();
-  ctx.strokeStyle = "#94a3b8";
-  ctx.lineWidth = 1;
+  ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, radius, startAngle, endAngle);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 0.75;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
   ctx.arc(cx, cy, radius, startAngle, endAngle);
   ctx.stroke();
 
-  // Label
-  const midAngle = (startAngle + endAngle) / 2;
-  const labelX = cx + (radius + 15) * Math.cos(midAngle);
-  const labelY = cy + (radius + 15) * Math.sin(midAngle);
-  ctx.fillStyle = "#94a3b8";
+  const mid = (startAngle + endAngle) / 2;
+  ctx.globalAlpha = 0.95;
+  ctx.fillStyle = color;
   ctx.font = "11px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(label, labelX, labelY);
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
+  ctx.fillText(label, cx + (radius + 17) * Math.cos(mid), cy + (radius + 17) * Math.sin(mid));
+  ctx.restore();
 }
 
-// Helper function to draw polarization legend
-function drawPolarizationLegend(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  isAtBrewsterAngle: boolean,
-) {
-  const legendX = width - 100;
-  const legendY = height - 60;
+// ----------------------------------------------------------------------------
+// 主光路画布
+// ----------------------------------------------------------------------------
 
-  // Background
-  ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
-  ctx.fillRect(legendX - 10, legendY - 10, 95, 55);
-  ctx.strokeStyle = "#475569";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(legendX - 10, legendY - 10, 95, 55);
+const MAIN_W = 640;
+const MAIN_H = 420;
 
-  // P-polarization legend
-  ctx.beginPath();
-  ctx.fillStyle = "#fbbf24";
-  ctx.arc(legendX + 8, legendY + 5, 5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#e0e0e0";
-  ctx.font = "11px sans-serif";
-  ctx.fillText("P偏振", legendX + 18, legendY + 9);
+function BrewsterMainCanvas({
+  incidentAngle,
+  n1,
+  n2,
+  fresnel,
+  isAtBrewsterAngle,
+  animate,
+  onAngleChange,
+}: {
+  incidentAngle: number;
+  n1: number;
+  n2: number;
+  fresnel: FresnelResult;
+  isAtBrewsterAngle: boolean;
+  animate: boolean;
+  onAngleChange: (deg: number) => void;
+}) {
+  const draggingRef = useRef(false);
 
-  // S-polarization legend
-  ctx.beginPath();
-  ctx.strokeStyle = "#44ff44";
-  ctx.lineWidth = 2;
-  ctx.moveTo(legendX, legendY + 28);
-  ctx.lineTo(legendX + 16, legendY + 28);
-  ctx.stroke();
-  ctx.fillStyle = "#e0e0e0";
-  ctx.fillText("S偏振", legendX + 18, legendY + 32);
+  const canvasRef = useDemoCanvas({
+    width: MAIN_W,
+    height: MAIN_H,
+    paused: !animate,
+    draw: ({ ctx, width, height, time }) => {
+      const cx = width / 2;
+      const cy = height / 2 + 10;
+      const rayLen = 175;
+      const thetaI = (incidentAngle * Math.PI) / 180;
+      const { Rs, Rp, Ts, Tp, refractionAngleDeg, totalInternalReflection } = fresnel;
+      const R = (Rs + Rp) / 2;
+      const T = (Ts + Tp) / 2;
 
-  // Note about Brewster angle
-  if (isAtBrewsterAngle) {
-    ctx.fillStyle = "#ffd700";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText("反射P分量为0", legendX - 8, legendY + 45);
-  }
+      // 背景
+      ctx.fillStyle = "#070d1a";
+      ctx.fillRect(0, 0, width, height);
+
+      // 上方介质（n1）
+      const airGrad = ctx.createLinearGradient(0, 0, 0, cy);
+      airGrad.addColorStop(0, `rgba(59, 130, 246, ${0.02 + (n1 - 1) * 0.06})`);
+      airGrad.addColorStop(1, `rgba(59, 130, 246, ${0.05 + (n1 - 1) * 0.08})`);
+      ctx.fillStyle = airGrad;
+      ctx.fillRect(0, 0, width, cy);
+
+      // 下方介质（n2）：折射率越大越"稠密"
+      const mediumGrad = ctx.createLinearGradient(0, cy, 0, height);
+      mediumGrad.addColorStop(0, `rgba(94, 234, 212, ${0.1 + (n2 - 1) * 0.07})`);
+      mediumGrad.addColorStop(1, `rgba(13, 148, 136, ${0.03 + (n2 - 1) * 0.03})`);
+      ctx.fillStyle = mediumGrad;
+      ctx.fillRect(0, cy, width, height - cy);
+
+      // 界面高光扫动（缓慢移动的镜面反光）
+      const sweepX = ((time * 40) % (width + 240)) - 120;
+      const sweep = ctx.createLinearGradient(sweepX - 90, 0, sweepX + 90, 0);
+      sweep.addColorStop(0, "rgba(255,255,255,0)");
+      sweep.addColorStop(0.5, "rgba(255,255,255,0.18)");
+      sweep.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = sweep;
+      ctx.fillRect(0, cy - 1.5, width, 3);
+
+      // 界面线
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(width, cy);
+      ctx.stroke();
+
+      // 介质标签
+      ctx.fillStyle = "#7dd3fc";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(`n₁ = ${n1.toFixed(2)}`, 16, cy - 12);
+      ctx.fillStyle = "#5eead4";
+      ctx.fillText(`n₂ = ${n2.toFixed(2)}`, 16, cy + 22);
+
+      // 法线
+      ctx.save();
+      ctx.strokeStyle = "rgba(100, 116, 139, 0.7)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.moveTo(cx, 24);
+      ctx.lineTo(cx, height - 18);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = "#64748b";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("法线", cx + 6, 32);
+
+      // 光线端点
+      const ix = cx - rayLen * Math.sin(thetaI);
+      const iy = cy - rayLen * Math.cos(thetaI);
+      const rx = cx + rayLen * Math.sin(thetaI);
+      const ry = cy - rayLen * Math.cos(thetaI);
+
+      // 角度弧
+      drawAngleWedge(ctx, cx, cy, -Math.PI / 2 - thetaI, -Math.PI / 2, 38, "#94a3b8", `θᵢ ${incidentAngle.toFixed(1)}°`);
+      drawAngleWedge(ctx, cx, cy, -Math.PI / 2, -Math.PI / 2 + thetaI, 52, isAtBrewsterAngle ? "#fbbf24" : "#94a3b8", `θᵣ`);
+
+      // 入射光（非偏振：S 与 P 等量）
+      drawBeam(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 3.4, 0.95);
+      if (animate) drawPulses(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 0.9, time, 0);
+      drawPolarizationMarkers(ctx, ix, iy, cx, cy, 0.62, 0.62, time);
+
+      // 反射光：亮度与分量来自菲涅耳方程
+      const reflAlpha = 0.12 + 0.88 * Math.min(1, R * 1.6);
+      drawBeam(ctx, cx, cy, rx, ry, isAtBrewsterAngle ? COLOR_S : COLOR_REFLECT, 2 + 2.6 * R, reflAlpha);
+      if (animate) drawPulses(ctx, cx, cy, rx, ry, COLOR_REFLECT, reflAlpha * 0.9, time, 0.33);
+      drawPolarizationMarkers(ctx, cx, cy, rx, ry, 0.62 * Math.sqrt(Rs), 0.62 * Math.sqrt(Rp), time);
+
+      // 反射率标注
+      ctx.fillStyle = isAtBrewsterAngle ? COLOR_S : COLOR_REFLECT;
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`R = ${(R * 100).toFixed(1)}%`, rx + 4, ry - 14);
+
+      // 折射光 / 全反射
+      if (!totalInternalReflection && Number.isFinite(refractionAngleDeg)) {
+        const thetaT = (refractionAngleDeg * Math.PI) / 180;
+        const tx = cx + rayLen * Math.sin(thetaT);
+        const ty = cy + rayLen * Math.cos(thetaT);
+        const refrAlpha = 0.15 + 0.85 * T;
+        drawBeam(ctx, cx, cy, tx, ty, COLOR_REFRACT, 1.6 + 2 * T, refrAlpha);
+        if (animate) drawPulses(ctx, cx, cy, tx, ty, COLOR_REFRACT, refrAlpha * 0.8, time, 0.33);
+        drawPolarizationMarkers(ctx, cx, cy, tx, ty, 0.62 * Math.sqrt(Math.min(1, Ts)), 0.62 * Math.sqrt(Math.min(1, Tp)), time);
+
+        drawAngleWedge(ctx, cx, cy, Math.PI / 2 - thetaT, Math.PI / 2, 44, "#5eead4", `θₜ ${refractionAngleDeg.toFixed(1)}°`);
+
+        ctx.fillStyle = COLOR_REFRACT;
+        ctx.font = "bold 11px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`T = ${(T * 100).toFixed(1)}%`, tx - 4, ty + 18);
+
+        // 布鲁斯特角时：反射↔折射成 90°
+        const between = thetaI + thetaT;
+        if (Math.abs(between - Math.PI / 2) < 0.04 && isAtBrewsterAngle) {
+          ctx.save();
+          ctx.strokeStyle = "#fde047";
+          ctx.lineWidth = 1.6;
+          ctx.shadowColor = "#fde047";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 72, -Math.PI / 2 + thetaI, Math.PI / 2 - thetaT);
+          ctx.stroke();
+          // 直角符号
+          const midA = (-Math.PI / 2 + thetaI + Math.PI / 2 - thetaT) / 2;
+          ctx.fillStyle = "#fde047";
+          ctx.font = "bold 12px sans-serif";
+          ctx.fillText("90°", cx + 88 * Math.cos(midA), cy + 88 * Math.sin(midA));
+          ctx.restore();
+        }
+      } else {
+        // 全反射：绘制沿界面的倏逝波（指数衰减的波动）
+        ctx.save();
+        ctx.strokeStyle = "rgba(94, 234, 212, 0.75)";
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = "#5eead4";
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        for (let s = 0; s <= 150; s += 2) {
+          const decay = Math.exp(-s / 55);
+          const y = cy + 9 + 8 * decay * Math.sin(s * 0.18 - time * 5);
+          if (s === 0) ctx.moveTo(cx + s, y);
+          else ctx.lineTo(cx + s, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = "#5eead4";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("倏逝波（全反射）", cx + 26, cy + 38);
+      }
+
+      // 入射点闪光
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const flash = ctx.createRadialGradient(cx, cy, 0, cx, cy, 16);
+      flash.addColorStop(0, "rgba(255,255,255,0.5)");
+      flash.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = flash;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 标签
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = COLOR_INCIDENT;
+      ctx.fillText("入射光", ix, iy - 10);
+      ctx.fillStyle = COLOR_REFLECT;
+      ctx.fillText("反射光", rx, ry - 28);
+
+      // 拖动提示
+      ctx.fillStyle = "rgba(148, 163, 184, 0.55)";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("⟲ 拖动光线可改变入射角", width - 14, height - 12);
+    },
+  });
+
+  const updateFromPointer = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { x, y } = pointerToCanvas(canvas, e, MAIN_W);
+      const cx = MAIN_W / 2;
+      const cy = MAIN_H / 2 + 10;
+      const deg = (Math.atan2(Math.abs(x - cx), Math.max(6, cy - y)) * 180) / Math.PI;
+      onAngleChange(Math.round(Math.max(0, Math.min(89, deg)) * 2) / 2);
+    },
+    [canvasRef, onAngleChange],
+  );
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="mx-auto block rounded-lg cursor-grab active:cursor-grabbing select-none"
+      style={{ touchAction: "none" }}
+      onPointerDown={(e) => {
+        draggingRef.current = true;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        updateFromPointer(e);
+      }}
+      onPointerMove={(e) => {
+        if (draggingRef.current) updateFromPointer(e);
+      }}
+      onPointerUp={() => {
+        draggingRef.current = false;
+      }}
+    />
+  );
 }
 
-// Main demo component
+// ----------------------------------------------------------------------------
+// 菲涅耳反射率曲线
+// ----------------------------------------------------------------------------
+
+const CHART_W = 400;
+const CHART_H = 250;
+
+function FresnelChartCanvas({
+  n1,
+  n2,
+  incidentAngle,
+  brewsterAngle,
+  criticalAngle,
+  onAngleChange,
+}: {
+  n1: number;
+  n2: number;
+  incidentAngle: number;
+  brewsterAngle: number;
+  criticalAngle: number | null;
+  onAngleChange: (deg: number) => void;
+}) {
+  const draggingRef = useRef(false);
+  const curve = useMemo(() => sampleReflectanceCurve(n1, n2, 181), [n1, n2]);
+
+  const canvasRef = useDemoCanvas({
+    width: CHART_W,
+    height: CHART_H,
+    draw: ({ ctx, width, height }) => {
+      const m = { l: 42, r: 14, t: 16, b: 30 };
+      const plotW = width - m.l - m.r;
+      const plotH = height - m.t - m.b;
+      const xOf = (deg: number) => m.l + (deg / 90) * plotW;
+      const yOf = (v: number) => m.t + (1 - v) * plotH;
+
+      ctx.fillStyle = "#070d1a";
+      ctx.fillRect(0, 0, width, height);
+
+      // 网格
+      ctx.strokeStyle = "rgba(100, 150, 255, 0.09)";
+      ctx.lineWidth = 1;
+      ctx.font = "10px sans-serif";
+      ctx.textBaseline = "middle";
+      for (let v = 0; v <= 1; v += 0.25) {
+        ctx.beginPath();
+        ctx.moveTo(m.l, yOf(v));
+        ctx.lineTo(width - m.r, yOf(v));
+        ctx.stroke();
+        ctx.fillStyle = "#64748b";
+        ctx.textAlign = "right";
+        ctx.fillText(`${Math.round(v * 100)}%`, m.l - 6, yOf(v));
+      }
+      for (let deg = 0; deg <= 90; deg += 15) {
+        ctx.beginPath();
+        ctx.moveTo(xOf(deg), m.t);
+        ctx.lineTo(xOf(deg), height - m.b);
+        ctx.stroke();
+        ctx.fillStyle = "#64748b";
+        ctx.textAlign = "center";
+        ctx.fillText(`${deg}°`, xOf(deg), height - m.b + 12);
+      }
+
+      // 全反射区
+      if (criticalAngle !== null) {
+        ctx.fillStyle = "rgba(248, 113, 113, 0.08)";
+        ctx.fillRect(xOf(criticalAngle), m.t, xOf(90) - xOf(criticalAngle), plotH);
+        ctx.strokeStyle = "rgba(248, 113, 113, 0.5)";
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(xOf(criticalAngle), m.t);
+        ctx.lineTo(xOf(criticalAngle), height - m.b);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#f87171";
+        ctx.textAlign = "left";
+        ctx.fillText(`全反射 θc=${criticalAngle.toFixed(1)}°`, xOf(criticalAngle) + 4, m.t + 8);
+      }
+
+      // 曲线绘制函数
+      const plotCurve = (key: "Rs" | "Rp", color: string) => {
+        ctx.save();
+        // 填充
+        ctx.beginPath();
+        ctx.moveTo(xOf(curve[0].angleDeg), yOf(curve[0][key]));
+        for (const p of curve) ctx.lineTo(xOf(p.angleDeg), yOf(p[key]));
+        ctx.lineTo(xOf(curve[curve.length - 1].angleDeg), yOf(0));
+        ctx.lineTo(xOf(curve[0].angleDeg), yOf(0));
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.08;
+        ctx.fill();
+        // 描线
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.moveTo(xOf(curve[0].angleDeg), yOf(curve[0][key]));
+        for (const p of curve) ctx.lineTo(xOf(p.angleDeg), yOf(p[key]));
+        ctx.stroke();
+        ctx.restore();
+      };
+      plotCurve("Rs", COLOR_S);
+      plotCurve("Rp", COLOR_P);
+
+      // 布鲁斯特角竖线
+      ctx.save();
+      ctx.strokeStyle = "#fde047";
+      ctx.setLineDash([5, 4]);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(xOf(brewsterAngle), m.t);
+      ctx.lineTo(xOf(brewsterAngle), height - m.b);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = "#fde047";
+      ctx.textAlign = "center";
+      ctx.fillText(`θB=${brewsterAngle.toFixed(1)}°`, xOf(brewsterAngle), height - 6);
+
+      // 当前角度标记
+      const f = fresnelCoefficients(n1, n2, incidentAngle);
+      const cxNow = xOf(incidentAngle);
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cxNow, m.t);
+      ctx.lineTo(cxNow, height - m.b);
+      ctx.stroke();
+      for (const [val, color] of [
+        [f.Rs, COLOR_S],
+        [f.Rp, COLOR_P],
+      ] as const) {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(cxNow, yOf(val), 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 图例
+      ctx.textAlign = "left";
+      ctx.font = "11px sans-serif";
+      ctx.fillStyle = COLOR_S;
+      ctx.fillText(`Rs ${(f.Rs * 100).toFixed(1)}%`, m.l + 8, m.t + 10);
+      ctx.fillStyle = COLOR_P;
+      ctx.fillText(`Rp ${(f.Rp * 100).toFixed(1)}%`, m.l + 8, m.t + 24);
+    },
+  });
+
+  const updateFromPointer = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { x } = pointerToCanvas(canvas, e, CHART_W);
+      const deg = ((x - 42) / (CHART_W - 42 - 14)) * 90;
+      onAngleChange(Math.round(Math.max(0, Math.min(89, deg)) * 2) / 2);
+    },
+    [canvasRef, onAngleChange],
+  );
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="mx-auto block rounded-lg cursor-crosshair select-none"
+      style={{ touchAction: "none" }}
+      onPointerDown={(e) => {
+        draggingRef.current = true;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        updateFromPointer(e);
+      }}
+      onPointerMove={(e) => {
+        if (draggingRef.current) updateFromPointer(e);
+      }}
+      onPointerUp={() => {
+        draggingRef.current = false;
+      }}
+    />
+  );
+}
+
+// ----------------------------------------------------------------------------
+// 主组件
+// ----------------------------------------------------------------------------
+
 export function BrewsterAngleDemo() {
-  useTranslation();
   const { theme } = useTheme();
   const [incidentAngle, setIncidentAngle] = useState(30);
   const [n1, setN1] = useState(1.0);
   const [n2, setN2] = useState(1.5);
   const [animate, setAnimate] = useState(true);
-  const [selectedPreset, setSelectedPreset] = useState(0);
+  const [selectedPreset, setSelectedPreset] = useState<number>(0);
 
-  // Calculate Brewster angle
-  const brewsterAngle = useMemo(() => {
-    return Math.atan(n2 / n1) * (180 / Math.PI);
-  }, [n1, n2]);
+  const brewsterAngle = useMemo(() => brewsterAngleDeg(n1, n2), [n1, n2]);
+  const criticalAngle = useMemo(() => criticalAngleDeg(n1, n2), [n1, n2]);
+  const fresnel = useMemo(() => fresnelCoefficients(n1, n2, incidentAngle), [n1, n2, incidentAngle]);
+  const dop = useMemo(() => reflectedDegreeOfPolarization(fresnel), [fresnel]);
+  const reflectance = useMemo(() => unpolarizedReflectance(fresnel), [fresnel]);
 
-  // Check if at Brewster angle
-  const isAtBrewsterAngle = useMemo(() => {
-    return Math.abs(incidentAngle - brewsterAngle) < 2;
-  }, [incidentAngle, brewsterAngle]);
+  const isAtBrewsterAngle = Math.abs(incidentAngle - brewsterAngle) < 1.5;
 
-  // Calculate refracted angle using Snell's law
-  const refractedAngle = useMemo(() => {
-    const sinRefracted = (n1 * Math.sin((incidentAngle * Math.PI) / 180)) / n2;
-    return Math.asin(Math.min(1, Math.max(-1, sinRefracted))) * (180 / Math.PI);
-  }, [incidentAngle, n1, n2]);
-
-  // Check if reflected and refracted are perpendicular
-  const arePerpendicular = useMemo(() => {
-    const angleBetween = incidentAngle + refractedAngle;
-    return Math.abs(angleBetween - 90) < 2;
-  }, [incidentAngle, refractedAngle]);
-
-  // Handle material preset change
   const handlePresetChange = useCallback((value: string | number) => {
-    const index = Number(value);
-    const preset = MATERIAL_PRESETS[index];
-    if (preset) {
-      setN1(preset.n1);
-      setN2(preset.n2);
-      setSelectedPreset(index);
-      // Set angle close to new Brewster angle
-      const newBrewsterAngle = Math.atan(preset.n2 / preset.n1) * (180 / Math.PI);
-      setIncidentAngle(Math.round(newBrewsterAngle));
-    }
+    const preset = MATERIAL_PRESETS[Number(value)];
+    if (!preset) return;
+    setN1(preset.n1);
+    setN2(preset.n2);
+    setSelectedPreset(Number(value));
+    setIncidentAngle(Math.round(brewsterAngleDeg(preset.n1, preset.n2)));
   }, []);
 
-  // Handle set to Brewster angle
   const handleSetToBrewsterAngle = useCallback(() => {
-    setIncidentAngle(Math.round(brewsterAngle));
+    setIncidentAngle(Math.round(brewsterAngle * 2) / 2);
   }, [brewsterAngle]);
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      {/* Title */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
-          布鲁斯特角演示
-        </h2>
-        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>
-          当反射光与折射光垂直时，反射光为完全偏振光（只有S分量）
-        </p>
-      </div>
+    <div className="flex flex-col gap-5 h-full">
+      {/* 主可视化区：光路 + 反射率曲线 */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+        <DemoStage
+          className="xl:col-span-2"
+          title="光路演示"
+          legend={[
+            { color: COLOR_INCIDENT, label: "入射光", shape: "line" },
+            { color: COLOR_REFLECT, label: "反射光", shape: "line" },
+            { color: COLOR_REFRACT, label: "折射光", shape: "line" },
+            { color: COLOR_S, label: "S偏振 ⊙" },
+            { color: COLOR_P, label: "P偏振 ↕" },
+          ]}
+          actions={
+            <button
+              onClick={handleSetToBrewsterAngle}
+              className="px-3 py-1 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors whitespace-nowrap"
+            >
+              <Target className="w-3 h-3 inline mr-1" />
+              设为布鲁斯特角
+            </button>
+          }
+        >
+          <BrewsterMainCanvas
+            incidentAngle={incidentAngle}
+            n1={n1}
+            n2={n2}
+            fresnel={fresnel}
+            isAtBrewsterAngle={isAtBrewsterAngle}
+            animate={animate}
+            onAngleChange={setIncidentAngle}
+          />
+        </DemoStage>
 
-      {/* Main visualization area */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Canvas */}
-        <div className="flex-1 bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10 flex items-center justify-between">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>光路演示</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSetToBrewsterAngle}
-                className="px-3 py-1 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
-              >
-                <Target className="w-3 h-3 inline mr-1" />
-                设为布鲁斯特角
-              </button>
-            </div>
-          </div>
-          <div className="p-4 flex justify-center">
-            <BrewsterAngleCanvas
-              incidentAngle={incidentAngle}
+        <div className="flex flex-col gap-4">
+          <DemoStage title="菲涅耳反射率曲线" subtitle="点击曲线设置角度">
+            <FresnelChartCanvas
               n1={n1}
               n2={n2}
+              incidentAngle={incidentAngle}
               brewsterAngle={brewsterAngle}
-              isAtBrewsterAngle={isAtBrewsterAngle}
-              animate={animate}
+              criticalAngle={criticalAngle}
+              onAngleChange={setIncidentAngle}
             />
-          </div>
-        </div>
+          </DemoStage>
 
-        {/* Info panel */}
-        <div className="lg:w-[320px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>参数信息</h3>
-          </div>
-          <div className="p-4 space-y-4">
-            {/* Current status */}
-            <div className={`p-3 rounded-lg border ${
-              isAtBrewsterAngle
-                ? 'bg-amber-500/20 border-amber-500/30'
-                : 'bg-slate-800/50 border-slate-700/50'
-            }`}>
-              <div className="flex items-center gap-2 mb-2">
+          <ControlPanel title="实时物理量">
+            <div
+              className={`p-3 rounded-lg border ${
+                isAtBrewsterAngle
+                  ? "bg-amber-500/20 border-amber-500/30"
+                  : theme === "dark"
+                    ? "bg-slate-800/50 border-slate-700/50"
+                    : "bg-gray-100 border-gray-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
                 {isAtBrewsterAngle ? (
                   <Sparkles className="w-4 h-4 text-amber-400" />
                 ) : (
                   <Lightbulb className="w-4 h-4 text-cyan-400" />
                 )}
-                <span className={`text-sm font-semibold ${
-                  isAtBrewsterAngle ? 'text-amber-400' : 'text-cyan-400'
-                }`}>
-                  {isAtBrewsterAngle ? '达到布鲁斯特角!' : '当前状态'}
+                <span
+                  className={`text-sm font-semibold ${isAtBrewsterAngle ? "text-amber-400" : "text-cyan-400"}`}
+                >
+                  {isAtBrewsterAngle
+                    ? "布鲁斯特角：反射光为纯S偏振"
+                    : fresnel.totalInternalReflection
+                      ? "全反射：光无法进入介质2"
+                      : "部分偏振反射"}
                 </span>
               </div>
-              <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                {isAtBrewsterAngle
-                  ? '反射光与折射光垂直，反射光为完全线偏振光（只有S偏振分量）'
-                  : arePerpendicular
-                    ? '反射光与折射光垂直'
-                    : '调节入射角观察偏振变化'}
-              </p>
             </div>
-
-            {/* Angle values */}
-            <ValueDisplay label="入射角 θᵢ" value={`${incidentAngle.toFixed(1)}°`} />
-            <ValueDisplay label="反射角 θᵣ" value={`${incidentAngle.toFixed(1)}°`} />
-            <ValueDisplay label="折射角 θₜ" value={`${refractedAngle.toFixed(1)}°`} />
+            <AnimatedValue label="反射率 R" value={reflectance * 100} unit="%" decimals={1} color="orange" showBar min={0} max={100} />
+            <AnimatedValue label="反射光偏振度" value={dop * 100} unit="%" decimals={1} color={isAtBrewsterAngle ? "green" : "cyan"} showBar min={0} max={100} />
+            <ValueDisplay label="Rs（S分量反射率）" value={`${(fresnel.Rs * 100).toFixed(1)}%`} color="green" />
+            <ValueDisplay label="Rp（P分量反射率）" value={`${(fresnel.Rp * 100).toFixed(1)}%`} color="yellow" />
             <ValueDisplay
-              label="布鲁斯特角 θ_B"
+              label="布鲁斯特角 θB"
               value={`${brewsterAngle.toFixed(1)}°`}
-              color={isAtBrewsterAngle ? 'orange' : 'cyan'}
+              color={isAtBrewsterAngle ? "orange" : "cyan"}
             />
-
-            {/* Brewster angle formula */}
-            <Formula>
-              {`$\\tan(\\theta_B) = \\frac{n_2}{n_1} = \\frac{${n2.toFixed(2)}}{${n1.toFixed(2)}}$`}
-            </Formula>
-          </div>
+            {criticalAngle !== null && (
+              <ValueDisplay label="临界角 θc" value={`${criticalAngle.toFixed(1)}°`} color="red" />
+            )}
+          </ControlPanel>
         </div>
       </div>
 
-      {/* Brewster angle alert banner */}
+      {/* 布鲁斯特角提示横幅 */}
       <AnimatePresence>
         {isAtBrewsterAngle && (
           <motion.div
@@ -620,10 +806,10 @@ export function BrewsterAngleDemo() {
               <div className="flex-1">
                 <h4 className="font-semibold text-amber-400 mb-1">布鲁斯特角特性</h4>
                 <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  在布鲁斯特角时，反射光与折射光互相垂直（夹角90°）。
-                  此时反射光中的<span className="text-yellow-400 font-semibold">P偏振分量（平行分量）完全消失</span>，
-                  反射光成为<span className="text-green-400 font-semibold">完全线偏振光</span>，
-                  只包含S偏振分量（垂直分量）。
+                  反射光与折射光互相垂直（90°），此时菲涅耳方程给出 Rp = {(fresnel.Rp * 100).toFixed(2)}% ——
+                  <span className="text-yellow-400 font-semibold">P偏振分量完全消失</span>，
+                  反射光成为<span className="text-green-400 font-semibold">完全线偏振光（只剩S分量 ⊙）</span>。
+                  注意观察上图反射光线上的振动标记。
                 </p>
               </div>
             </div>
@@ -631,9 +817,8 @@ export function BrewsterAngleDemo() {
         )}
       </AnimatePresence>
 
-      {/* Controls */}
+      {/* 控制区 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Angle control */}
         <ControlPanel title="入射角控制">
           <SliderControl
             label="入射角 θᵢ"
@@ -643,102 +828,102 @@ export function BrewsterAngleDemo() {
             step={0.5}
             unit="°"
             onChange={setIncidentAngle}
-            color={isAtBrewsterAngle ? 'orange' : 'cyan'}
+            color={isAtBrewsterAngle ? "orange" : "cyan"}
             formatValue={(v) => `${v.toFixed(1)}°`}
           />
           <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => setIncidentAngle(30)}
-              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
-            >
-              30°
-            </button>
+            {[20, 45, 70].map((deg) => (
+              <button
+                key={deg}
+                onClick={() => setIncidentAngle(deg)}
+                className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${
+                  theme === "dark"
+                    ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-cyan-400/30"
+                    : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-cyan-400/50"
+                }`}
+              >
+                {deg}°
+              </button>
+            ))}
             <button
               onClick={handleSetToBrewsterAngle}
               className="flex-1 px-3 py-2 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
             >
-              布鲁斯特角
-            </button>
-            <button
-              onClick={() => setIncidentAngle(60)}
-              className={`flex-1 px-3 py-2 text-xs rounded-lg ${theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50" : "bg-gray-100/50 text-gray-600 border-gray-300/50"} border hover:border-cyan-400/30 transition-colors`}
-            >
-              60°
+              θB
             </button>
           </div>
         </ControlPanel>
 
-        {/* Material selection */}
-        <ControlPanel title="介质选择">
+        <ControlPanel title="介质组合">
           <PresetButtons
-            options={MATERIAL_PRESETS.map((p, i) => ({
-              value: i,
-              label: p.label,
-            }))}
+            options={MATERIAL_PRESETS.map((p, i) => ({ value: i, label: p.label }))}
             value={selectedPreset}
             onChange={handlePresetChange}
-            columns={3}
+            columns={2}
           />
-          <div className="mt-4 space-y-2">
+          <div className="mt-3 space-y-1">
             <ValueDisplay label="入射介质 n₁" value={n1.toFixed(2)} />
             <ValueDisplay label="折射介质 n₂" value={n2.toFixed(2)} />
           </div>
         </ControlPanel>
 
-        {/* Display options */}
-        <ControlPanel title="显示选项">
-          <Toggle label="动画效果" checked={animate} onChange={setAnimate} />
-          <div className={`mt-4 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
-            <p>• <span className="text-yellow-400">黄色圆点</span>: P偏振（平行分量）</p>
-            <p>• <span className="text-green-400">绿色箭头</span>: S偏振（垂直分量）</p>
+        <ControlPanel title="显示与公式">
+          <Toggle label="光束流动动画" checked={animate} onChange={setAnimate} />
+          <Formula highlight>
+            {`$\\tan\\theta_B = \\frac{n_2}{n_1} = \\frac{${n2.toFixed(2)}}{${n1.toFixed(2)}}$`}
+          </Formula>
+          <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
+            <p>
+              • <span className="text-green-400">⊙ 绿色圆点</span>: S偏振（垂直入射面，指向屏幕外）
+            </p>
+            <p>
+              • <span className="text-yellow-400">↕ 黄色箭头</span>: P偏振（在入射面内振动）
+            </p>
           </div>
         </ControlPanel>
       </div>
 
-      {/* Real-world applications */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InfoCard title="📷 摄影偏振镜" color="cyan">
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            摄影师利用布鲁斯特角原理，通过偏振镜消除水面、玻璃等表面的反射光，
-            使照片更加清晰。拍摄天空时也能增强蓝天白云的对比度。
-          </p>
-        </InfoCard>
-        <InfoCard title="🔬 激光器设计" color="purple">
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            许多激光器使用"布鲁斯特窗"——以布鲁斯特角切割的窗口片。
-            这样P偏振光几乎无损耗地通过，而S偏振光被反射，从而产生线偏振激光输出。
-          </p>
-        </InfoCard>
-        <InfoCard title="👓 偏光太阳镜" color="orange">
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            水面、路面等水平反射光主要是水平偏振的。
-            偏光太阳镜只允许垂直偏振光通过，有效减少眩光，
-            让视野更清晰，特别适合驾驶和户外活动。
-          </p>
-        </InfoCard>
-      </div>
+      {/* 原理与应用 */}
+      <DemoSection title="原理与应用" icon={<BookOpen className="w-3.5 h-3.5" />}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <InfoCard title="📷 摄影偏振镜" color="cyan">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              摄影师利用布鲁斯特角原理，通过偏振镜消除水面、玻璃等表面的反射光，
+              使照片更加清晰。拍摄天空时也能增强蓝天白云的对比度。
+            </p>
+          </InfoCard>
+          <InfoCard title="🔬 激光器设计" color="purple">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              许多激光器使用"布鲁斯特窗"——以布鲁斯特角切割的窗口片。
+              P偏振光几乎无损耗地通过（Rp≈0），而S偏振光部分被反射，从而产生线偏振激光输出。
+            </p>
+          </InfoCard>
+          <InfoCard title="👓 偏光太阳镜" color="orange">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              水面、路面等水平表面的反射光主要是水平偏振的（S分量占优）。
+              偏光太阳镜只允许垂直偏振光通过，有效减少眩光，特别适合驾驶和户外活动。
+            </p>
+          </InfoCard>
+        </div>
+      </DemoSection>
 
-      {/* Thinking questions */}
-      <div className={`${theme === "dark" ? "bg-slate-900/50 border-cyan-400/20" : "bg-gray-100/50 border-cyan-600/20"} rounded-xl border p-4`}>
-        <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"} mb-3 flex items-center gap-2`}>
-          <FlaskConical className="w-4 h-4 text-cyan-400" />
-          思考题
-        </h3>
+      {/* 思考题 */}
+      <DemoSection title="思考题" icon={<FlaskConical className="w-3.5 h-3.5" />}>
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
-            <span className="text-cyan-400 font-semibold">Q1:</span> 如果光从玻璃射向空气，
-            布鲁斯特角会变大还是变小？
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"} rounded-lg`}>
+            <span className="text-cyan-400 font-semibold">Q1:</span> 切换到"玻璃→空气"预设，
+            布鲁斯特角变大还是变小？为什么还会出现全反射区？
           </div>
-          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q2:</span> 布鲁斯特角时，
-            折射光是什么偏振态？
+            折射光是完全偏振的吗？观察折射光上的两种振动标记。
           </div>
-          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-200/50"} rounded-lg`}>
-            <span className="text-cyan-400 font-semibold">Q3:</span> 为什么日落时的
-            阳光更容易产生偏振？
+          <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"} rounded-lg`}>
+            <span className="text-cyan-400 font-semibold">Q3:</span> 从反射率曲线看，
+            为什么黄昏时水面的反光比正午更刺眼？
           </div>
         </div>
-      </div>
+      </DemoSection>
     </div>
   );
 }

@@ -9,7 +9,7 @@
 
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text, Line, Grid } from "@react-three/drei";
+import { Text, Line, Grid, MeshTransmissionMaterial, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import type { BirefringenceParams } from "@/lib/physics/GeometricOptics";
 import {
@@ -77,20 +77,31 @@ export function CalciteCrystal({
     return geo;
   }, []);
 
+  // 晶体棱边轮廓，保证玻璃体在任何角度下都有清晰的形体边界
+  const edges = useMemo(() => new THREE.EdgesGeometry(geometry, 12), [geometry]);
+
   return (
-    <mesh geometry={geometry} rotation={rotation}>
-      <meshPhysicalMaterial
-        color="#ffffff"
-        transmission={0.85} // 玻璃状 | Glass-like
-        opacity={0.4}
-        metalness={0}
-        roughness={0.05}
-        ior={1.658} // 方解石折射率 | Calcite refractive index
-        thickness={0.5}
-        transparent={true}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+    <group rotation={rotation}>
+      <mesh geometry={geometry}>
+        <MeshTransmissionMaterial
+          color="#dceeff"
+          transmission={0.96}
+          thickness={0.8}
+          roughness={0.09}
+          ior={1.658} // 方解石折射率 | Calcite refractive index
+          chromaticAberration={0.06}
+          anisotropicBlur={0.12}
+          distortion={0.03}
+          distortionScale={0.3}
+          temporalDistortion={0.02}
+          samples={5}
+          resolution={512}
+        />
+      </mesh>
+      <lineSegments geometry={edges}>
+        <lineBasicMaterial color="#bae6fd" transparent opacity={0.55} />
+      </lineSegments>
+    </group>
   );
 }
 
@@ -238,7 +249,7 @@ export function IncidentRay({
   useFrame((state) => {
     if (animate && lineRef.current) {
       const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 3);
+      const pulse = 0.75 + 0.25 * Math.sin(state.clock.elapsedTime * 3);
       material.opacity = pulse;
     }
   });
@@ -285,7 +296,7 @@ export function OrdinaryRay({
   useFrame((state) => {
     if (animate && lineRef.current) {
       const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.6 + 0.4 * Math.sin(state.clock.elapsedTime * 3 + Math.PI);
+      const pulse = 0.72 + 0.28 * Math.sin(state.clock.elapsedTime * 3 + Math.PI);
       material.opacity = pulse;
     }
   });
@@ -336,7 +347,7 @@ export function ExtraordinaryRay({
   useFrame((state) => {
     if (animate && lineRef.current) {
       const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.6 + 0.4 * Math.sin(state.clock.elapsedTime * 3 + Math.PI / 2);
+      const pulse = 0.72 + 0.28 * Math.sin(state.clock.elapsedTime * 3 + Math.PI / 2);
       material.opacity = pulse;
     }
   });
@@ -361,6 +372,93 @@ export function ExtraordinaryRay({
         size={0.1}
       />
     </>
+  );
+}
+
+/**
+ * 光子脉冲流 | Photon pulse flow
+ * 发光小球沿 入射光 → 分裂点 → o/e 两路 移动，
+ * 在分裂点"一分为二"，直观呈现光的行进与分裂过程。
+ */
+export function PhotonFlow({
+  params,
+  showORay = true,
+  showERay = true,
+  enabled = true,
+}: {
+  params: BirefringenceParams;
+  showORay?: boolean;
+  showERay?: boolean;
+  enabled?: boolean;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const rayPaths = useMemo(
+    () => calculateBirefringenceRayPaths(params, 3),
+    [params]
+  );
+  const PULSES = 3;
+
+  useFrame((state) => {
+    const group = groupRef.current;
+    if (!group) return;
+    group.visible = enabled;
+    if (!enabled) return;
+
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < PULSES; i++) {
+      const pulseGroup = group.children[i] as THREE.Group | undefined;
+      if (!pulseGroup || pulseGroup.children.length < 3) continue;
+      const phase = (((t * 0.4 + i / PULSES) % 1) + 1) % 1;
+      const p2 = phase * 2; // 前半程：入射段；后半程：o/e 两路
+      const incident = pulseGroup.children[0] as THREE.Mesh;
+      const oPulse = pulseGroup.children[1] as THREE.Mesh;
+      const ePulse = pulseGroup.children[2] as THREE.Mesh;
+
+      if (p2 < 1) {
+        incident.visible = true;
+        incident.position.lerpVectors(rayPaths.incidentStart, rayPaths.incidentEnd, p2);
+        oPulse.visible = false;
+        ePulse.visible = false;
+      } else {
+        const u = p2 - 1;
+        incident.visible = false;
+        oPulse.visible = showORay;
+        oPulse.position.lerpVectors(rayPaths.incidentEnd, rayPaths.oRayEnd, u);
+        ePulse.visible = showERay;
+        ePulse.position.lerpVectors(rayPaths.incidentEnd, rayPaths.eRayEnd, u);
+      }
+    }
+  });
+
+  const pulseMaterial = (color: string) => (
+    <meshBasicMaterial
+      color={color}
+      transparent
+      opacity={0.95}
+      blending={THREE.AdditiveBlending}
+      depthWrite={false}
+    />
+  );
+
+  return (
+    <group ref={groupRef}>
+      {Array.from({ length: PULSES }).map((_, i) => (
+        <group key={i}>
+          <mesh>
+            <sphereGeometry args={[0.06, 12, 12]} />
+            {pulseMaterial("#ffe066")}
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.05, 12, 12]} />
+            {pulseMaterial("#67e8f9")}
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.05, 12, 12]} />
+            {pulseMaterial("#f0abfc")}
+          </mesh>
+        </group>
+      ))}
+    </group>
   );
 }
 
@@ -569,6 +667,8 @@ export function SplitPointMarker({ params }: { params: BirefringenceParams }) {
           side={THREE.DoubleSide}
         />
       </mesh>
+      {/* 分裂点微光粒子 | Split point glow particles */}
+      <Sparkles count={16} scale={0.55} size={2.6} speed={0.45} color="#fde68a" opacity={0.8} />
       <Text
         position={[0.16, 0.24, 0]}
         fontSize={0.12}
@@ -703,9 +803,20 @@ export function ObservationScreen({
 
       {showORay && (
         <>
+          {/* 光晕 + 像核，加色混合产生发光感 | Halo + core with additive blending */}
+          <mesh position={[oImageX, 0.02, 0.045]}>
+            <circleGeometry args={[0.17, 32]} />
+            <meshBasicMaterial
+              color="#00ffff"
+              transparent
+              opacity={0.28}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+            />
+          </mesh>
           <mesh position={[oImageX, 0.02, 0.05]}>
             <circleGeometry args={[0.085, 32]} />
-            <meshBasicMaterial color="#00ffff" />
+            <meshBasicMaterial color="#9bfdff" />
           </mesh>
           <Text
             position={[oImageX, -0.17, 0.05]}
@@ -719,9 +830,19 @@ export function ObservationScreen({
       )}
       {showERay && (
         <>
+          <mesh position={[eImageX, 0.02, 0.045]}>
+            <circleGeometry args={[0.17, 32]} />
+            <meshBasicMaterial
+              color="#ff00ff"
+              transparent
+              opacity={0.28}
+              blending={THREE.AdditiveBlending}
+              depthWrite={false}
+            />
+          </mesh>
           <mesh position={[eImageX, 0.02, 0.05]}>
             <circleGeometry args={[0.085, 32]} />
-            <meshBasicMaterial color="#ff00ff" />
+            <meshBasicMaterial color="#ffb0ff" />
           </mesh>
           <Text
             position={[eImageX, -0.17, 0.05]}

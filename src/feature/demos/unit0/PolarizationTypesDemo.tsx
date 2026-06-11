@@ -1,16 +1,39 @@
 /**
  * 偏振态演示 - Unit 0
  * 展示光波合成与不同偏振态（线偏振、圆偏振、椭圆偏振）
- * 重构版本：使用清晰的伪3D Canvas替代R3F 3D视图
+ *
+ * 可视化：
+ * - 3D 传播视图：斜二测投影下的电场螺旋线，带深度透明度、分量"绸带"、
+ *   矢量箭头与接收端椭圆，与右侧 2D 投影视图相位同步
+ * - 2D 投影视图：彗尾轨迹 + 旋转方向箭头 + 分量投影
+ *
+ * 物理量：
+ * - 椭圆方位角 ψ 与椭圆率角 χ 由 (Ex, Ey, δ) 实时计算
  */
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { BookOpen } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { SliderControl, ControlPanel, ValueDisplay, Formula, InfoCard } from "../DemoControls";
+import { DemoStage, DemoSection } from "../components/DemoLayout";
+import { useDemoCanvas } from "../hooks/useDemoCanvas";
 import MathText from "@/components/shared/MathText";
 
-// 3D波动传播示意图 - 2D投影Canvas
+const COLOR_EX = "#fb7185"; // Ex 分量（玫红）
+const COLOR_EY = "#4ade80"; // Ey 分量（绿）
+const COLOR_E = "#fde047"; // 合成矢量（亮黄）
+
+/** 两个视图共用的角频率（rad/s），保证相位同步 */
+const OMEGA = 2.0;
+
+// ----------------------------------------------------------------------------
+// 3D 传播视图（斜二测投影）
+// ----------------------------------------------------------------------------
+
+const WAVE_W = 560;
+const WAVE_H = 330;
+
 function WavePropagation3DCanvas({
   phaseDiff,
   ampX,
@@ -22,160 +45,249 @@ function WavePropagation3DCanvas({
   ampY: number;
   animate: boolean;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timeRef = useRef(0);
-  const animationRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = 500;
-    const height = 300;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.scale(dpr, dpr);
-
-    const axisY = height / 2;
-    const k = 0.05; // 波数
-    const speed = 0.1;
-    const scale = 40;
-    // 投影因子 - 产生伪3D效果
-    const slantX = 0.5; // 深度移动X
-    const slantY = -0.3; // 深度移动Y
-
-    const draw = () => {
-      // 清除画布
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(0, 0, width, height);
-
-      const t = timeRef.current * speed;
+  const canvasRef = useDemoCanvas({
+    width: WAVE_W,
+    height: WAVE_H,
+    paused: !animate,
+    draw: ({ ctx, width, height, time }) => {
       const phaseRad = (phaseDiff * Math.PI) / 180;
+      const ox = 56;
+      const oy = height / 2;
+      const zLen = width - 150; // 传播方向像素长度
+      const k = (Math.PI * 4) / zLen; // 容纳两个波长
+      const scale = 62;
 
-      // 绘制传播方向轴（灰色）
-      ctx.beginPath();
-      ctx.strokeStyle = "#334155";
+      // 斜二测投影基向量：z 向右，y 向上，x 斜向右下（屏幕深度）
+      const EXX = 0.46, EXY = 0.34; // e_x 在屏幕上的方向
+      const proj = (ex: number, ey: number, z: number): [number, number] => [
+        ox + z + ex * scale * EXX,
+        oy + ex * scale * EXY - ey * scale,
+      ];
+
+      const field = (z: number) => {
+        const tau = k * z - OMEGA * time;
+        return {
+          ex: ampX * Math.cos(tau),
+          ey: ampY * Math.cos(tau + phaseRad),
+        };
+      };
+
+      // 背景
+      ctx.fillStyle = "#070d1a";
+      ctx.fillRect(0, 0, width, height);
+      // 细网格
+      ctx.strokeStyle = "rgba(100, 150, 255, 0.05)";
       ctx.lineWidth = 1;
-      ctx.moveTo(20, axisY);
-      ctx.lineTo(width - 20, axisY);
-      ctx.stroke();
-
-      // Ex 分量 (红色) - 在伪3D空间中的"水平"方向
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 68, 68, 0.6)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < width - 40; i += 2) {
-        const val = ampX * Math.cos(k * i - t);
-        const sx = 20 + i + val * scale * slantX;
-        const sy = axisY + val * scale * slantY;
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.stroke();
-
-      // Ey 分量 (绿色) - 垂直方向
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(68, 255, 68, 0.6)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < width - 40; i += 2) {
-        const val = ampY * Math.cos(k * i - t + phaseRad);
-        const sx = 20 + i;
-        const sy = axisY - val * scale;
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.stroke();
-
-      // 合成矢量轨迹 (黄色) - 螺旋路径
-      ctx.beginPath();
-      ctx.strokeStyle = "#ffff00";
-      ctx.lineWidth = 2.5;
-      for (let i = 0; i < width - 40; i++) {
-        const valX = ampX * Math.cos(k * i - t);
-        const valY = ampY * Math.cos(k * i - t + phaseRad);
-        const sx = 20 + i + valX * scale * slantX;
-        const sy = axisY + valX * scale * slantY - valY * scale;
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.stroke();
-
-      // 绘制矢量箭头 - 帮助可视化
-      for (let i = 0; i < width - 40; i += 60) {
-        const valX = ampX * Math.cos(k * i - t);
-        const valY = ampY * Math.cos(k * i - t + phaseRad);
-        const sx = 20 + i + valX * scale * slantX;
-        const sy = axisY + valX * scale * slantY - valY * scale;
-        const originX = 20 + i;
-        const originY = axisY;
-
-        // 矢量线
+      for (let gx = 0; gx < width; gx += 40) {
         ctx.beginPath();
-        ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
-        ctx.lineWidth = 1;
-        ctx.moveTo(originX, originY);
-        ctx.lineTo(sx, sy);
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, height);
         ctx.stroke();
-
-        // 矢量端点
-        ctx.beginPath();
-        ctx.fillStyle = "#ffff00";
-        ctx.arc(sx, sy, 3, 0, Math.PI * 2);
-        ctx.fill();
       }
+
+      // 坐标轴
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.55)";
+      ctx.lineWidth = 1.2;
+      // z（传播）
+      ctx.beginPath();
+      ctx.moveTo(ox - 20, oy);
+      ctx.lineTo(ox + zLen + 36, oy);
+      ctx.stroke();
+      ctx.fillStyle = "#94a3b8";
+      ctx.beginPath();
+      ctx.moveTo(ox + zLen + 44, oy);
+      ctx.lineTo(ox + zLen + 34, oy - 4);
+      ctx.lineTo(ox + zLen + 34, oy + 4);
+      ctx.closePath();
+      ctx.fill();
+      // y（Ey 方向）
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(ox, oy + 84);
+      ctx.lineTo(ox, oy - 84);
+      ctx.stroke();
+      // x（Ex 方向，斜向）
+      ctx.strokeStyle = "rgba(251, 113, 133, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(ox - 70 * EXX, oy - 70 * EXY);
+      ctx.lineTo(ox + 70 * EXX, oy + 70 * EXY);
+      ctx.stroke();
 
       // 轴标签
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "left";
       ctx.fillStyle = "#94a3b8";
-      ctx.font = "12px sans-serif";
-      ctx.fillText("传播方向 Z", width - 80, axisY + 20);
+      ctx.fillText("传播方向 z", ox + zLen - 28, oy + 18);
+      ctx.fillStyle = COLOR_EY;
+      ctx.fillText("y (Ey)", ox + 6, oy - 74);
+      ctx.fillStyle = COLOR_EX;
+      ctx.fillText("x (Ex)", ox + 70 * EXX + 6, oy + 70 * EXY + 4);
+
+      const STEP = 4;
+
+      // Ex 分量绸带（水平面内振动 → 投影为斜向）
+      ctx.save();
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const { ex } = field(z);
+        const [sx, sy] = proj(ex, 0, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      for (let z = zLen; z >= 0; z -= STEP) {
+        const [sx, sy] = proj(0, 0, z);
+        ctx.lineTo(sx, sy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(251, 113, 133, 0.10)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(251, 113, 133, 0.55)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const { ex } = field(z);
+        const [sx, sy] = proj(ex, 0, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // Ey 分量绸带（竖直面内振动）
+      ctx.save();
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const { ey } = field(z);
+        const [sx, sy] = proj(0, ey, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      for (let z = zLen; z >= 0; z -= STEP) {
+        const [sx, sy] = proj(0, 0, z);
+        ctx.lineTo(sx, sy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "rgba(74, 222, 128, 0.10)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.55)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let z = 0; z <= zLen; z += STEP) {
+        const { ey } = field(z);
+        const [sx, sy] = proj(0, ey, z);
+        if (z === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // 合成矢量箭头（从轴指向螺旋线）
+      ctx.save();
+      ctx.lineWidth = 1.4;
+      for (let z = 0; z <= zLen; z += zLen / 14) {
+        const { ex, ey } = field(z);
+        const depth = ampX > 0.01 ? ex / ampX : 0; // -1..1 深度系数
+        const alpha = 0.28 + 0.3 * (depth + 1) * 0.5;
+        const [x0, y0] = proj(0, 0, z);
+        const [x1, y1] = proj(ex, ey, z);
+        ctx.strokeStyle = `rgba(253, 224, 71, ${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 合成场螺旋线：逐段绘制，深度→透明度/线宽（近粗远细）
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.shadowColor = COLOR_E;
+      let prev: [number, number] | null = null;
+      let prevDepth = 0;
+      for (let z = 0; z <= zLen; z += 3) {
+        const { ex, ey } = field(z);
+        const depth = ampX > 0.01 ? ex / ampX : 0;
+        const p = proj(ex, ey, z);
+        if (prev) {
+          const d = (depth + prevDepth) / 2;
+          ctx.strokeStyle = COLOR_E;
+          ctx.globalAlpha = 0.42 + 0.5 * (d + 1) * 0.5;
+          ctx.lineWidth = 1.6 + 1.5 * (d + 1) * 0.5;
+          ctx.shadowBlur = 5 + 4 * (d + 1) * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(prev[0], prev[1]);
+          ctx.lineTo(p[0], p[1]);
+          ctx.stroke();
+        }
+        prev = p;
+        prevDepth = depth;
+      }
+      ctx.restore();
+
+      // 接收端：横截面椭圆（与右图对应）
+      const zEnd = zLen;
+      ctx.save();
+      ctx.strokeStyle = "rgba(253, 224, 71, 0.5)";
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.08) {
+        const ex = ampX * Math.cos(a);
+        const ey = ampY * Math.cos(a + phaseRad);
+        const [sx, sy] = proj(ex, ey, zEnd);
+        if (a === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // 接收端当前矢量端点（亮点）
+      const endField = field(zEnd);
+      const [tipX, tipY] = proj(endField.ex, endField.ey, zEnd);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const tipGlow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 12);
+      tipGlow.addColorStop(0, "rgba(253, 224, 71, 0.95)");
+      tipGlow.addColorStop(1, "rgba(253, 224, 71, 0)");
+      ctx.fillStyle = tipGlow;
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = "rgba(253, 224, 71, 0.75)";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("接收端截面", ox + zEnd, oy + 92);
 
       // 图例
-      ctx.fillStyle = "#ff4444";
-      ctx.fillRect(20, 20, 12, 12);
-      ctx.fillStyle = "#e0e0e0";
-      ctx.fillText("Ex (水平)", 38, 30);
+      const legend: Array<[string, string]> = [
+        [COLOR_EX, "Ex 分量"],
+        [COLOR_EY, "Ey 分量"],
+        [COLOR_E, "合成电场 E"],
+      ];
+      legend.forEach(([color, label], i) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(16, 16 + i * 18, 12, 3.5);
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(label, 34, 21 + i * 18);
+      });
+    },
+  });
 
-      ctx.fillStyle = "#44ff44";
-      ctx.fillRect(20, 38, 12, 12);
-      ctx.fillStyle = "#e0e0e0";
-      ctx.fillText("Ey (垂直)", 38, 48);
-
-      ctx.fillStyle = "#ffff00";
-      ctx.fillRect(20, 56, 12, 12);
-      ctx.fillStyle = "#e0e0e0";
-      ctx.fillText("E (合成)", 38, 66);
-
-      if (animate) {
-        timeRef.current += 1;
-      }
-      animationRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [phaseDiff, ampX, ampY, animate]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="rounded-lg border border-cyan-400/20 w-full"
-      style={{ maxWidth: 500, height: 300 }}
-    />
-  );
+  return <canvas ref={canvasRef} className="mx-auto block rounded-lg" />;
 }
 
-// 2D偏振态投影Canvas
+// ----------------------------------------------------------------------------
+// 2D 偏振态投影（接收端看到的轨迹）
+// ----------------------------------------------------------------------------
+
+const PROJ_W = 320;
+const PROJ_H = 320;
+
 function PolarizationStateCanvas({
   phaseDiff,
   ampX,
@@ -187,157 +299,192 @@ function PolarizationStateCanvas({
   ampY: number;
   animate: boolean;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timeRef = useRef(0);
-  const animationRef = useRef<number | undefined>(undefined);
+  const canvasRef = useDemoCanvas({
+    width: PROJ_W,
+    height: PROJ_H,
+    paused: !animate,
+    draw: ({ ctx, width, height, time }) => {
+      const cx = width / 2;
+      const cy = height / 2;
+      const radius = 102;
+      const phaseRad = (phaseDiff * Math.PI) / 180;
+      const pos = (tau: number): [number, number] => [
+        cx + ampX * Math.cos(tau) * radius,
+        cy - ampY * Math.cos(tau + phaseRad) * radius,
+      ];
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = 300;
-    const height = 300;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.scale(dpr, dpr);
-
-    const cx = width / 2;
-    const cy = height / 2;
-    const radius = 100;
-    const phaseRad = (phaseDiff * Math.PI) / 180;
-
-    const draw = () => {
-      // 清除画布
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#070d1a";
       ctx.fillRect(0, 0, width, height);
 
-      // 绘制坐标轴
-      ctx.strokeStyle = "#334155";
+      // 参考圆环
+      ctx.strokeStyle = "rgba(100, 150, 255, 0.08)";
+      ctx.lineWidth = 1;
+      for (const r of [radius * 0.5, radius]) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 坐标轴
+      ctx.strokeStyle = "rgba(71, 85, 105, 0.8)";
+      ctx.beginPath();
+      ctx.moveTo(cx, 18);
+      ctx.lineTo(cx, height - 18);
+      ctx.moveTo(18, cy);
+      ctx.lineTo(width - 18, cy);
+      ctx.stroke();
+      ctx.font = "11px sans-serif";
+      ctx.fillStyle = COLOR_EX;
+      ctx.textAlign = "left";
+      ctx.fillText("Ex", width - 34, cy - 8);
+      ctx.fillStyle = COLOR_EY;
+      ctx.fillText("Ey", cx + 8, 28);
+
+      // 完整轨迹（淡）
+      ctx.strokeStyle = "rgba(253, 224, 71, 0.22)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.05) {
+        const [px, py] = pos(a);
+        if (a === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      const tauNow = -OMEGA * time;
+
+      // 彗尾轨迹（最近一段相位，渐隐渐细）
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      const TAIL = 2.4; // 彗尾相位长度（rad）
+      const SEG = 46;
+      for (let i = 0; i < SEG; i++) {
+        const f0 = i / SEG;
+        const f1 = (i + 1) / SEG;
+        const [x0, y0] = pos(tauNow - TAIL * (1 - f0));
+        const [x1, y1] = pos(tauNow - TAIL * (1 - f1));
+        ctx.strokeStyle = COLOR_E;
+        ctx.globalAlpha = 0.5 * f1 * f1;
+        ctx.lineWidth = 0.6 + 2.6 * f1;
+        ctx.shadowColor = COLOR_E;
+        ctx.shadowBlur = 6 * f1;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      const [vx, vy] = pos(tauNow);
+
+      // 分量投影辅助线
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.5)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(cx, 20);
-      ctx.lineTo(cx, height - 20);
-      ctx.moveTo(20, cy);
-      ctx.lineTo(width - 20, cy);
+      ctx.moveTo(vx, cy);
+      ctx.lineTo(vx, vy);
+      ctx.moveTo(vx, vy);
+      ctx.lineTo(cx, vy);
       ctx.stroke();
+      ctx.restore();
 
-      // 轴标签
-      ctx.fillStyle = "#64748b";
-      ctx.font = "12px sans-serif";
-      ctx.fillText("Ex", width - 30, cy - 10);
-      ctx.fillText("Ey", cx + 10, 30);
-
-      // 绘制偏振椭圆轨迹
+      // 分量指示
+      ctx.strokeStyle = COLOR_EX;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
-      ctx.lineWidth = 2;
-      for (let a = 0; a <= Math.PI * 2; a += 0.05) {
-        const px = ampX * Math.cos(a) * radius;
-        const py = ampY * Math.cos(a + phaseRad) * radius;
-        if (a === 0) ctx.moveTo(cx + px, cy - py);
-        else ctx.lineTo(cx + px, cy - py);
-      }
-      ctx.closePath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(vx, cy);
       ctx.stroke();
-
-      // 当前矢量位置
-      const phase = -timeRef.current * 0.05;
-      const vecX = ampX * Math.cos(phase) * radius;
-      const vecY = ampY * Math.cos(phase + phaseRad) * radius;
-
-      // 绘制当前矢量
+      ctx.fillStyle = COLOR_EX;
       ctx.beginPath();
-      ctx.strokeStyle = "#ffff00";
+      ctx.arc(vx, cy, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = COLOR_EY;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx, vy);
+      ctx.stroke();
+      ctx.fillStyle = COLOR_EY;
+      ctx.beginPath();
+      ctx.arc(cx, vy, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 合成矢量
+      ctx.save();
+      ctx.strokeStyle = COLOR_E;
+      ctx.shadowColor = COLOR_E;
+      ctx.shadowBlur = 8;
       ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + vecX, cy - vecY);
+      ctx.lineTo(vx, vy);
       ctx.stroke();
+      ctx.restore();
 
-      ctx.setLineDash([5, 5]);
-
+      // 矢量端点光斑
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const glow = ctx.createRadialGradient(vx, vy, 0, vx, vy, 14);
+      glow.addColorStop(0, "rgba(253, 224, 71, 1)");
+      glow.addColorStop(1, "rgba(253, 224, 71, 0)");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.strokeStyle = "#aaa";
-      ctx.lineWidth = 2;
-      ctx.moveTo(cx + vecX, cy);
-      ctx.lineTo(cx + vecX, cy - vecY);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.strokeStyle = "#aaa";
-      ctx.lineWidth = 2;
-      ctx.moveTo(cx + vecX, cy - vecY);
-      ctx.lineTo(cx, cy - vecY);
-      ctx.stroke();
-
-      ctx.setLineDash([]);
-
-      // 矢量端点
-      ctx.beginPath();
-      ctx.fillStyle = "#ffff00";
-      ctx.arc(cx + vecX, cy - vecY, 6, 0, Math.PI * 2);
+      ctx.arc(vx, vy, 14, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
 
-      // Ex分量指示
-      ctx.beginPath();
-      ctx.strokeStyle = "#ff4444";
-      ctx.lineWidth = 2;
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + vecX, cy);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.fillStyle = "#ff4444";
-      ctx.arc(cx + vecX, cy, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ey分量指示
-      ctx.beginPath();
-      ctx.strokeStyle = "#44ff44";
-      ctx.lineWidth = 2;
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx, cy - vecY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.fillStyle = "#44ff44";
-      ctx.arc(cx, cy - vecY, 6, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 图例
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "11px sans-serif";
-      ctx.fillText("Ex分量", cx + 50, cy + 135);
-      ctx.fillText("Ey分量", 15, cy - 100);
-
-      if (animate) {
-        timeRef.current += 1;
+      // 旋转方向箭头（轨迹切线方向，仅当轨迹非退化直线时）
+      const isLine =
+        ampX < 0.05 ||
+        ampY < 0.05 ||
+        Math.abs(Math.sin(phaseRad)) < 0.08;
+      if (!isLine) {
+        const [ax0, ay0] = pos(tauNow - 0.01);
+        const [ax1, ay1] = pos(tauNow + 0.01);
+        const dirX = ax1 - ax0;
+        const dirY = ay1 - ay0;
+        const dl = Math.hypot(dirX, dirY) || 1;
+        const tipAheadX = vx + (dirX / dl) * 26;
+        const tipAheadY = vy + (dirY / dl) * 26;
+        ctx.save();
+        ctx.strokeStyle = "rgba(165, 243, 252, 0.85)";
+        ctx.fillStyle = "rgba(165, 243, 252, 0.85)";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(vx + (dirX / dl) * 12, vy + (dirY / dl) * 12);
+        ctx.lineTo(tipAheadX, tipAheadY);
+        ctx.stroke();
+        const angle = Math.atan2(dirY, dirX);
+        ctx.translate(tipAheadX, tipAheadY);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-7, -3.5);
+        ctx.lineTo(-7, 3.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
-      animationRef.current = requestAnimationFrame(draw);
-    };
 
-    draw();
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("迎着光传播方向观察（接收端视角）", cx, height - 6);
+    },
+  });
 
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [phaseDiff, ampX, ampY, animate]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="rounded-lg border border-cyan-400/20"
-      style={{ width: 300, height: 300 }}
-    />
-  );
+  return <canvas ref={canvasRef} className="mx-auto block rounded-lg" />;
 }
 
+// ----------------------------------------------------------------------------
 // 偏振态类型判断
+// ----------------------------------------------------------------------------
+
 function getPolarizationState(
   phaseDiff: number,
   ampX: number,
@@ -348,7 +495,7 @@ function getPolarizationState(
   if (ampX < 0.05 || ampY < 0.05) {
     return {
       type: { "zh-CN": "线偏振 (单轴)" },
-      color: "#ff4444",
+      color: COLOR_EX,
       description: { "zh-CN": "只有一个分量振动，光沿单一方向振动" },
     };
   }
@@ -360,7 +507,7 @@ function getPolarizationState(
     const direction = Math.abs(normalizedPhase - 90) < 5 ? "右旋" : "左旋";
     return {
       type: { "zh-CN": `${direction}圆偏振` },
-      color: "#44ff44",
+      color: COLOR_EY,
       description: { "zh-CN": "电场矢量沿圆轨迹旋转，产生螺旋传播" },
     };
   }
@@ -384,7 +531,7 @@ function getPolarizationState(
   };
 }
 
-// 预设按钮组件
+// 预设按钮
 function PresetButton({
   label,
   isActive,
@@ -402,16 +549,19 @@ function PresetButton({
     <motion.button
       className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
         isActive
-          ? `bg-opacity-20 border-opacity-50`
-          : theme === "dark" ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-slate-500" : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-gray-400"
+          ? ""
+          : theme === "dark"
+            ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-slate-500"
+            : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-gray-400"
       }`}
       style={{
         backgroundColor: isActive ? `${color}20` : undefined,
         borderColor: isActive ? `${color}80` : undefined,
         color: isActive ? color : undefined,
+        boxShadow: isActive ? `0 0 14px ${color}30` : undefined,
       }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
     >
       {label[i18n.language]}
@@ -419,7 +569,10 @@ function PresetButton({
   );
 }
 
+// ----------------------------------------------------------------------------
 // 主演示组件
+// ----------------------------------------------------------------------------
+
 export function PolarizationTypesDemo() {
   const { i18n } = useTranslation();
   const { theme } = useTheme();
@@ -433,11 +586,20 @@ export function PolarizationTypesDemo() {
     [phaseDiff, ampX, ampY],
   );
 
-  // 预设选项
+  // 偏振椭圆参数：方位角 ψ 与椭圆率角 χ
+  const ellipseParams = useMemo(() => {
+    const delta = (phaseDiff * Math.PI) / 180;
+    const denom = ampX * ampX + ampY * ampY;
+    if (denom < 1e-9) return { psi: 0, chi: 0 };
+    const psi = 0.5 * Math.atan2(2 * ampX * ampY * Math.cos(delta), ampX * ampX - ampY * ampY);
+    const chi = 0.5 * Math.asin(Math.max(-1, Math.min(1, (2 * ampX * ampY * Math.sin(delta)) / denom)));
+    return { psi: (psi * 180) / Math.PI, chi: (chi * 180) / Math.PI };
+  }, [phaseDiff, ampX, ampY]);
+
   const presets = [
-    { label: { "zh-CN": "水平线偏振" }, params: { phase: 0, ax: 1, ay: 0 }, color: "#ff4444" },
+    { label: { "zh-CN": "水平线偏振" }, params: { phase: 0, ax: 1, ay: 0 }, color: COLOR_EX },
     { label: { "zh-CN": "45°线偏振" }, params: { phase: 0, ax: 1, ay: 1 }, color: "#ffaa00" },
-    { label: { "zh-CN": "右旋圆偏振" }, params: { phase: 90, ax: 1, ay: 1 }, color: "#44ff44" },
+    { label: { "zh-CN": "右旋圆偏振" }, params: { phase: 90, ax: 1, ay: 1 }, color: COLOR_EY },
     { label: { "zh-CN": "左旋圆偏振" }, params: { phase: 270, ax: 1, ay: 1 }, color: "#22d3ee" },
     { label: { "zh-CN": "椭圆偏振" }, params: { phase: 45, ax: 1, ay: 0.6 }, color: "#a78bfa" },
   ];
@@ -448,7 +610,6 @@ export function PolarizationTypesDemo() {
     setAmpY(params.ay);
   }, []);
 
-  // 当前选中的预设
   const currentPresetIndex = useMemo(() => {
     return presets.findIndex(
       (p) =>
@@ -456,68 +617,62 @@ export function PolarizationTypesDemo() {
         Math.abs(p.params.ax - ampX) < 0.1 &&
         Math.abs(p.params.ay - ampY) < 0.1,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseDiff, ampX, ampY]);
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      {/* 标题 */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
-          偏振态与波合成
-        </h2>
-        <p className={theme === "dark" ? "text-gray-400 mt-1" : "text-gray-600 mt-1"}>探索光的偏振状态：由两个垂直分量的振幅比和相位差决定</p>
-      </div>
-
+    <div className="flex flex-col gap-5 h-full">
       {/* 上方：两个可视化面板 */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* 3D 波动传播视图 */}
-        <div className="flex-1 bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10 flex items-center justify-between">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>3D 空间传播视图</h3>
-            <div className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"}`}>伪等轴测投影</div>
-          </div>
-          <div className="p-4 flex justify-center">
-            <WavePropagation3DCanvas
-              phaseDiff={phaseDiff}
-              ampX={ampX}
-              ampY={ampY}
-              animate={animate}
-            />
-          </div>
-        </div>
+      <div className="flex flex-col xl:flex-row gap-4 items-stretch">
+        <DemoStage
+          className="flex-1 min-w-0"
+          title="3D 空间传播视图"
+          subtitle="斜二测投影 · 近粗远细"
+          legend={[
+            { color: COLOR_EX, label: "Ex", shape: "line" },
+            { color: COLOR_EY, label: "Ey", shape: "line" },
+            { color: COLOR_E, label: "合成 E", shape: "line" },
+          ]}
+        >
+          <WavePropagation3DCanvas
+            phaseDiff={phaseDiff}
+            ampX={ampX}
+            ampY={ampY}
+            animate={animate}
+          />
+        </DemoStage>
 
-        {/* 2D 偏振态投影 */}
-        <div className="lg:w-[360px] bg-slate-900/50 rounded-xl border border-cyan-400/20 overflow-hidden">
-          <div className="px-4 py-3 border-b border-cyan-400/10">
-            <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>偏振态投影</h3>
-          </div>
-          <div className="p-4 flex flex-col items-center gap-3">
+        <DemoStage
+          className="xl:w-[370px] flex-shrink-0"
+          title="偏振态投影"
+          subtitle="接收端视角"
+        >
+          <div className="flex flex-col items-center gap-2">
             <PolarizationStateCanvas
               phaseDiff={phaseDiff}
               ampX={ampX}
               ampY={ampY}
               animate={animate}
             />
-            <div className="text-center space-y-1">
-              <div>
-                <span className={theme === "dark" ? "text-gray-400 text-sm" : "text-gray-600 text-sm"}>当前状态: </span>
-                <span
-                  className="font-semibold"
-                  style={{ color: polarizationState.color }}
-                >
-                  {polarizationState.type[i18n.language]}
-                </span>
-              </div>
-              <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-700"}`}>
+            <div className="text-center pb-1">
+              <span className="text-gray-400 text-sm">当前状态: </span>
+              <span className="font-semibold" style={{ color: polarizationState.color }}>
+                {polarizationState.type[i18n.language]}
+              </span>
+              <p className="text-xs text-gray-500 mt-0.5">
                 {polarizationState.description[i18n.language]}
               </p>
             </div>
           </div>
-        </div>
+        </DemoStage>
       </div>
 
-      {/* 快速预设 */}
-      <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4">
+      {/* 快速预设 + 播放控制 */}
+      <div
+        className={`rounded-xl border p-3 ${
+          theme === "dark" ? "bg-slate-900/50 border-cyan-400/20" : "bg-white border-cyan-200"
+        }`}
+      >
         <div className="flex flex-wrap gap-2 justify-center">
           {presets.map((preset, index) => (
             <PresetButton
@@ -533,22 +688,23 @@ export function PolarizationTypesDemo() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               animate
                 ? "bg-cyan-400/20 text-cyan-400 border border-cyan-400/50"
-                : theme === "dark" ? "bg-slate-700/50 text-gray-400 border border-slate-600" : "bg-gray-100/50 text-gray-600 border border-gray-300"
+                : theme === "dark"
+                  ? "bg-slate-700/50 text-gray-400 border border-slate-600"
+                  : "bg-gray-100/50 text-gray-600 border border-gray-300"
             }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
             {animate ? "⏸ 暂停" : "▶ 播放"}
           </motion.button>
         </div>
       </div>
 
-      {/* 下方：控制面板 */}
+      {/* 控制面板 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 参数控制 */}
         <ControlPanel title="参数调节">
           <SliderControl
-            label={MathText({ text: "$\\delta$" })}
+            label={<MathText text="相位差 $\delta$" />}
             value={phaseDiff}
             min={0}
             max={360}
@@ -579,39 +735,33 @@ export function PolarizationTypesDemo() {
           />
         </ControlPanel>
 
-        {/* 计算结果 */}
         <ControlPanel title="偏振参数">
+          <ValueDisplay label={<MathText text="相位差 $\delta$" />} value={`${phaseDiff}°`} />
           <ValueDisplay
-            label={MathText({ text: "$\\delta$" })}
-            value={`${phaseDiff}°`}
-          />
-          <ValueDisplay
-            label={MathText({ text: "$E_y/E_x$" })}
+            label={<MathText text="$E_y/E_x$" />}
             value={ampX > 0 ? (ampY / ampX).toFixed(2) : "∞"}
           />
           <ValueDisplay
-            label="偏振态"
-            value={polarizationState.type[i18n.language]}
-            color={
-              polarizationState.type[i18n.language].includes("圆")
-                ? "green"
-                : polarizationState.type[i18n.language].includes("线")
-                  ? "orange"
-                  : "purple"
-            }
+            label={<MathText text="椭圆方位角 $\psi$" />}
+            value={`${ellipseParams.psi.toFixed(1)}°`}
+            color="purple"
+          />
+          <ValueDisplay
+            label={<MathText text="椭圆率角 $\chi$" />}
+            value={`${ellipseParams.chi.toFixed(1)}°`}
+            color="orange"
           />
           <Formula>
             $E = E_x \cos(\omega t) \mathbf e_x + E_y \cos(\omega t + \delta) \mathbf e_y$
           </Formula>
         </ControlPanel>
 
-        {/* 物理原理 */}
         <ControlPanel title="物理原理">
           <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-2`}>
             <p>
               <strong className="text-cyan-400">偏振态</strong>
-              由两个互相垂直的电场分量 ({MathText({ text: "$E_x, E_y$" })}) 的振幅比和相位差(
-              {MathText({ text: "$\\delta$" })})决定。
+              由两个互相垂直的电场分量 (<MathText text="$E_x, E_y$" />) 的振幅比和相位差(
+              <MathText text="$\delta$" />)决定。
             </p>
             <p>
               当{" "}
@@ -631,37 +781,34 @@ export function PolarizationTypesDemo() {
               </span>{" "}
               时，合成矢量画出直线（线偏振）。
             </p>
+            <p>
+              椭圆率角 <MathText text="$\chi$" /> 的符号给出旋转方向：观察右图中沿轨迹移动的
+              <span className="text-cyan-300">青色箭头</span>。
+            </p>
           </div>
         </ControlPanel>
       </div>
 
       {/* 现实应用场景 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InfoCard
-          title="🎬 3D电影技术"
-          color="cyan"
-        >
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            3D电影利用圆偏振光：左右眼分别接收左旋和右旋圆偏振图像，通过偏振眼镜分离产生立体效果。
-          </p>
-        </InfoCard>
-        <InfoCard
-          title="📡 卫星通信"
-          color="purple"
-        >
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            卫星使用圆偏振天线：避免发射和接收天线方向对准问题，提高通信稳定性。
-          </p>
-        </InfoCard>
-        <InfoCard
-          title="🔬 生物检测"
-          color="orange"
-        >
-          <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-            椭圆偏振光谱用于检测蛋白质分子结构：不同分子会产生特定的偏振变化，用于医学诊断。
-          </p>
-        </InfoCard>
-      </div>
+      <DemoSection title="现实应用" icon={<BookOpen className="w-3.5 h-3.5" />}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <InfoCard title="🎬 3D电影技术" color="cyan">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              3D电影利用圆偏振光：左右眼分别接收左旋和右旋圆偏振图像，通过偏振眼镜分离产生立体效果。
+            </p>
+          </InfoCard>
+          <InfoCard title="📡 卫星通信" color="purple">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              卫星使用圆偏振天线：避免发射和接收天线方向对准问题，提高通信稳定性。
+            </p>
+          </InfoCard>
+          <InfoCard title="🔬 生物检测" color="orange">
+            <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              椭圆偏振光谱用于检测蛋白质分子结构：不同分子会产生特定的偏振变化，用于医学诊断。
+            </p>
+          </InfoCard>
+        </div>
+      </DemoSection>
     </div>
   );
 }
