@@ -1478,7 +1478,7 @@ export function CourseViewer({
                 className={
                   isFullscreen
                     ? "block h-full w-full bg-black object-contain"
-                    : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border transition-all duration-500 ${
+                    : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border bg-black transition-all duration-500 ${
                         theme === "dark"
                           ? "border-slate-700/80 shadow-2xl shadow-black/40"
                           : "border-slate-200 shadow-xl shadow-slate-200/50"
@@ -1507,7 +1507,7 @@ export function CourseViewer({
               className={
                 isFullscreen
                   ? "block h-full w-full bg-black object-contain"
-                  : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border transition-all duration-500 ${
+                  : `block h-auto w-auto max-h-full max-w-full rounded-[28px] border bg-black transition-all duration-500 ${
                       theme === "dark"
                         ? "border-slate-700/80 shadow-2xl shadow-black/40"
                         : "border-slate-200 shadow-xl shadow-slate-200/50"

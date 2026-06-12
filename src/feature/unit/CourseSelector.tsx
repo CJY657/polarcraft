@@ -154,7 +154,7 @@ export function CourseSelector({
                     className={cn(
                       "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] border sm:w-32",
                       thumbnailImage
-                        ? "border-transparent bg-transparent"
+                        ? "border-transparent bg-black"
                         : theme === "dark"
                           ? "border-slate-800 bg-slate-900/85"
                           : "border-slate-200 bg-slate-50",
