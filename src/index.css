@@ -1506,7 +1506,7 @@ select::-webkit-scrollbar-thumb {
 }
 
 /* Ensure scrollbar doesn't affect layout */
-* {
+html {
   scrollbar-gutter: stable;
 }
 
