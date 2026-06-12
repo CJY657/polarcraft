@@ -154,9 +154,7 @@ export function CourseSelector({
                     className={cn(
                       "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] border sm:w-32",
                       thumbnailImage
-                        ? theme === "dark"
-                          ? "border-transparent bg-slate-900"
-                          : "border-transparent bg-slate-100"
+                        ? "border-transparent bg-transparent"
                         : theme === "dark"
                           ? "border-slate-800 bg-slate-900/85"
                           : "border-slate-200 bg-slate-50",
@@ -169,7 +167,7 @@ export function CourseSelector({
                         alt={getLabel(course.title)}
                         loading="lazy"
                         decoding="async"
-                        className="absolute inset-0 block h-full w-full object-cover scale-[1.06] transition-transform duration-300 group-hover:scale-[1.12]"
+                        className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
