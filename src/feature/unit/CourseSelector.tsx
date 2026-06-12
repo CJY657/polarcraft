@@ -152,14 +152,17 @@ export function CourseSelector({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   <div
                     className={cn(
-                      "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] border sm:w-32",
+                      "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] sm:w-32",
                       thumbnailImage
-                        ? "border-transparent bg-black"
+                        ? "bg-black"
                         : theme === "dark"
-                          ? "border-slate-800 bg-slate-900/85"
-                          : "border-slate-200 bg-slate-50",
+                          ? "border border-slate-800 bg-slate-900/85"
+                          : "border border-slate-200 bg-slate-50",
                     )}
-                    style={!thumbnailImage ? { backgroundColor: `${course.color}12` } : undefined}
+                    style={{
+                      scrollbarGutter: "auto",
+                      ...(!thumbnailImage ? { backgroundColor: `${course.color}12` } : {}),
+                    }}
                   >
                     {thumbnailImage ? (
                       <img
@@ -167,7 +170,7 @@ export function CourseSelector({
                         alt={getLabel(course.title)}
                         loading="lazy"
                         decoding="async"
-                        className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="absolute inset-0 block h-full w-full max-w-none rounded-[inherit] object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
