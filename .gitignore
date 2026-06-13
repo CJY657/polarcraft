@@ -29,5 +29,9 @@ server/.env
 
 uploads
 
+.claude/
+.agent/
+.agents/
+.omg/
 .omx/
 .understand-anything/
