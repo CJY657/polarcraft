@@ -6,6 +6,11 @@ type MockedRoute = {
   stack: Array<{ handle: unknown }>;
 };
 
+type MockedLayer = {
+  handle: unknown;
+  route?: MockedRoute;
+};
+
 const doubles = vi.hoisted(() => {
   const passthroughMiddleware = (_req: unknown, _res: unknown, next: (error?: unknown) => void) => {
     next();
@@ -55,21 +60,21 @@ import feedbackRoutes from './feedback.routes.js';
 
 function getRoute(method: 'get' | 'post') {
   return feedbackRoutes.stack
-    .map((layer) => (layer as { route?: MockedRoute }).route)
+    .map((layer) => (layer as MockedLayer).route)
     .find((route) => Boolean(route?.methods?.[method])) as MockedRoute | undefined;
 }
 
 describe('feedback.routes', () => {
-  it('requires authentication before accepting feedback submissions', () => {
+  it('allows anonymous feedback submissions with optional auth metadata', () => {
     const postRoute = getRoute('post');
 
     expect(postRoute?.path).toBe('/');
 
     const handlers = postRoute?.stack.map((layer) => layer.handle) ?? [];
     expect(handlers).toContain(doubles.feedbackRateLimiter);
-    expect(handlers).toContain(doubles.authenticate);
+    expect(handlers).toContain(doubles.optionalAuth);
     expect(handlers).toContain(doubles.validateCreateFeedback);
-    expect(handlers).not.toContain(doubles.optionalAuth);
+    expect(handlers).not.toContain(doubles.authenticate);
     expect(handlers.at(-1)).toBe(doubles.create);
   });
 
@@ -81,5 +86,13 @@ describe('feedback.routes', () => {
     const handlers = getRouteLayer?.stack.map((layer) => layer.handle) ?? [];
     expect(handlers).toContain(doubles.requireAdmin);
     expect(handlers.at(-1)).toBe(doubles.list);
+
+    const layers = feedbackRoutes.stack as MockedLayer[];
+    const authIndex = layers.findIndex((layer) => layer.handle === doubles.authenticate);
+    const getIndex = layers.findIndex((layer) => layer.route === getRouteLayer);
+
+    expect(authIndex).toBeGreaterThan(-1);
+    expect(getIndex).toBeGreaterThan(-1);
+    expect(authIndex).toBeLessThan(getIndex);
   });
 });

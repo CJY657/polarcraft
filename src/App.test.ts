@@ -22,17 +22,18 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/experiments/course1")).toBe(true);
     expect(shouldRequireStudentAuth("/units")).toBe(true);
     expect(shouldRequireStudentAuth("/units/unit1")).toBe(true);
-    expect(shouldRequireStudentAuth("/feedback")).toBe(true);
     expect(shouldRequireStudentAuth("/profile")).toBe(true);
     expect(shouldRequireStudentAuth("/inbox")).toBe(true);
+    expect(shouldRequireStudentAuth("/lab")).toBe(true);
     expect(shouldRequireStudentAuth("/lab/explore")).toBe(true);
-    expect(shouldRequireStudentAuth("/demos")).toBe(true);
-    expect(shouldRequireStudentAuth("/demos/em-wave")).toBe(true);
   });
 
   it("keeps public pages accessible without login", () => {
     expect(shouldRequireStudentAuth("/")).toBe(false);
     expect(shouldRequireStudentAuth("/about")).toBe(false);
     expect(shouldRequireStudentAuth("/gallery")).toBe(false);
+    expect(shouldRequireStudentAuth("/demos")).toBe(false);
+    expect(shouldRequireStudentAuth("/demos/em-wave")).toBe(false);
+    expect(shouldRequireStudentAuth("/feedback")).toBe(false);
   });
 });

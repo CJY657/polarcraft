@@ -20,7 +20,7 @@ function renderProtectedRoute(initialEntry: string) {
       <Routes>
         <Route path="/" element={<div>home</div>} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/feedback" element={<div>protected feedback</div>} />
+          <Route path="/units" element={<div>protected units</div>} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -44,18 +44,18 @@ describe("ProtectedRoute", () => {
   });
 
   it("opens the login dialog with the current path as returnTo", async () => {
-    renderProtectedRoute("/feedback?feedback=product#feedback");
+    renderProtectedRoute("/units?from=hero#overview");
 
     await waitFor(() => {
       expect(useAuthDialogStore.getState().isOpen).toBe(true);
     });
 
-    expect(useAuthDialogStore.getState().returnTo).toBe("/feedback?feedback=product#feedback");
-    expect(screen.queryByText("protected feedback")).toBeNull();
+    expect(useAuthDialogStore.getState().returnTo).toBe("/units?from=hero#overview");
+    expect(screen.queryByText("protected units")).toBeNull();
   });
 
   it("navigates to the home page when the login dialog is closed", async () => {
-    renderProtectedRoute("/feedback");
+    renderProtectedRoute("/units");
 
     await waitFor(() => {
       expect(useAuthDialogStore.getState().isOpen).toBe(true);
@@ -76,9 +76,9 @@ describe("ProtectedRoute", () => {
       isLoading: false,
     });
 
-    renderProtectedRoute("/feedback");
+    renderProtectedRoute("/units");
 
-    expect(screen.getByText("protected feedback")).toBeDefined();
+    expect(screen.getByText("protected units")).toBeDefined();
     expect(useAuthDialogStore.getState().isOpen).toBe(false);
   });
 });

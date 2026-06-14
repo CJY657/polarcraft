@@ -215,9 +215,6 @@ export function shouldRequireStudentAuth(pathname: string) {
       pathname === "/units" ||
       matchPath("/units/:unitId", pathname) ||
       matchPath("/units/:unitId/courses/:courseId", pathname) ||
-      pathname === "/demos" ||
-      matchPath("/demos/:demoId", pathname) ||
-      pathname === "/feedback" ||
       pathname === "/profile" ||
       pathname === "/inbox" ||
       pathname === "/lab" ||
@@ -246,6 +243,21 @@ function AppRouterContent() {
 
           {/* 6 Core Modules - 六大核心模块（一级页面）首页六个模块直接链接到这些页面 */}
 
+          {/* Module 3: 理论模拟 */}
+          <Route
+            path="/demos"
+            element={<DemosPage />}
+          />
+          <Route
+            path="/demos/:demoId"
+            element={<DemosPage />}
+          />
+
+          <Route
+            path="/feedback"
+            element={<FeedbackPage />}
+          />
+
           <Route element={<ProtectedRoute />}>
             {/* Module 1: 实验内容 */}
             <Route
@@ -271,16 +283,6 @@ function AppRouterContent() {
               element={<UnitRedirectPage />}
             />
 
-            {/* Module 3: 理论模拟 */}
-            <Route
-              path="/demos"
-              element={<DemosPage />}
-            />
-            <Route
-              path="/demos/:demoId"
-              element={<DemosPage />}
-            />
-
             {/* Module 6: 虚拟课题 */}
             {/* Research System / 虚拟课题组系统 */}
             <Route
@@ -298,11 +300,6 @@ function AppRouterContent() {
             <Route
               path="/lab/projects/:projectId"
               element={<ResearchProjectPage />}
-            />
-
-            <Route
-              path="/feedback"
-              element={<FeedbackPage />}
             />
 
             {/* Profile - 个人中心 */}
