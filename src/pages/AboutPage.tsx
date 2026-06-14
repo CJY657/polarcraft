@@ -28,28 +28,28 @@ interface ModuleGroup {
 const PRINCIPLES: Principle[] = [
   {
     label: "进入",
-    title: "先降低抽象门槛",
-    description: "从现象、故事和实验任务开始，让偏振态、器件作用和光路变化先变成可以观察的对象。",
+    title: "打破抽象的门槛",
+    description: "从生活现象、历史故事与实验任务出发，让看不见的偏振态、光学器件与光路变化，成为你眼前可以观察与操作的对象。",
     accent: "#1865f2",
   },
   {
     label: "理解",
-    title: "再连接模型与操作",
-    description: "把课程材料、图像、模拟和公式放在同一条路径里，减少“看懂但不会用”的断层。",
+    title: "连接理论与实践",
+    description: "将课程阅读、图像模拟与数学公式融为一体，真正做到在操作中理解，告别“看懂了但不会用”的困境。",
     accent: "#0f9b74",
   },
   {
     label: "延伸",
-    title: "最后进入表达与协作",
-    description: "作品展示、开放问题和研究项目不是附加入口，而是学习闭环真正完成的位置。",
+    title: "走向创造与协作",
+    description: "作品展示、开放问题与研究项目并不是学习的终点，而是你参与科学闭环、开启真正创造的起点。",
     accent: "#d946a0",
   },
 ];
 
 const MODULE_GROUPS: ModuleGroup[] = [
   {
-    title: "学习入口",
-    description: "用课程叙事和科学史先建立问题感。",
+    title: "探索发现",
+    description: "跟随生动的课程叙事与科学史，开启你的光学之旅。",
     accent: "#1865f2",
     links: [
       { label: "实验内容", route: "/experiments" },
@@ -58,7 +58,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
   },
   {
     title: "操作验证",
-    description: "把器件、参数和挑战任务收束到可验证的界面里。",
+    description: "在直观的交互界面中，通过调整参数与运用器件，完成各种挑战任务。",
     accent: "#0f9b74",
     links: [
       { label: "交互模拟", route: "/demos" },
@@ -67,7 +67,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
   },
   {
     title: "输出协作",
-    description: "让学习结果继续进入作品、反馈和开放研究。",
+    description: "展示你的学习成果，与社区交流反馈，共同参与开放研究。",
     accent: "#d946a0",
     links: [
       { label: "成果展示", route: "/gallery" },
@@ -79,23 +79,23 @@ const MODULE_GROUPS: ModuleGroup[] = [
 const LEARNING_FLOW = [
   {
     step: "01",
-    title: "看到真实问题",
-    description: "从实验现象、历史线索或任务场景进入，而不是直接面对孤立公式。",
+    title: "发现真实问题",
+    description: "从生动的实验现象、历史故事或任务场景中发现问题，告别枯燥的孤立公式。",
   },
   {
     step: "02",
     title: "建立可迁移模型",
-    description: "用模拟和图像把变量关系连起来，让概念可以被复用。",
+    description: "通过交互模拟与可视化图像，直观地建立变量之间的联系，掌握核心概念。",
   },
   {
     step: "03",
-    title: "操作并验证",
-    description: "通过课程资源和挑战任务反复校准理解。",
+    title: "操作与验证",
+    description: "在丰富的课程资源与挑战任务中，反复验证你的猜想，深化对知识的理解。",
   },
   {
     step: "04",
     title: "表达与协作",
-    description: "把学习结果带到作品展示、反馈和研究项目中。",
+    description: "将学习成果转化为实际作品，与同伴交流反馈，并参与到研究项目中。",
   },
 ];
 
@@ -220,10 +220,10 @@ export default function AboutPage() {
             <div className="max-w-4xl">
               <Eyebrow>About PolarCraft</Eyebrow>
               <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[1.03] tracking-normal text-[var(--paper-foreground)] [font-family:var(--about-display)] sm:text-6xl lg:text-[5.4rem]">
-                把偏振光学变成清晰的学习路径。
+                让偏振光学的学习变得清晰可见。
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-9 text-[var(--glass-text-muted)]">
-                PolarCraft 把实验内容、历史线索、交互模拟、挑战任务和研究协作重新编排成同一条学习链路。关于页只保留这件事的核心：它是什么、如何进入、学习会走向哪里。
+                PolarCraft 将实验内容、历史故事、交互模拟、挑战任务与研究协作连接在一起，构建了一条连贯的学习链路。在这里，你将了解什么是偏振光学，如何开启探索，以及这一切最终将通向何方。
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <ActionLink to="/experiments" variant="primary">
@@ -258,8 +258,8 @@ export default function AboutPage() {
             <div className="grid gap-10 p-6 sm:p-8 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)] lg:p-10">
               <SectionHeading
                 eyebrow="平台定位"
-                title="不是继续堆内容，而是把断开的学习链路接起来。"
-                description="偏振光学真正难的地方，往往不是资料不够，而是现象、模型、操作和表达彼此分散。这个页面现在把说明压缩成三条原则，让信息密度降下来。"
+                title="连接断开的知识点，让学习自然发生。"
+                description="偏振光学学习的难点，往往不在于缺乏资料，而在于现象、理论、操作与表达之间的割裂。我们遵循三条核心原则，帮助你重新建立这些连接。"
               />
 
               <div className="space-y-7">
@@ -290,8 +290,8 @@ export default function AboutPage() {
               <div className="flex h-full flex-col justify-between gap-10 p-6 sm:p-8">
                 <SectionHeading
                   eyebrow="学习流程"
-                  title="四步足够，不需要更多说明层。"
-                  description="让用户知道从哪里开始，也知道每一步为什么存在。"
+                  title="清晰的四步路径，指引你的每一步探索。"
+                  description="从发现问题到最终输出，每一个阶段都有明确的目标与意义。"
                 />
                 <ActionLink to="/demos">直接打开模拟</ActionLink>
               </div>
@@ -325,8 +325,8 @@ export default function AboutPage() {
             <div className="grid gap-10 p-6 sm:p-8 lg:grid-cols-[minmax(260px,0.75fr)_minmax(0,1.25fr)] lg:p-10">
               <SectionHeading
                 eyebrow="模块地图"
-                title="把入口合并成三组，页面就安静很多。"
-                description="保留原有导航目标，但不再让六个模块同时争抢注意力。用户只需要判断：先学习、去验证，还是继续产出。"
+                title="三大核心模块，让你的学习旅程井然有序。"
+                description="我们精心组织了所有的功能入口，让你在每个阶段都能专注当下。只需跟随直觉：探索背景、动手验证，或是创作产出。"
               />
 
               <div className="space-y-5">
@@ -377,10 +377,10 @@ export default function AboutPage() {
               <div>
                 <Eyebrow>下一步</Eyebrow>
                 <h2 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight text-[var(--paper-foreground)] [font-family:var(--about-display)] sm:text-4xl">
-                  如果想判断这套平台说明是否成立，最好的方式仍然是进入实际模块。
+                  准备好开始了吗？最好的体验方式就是亲自尝试。
                 </h2>
                 <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--glass-text-muted)]">
-                  关于页负责建立方向感；实验、模拟和反馈页负责让用户真正完成一次学习闭环。
+                  在这里，我们为你勾勒了探索的方向；接下来，请进入实验与模拟模块，开启属于你的学习之旅。
                 </p>
               </div>
 
