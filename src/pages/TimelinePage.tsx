@@ -160,6 +160,9 @@ export function TimelinePage() {
   const surfaceClass = theme === "dark"
     ? "border-slate-800 bg-slate-950/80"
     : "border-slate-200 bg-white";
+  const filterSurfaceClass = theme === "dark"
+    ? "border-slate-800/60 bg-slate-900/40"
+    : "border-slate-200/80 bg-slate-50/60";
   const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
   const subtleTextClass = theme === "dark" ? "text-slate-500" : "text-slate-500";
   const pillClass = cn(
@@ -434,52 +437,51 @@ export function TimelinePage() {
         className="sticky top-0 z-40"
       />
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+        {/* ── Page header ── */}
+        <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
               Timeline
             </p>
             <h1
-              className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
+              className="mt-3 text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
               style={{ fontFamily: "var(--font-ui-display)" }}
             >
               {isZh ? "历史时间线" : "Historical timeline"}
             </h1>
-            <p className={cn("mt-2 text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
+            <p className={cn("mt-3 max-w-xl text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
               {isZh
                 ? "沿着光学史筛选关键实验、理论与偏振发现。"
                 : "Browse key experiments, theories, and polarization discoveries across optics history."}
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:gap-3">
             <span className={pillClass}>{filteredEvents.length} {isZh ? "个事件" : "events"}</span>
             <span className={pillClass}>{majorMilestoneCount} {isZh ? "个里程碑" : "milestones"}</span>
             <span className={pillClass}>{totalCenturyCount || 0} {isZh ? "个世纪" : "centuries"}</span>
           </div>
         </section>
 
-        <LearningSectionNav />
+        <div className="mb-6">
+          <LearningSectionNav />
+        </div>
 
-        <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
-                Chronicle Filters
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                {isZh ? "筛选历史脉络" : "Filter the historical thread"}
-              </h2>
-              <p className={cn("mt-2 text-sm leading-7", mutedTextClass)}>
-                {isZh
-                  ? "按章节、轨道和类型聚焦你要看的历史片段。"
-                  : "Focus the story by chapter, track, and event type."}
-              </p>
-            </div>
+        {/* ── Filter controls panel — lighter weight than the main timeline ── */}
+        <section className={cn("mb-4 rounded-2xl border px-5 py-5 sm:px-6", filterSurfaceClass)}>
+          <div className="flex items-center gap-2">
+            <h2 className={cn("text-sm font-semibold", theme === "dark" ? "text-slate-200" : "text-slate-800")}>
+              {isZh ? "筛选" : "Filters"}
+            </h2>
+            <span className={cn("text-xs", mutedTextClass)}>
+              {isZh
+                ? "按章节、轨道和类型聚焦历史片段"
+                : "Focus by chapter, track, and event type"}
+            </span>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4">
             <ChapterSelector
               className="rounded-[1.5rem]"
               selectedSections={selectedSections}
@@ -488,9 +490,9 @@ export function TimelinePage() {
             />
           </div>
 
-          <div className="mt-6 space-y-4">
-            <div>
-              <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+          <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:gap-8">
+            <div className="min-w-0 flex-1">
+              <p className={cn("mb-2.5 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
                 {isZh ? "轨道" : "Track"}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -541,8 +543,13 @@ export function TimelinePage() {
               </div>
             </div>
 
-            <div>
-              <p className={cn("mb-2 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+            <div className={cn(
+              "hidden sm:block sm:w-px sm:self-stretch",
+              theme === "dark" ? "bg-slate-700/40" : "bg-slate-200",
+            )} />
+
+            <div className="min-w-0 flex-1">
+              <p className={cn("mb-2.5 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
                 {isZh ? "类型" : "Category"}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -582,7 +589,8 @@ export function TimelinePage() {
           </div>
         </section>
 
-        <section className={cn("rounded-[2rem] border px-5 py-5 sm:px-6", surfaceClass)}>
+        {/* ── Main timeline panel ── */}
+        <section className={cn("mt-6 rounded-[2rem] border px-5 py-6 sm:px-6 sm:py-8", surfaceClass)}>
           {filteredEvents.length === 0 ? (
             <EmptyWorkspace
               theme={theme}
@@ -595,13 +603,13 @@ export function TimelinePage() {
               }
             />
           ) : (
-            <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_140px]">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_140px]">
               <div>
                 {useSingleTrack ? renderMobileTimeline() : renderDesktopTimeline()}
               </div>
 
               {!useSingleTrack && (
-                <div className="hidden 2xl:block">
+                <div className="hidden xl:block">
                   <CenturyNavigator events={filteredEvents} isZh={isZh} variant="inline" />
                 </div>
               )}
