@@ -25,6 +25,8 @@ dist-ssr
 *:Zone.Identifier
 
 .env
+.env.production
+.env.save
 server/.env
 
 uploads
