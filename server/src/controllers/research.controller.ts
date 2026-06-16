@@ -252,6 +252,8 @@ export class ResearchController {
     if (!access) {
       return;
     }
+    const previousThumbnail = access.project.thumbnail;
+
     const updated = await ResearchModel.updateProject(id, req.body);
 
     if (!updated) {
@@ -259,6 +261,11 @@ export class ResearchController {
     }
 
     const project = await ResearchModel.getProjectById(id);
+    if (req.body.thumbnail !== undefined && previousThumbnail && previousThumbnail !== req.body.thumbnail) {
+      await ManagedUploadCleanupService.cleanupUrls([previousThumbnail], {
+        reason: `research.project.cover-change:${id}`,
+      });
+    }
     logger.info(`Project updated by user ${req.user!.username}: ${id}`);
     res.success(project, '项目更新成功');
   });
@@ -291,7 +298,11 @@ export class ResearchController {
       return res.error('请输入大写 DELETE 以确认删除课题', 'DELETE_CONFIRMATION_REQUIRED', 400);
     }
 
+    const coverUrl = access.project.thumbnail;
     await ResearchModel.deleteProject(id);
+    await ManagedUploadCleanupService.cleanupUrls([coverUrl], {
+      reason: `research.project.delete:${id}`,
+    });
     logger.info(`Project deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '项目删除成功');
   });

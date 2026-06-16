@@ -12,6 +12,7 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } =
     getProjectDiscussionCommentById: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
+    updateProject: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
   },
@@ -369,7 +370,7 @@ describe('ResearchController member management', () => {
 
   it('allows an admin to delete a project without owner membership', async () => {
     mockResearchModel.getProjectAccess.mockResolvedValue({
-      project: { id: 'project-1' },
+      project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/cover.png' },
       membership: null,
       role: null,
       isAdmin: true,
@@ -392,7 +393,50 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.deleteProject, req, res);
 
     expect(mockResearchModel.deleteProject).toHaveBeenCalledWith('project-1');
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/project-cover-project-1/image/cover.png'],
+      { reason: 'research.project.delete:project-1' }
+    );
     expect(res.success).toHaveBeenCalledWith(null, '项目删除成功');
+  });
+
+  it('cleans up the previous project thumbnail after changing the cover', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/old-cover.png' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.updateProject.mockResolvedValue(true);
+    mockResearchModel.getProjectById.mockResolvedValue({
+      id: 'project-1',
+      thumbnail: null,
+    });
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { thumbnail: null },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, req, res);
+
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith('project-1', { thumbnail: null });
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/project-cover-project-1/image/old-cover.png'],
+      { reason: 'research.project.cover-change:project-1' }
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      { id: 'project-1', thumbnail: null },
+      '项目更新成功'
+    );
   });
 
   it('requires DELETE confirmation text before deleting a project', async () => {

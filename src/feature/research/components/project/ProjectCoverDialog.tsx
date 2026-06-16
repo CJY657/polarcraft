@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Check, ImagePlus, Loader2, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, Check, ImagePlus, Loader2, Trash2, UploadCloud, X } from "lucide-react";
 
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/utils/classNames";
@@ -45,6 +45,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
   const [discussionImages, setDiscussionImages] = useState<string[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
     setSelectedFile(null);
     setLocalPreviewUrl(null);
     setDiscussionImages([]);
+    setIsConfirmingDelete(false);
     setError(null);
     setIsLoadingImages(true);
 
@@ -119,6 +121,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
     setSelectedFile(file);
     setSelectedCoverUrl(null);
     setLocalPreviewUrl(URL.createObjectURL(file));
+    setIsConfirmingDelete(false);
     setError(null);
   }
 
@@ -126,6 +129,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
     clearLocalPreview();
     setSelectedFile(null);
     setSelectedCoverUrl(url);
+    setIsConfirmingDelete(false);
     setError(null);
   }
 
@@ -133,7 +137,29 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
     clearLocalPreview();
     setSelectedFile(null);
     setSelectedCoverUrl(null);
+    setIsConfirmingDelete(false);
     setError(null);
+  }
+
+  async function handleDeleteCover() {
+    if (!project) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const updatedProject = await researchApi.updateProject(project.id, {
+        thumbnail: null,
+      });
+      onSuccess(updatedProject);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除封面失败");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleSave() {
@@ -229,6 +255,66 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
           <p className="mt-3 text-sm text-[var(--glass-text-muted)]">
             已选择：<span className="font-medium text-[var(--paper-foreground)]">{selectedFile.name}</span>
           </p>
+        )}
+
+        {project.thumbnail && (
+          <div className="mt-5">
+            {!isConfirmingDelete ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmingDelete(true);
+                  setError(null);
+                }}
+                disabled={isSaving}
+                className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                删除封面
+              </button>
+            ) : (
+              <div
+                className="rounded-[1.2rem] border px-4 py-3"
+                style={{
+                  borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--glass-stroke))",
+                  background: "color-mix(in srgb, #cb6a4f 8%, var(--paper-surface-strong))",
+                }}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#cb6a4f]/12 text-[#a24432]">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除当前封面</p>
+                      <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
+                        删除后会恢复自动封面（讨论区图片或画布图片）。
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingDelete(false)}
+                      disabled={isSaving}
+                      className="glass-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteCover()}
+                      disabled={isSaving}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#a24432] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {isSaving ? "删除中..." : "确认删除封面"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="mt-6">

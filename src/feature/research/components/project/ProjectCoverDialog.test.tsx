@@ -136,4 +136,46 @@ describe("ProjectCoverDialog", () => {
     });
     expect(onSuccess).toHaveBeenCalled();
   });
+
+  it("deletes the saved custom cover after confirmation", async () => {
+    const onSuccess = vi.fn();
+    const projectWithThumbnail: ProjectWithMembers = {
+      ...project,
+      thumbnail: "/uploads/courses/project-cover-project-1/image/current-cover.png",
+    };
+
+    render(
+      <ProjectCoverDialog
+        isOpen
+        onClose={vi.fn()}
+        project={projectWithThumbnail}
+        onSuccess={onSuccess}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "删除封面" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认删除封面" }));
+
+    await waitFor(() => {
+      expect(mockUpdateProject).toHaveBeenCalledWith("project-1", {
+        thumbnail: null,
+      });
+    });
+    expect(mockUploadProjectCoverImage).not.toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
+  });
+
+  it("does not show delete cover when no custom cover is saved", async () => {
+    render(
+      <ProjectCoverDialog
+        isOpen
+        onClose={vi.fn()}
+        project={project}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await screen.findByAltText("讨论区图片");
+    expect(screen.queryByRole("button", { name: "删除封面" })).toBeNull();
+  });
 });
