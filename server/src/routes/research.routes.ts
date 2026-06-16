@@ -18,6 +18,11 @@ function buildProjectDiscussionUploadScope(projectId: string): string {
   return `project-discussion-${sanitizedProjectId}`;
 }
 
+function buildProjectCoverUploadScope(projectId: string): string {
+  const sanitizedProjectId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `project-cover-${sanitizedProjectId}`;
+}
+
 async function authorizeProjectDiscussionUpload(
   req: Request,
   res: Response,
@@ -41,6 +46,42 @@ async function authorizeProjectDiscussionUpload(
 
     if (!access.canAccessDiscussion) {
       res.error('无权上传课题讨论附件', 'FORBIDDEN', 403);
+      return;
+    }
+
+    req.body = {
+      ...(typeof req.body === 'object' && req.body !== null ? req.body : {}),
+      unitId: uploadScope,
+    };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function authorizeProjectCoverUpload(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { projectId } = req.params;
+    const uploadScope = buildProjectCoverUploadScope(projectId);
+
+    if (!uploadScope || uploadScope === 'project-cover-') {
+      res.error('课题标识无效', 'INVALID_PROJECT_ID', 400);
+      return;
+    }
+
+    const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub, req.user!.role);
+
+    if (!access.project) {
+      res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+      return;
+    }
+
+    if (!access.canManage) {
+      res.error('只有组长可以上传课题封面', 'FORBIDDEN', 403);
       return;
     }
 
@@ -111,6 +152,37 @@ router.post('/projects/:id/members', ResearchController.addProjectMember);
  * @access  Private
  */
 router.delete('/projects/:id/members/:userId', ResearchController.removeProjectMember);
+
+/**
+ * @route   POST /api/research/projects/:projectId/cover-image
+ * @desc    Upload a cover image for a research project
+ * @access  Private
+ */
+router.post(
+  '/projects/:projectId/cover-image',
+  authorizeProjectCoverUpload,
+  (req, res, next): void => {
+    req.params.category = 'image';
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Project cover image upload started', {
+      projectId: req.params.projectId,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
+
+    const upload = createUploadMiddleware('image');
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        handleUploadError(err, req, res, next);
+        return;
+      }
+      next();
+    });
+  },
+  UploadController.uploadFile
+);
 
 /**
  * =====================================================

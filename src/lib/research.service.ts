@@ -83,6 +83,8 @@ export interface ProjectDiscussionImageUploadResult {
   unitId: string;
 }
 
+export interface ProjectCoverImageUploadResult extends ProjectDiscussionImageUploadResult {}
+
 export interface ProjectDiscussionVideoUploadResult {
   url: string;
   filename: string;
@@ -114,7 +116,7 @@ export interface UpdateProjectInput {
   research_hypotheses_zh?: string;
   basic_plan_zh?: string;
   extended_plan_zh?: string;
-  thumbnail?: string;
+  thumbnail?: string | null;
   status?: 'draft' | 'active' | 'completed' | 'archived';
   is_public?: boolean;
 }
@@ -174,6 +176,24 @@ export const researchApi = {
       return response.data;
     }
     throw new Error(response.error?.message || '更新课题失败');
+  },
+
+  /**
+   * Upload project cover image
+   * 上传课题封面图片
+   */
+  uploadProjectCoverImage: async (
+    projectId: string,
+    file: File
+  ): Promise<ProjectCoverImageUploadResult> => {
+    const response = await api.upload<ProjectCoverImageUploadResult>(
+      `/api/research/projects/${projectId}/cover-image`,
+      file
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '上传课题封面失败');
   },
 
   /**

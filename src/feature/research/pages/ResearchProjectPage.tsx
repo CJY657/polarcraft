@@ -25,6 +25,7 @@ import {
   HelpCircle,
   Lightbulb,
   ListChecks,
+  ImagePlus,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +48,7 @@ import {
 import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
+import { ProjectCoverDialog } from "../components/project/ProjectCoverDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import {
@@ -236,6 +238,7 @@ export function ResearchProjectPage() {
 
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCoverDialogOpen, setIsCoverDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
@@ -570,6 +573,13 @@ export function ResearchProjectPage() {
             {canManageProject && (
               <>
                 <button
+                  onClick={() => setIsCoverDialogOpen(true)}
+                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  封面
+                </button>
+                <button
                   onClick={() => setIsSettingsDialogOpen(true)}
                   className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
                 >
@@ -675,6 +685,13 @@ export function ResearchProjectPage() {
                   <>
                     {canManageProject && (
                       <>
+                        <button
+                          onClick={() => setIsCoverDialogOpen(true)}
+                          className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
+                        >
+                          <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
+                          管理封面
+                        </button>
                         <button
                           onClick={() => setIsEditDialogOpen(true)}
                           className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
@@ -907,6 +924,18 @@ export function ResearchProjectPage() {
         <ProjectEditDialog
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
+          project={project}
+          onSuccess={(updatedProject) => {
+            setProject({ ...project, ...updatedProject });
+          }}
+        />
+      )}
+
+      {/* Cover Dialog */}
+      {!isExampleProject && project && canManageProject && (
+        <ProjectCoverDialog
+          isOpen={isCoverDialogOpen}
+          onClose={() => setIsCoverDialogOpen(false)}
           project={project}
           onSuccess={(updatedProject) => {
             setProject({ ...project, ...updatedProject });
