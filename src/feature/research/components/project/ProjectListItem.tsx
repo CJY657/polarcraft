@@ -9,6 +9,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, Globe, LayoutGrid, Lock, Users } from "lucide-react";
 import type { ResearchProject } from "@/lib/research.service";
+import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { ProjectDeleteAction } from "./ProjectDeleteAction";
 
 interface ProjectListItemProps {
@@ -68,10 +69,16 @@ function formatDate(date: string) {
 
 export function ProjectListItem({ project, canDelete = false, isDeleting = false, onDelete }: ProjectListItemProps) {
   const statusMeta = getStatusMeta(project.status);
+  const coverImage = project.thumbnail || project.cover_image;
 
   return (
     <article className="research-panel-soft rounded-[1.45rem] p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]">
       <Link to={`/lab/projects/${project.id}`} className="group block">
+        <ProjectCoverImage
+          src={coverImage}
+          alt={project.name_zh}
+          className="mb-3 aspect-[16/9] rounded-[1.1rem]"
+        />
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">

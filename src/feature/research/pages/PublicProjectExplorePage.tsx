@@ -20,6 +20,7 @@ import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { CreateProjectWizard } from "../components/project/CreateProjectWizard";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
+import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 export function PublicProjectExplorePage() {
@@ -299,6 +300,11 @@ export function PublicProjectExplorePage() {
                 key={project.id}
                 className="research-panel rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
+                <ProjectCoverImage
+                  src={project.thumbnail || project.cover_image}
+                  alt={project.name_zh}
+                  className="mb-5 aspect-[16/9] rounded-[1.25rem]"
+                />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <h2

@@ -158,6 +158,7 @@ export interface PublicProject {
   basic_plan_zh?: string | null;
   extended_plan_zh?: string | null;
   thumbnail: string | null;
+  cover_image?: string | null;
   status: string;
   visibility: ProjectVisibility;
   require_approval: boolean;

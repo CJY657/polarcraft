@@ -12,6 +12,7 @@ import {
   buildInactiveMembershipFilter,
   isMembershipActive,
 } from './research-membership.util.js';
+import { getProjectCoverImageMap } from './research-cover.util.js';
 
 const researchProjectsCollection = () => getCollection('research_projects');
 const projectMembersCollection = () => getCollection('research_project_members');
@@ -157,13 +158,14 @@ export class ResearchModel {
     }
 
     const projectIds = projects.map((project) => project.id);
-    const [members, canvases] = await Promise.all([
+    const [members, canvases, coverMap] = await Promise.all([
       normalizeDocuments<{ project_id: string; user_id: string }>(
         await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: projectIds } })).toArray()
       ),
       normalizeDocuments<{ id: string; project_id: string }>(
         await canvasesCollection().find({ project_id: { $in: projectIds } }).toArray()
       ),
+      getProjectCoverImageMap(projectIds),
     ]);
 
     const memberCountMap = new Map<string, number>();
@@ -184,6 +186,7 @@ export class ResearchModel {
 
     return projects.map((project) => ({
       ...project,
+      cover_image: coverMap.get(project.id) ?? null,
       member_count: memberCountMap.get(project.id) ?? 0,
       canvas_count: canvasCountMap.get(project.id) ?? 0,
       current_user_role: currentUserRoleMap.get(project.id) ?? null,

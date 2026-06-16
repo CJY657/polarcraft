@@ -14,6 +14,7 @@ import {
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import { buildActiveMembershipFilter, normalizeProjectRole } from './research-membership.util.js';
+import { getProjectCoverImageMap } from './research-cover.util.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -584,7 +585,7 @@ export class ProfileModel {
     }
 
     const visibleProjectIds = projects.map((project) => project.id);
-    const [members, pendingApplications] = await Promise.all([
+    const [members, pendingApplications, coverMap] = await Promise.all([
       normalizeDocuments<any>(
         await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: visibleProjectIds } })).toArray()
       ),
@@ -596,6 +597,7 @@ export class ProfileModel {
               .toArray()
           )
         : Promise.resolve([] as { project_id: string }[]),
+      getProjectCoverImageMap(visibleProjectIds),
     ]);
     const userMap = await getUserMap(members.map((member) => member.user_id));
 
@@ -623,6 +625,7 @@ export class ProfileModel {
 
       return {
         ...project,
+        cover_image: coverMap.get(project.id) ?? null,
         visibility: setting?.visibility,
         require_approval: setting?.require_approval,
         recruitment_requirements: setting?.recruitment_requirements,

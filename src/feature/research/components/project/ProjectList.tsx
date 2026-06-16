@@ -22,6 +22,7 @@ import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { EXAMPLE_PROJECTS } from "@/data/researchExampleProjects";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { CreateProjectWizard } from "./CreateProjectWizard";
 import { ProjectListSidebar } from "./ProjectListSidebar";
 import { PublicProjectsSection } from "./PublicProjectsSection";
@@ -262,19 +263,11 @@ export function ProjectList() {
                 to={`/lab/projects/example-${project.id}`}
                 className="research-panel-soft group overflow-hidden rounded-[1.65rem] transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
-                {project.coverImage && (
-                  <div className="relative aspect-[16/10] overflow-hidden border-b border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)]">
-                    <img
-                      src={project.coverImage}
-                      alt={project.title["zh-CN"]}
-                      className="absolute inset-0 block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23cbd5e1"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2364748b" font-size="12" font-family="sans-serif"%3E暂无封面%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  </div>
-                )}
+                <ProjectCoverImage
+                  src={project.coverImage}
+                  alt={project.title["zh-CN"]}
+                  className="aspect-[16/10] border-b border-[var(--glass-stroke)]"
+                />
 
                 <div className="p-5">
                   <h3

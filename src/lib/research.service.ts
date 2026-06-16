@@ -23,6 +23,7 @@ export interface ResearchProject {
   basic_plan_zh?: string | null;
   extended_plan_zh?: string | null;
   thumbnail: string | null;
+  cover_image?: string | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
   is_public: boolean;
   allow_guest_comments: boolean;

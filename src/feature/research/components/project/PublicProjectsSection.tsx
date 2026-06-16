@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
 
 export function PublicProjectsSection() {
@@ -147,6 +148,11 @@ export function PublicProjectsSection() {
               key={project.id}
               className="research-panel-soft flex h-full flex-col rounded-[1.55rem] p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
             >
+              <ProjectCoverImage
+                src={project.thumbnail || project.cover_image}
+                alt={project.name_zh}
+                className="mb-4 aspect-[16/9] rounded-[1.15rem]"
+              />
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
