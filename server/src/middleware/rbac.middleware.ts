@@ -49,36 +49,3 @@ export const requireAdmin = requireRole('admin');
  * 要求用户或管理员角色
  */
 export const requireUser = requireRole('user', 'admin');
-
-/**
- * Check if user owns the resource or is admin
- * 检查用户是否拥有资源或是管理员
- */
-export function requireOwnershipOrAdmin(getResourceOwnerId: (req: Request) => string) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      sendError(res, '未登录，请先登录', 'UNAUTHORIZED', 401);
-      return;
-    }
-
-    // Admins can access any resource
-    // 管理员可以访问任何资源
-    if (req.user.role === 'admin') {
-      next();
-      return;
-    }
-
-    // Check if user owns the resource
-    // 检查用户是否拥有资源
-    const resourceOwnerId = getResourceOwnerId(req);
-    if (req.user.sub !== resourceOwnerId) {
-      logger.warn(
-        `User ${req.user.sub} attempted to access resource owned by ${resourceOwnerId}`
-      );
-      sendError(res, '权限不足，无法访问', 'FORBIDDEN', 403);
-      return;
-    }
-
-    next();
-  };
-}

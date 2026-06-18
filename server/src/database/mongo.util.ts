@@ -10,10 +10,7 @@ export function normalizeDocument<T>(doc: Document | null): T | null {
 }
 
 export function normalizeDocuments<T>(docs: Document[]): T[] {
-  return docs.map((doc) => {
-    const { _id, ...rest } = doc;
-    return rest as unknown as T;
-  });
+  return docs.map((doc) => normalizeDocument<T>(doc) as T);
 }
 
 export function pickDefined<T extends Record<string, unknown>>(input: T): Partial<T> {
@@ -36,4 +33,31 @@ export function compareRole(a: string, b: string): number {
   };
 
   return (rank[a] ?? Number.MAX_SAFE_INTEGER) - (rank[b] ?? Number.MAX_SAFE_INTEGER);
+}
+
+/**
+ * Trim, drop empties, and de-duplicate a list of string URLs.
+ * 去除空白、空值并去重的字符串 URL 列表。
+ */
+export function normalizeImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const uniqueUrls = new Set<string>();
+
+  for (const item of value) {
+    if (typeof item !== 'string') {
+      continue;
+    }
+
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    uniqueUrls.add(trimmed);
+  }
+
+  return [...uniqueUrls];
 }

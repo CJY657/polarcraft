@@ -10,7 +10,6 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
-import { setupResponseHelpers } from '../utils/response.util.js';
 import {
   createAuthCookieOptions,
   createReadableCookieOptions,
@@ -22,8 +21,6 @@ export class AuthController {
  * 注册新用户
    */
   static register = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { username, password, email, clientSalt } = req.body;
     const result = await AuthService.register({ username, password, email, clientSalt });
 
@@ -43,8 +40,6 @@ export class AuthController {
  * 用户登录
    */
   static login = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { username, password, rememberMe } = req.body;
     const ipAddress = req.ip;
     const deviceInfo = req.headers['user-agent'];
@@ -85,8 +80,6 @@ export class AuthController {
  * 用户登出
    */
   static logout = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const sessionId = req.sessionId;
     if (sessionId) {
       await AuthService.logout(sessionId);
@@ -110,8 +103,6 @@ export class AuthController {
  * 刷新访问令牌
    */
   static refresh = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { refreshToken } = req.body;
     const ipAddress = req.ip;
     const deviceInfo = req.headers['user-agent'];
@@ -148,8 +139,6 @@ export class AuthController {
  * 忘记密码
    */
   static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { username, email } = req.body;
     const result = await AuthService.forgotPassword({ username, email });
 
@@ -162,8 +151,6 @@ export class AuthController {
  * 校验密码重置令牌
    */
   static validateResetToken = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { token } = req.body;
     const result = await AuthService.validateResetToken(token);
 
@@ -180,8 +167,6 @@ export class AuthController {
  * 重置密码
    */
   static resetPassword = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { token, newPassword, clientSalt } = req.body;
     const result = await AuthService.resetPassword({ token, newPassword, clientSalt });
 
@@ -194,8 +179,6 @@ export class AuthController {
  * 获取当前用户信息
    */
   static me = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const user = await AuthService.getCurrentUser(req.user!.sub);
     if (!user) {
       res.error('用户未找到', 'USER_NOT_FOUND', 404);
@@ -210,8 +193,6 @@ export class AuthController {
    * 获取用户盐值用于客户端哈希
    */
   static getUserSalt = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { username } = req.params;
     const result = await AuthService.getUserSalt(username);
 
@@ -230,8 +211,6 @@ export class AuthController {
  * 获取验证码
    */
   static getCaptcha = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const captcha = AuthService.generateCaptcha();
     res.success(captcha);
   });
@@ -241,8 +220,6 @@ export class AuthController {
  * 验证验证码（用于客户端验证的可选端点）
    */
   static verifyCaptcha = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { id, code } = req.body;
     const isValid = AuthService.verifyCaptcha(id, code);
 

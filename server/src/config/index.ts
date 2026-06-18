@@ -167,15 +167,6 @@ export const config = {
     fromName: process.env.EMAIL_FROM_NAME || 'PolarCraft',
   },
 
-  // Feedback routing / 反馈投递配置
-  feedback: {
-    defaultRecipient: process.env.FEEDBACK_EMAIL_TO || '',
-    experimentRecipient:
-      process.env.FEEDBACK_EXPERIMENT_EMAIL_TO || process.env.FEEDBACK_EMAIL_TO || '',
-    productRecipient:
-      process.env.FEEDBACK_PRODUCT_EMAIL_TO || process.env.FEEDBACK_EMAIL_TO || '',
-  },
-
   // PostHog private API / PostHog 私有接口配置
   posthog: {
     appHost: process.env.POSTHOG_APP_HOST?.trim().replace(/\/$/, '') || '',

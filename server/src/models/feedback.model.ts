@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
 import { getCollection } from '../database/connection.js';
+import { generateId } from '../utils/crypto.util.js';
 import { normalizeDocument } from '../database/mongo.util.js';
 import type {
   FeedbackCategory,
@@ -14,7 +14,7 @@ export class FeedbackModel {
     input: Omit<FeedbackSubmission, 'id' | 'created_at'>
   ): Promise<FeedbackSubmission> {
     const feedback: FeedbackSubmission = {
-      id: uuidv4(),
+      id: generateId(),
       created_at: new Date(),
       ...input,
     };

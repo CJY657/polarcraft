@@ -48,30 +48,3 @@ export const uploadConfig = {
   },
 };
 
-/**
- * Validate if a category is valid
- * 验证类别是否有效
- */
-export function isValidCategory(category: string): category is FileCategory {
-  return ['pdf', 'image', 'video', 'pptx'].includes(category);
-}
-
-/**
- * Get file extension from mimetype
- * 从 MIME 类型获取文件扩展名
- */
-export function getExtensionFromMime(mimeType: string): string {
-  const mimeToExt: Record<string, string> = {
-    'application/pdf': '.pdf',
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/gif': '.gif',
-    'image/webp': '.webp',
-    'video/mp4': '.mp4',
-    'video/webm': '.webm',
-    'video/quicktime': '.mov',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
-    'application/vnd.ms-powerpoint.presentation.macroEnabled.12': '.pptm',
-  };
-  return mimeToExt[mimeType] || '';
-}

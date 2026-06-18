@@ -10,7 +10,6 @@ import { Request, Response } from 'express';
 import { UserService } from '../services/user.service.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
-import { setupResponseHelpers } from '../utils/response.util.js';
 import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 import { PostHogAnalyticsError } from '../services/posthog.service.js';
 
@@ -20,8 +19,6 @@ export class UserController {
    * 获取管理员用户列表
    */
   static listUsersForAdmin = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const search =
       typeof req.query.search === 'string' && req.query.search.trim()
         ? req.query.search.trim()
@@ -69,8 +66,6 @@ export class UserController {
    * 获取管理员用户详情
    */
   static getUserDetailForAdmin = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const result = await UserService.getUserDetailForAdmin(req.params.userId);
     res.success(result);
   });
@@ -80,8 +75,6 @@ export class UserController {
    * 获取管理员用户统计
    */
   static getUserStatsForAdmin = asyncHandler(async (_req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const result = await UserService.getUserStatsForAdmin();
     res.success(result);
   });
@@ -92,8 +85,6 @@ export class UserController {
    */
   static getPostHogAnalyticsForAdmin = asyncHandler(
     async (req: Request, res: Response) => {
-      setupResponseHelpers(res);
-
       try {
         const result = await UserService.getPostHogAnalyticsForAdmin(req.params.userId);
         res.success(result);
@@ -113,8 +104,6 @@ export class UserController {
    * 获取用户资料
    */
   static getProfile = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const profile = await UserService.getProfile(req.user!.sub);
     if (!profile) {
       res.error('用户未找到', 'USER_NOT_FOUND', 404);
@@ -129,8 +118,6 @@ export class UserController {
  * 更新用户资料
    */
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { username, email, avatar_url } = req.body;
     const profile = await UserService.updateProfile(req.user!.sub, {
       username,
@@ -147,8 +134,6 @@ export class UserController {
  * 修改密码
    */
   static changePassword = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { currentPassword, newPassword, clientSalt } = req.body;
     await UserService.changePassword(req.user!.sub, {
       currentPassword,
@@ -165,8 +150,6 @@ export class UserController {
  * 获取用户会话
    */
   static getSessions = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const sessions = await UserService.getSessions(req.user!.sub, req.sessionId);
     res.success(sessions);
   });
@@ -176,8 +159,6 @@ export class UserController {
  * 从特定会话登出
    */
   static logoutFromSession = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const { sessionId } = req.params;
     await UserService.logoutFromSession(req.user!.sub, sessionId);
 
@@ -190,8 +171,6 @@ export class UserController {
  * 从所有会话登出
    */
   static logoutFromAllSessions = asyncHandler(async (req: Request, res: Response) => {
-    setupResponseHelpers(res);
-
     const count = await UserService.logoutFromAllSessions(req.user!.sub);
 
     // Clear refresh token cookie

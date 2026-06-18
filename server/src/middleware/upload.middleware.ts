@@ -7,7 +7,7 @@ import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../utils/crypto.util.js';
 import { uploadConfig, FileCategory } from '../config/upload.config.js';
 import { logger } from '../utils/logger.js';
 
@@ -45,7 +45,7 @@ const createStorage = (category: FileCategory) => {
       // 生成带有原始扩展名的唯一文件名
       const ext = path.extname(file.originalname).toLowerCase() ||
                      uploadConfig.allowedExtensions[category]?.[0] || '';
-      const uniqueName = `${uuidv4()}${ext}`;
+      const uniqueName = `${generateId()}${ext}`;
       cb(null, uniqueName);
     },
   });
@@ -140,27 +140,3 @@ export const handleUploadError = (err: any, req: Request, res: any, next: any) =
   next();
 };
 
-// Delete file utility
-// 删除文件工具
-export const deleteUploadedFile = (filePath: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    fs.unlink(filePath, (err) => {
-      if (err && err.code !== 'ENOENT') {
-        logger.error(`Failed to delete file: ${filePath}`, err);
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-};
-
-// Get file path from URL
-// 从 URL 获取文件路径
-export const getFilePathFromUrl = (url: string): string | null => {
-  if (!url.startsWith(uploadConfig.publicUrlPrefix)) {
-    return null;
-  }
-  const relativePath = url.replace(uploadConfig.publicUrlPrefix, '');
-  return path.join(uploadConfig.uploadDir, relativePath);
-};

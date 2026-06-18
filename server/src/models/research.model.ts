@@ -4,7 +4,7 @@
  */
 
 import { getCollection } from '../database/connection.js';
-import { compareRole, normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
+import { compareRole, normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -49,29 +49,6 @@ function sortMembers(a: any, b: any): number {
   }
 
   return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
-}
-
-function normalizeImageUrls(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const uniqueUrls = new Set<string>();
-
-  for (const item of value) {
-    if (typeof item !== 'string') {
-      continue;
-    }
-
-    const trimmed = item.trim();
-    if (!trimmed) {
-      continue;
-    }
-
-    uniqueUrls.add(trimmed);
-  }
-
-  return [...uniqueUrls];
 }
 
 function normalizeVideoUrls(value: unknown): string[] {

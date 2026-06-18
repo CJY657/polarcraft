@@ -4,7 +4,7 @@
  */
 
 import { getCollection } from '../database/connection.js';
-import { normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
+import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import type {
@@ -42,29 +42,6 @@ async function getUserMap(userIds: string[]): Promise<Map<string, { username: st
   );
 
   return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
-}
-
-function normalizeImageUrls(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const uniqueUrls = new Set<string>();
-
-  for (const item of value) {
-    if (typeof item !== 'string') {
-      continue;
-    }
-
-    const trimmed = item.trim();
-    if (!trimmed) {
-      continue;
-    }
-
-    uniqueUrls.add(trimmed);
-  }
-
-  return [...uniqueUrls];
 }
 
 type CourseDiscussionCommentDocument = {
