@@ -258,4 +258,33 @@ describe('ProjectDiscussionSection', () => {
       'false'
     );
   });
+
+  it('asks for confirmation before deleting a comment', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([createComment()]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    await screen.findByText('基础讨论');
+
+    fireEvent.click(screen.getByRole('button', { name: '删除' }));
+
+    // Confirm window is shown and nothing is deleted yet.
+    expect(screen.getByText('删除这条留言？')).toBeTruthy();
+    expect(mockDeleteProjectDiscussionComment).not.toHaveBeenCalled();
+
+    // The dialog's confirm button is the second "删除" button.
+    const deleteButtons = screen.getAllByRole('button', { name: '删除' });
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(mockDeleteProjectDiscussionComment).toHaveBeenCalledWith('comment-1');
+    });
+  });
 });

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { courseApi, type CourseDiscussionComment } from "@/lib/course.service";
@@ -325,6 +326,7 @@ export function ExperimentDiscussionSection({
   const [submittingReplyToId, setSubmittingReplyToId] = useState<string | null>(null);
 
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
@@ -890,7 +892,7 @@ export function ExperimentDiscussionSection({
               {canDeleteComment(comment) && (
                 <button
                   type="button"
-                  onClick={() => void handleDeleteComment(comment.id)}
+                  onClick={() => setConfirmDeleteId(comment.id)}
                   disabled={deletingCommentId === comment.id}
                   className="inline-flex items-center gap-1 text-[#b33d3d] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -1437,6 +1439,23 @@ export function ExperimentDiscussionSection({
           )}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        theme={theme}
+        title={isZh ? "删除这条留言？" : "Delete this comment?"}
+        description={isZh ? "删除后无法恢复。" : "This action cannot be undone."}
+        confirmLabel={isZh ? "删除" : "Delete"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        isPending={deletingCommentId !== null && deletingCommentId === confirmDeleteId}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (confirmDeleteId) {
+            await handleDeleteComment(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+      />
 
       <DiscussionImageLightbox
         image={lightboxImage}

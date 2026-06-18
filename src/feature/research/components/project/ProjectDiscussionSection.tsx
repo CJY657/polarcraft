@@ -10,6 +10,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import { cn } from '@/utils/classNames';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
@@ -410,6 +411,7 @@ export function ProjectDiscussionSection({
   const [submittingReplyToId, setSubmittingReplyToId] = useState<string | null>(null);
 
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
@@ -879,7 +881,7 @@ export function ProjectDiscussionSection({
               {canDeleteComment(comment) && (
                 <button
                   type="button"
-                  onClick={() => void handleDeleteComment(comment.id)}
+                  onClick={() => setConfirmDeleteId(comment.id)}
                   disabled={deletingCommentId === comment.id}
                   className="inline-flex items-center gap-1 text-[#b33d3d] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -1351,6 +1353,22 @@ export function ProjectDiscussionSection({
           </>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="删除这条留言？"
+        description="删除后无法恢复。"
+        confirmLabel="删除"
+        cancelLabel="取消"
+        isPending={deletingCommentId !== null && deletingCommentId === confirmDeleteId}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (confirmDeleteId) {
+            await handleDeleteComment(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+      />
 
       <DiscussionImageLightbox
         image={lightboxImage}
