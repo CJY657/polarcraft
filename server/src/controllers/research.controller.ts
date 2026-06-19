@@ -504,6 +504,28 @@ export class ResearchController {
   });
 
   /**
+   * Clear project AI advisor messages
+   * 清空课题 AI 顾问消息
+   */
+  static clearProjectAgentMessages = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '只有组长或管理员可以清空 AI 顾问历史'
+    );
+    if (!access) {
+      return;
+    }
+
+    const deletedCount = await ResearchModel.clearProjectAgentMessages(projectId);
+    res.success({ deletedCount }, 'AI 顾问历史已清空');
+  });
+
+  /**
    * Send a project AI advisor message
    * 发送课题 AI 顾问消息
    */
@@ -574,7 +596,22 @@ export class ResearchController {
         usage: completion.usage,
       });
 
-      res.success({ user: userMessage, assistant: assistantMessage }, 'AI 顾问已回复', 201);
+      res.success(
+        {
+          user: {
+            ...userMessage,
+            username: req.user!.username || '成员',
+            avatar_url: null,
+          },
+          assistant: {
+            ...assistantMessage,
+            username: req.user!.username || '成员',
+            avatar_url: null,
+          },
+        },
+        'AI 顾问已回复',
+        201
+      );
     } catch (error) {
       if (error instanceof ResearchAgentDisabledError || error instanceof ResearchAgentUpstreamError) {
         return res.error(error.message, error.code, error.statusCode);

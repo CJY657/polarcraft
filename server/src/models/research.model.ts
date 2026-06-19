@@ -89,6 +89,8 @@ export interface ResearchAgentMessage {
   model: string | null;
   usage?: Record<string, unknown> | null;
   created_at: Date;
+  username?: string;
+  avatar_url?: string | null;
 }
 
 export interface ResearchDiscussionDigestItem {
@@ -1048,13 +1050,23 @@ export class ResearchModel {
 
   static async getProjectAgentMessages(projectId: string, limit: number = 30): Promise<ResearchAgentMessage[]> {
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
-    return normalizeDocuments<ResearchAgentMessage>(
+    const messages = normalizeDocuments<ResearchAgentMessage>(
       await agentMessagesCollection()
         .find({ project_id: projectId })
         .sort({ created_at: -1 })
         .limit(safeLimit)
         .toArray()
     ).reverse();
+    const userMap = await getUserMap(messages.map((message) => message.user_id));
+
+    return messages.map((message) => {
+      const user = userMap.get(message.user_id);
+      return {
+        ...message,
+        username: user?.username || '成员',
+        avatar_url: user?.avatar_url || null,
+      };
+    });
   }
 
   static async getRecentProjectAgentMessages(projectId: string, limit: number = 12): Promise<ResearchAgentMessage[]> {
@@ -1083,6 +1095,11 @@ export class ResearchModel {
 
     await agentMessagesCollection().insertOne(message);
     return message;
+  }
+
+  static async clearProjectAgentMessages(projectId: string): Promise<number> {
+    const result = await agentMessagesCollection().deleteMany({ project_id: projectId });
+    return result.deletedCount ?? 0;
   }
 
   /**

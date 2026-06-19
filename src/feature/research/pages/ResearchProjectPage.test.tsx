@@ -325,7 +325,7 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByTestId("research-agent-panel")).toBeTruthy();
-    expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1" });
+    expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1", canClearHistory: true });
   });
 
   it("does not render the AI advisor panel for authenticated public non-members", async () => {

@@ -162,6 +162,13 @@ router.delete('/projects/:id/members/:userId', ResearchController.removeProjectM
 router.get('/projects/:projectId/agent/messages', ResearchController.getProjectAgentMessages);
 
 /**
+ * @route   DELETE /api/research/projects/:projectId/agent/messages
+ * @desc    Clear project AI advisor messages
+ * @access  Private
+ */
+router.delete('/projects/:projectId/agent/messages', ResearchController.clearProjectAgentMessages);
+
+/**
  * @route   POST /api/research/projects/:projectId/agent/messages
  * @desc    Send project AI advisor message
  * @access  Private

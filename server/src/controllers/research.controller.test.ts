@@ -10,6 +10,7 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mo
     getProjectMembership: vi.fn(),
     getProjectMemberCapacity: vi.fn(),
     getProjectAgentMessages: vi.fn(),
+    clearProjectAgentMessages: vi.fn(),
     getRecentProjectAgentMessages: vi.fn(),
     getRecentProjectDiscussionDigest: vi.fn(),
     addProjectAgentMessage: vi.fn(),
@@ -899,6 +900,112 @@ describe('ResearchController member management', () => {
     expect(mockResearchModel.getProjectAgentMessages).not.toHaveBeenCalled();
   });
 
+  it('clears AI advisor history for project owners', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.clearProjectAgentMessages.mockResolvedValue(3);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.clearProjectAgentMessages, req, res);
+
+    expect(mockResearchModel.clearProjectAgentMessages).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith({ deletedCount: 3 }, 'AI 顾问历史已清空');
+  });
+
+  it('clears AI advisor history for system admins', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.clearProjectAgentMessages.mockResolvedValue(1);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.clearProjectAgentMessages, req, res);
+
+    expect(mockResearchModel.clearProjectAgentMessages).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith({ deletedCount: 1 }, 'AI 顾问历史已清空');
+  });
+
+  it('rejects AI advisor history clearing for regular members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.clearProjectAgentMessages, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有组长或管理员可以清空 AI 顾问历史', 'FORBIDDEN', 403);
+    expect(mockResearchModel.clearProjectAgentMessages).not.toHaveBeenCalled();
+  });
+
+  it('rejects AI advisor history clearing for public non-members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', is_public: true },
+      membership: null,
+      role: null,
+      isAdmin: false,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'candidate-1', username: 'candidate', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.clearProjectAgentMessages, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有组长或管理员可以清空 AI 顾问历史', 'FORBIDDEN', 403);
+    expect(mockResearchModel.clearProjectAgentMessages).not.toHaveBeenCalled();
+  });
+
   it('stores user and assistant AI advisor messages for project members', async () => {
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: {
@@ -977,8 +1084,20 @@ describe('ResearchController member management', () => {
     });
     expect(res.success).toHaveBeenCalledWith(
       {
-        user: { id: 'user-message', role: 'user', content: '下一步做什么？' },
-        assistant: { id: 'assistant-message', role: 'assistant', content: '先收敛变量。' },
+        user: {
+          id: 'user-message',
+          role: 'user',
+          content: '下一步做什么？',
+          username: 'member',
+          avatar_url: null,
+        },
+        assistant: {
+          id: 'assistant-message',
+          role: 'assistant',
+          content: '先收敛变量。',
+          username: 'member',
+          avatar_url: null,
+        },
       },
       'AI 顾问已回复',
       201

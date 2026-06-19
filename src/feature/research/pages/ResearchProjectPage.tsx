@@ -748,7 +748,7 @@ export function ResearchProjectPage() {
         />
 
         {canShowAgentPanel && projectId && (
-          <ResearchAgentPanel projectId={projectId} />
+          <ResearchAgentPanel projectId={projectId} canClearHistory={canManageProject} />
         )}
 
         {/* Members Section */}

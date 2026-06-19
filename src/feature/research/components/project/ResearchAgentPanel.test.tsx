@@ -6,11 +6,13 @@ import { ResearchAgentPanel } from "./ResearchAgentPanel";
 
 const mockGetProjectAgentMessages = vi.fn();
 const mockSendProjectAgentMessage = vi.fn();
+const mockClearProjectAgentMessages = vi.fn();
 
 vi.mock("@/lib/research.service", () => ({
   researchApi: {
     getProjectAgentMessages: (...args: unknown[]) => mockGetProjectAgentMessages(...args),
     sendProjectAgentMessage: (...args: unknown[]) => mockSendProjectAgentMessage(...args),
+    clearProjectAgentMessages: (...args: unknown[]) => mockClearProjectAgentMessages(...args),
   },
 }));
 
@@ -26,6 +28,8 @@ function createMessage(overrides: Partial<{
   content: string;
   model: string | null;
   created_at: string;
+  username: string;
+  avatar_url: string | null;
 }> = {}) {
   return {
     id: "message-1",
@@ -35,6 +39,8 @@ function createMessage(overrides: Partial<{
     content: "先明确变量。",
     model: "advisor-model",
     created_at: "2026-06-19T00:00:00.000Z",
+    username: "成员",
+    avatar_url: null,
     ...overrides,
   };
 }
@@ -43,6 +49,8 @@ describe("ResearchAgentPanel", () => {
   beforeEach(() => {
     mockGetProjectAgentMessages.mockReset();
     mockSendProjectAgentMessage.mockReset();
+    mockClearProjectAgentMessages.mockReset();
+    mockClearProjectAgentMessages.mockResolvedValue({ deletedCount: 1 });
   });
 
   it("loads shared project history and renders assistant Markdown", async () => {
@@ -56,6 +64,18 @@ describe("ResearchAgentPanel", () => {
     expect(await screen.findByText("AI 研究顾问")).toBeTruthy();
     expect(screen.getByTestId("assistant-markdown").textContent).toBe("先明确变量。");
     expect(mockGetProjectAgentMessages).toHaveBeenCalledWith("project-1", 30);
+  });
+
+  it("collapses and expands the advisor body", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "折叠 AI 研究顾问" }));
+    expect(screen.queryByText("还没有顾问消息。")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "展开 AI 研究顾问" }));
+    expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
   });
 
   it("appends user and assistant messages after a send succeeds", async () => {
@@ -87,6 +107,92 @@ describe("ResearchAgentPanel", () => {
     });
     expect(await screen.findByText("下一步做什么？")).toBeTruthy();
     expect(screen.getByText("先收敛变量。")).toBeTruthy();
+  });
+
+  it("shows a thinking row while the assistant response is pending", async () => {
+    let resolveSend: (value: unknown) => void = () => {};
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+    mockSendProjectAgentMessage.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSend = resolve;
+      })
+    );
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    await screen.findByText("还没有顾问消息。");
+    fireEvent.change(screen.getByLabelText("AI 顾问消息"), {
+      target: { value: "下一步做什么？" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    expect(await screen.findByText("思考中...")).toBeTruthy();
+    resolveSend({
+      user: createMessage({
+        id: "user-message",
+        role: "user",
+        content: "下一步做什么？",
+        model: null,
+        username: "小李",
+      }),
+      assistant: createMessage({
+        id: "assistant-message",
+        role: "assistant",
+        content: "先收敛变量。",
+      }),
+    });
+    expect(await screen.findByText("先收敛变量。")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByText("思考中...")).toBeNull();
+    });
+  });
+
+  it("renders the asking member username for user messages", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({
+      enabled: true,
+      messages: [
+        createMessage({
+          id: "user-message",
+          role: "user",
+          content: "这个变量怎么控？",
+          model: null,
+          username: "小李",
+        }),
+      ],
+    });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    expect(await screen.findByText("小李")).toBeTruthy();
+    expect(screen.getByText("这个变量怎么控？")).toBeTruthy();
+  });
+
+  it("shows clear history only for managers and clears after confirmation", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({
+      enabled: true,
+      messages: [
+        createMessage({
+          id: "user-message",
+          role: "user",
+          content: "旧问题",
+          model: null,
+        }),
+      ],
+    });
+
+    const { rerender } = render(<ResearchAgentPanel projectId="project-1" />);
+
+    expect(await screen.findByText("旧问题")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "清空历史" })).toBeNull();
+
+    rerender(<ResearchAgentPanel projectId="project-1" canClearHistory />);
+    fireEvent.click(screen.getByRole("button", { name: "清空历史" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+
+    await waitFor(() => {
+      expect(mockClearProjectAgentMessages).toHaveBeenCalledWith("project-1");
+    });
+    expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
   });
 
   it("shows a disabled state when backend AI config is missing", async () => {

@@ -5,6 +5,7 @@ const aiInsertOne = vi.fn();
 const aiDeleteMany = vi.fn();
 const projectsDeleteOne = vi.fn();
 const canvasesFind = vi.fn();
+const usersFind = vi.fn();
 const genericDeleteMany = vi.fn();
 
 type TestCursor = {
@@ -49,6 +50,10 @@ vi.mock('../database/connection.js', () => ({
           countDocuments: async () => 0,
           deleteMany: (...args: unknown[]) => genericDeleteMany(...args),
         };
+      case 'users':
+        return {
+          find: (...args: unknown[]) => usersFind(...args),
+        };
       default:
         return {
           find: () => cursor([]),
@@ -79,6 +84,7 @@ describe('ResearchModel AI advisor messages', () => {
     aiDeleteMany.mockResolvedValue({ deletedCount: 1 });
     projectsDeleteOne.mockResolvedValue({ deletedCount: 1 });
     canvasesFind.mockReturnValue(cursor([]));
+    usersFind.mockReturnValue(cursor([]));
     genericDeleteMany.mockResolvedValue({ deletedCount: 0 });
   });
 
@@ -99,6 +105,54 @@ describe('ResearchModel AI advisor messages', () => {
     expect(aiFind).toHaveBeenCalledWith({ project_id: 'project-1' });
     expect(limits).toEqual([100]);
     expect(messages.map((message) => message.id)).toEqual(['older', 'newer']);
+  });
+
+  it('enriches project messages with user display data', async () => {
+    aiFind.mockReturnValue(
+      cursor([
+        {
+          id: 'message-2',
+          project_id: 'project-1',
+          user_id: 'missing-user',
+          role: 'assistant',
+          content: '先列变量。',
+          created_at: new Date('2026-01-02'),
+        },
+        {
+          id: 'message-1',
+          project_id: 'project-1',
+          user_id: 'user-1',
+          role: 'user',
+          content: '怎么控变量？',
+          created_at: new Date('2026-01-01'),
+        },
+      ])
+    );
+    usersFind.mockReturnValue(
+      cursor([
+        {
+          id: 'user-1',
+          username: '小李',
+          avatar_url: '/uploads/avatar.png',
+        },
+      ])
+    );
+
+    const messages = await ResearchModel.getProjectAgentMessages('project-1', 30);
+
+    expect(usersFind).toHaveBeenCalledWith({ id: { $in: ['user-1', 'missing-user'] } });
+    expect(messages).toEqual([
+      expect.objectContaining({
+        id: 'message-1',
+        username: '小李',
+        avatar_url: '/uploads/avatar.png',
+      }),
+      expect.objectContaining({
+        id: 'message-2',
+        username: '成员',
+        avatar_url: null,
+      }),
+    ]);
   });
 
   it('stores user and assistant messages in the shared project collection', async () => {
@@ -127,6 +181,14 @@ describe('ResearchModel AI advisor messages', () => {
 
   it('deletes project advisor messages during project cleanup', async () => {
     await expect(ResearchModel.deleteProject('project-1')).resolves.toBe(true);
+
+    expect(aiDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+  });
+
+  it('clears project advisor messages and returns the deleted count', async () => {
+    aiDeleteMany.mockResolvedValue({ deletedCount: 3 });
+
+    await expect(ResearchModel.clearProjectAgentMessages('project-1')).resolves.toBe(3);
 
     expect(aiDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
   });

@@ -82,6 +82,8 @@ export interface ResearchAgentMessage {
   model: string | null;
   usage?: Record<string, unknown> | null;
   created_at: string;
+  username?: string;
+  avatar_url?: string | null;
 }
 
 export interface ResearchAgentMessagesResponse {
@@ -357,6 +359,20 @@ export const researchApi = {
       return response.data;
     }
     throw new Error(response.error?.message || 'AI 顾问暂时不可用');
+  },
+
+  /**
+   * Clear project AI advisor messages
+   * 清空课题 AI 顾问消息
+   */
+  clearProjectAgentMessages: async (projectId: string): Promise<{ deletedCount: number }> => {
+    const response = await api.delete<{ deletedCount: number }>(
+      `/api/research/projects/${projectId}/agent/messages`
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '清空 AI 顾问消息失败');
   },
 
   // =====================================================
