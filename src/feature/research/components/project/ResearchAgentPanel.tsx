@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { AlertCircle, Bot, Loader2, Minus, Send, Sparkles } from "lucide-react";
 import { cn } from "@/utils/classNames";
 import {
@@ -93,6 +93,15 @@ export function ResearchAgentPanel({
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleDraftKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   return (
@@ -279,6 +288,7 @@ export function ResearchAgentPanel({
                       id="research-agent-message"
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
+                      onKeyDown={handleDraftKeyDown}
                       disabled={!isEnabled || isSending}
                       maxLength={MAX_AGENT_MESSAGE_LENGTH}
                       rows={2}

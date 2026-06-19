@@ -149,6 +149,37 @@ describe("ResearchAgentPanel", () => {
     expect(screen.getByText("先收敛变量。")).toBeTruthy();
   });
 
+  it("sends with Enter from the message box", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+    mockSendProjectAgentMessage.mockResolvedValue({
+      user: createMessage({
+        id: "user-message",
+        role: "user",
+        content: "下一步做什么？",
+        model: null,
+      }),
+      assistant: createMessage({
+        id: "assistant-message",
+        role: "assistant",
+        content: "先收敛变量。",
+      }),
+    });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    openAdvisor();
+    await screen.findByText("还没有顾问消息。");
+    const input = screen.getByLabelText("AI 顾问消息");
+    fireEvent.change(input, {
+      target: { value: "下一步做什么？" },
+    });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(mockSendProjectAgentMessage).toHaveBeenCalledWith("project-1", "下一步做什么？", []);
+    });
+  });
+
   it("sends local tab messages as live context on the next prompt", async () => {
     mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
     mockSendProjectAgentMessage

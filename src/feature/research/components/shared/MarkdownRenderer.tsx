@@ -6,9 +6,10 @@
  * 渲染带有样式的 Markdown 内容
  */
 
-import { memo } from "react";
+import { Children, memo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import MathRenderer from "@/components/shared/MathRenderer";
 import { cn } from "@/utils/classNames";
 
 interface MarkdownRendererProps {
@@ -17,8 +18,135 @@ interface MarkdownRendererProps {
   maxLines?: number;
 }
 
+function isEscaped(text: string, index: number): boolean {
+  let slashCount = 0;
+  for (let i = index - 1; i >= 0 && text[i] === "\\"; i -= 1) {
+    slashCount += 1;
+  }
+  return slashCount % 2 === 1;
+}
+
+function findClosingDelimiter(text: string, delimiter: string, start: number): number {
+  let index = text.indexOf(delimiter, start);
+  while (index !== -1 && isEscaped(text, index)) {
+    index = text.indexOf(delimiter, index + delimiter.length);
+  }
+  return index;
+}
+
+function normalizeBracketMath(content: string): string {
+  let output = "";
+  let index = 0;
+
+  while (index < content.length) {
+    if (content[index] === "`") {
+      const start = index;
+      while (content[index] === "`") index += 1;
+      const ticks = content.slice(start, index);
+      const end = content.indexOf(ticks, index);
+      if (end === -1) return `${output}${content.slice(start)}`;
+      output += content.slice(start, end + ticks.length);
+      index = end + ticks.length;
+      continue;
+    }
+
+    if (content.startsWith("\\(", index)) {
+      const end = findClosingDelimiter(content, "\\)", index + 2);
+      if (end !== -1) {
+        output += `$${content.slice(index + 2, end)}$`;
+        index = end + 2;
+        continue;
+      }
+    }
+
+    if (content.startsWith("\\[", index)) {
+      const end = findClosingDelimiter(content, "\\]", index + 2);
+      if (end !== -1) {
+        output += `$$${content.slice(index + 2, end)}$$`;
+        index = end + 2;
+        continue;
+      }
+    }
+
+    output += content[index];
+    index += 1;
+  }
+
+  return output;
+}
+
+function isInlineMath(content: string): boolean {
+  return content.trim() === content && /[A-Za-z\\^_=+\-*/<>]/.test(content);
+}
+
+function findMath(text: string, start: number) {
+  for (let i = start; i < text.length; i += 1) {
+    if (isEscaped(text, i)) continue;
+
+    if (text.startsWith("$$", i)) {
+      const end = findClosingDelimiter(text, "$$", i + 2);
+      if (end !== -1) return { start: i, end: end + 2, latex: text.slice(i + 2, end), display: true };
+    }
+
+    if (text.startsWith("\\[", i)) {
+      const end = findClosingDelimiter(text, "\\]", i + 2);
+      if (end !== -1) return { start: i, end: end + 2, latex: text.slice(i + 2, end), display: true };
+    }
+
+    if (text.startsWith("\\(", i)) {
+      const end = findClosingDelimiter(text, "\\)", i + 2);
+      if (end !== -1) return { start: i, end: end + 2, latex: text.slice(i + 2, end), display: false };
+    }
+
+    if (text[i] === "$" && text[i + 1] !== "$") {
+      const end = findClosingDelimiter(text, "$", i + 1);
+      if (end !== -1) {
+        const latex = text.slice(i + 1, end);
+        if (isInlineMath(latex)) return { start: i, end: end + 1, latex, display: false };
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderMathText(text: string, keyPrefix: number): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let index = 0;
+  let match = findMath(text, index);
+
+  while (match) {
+    if (match.start > index) {
+      nodes.push(text.slice(index, match.start));
+    }
+    nodes.push(
+      <MathRenderer
+        key={`math-${keyPrefix}-${match.start}`}
+        latex={match.latex}
+        displayMode={match.display}
+        className={match.display ? "my-2 overflow-x-auto" : undefined}
+      />
+    );
+    index = match.end;
+    match = findMath(text, index);
+  }
+
+  if (index < text.length) {
+    nodes.push(text.slice(index));
+  }
+
+  return nodes.length ? nodes : [text];
+}
+
+function renderMathChildren(children: ReactNode): ReactNode[] {
+  return Children.toArray(children).flatMap((child, index) =>
+    typeof child === "string" ? renderMathText(child, index) : child
+  );
+}
+
 export const MarkdownRenderer = memo(({ content, className, maxLines }: MarkdownRendererProps) => {
   if (!content) return null;
+  const normalizedContent = normalizeBracketMath(content);
 
   return (
     <div
@@ -43,7 +171,10 @@ export const MarkdownRenderer = memo(({ content, className, maxLines }: Markdown
         remarkPlugins={[remarkGfm]}
         components={{
           // Customize paragraph rendering
-          p: ({ children }) => <p className="text-gray-300 my-1">{children}</p>,
+          p: ({ children }) => <p className="text-gray-300 my-1">{renderMathChildren(children)}</p>,
+          li: ({ children }) => <li>{renderMathChildren(children)}</li>,
+          strong: ({ children }) => <strong>{renderMathChildren(children)}</strong>,
+          em: ({ children }) => <em>{renderMathChildren(children)}</em>,
           // Customize code block rendering
           code: ({ className, children, ...props }) => (
             <code
@@ -55,7 +186,7 @@ export const MarkdownRenderer = memo(({ content, className, maxLines }: Markdown
           ),
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

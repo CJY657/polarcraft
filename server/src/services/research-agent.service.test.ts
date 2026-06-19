@@ -22,6 +22,7 @@ const { fetchMock } = vi.hoisted(() => ({
 vi.stubGlobal('fetch', fetchMock);
 
 import {
+  RESEARCH_AGENT_SYSTEM_PROMPT,
   ResearchAgentDisabledError,
   ResearchAgentService,
   ResearchAgentUpstreamError,
@@ -55,6 +56,11 @@ describe('ResearchAgentService', () => {
       ResearchAgentDisabledError
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the advisor scoped to research-project help', () => {
+    expect(RESEARCH_AGENT_SYSTEM_PROMPT).toContain('Only answer questions related to the current research project');
+    expect(RESEARCH_AGENT_SYSTEM_PROMPT).toContain('politely refuse');
   });
 
   it('sends an OpenAI-compatible chat completion request and parses content plus usage', async () => {
