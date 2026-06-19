@@ -45,12 +45,39 @@ function createMessage(overrides: Partial<{
   };
 }
 
+function openAdvisor() {
+  fireEvent.click(screen.getByRole("button", { name: "打开 AI 研究顾问" }));
+}
+
 describe("ResearchAgentPanel", () => {
   beforeEach(() => {
     mockGetProjectAgentMessages.mockReset();
     mockSendProjectAgentMessage.mockReset();
     mockClearProjectAgentMessages.mockReset();
     mockClearProjectAgentMessages.mockResolvedValue({ deletedCount: 1 });
+  });
+
+  it("starts as a launcher-only widget", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    expect(screen.getByRole("button", { name: "打开 AI 研究顾问" })).toBeTruthy();
+    expect(screen.queryByLabelText("AI 顾问消息")).toBeNull();
+    expect(screen.queryByText("还没有顾问消息。")).toBeNull();
+    await waitFor(() => {
+      expect(mockGetProjectAgentMessages).toHaveBeenCalledWith("project-1", 30);
+    });
+  });
+
+  it("opens the advisor panel from the launcher", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    openAdvisor();
+    expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "收起 AI 研究顾问" })).toBeTruthy();
   });
 
   it("loads shared project history and renders assistant Markdown", async () => {
@@ -61,20 +88,37 @@ describe("ResearchAgentPanel", () => {
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
-    expect(await screen.findByText("AI 研究顾问")).toBeTruthy();
-    expect(screen.getByTestId("assistant-markdown").textContent).toBe("先明确变量。");
+    openAdvisor();
+    expect(await screen.findByRole("heading", { name: "AI 研究顾问" })).toBeTruthy();
+    expect((await screen.findByTestId("assistant-markdown")).textContent).toBe("先明确变量。");
     expect(mockGetProjectAgentMessages).toHaveBeenCalledWith("project-1", 30);
   });
 
-  it("collapses and expands the advisor body", async () => {
+  it("minimizes the advisor panel back to the launcher", async () => {
     mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "折叠 AI 研究顾问" }));
+    fireEvent.click(screen.getByRole("button", { name: "收起 AI 研究顾问" }));
     expect(screen.queryByText("还没有顾问消息。")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "展开 AI 研究顾问" }));
+    expect(screen.getByRole("button", { name: "打开 AI 研究顾问" })).toBeTruthy();
+  });
+
+  it("shows a loading state after opening while history loads", async () => {
+    let resolveLoad: (value: unknown) => void = () => {};
+    mockGetProjectAgentMessages.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      })
+    );
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    openAdvisor();
+    expect(screen.getByRole("status", { name: "载入顾问历史" })).toBeTruthy();
+    resolveLoad({ enabled: true, messages: [] });
     expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
   });
 
@@ -96,6 +140,7 @@ describe("ResearchAgentPanel", () => {
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     await screen.findByText("还没有顾问消息。");
     fireEvent.change(screen.getByLabelText("AI 顾问消息"), {
       target: { value: "下一步做什么？" },
@@ -120,6 +165,7 @@ describe("ResearchAgentPanel", () => {
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     await screen.findByText("还没有顾问消息。");
     fireEvent.change(screen.getByLabelText("AI 顾问消息"), {
       target: { value: "下一步做什么？" },
@@ -163,6 +209,7 @@ describe("ResearchAgentPanel", () => {
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     expect(await screen.findByText("小李")).toBeTruthy();
     expect(screen.getByText("这个变量怎么控？")).toBeTruthy();
   });
@@ -182,6 +229,7 @@ describe("ResearchAgentPanel", () => {
 
     const { rerender } = render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     expect(await screen.findByText("旧问题")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "清空历史" })).toBeNull();
 
@@ -200,7 +248,24 @@ describe("ResearchAgentPanel", () => {
 
     render(<ResearchAgentPanel projectId="project-1" />);
 
+    openAdvisor();
     expect(await screen.findByText(/AI 顾问未配置/)).toBeTruthy();
     expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("keeps the max message length validation", async () => {
+    mockGetProjectAgentMessages.mockResolvedValue({ enabled: true, messages: [] });
+
+    render(<ResearchAgentPanel projectId="project-1" />);
+
+    openAdvisor();
+    await screen.findByText("还没有顾问消息。");
+    fireEvent.change(screen.getByLabelText("AI 顾问消息"), {
+      target: { value: "x".repeat(2001) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    expect(await screen.findByText("消息不能超过 2000 字")).toBeTruthy();
+    expect(mockSendProjectAgentMessage).not.toHaveBeenCalled();
   });
 });
