@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
+const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mockResearchAgentService } = vi.hoisted(() => ({
   mockResearchModel: {
     getProjectAccess: vi.fn(),
     getUserProjects: vi.fn(),
@@ -9,6 +9,10 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } =
     getFormerProjectMembers: vi.fn(),
     getProjectMembership: vi.fn(),
     getProjectMemberCapacity: vi.fn(),
+    getProjectAgentMessages: vi.fn(),
+    getRecentProjectAgentMessages: vi.fn(),
+    getRecentProjectDiscussionDigest: vi.fn(),
+    addProjectAgentMessage: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
@@ -27,6 +31,10 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService } =
   mockManagedUploadCleanupService: {
     cleanupUrls: vi.fn(),
   },
+  mockResearchAgentService: {
+    isEnabled: vi.fn(),
+    createChatCompletion: vi.fn(),
+  },
 }));
 
 vi.mock('../models/research.model.js', () => ({
@@ -39,6 +47,19 @@ vi.mock('../models/profile.model.js', () => ({
 
 vi.mock('../services/managed-upload-cleanup.service.js', () => ({
   ManagedUploadCleanupService: mockManagedUploadCleanupService,
+}));
+
+vi.mock('../services/research-agent.service.js', () => ({
+  RESEARCH_AGENT_SYSTEM_PROMPT: 'advisor system prompt',
+  ResearchAgentDisabledError: class ResearchAgentDisabledError extends Error {
+    statusCode = 503;
+    code = 'AI_ADVISOR_DISABLED';
+  },
+  ResearchAgentUpstreamError: class ResearchAgentUpstreamError extends Error {
+    statusCode = 502;
+    code = 'AI_PROVIDER_ERROR';
+  },
+  ResearchAgentService: mockResearchAgentService,
 }));
 
 import { ResearchController } from './research.controller.js';
@@ -69,6 +90,7 @@ describe('ResearchController member management', () => {
       memberCount: 1,
       isFull: false,
     });
+    mockResearchAgentService.isEnabled.mockReturnValue(false);
   });
 
   it('includes former_members when the requester is the owner', async () => {
@@ -814,5 +836,180 @@ describe('ResearchController member management', () => {
       400
     );
     expect(mockProfileModel.createApplication).not.toHaveBeenCalled();
+  });
+
+  it('returns project AI advisor history and disabled state for project members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectAgentMessages.mockResolvedValue([
+      { id: 'message-1', role: 'user', content: '怎么设计实验？' },
+    ]);
+    mockResearchAgentService.isEnabled.mockReturnValue(false);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      query: { limit: '30' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectAgentMessages, req, res);
+
+    expect(mockResearchModel.getProjectAgentMessages).toHaveBeenCalledWith('project-1', 30);
+    expect(res.success).toHaveBeenCalledWith({
+      enabled: false,
+      messages: [{ id: 'message-1', role: 'user', content: '怎么设计实验？' }],
+    });
+  });
+
+  it('rejects AI advisor reads for public non-members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', is_public: true },
+      membership: null,
+      role: null,
+      isAdmin: false,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      query: {},
+      user: { sub: 'candidate-1', username: 'candidate', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectAgentMessages, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有课题成员可以查看 AI 顾问', 'FORBIDDEN', 403);
+    expect(mockResearchModel.getProjectAgentMessages).not.toHaveBeenCalled();
+  });
+
+  it('stores user and assistant AI advisor messages for project members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        description_zh: '研究薄膜干涉。',
+        research_questions_zh: '变量如何控制？',
+        status: 'active',
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchAgentService.isEnabled.mockReturnValue(true);
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'member-1', role: 'member', username: '学生' },
+    ]);
+    mockResearchModel.getRecentProjectDiscussionDigest.mockResolvedValue([
+      {
+        username: '学生',
+        content: '我们还不确定膜厚变量。',
+        image_count: 1,
+        video_count: 0,
+        created_at: new Date(),
+      },
+    ]);
+    mockResearchModel.getRecentProjectAgentMessages.mockResolvedValue([
+      { role: 'assistant', content: '先明确变量。' },
+    ]);
+    mockResearchModel.addProjectAgentMessage
+      .mockResolvedValueOnce({ id: 'user-message', role: 'user', content: '下一步做什么？' })
+      .mockResolvedValueOnce({ id: 'assistant-message', role: 'assistant', content: '先收敛变量。' });
+    mockResearchAgentService.createChatCompletion.mockResolvedValue({
+      content: '先收敛变量。',
+      model: 'advisor-model',
+      usage: { total_tokens: 12 },
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: ' 下一步做什么？ ' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.sendProjectAgentMessage, req, res);
+
+    expect(mockResearchModel.addProjectAgentMessage).toHaveBeenNthCalledWith(1, {
+      projectId: 'project-1',
+      userId: 'member-1',
+      role: 'user',
+      content: '下一步做什么？',
+    });
+    expect(mockResearchAgentService.createChatCompletion).toHaveBeenCalledWith([
+      { role: 'system', content: 'advisor system prompt' },
+      expect.objectContaining({
+        role: 'system',
+        content: expect.stringContaining('偏振课题'),
+      }),
+      { role: 'assistant', content: '先明确变量。' },
+      { role: 'user', content: '下一步做什么？' },
+    ]);
+    expect(mockResearchModel.addProjectAgentMessage).toHaveBeenNthCalledWith(2, {
+      projectId: 'project-1',
+      userId: 'member-1',
+      role: 'assistant',
+      content: '先收敛变量。',
+      model: 'advisor-model',
+      usage: { total_tokens: 12 },
+    });
+    expect(res.success).toHaveBeenCalledWith(
+      {
+        user: { id: 'user-message', role: 'user', content: '下一步做什么？' },
+        assistant: { id: 'assistant-message', role: 'assistant', content: '先收敛变量。' },
+      },
+      'AI 顾问已回复',
+      201
+    );
+  });
+
+  it('returns a clean disabled error when AI advisor config is missing', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchAgentService.isEnabled.mockReturnValue(false);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '下一步？' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.sendProjectAgentMessage, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('AI 顾问尚未配置', 'AI_ADVISOR_DISABLED', 503);
+    expect(mockResearchAgentService.createChatCompletion).not.toHaveBeenCalled();
   });
 });

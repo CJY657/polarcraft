@@ -21,6 +21,7 @@ const nodesCollection = () => getCollection('research_nodes');
 const edgesCollection = () => getCollection('research_edges');
 const commentsCollection = () => getCollection('research_node_comments');
 const projectCommentsCollection = () => getCollection('research_project_comments');
+const agentMessagesCollection = () => getCollection('research_ai_messages');
 const activityLogCollection = () => getCollection('research_activity_log');
 const usersCollection = () => getCollection('users');
 const projectSettingsCollection = () => getCollection('research_project_settings');
@@ -75,6 +76,27 @@ export interface ResearchProjectAccess {
   canManage: boolean;
   canAccessDiscussion: boolean;
   canModerate: boolean;
+}
+
+export type ResearchAgentMessageRole = 'user' | 'assistant';
+
+export interface ResearchAgentMessage {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: ResearchAgentMessageRole;
+  content: string;
+  model: string | null;
+  usage?: Record<string, unknown> | null;
+  created_at: Date;
+}
+
+export interface ResearchDiscussionDigestItem {
+  username: string;
+  content: string;
+  image_count: number;
+  video_count: number;
+  created_at: Date;
 }
 
 function normalizeProjectRole(role: unknown): ResearchProjectRole {
@@ -357,6 +379,7 @@ export class ResearchModel {
       nodesCollection().deleteMany(canvasIds.length > 0 ? { canvas_id: { $in: canvasIds } } : { canvas_id: '__none__' }),
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
       projectCommentsCollection().deleteMany({ project_id: projectId }),
+      agentMessagesCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),
       creatorProfilesCollection().deleteMany({ project_id: projectId }),
@@ -997,6 +1020,69 @@ export class ResearchModel {
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
+  }
+
+  static async getRecentProjectDiscussionDigest(
+    projectId: string,
+    limit: number = 8
+  ): Promise<ResearchDiscussionDigestItem[]> {
+    const safeLimit = Math.min(20, Math.max(1, Math.floor(limit)));
+    const comments = normalizeDocuments<any>(
+      await projectCommentsCollection()
+        .find({ project_id: projectId, is_deleted: { $ne: true } })
+        .sort({ created_at: -1 })
+        .limit(safeLimit)
+        .project({ _id: 0, user_id: 1, content: 1, image_urls: 1, video_urls: 1, created_at: 1 })
+        .toArray()
+    ).reverse();
+    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+
+    return comments.map((comment) => ({
+      username: userMap.get(comment.user_id)?.username || '成员',
+      content: typeof comment.content === 'string' ? comment.content.trim().slice(0, 500) : '',
+      image_count: normalizeImageUrls(comment.image_urls).length,
+      video_count: normalizeVideoUrls(comment.video_urls).length,
+      created_at: comment.created_at,
+    }));
+  }
+
+  static async getProjectAgentMessages(projectId: string, limit: number = 30): Promise<ResearchAgentMessage[]> {
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+    return normalizeDocuments<ResearchAgentMessage>(
+      await agentMessagesCollection()
+        .find({ project_id: projectId })
+        .sort({ created_at: -1 })
+        .limit(safeLimit)
+        .toArray()
+    ).reverse();
+  }
+
+  static async getRecentProjectAgentMessages(projectId: string, limit: number = 12): Promise<ResearchAgentMessage[]> {
+    return this.getProjectAgentMessages(projectId, limit);
+  }
+
+  static async addProjectAgentMessage(data: {
+    projectId: string;
+    userId: string;
+    role: ResearchAgentMessageRole;
+    content: string;
+    model?: string | null;
+    usage?: Record<string, unknown> | null;
+  }): Promise<ResearchAgentMessage> {
+    const now = new Date();
+    const message: ResearchAgentMessage = {
+      id: generateId(),
+      project_id: data.projectId,
+      user_id: data.userId,
+      role: data.role,
+      content: data.content,
+      model: data.model ?? null,
+      usage: data.usage ?? null,
+      created_at: now,
+    };
+
+    await agentMessagesCollection().insertOne(message);
+    return message;
   }
 
   /**

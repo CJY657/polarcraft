@@ -73,6 +73,27 @@ export interface ProjectDiscussionComment {
   avatar_url: string | null;
 }
 
+export interface ResearchAgentMessage {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  model: string | null;
+  usage?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ResearchAgentMessagesResponse {
+  enabled: boolean;
+  messages: ResearchAgentMessage[];
+}
+
+export interface SendResearchAgentMessageResponse {
+  user: ResearchAgentMessage;
+  assistant: ResearchAgentMessage;
+}
+
 export interface ProjectDiscussionImageUploadResult {
   url: string;
   filename: string;
@@ -301,6 +322,41 @@ export const researchApi = {
     if (!response.success) {
       throw new Error(response.error?.message || '删除讨论留言失败');
     }
+  },
+
+  /**
+   * Get project AI advisor messages
+   * 获取课题 AI 顾问消息
+   */
+  getProjectAgentMessages: async (
+    projectId: string,
+    limit: number = 30
+  ): Promise<ResearchAgentMessagesResponse> => {
+    const response = await api.get<ResearchAgentMessagesResponse>(
+      `/api/research/projects/${projectId}/agent/messages?limit=${limit}`
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '获取 AI 顾问消息失败');
+  },
+
+  /**
+   * Send project AI advisor message
+   * 发送课题 AI 顾问消息
+   */
+  sendProjectAgentMessage: async (
+    projectId: string,
+    content: string
+  ): Promise<SendResearchAgentMessageResponse> => {
+    const response = await api.post<SendResearchAgentMessageResponse>(
+      `/api/research/projects/${projectId}/agent/messages`,
+      { content }
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || 'AI 顾问暂时不可用');
   },
 
   // =====================================================

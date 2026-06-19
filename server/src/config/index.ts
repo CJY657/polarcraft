@@ -20,6 +20,24 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseOptionalPositiveInt(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseOptionalFloat(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function parseOrigins(value: string | undefined, fallback: string[]): string[] {
   const candidates = (value || '')
     .split(',')
@@ -85,6 +103,8 @@ const httpRequestTimeoutMs = parsePositiveInt(
   process.env.HTTP_REQUEST_TIMEOUT_MS,
   10 * 60 * 1000,
 );
+const aiApiBaseUrl = process.env.AI_API_BASE_URL?.trim().replace(/\/+$/, '') || '';
+const aiRequestTimeoutMs = parsePositiveInt(process.env.AI_REQUEST_TIMEOUT_MS, 30000);
 
 // =====================================================
 // Server Configuration / 服务器配置
@@ -172,6 +192,16 @@ export const config = {
     appHost: process.env.POSTHOG_APP_HOST?.trim().replace(/\/$/, '') || '',
     environmentId: process.env.POSTHOG_ENVIRONMENT_ID?.trim() || '',
     personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY?.trim() || '',
+  },
+
+  // Research AI advisor / 课题 AI 顾问
+  ai: {
+    apiBaseUrl: aiApiBaseUrl,
+    apiKey: process.env.AI_API_KEY?.trim() || '',
+    model: process.env.AI_MODEL?.trim() || '',
+    maxTokens: parseOptionalPositiveInt(process.env.AI_MAX_TOKENS),
+    temperature: parseOptionalFloat(process.env.AI_TEMPERATURE),
+    requestTimeoutMs: aiRequestTimeoutMs,
   },
 
   // Logging / 日志配置

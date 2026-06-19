@@ -7,6 +7,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import { ResearchController } from '../controllers/research.controller.js';
 import { UploadController } from '../controllers/upload.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
+import { researchAgentRateLimiter } from '../middleware/rate-limit.middleware.js';
 import { createUploadMiddleware, handleUploadError } from '../middleware/upload.middleware.js';
 import { ResearchModel } from '../models/research.model.js';
 import { logger } from '../utils/logger.js';
@@ -152,6 +153,24 @@ router.post('/projects/:id/members', ResearchController.addProjectMember);
  * @access  Private
  */
 router.delete('/projects/:id/members/:userId', ResearchController.removeProjectMember);
+
+/**
+ * @route   GET /api/research/projects/:projectId/agent/messages
+ * @desc    List project AI advisor messages
+ * @access  Private
+ */
+router.get('/projects/:projectId/agent/messages', ResearchController.getProjectAgentMessages);
+
+/**
+ * @route   POST /api/research/projects/:projectId/agent/messages
+ * @desc    Send project AI advisor message
+ * @access  Private
+ */
+router.post(
+  '/projects/:projectId/agent/messages',
+  researchAgentRateLimiter,
+  ResearchController.sendProjectAgentMessage
+);
 
 /**
  * @route   POST /api/research/projects/:projectId/cover-image

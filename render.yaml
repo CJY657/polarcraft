@@ -52,3 +52,15 @@ services:
         sync: false
       - key: FEEDBACK_PRODUCT_EMAIL_TO
         sync: false
+      - key: AI_API_BASE_URL
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: AI_MAX_TOKENS
+        sync: false
+      - key: AI_TEMPERATURE
+        sync: false
+      - key: AI_REQUEST_TIMEOUT_MS
+        sync: false

@@ -12,10 +12,18 @@ import { ResearchModel } from '../models/research.model.js';
 import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
+import {
+  RESEARCH_AGENT_SYSTEM_PROMPT,
+  ResearchAgentDisabledError,
+  ResearchAgentService,
+  ResearchAgentUpstreamError,
+  type ResearchAgentChatMessage,
+} from '../services/research-agent.service.js';
 import { logger } from '../utils/logger.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
+const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 
@@ -135,6 +143,60 @@ async function ensureNodeAccess(
   }
 
   return { node, ...canvasAccess };
+}
+
+function formatContextField(label: string, value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? `${label}: ${trimmed}` : null;
+}
+
+function buildResearchAgentContext(
+  project: any,
+  members: any[],
+  discussionDigest: Array<{
+    username: string;
+    content: string;
+    image_count: number;
+    video_count: number;
+    created_at: Date | string;
+  }>
+): string {
+  const projectLines = [
+    formatContextField('Project title', project.name_zh),
+    formatContextField('English title', project.name_en),
+    formatContextField('Description', project.description_zh),
+    formatContextField('Research questions', project.research_questions_zh),
+    formatContextField('Hypotheses', project.research_hypotheses_zh),
+    formatContextField('Basic plan', project.basic_plan_zh),
+    formatContextField('Extended plan', project.extended_plan_zh),
+    formatContextField('Status', project.status),
+  ].filter((line): line is string => Boolean(line));
+
+  const memberLines = members.map((member) => `- ${member.username || '成员'} (${member.role || 'member'})`);
+  const digestLines = discussionDigest.map((item) => {
+    const attachments = [
+      item.image_count > 0 ? `${item.image_count} image(s)` : '',
+      item.video_count > 0 ? `${item.video_count} video(s)` : '',
+    ].filter(Boolean);
+    const suffix = attachments.length > 0 ? ` [attachments: ${attachments.join(', ')}]` : '';
+    const content = item.content || '[media-only discussion item]';
+    return `- ${item.username}: ${content}${suffix}`;
+  });
+
+  return [
+    'Project context for this request:',
+    ...projectLines,
+    '',
+    'Members:',
+    ...(memberLines.length > 0 ? memberLines : ['- No members listed']),
+    '',
+    'Recent discussion digest:',
+    ...(digestLines.length > 0 ? digestLines : ['- No recent discussion']),
+  ].join('\n');
 }
 
 async function ensureEdgeAccess(
@@ -413,6 +475,113 @@ export class ResearchController {
     await ResearchModel.removeProjectMember(id, userId);
     logger.info(`Member removed from project ${id} by ${req.user!.username}: ${userId}`);
     res.success(null, '成员移除成功');
+  });
+
+  /**
+   * Get project AI advisor messages
+   * 获取课题 AI 顾问消息
+   */
+  static getProjectAgentMessages = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const limit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 30;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以查看 AI 顾问'
+    );
+    if (!access) {
+      return;
+    }
+
+    const messages = await ResearchModel.getProjectAgentMessages(projectId, limit);
+    res.success({
+      enabled: ResearchAgentService.isEnabled(),
+      messages,
+    });
+  });
+
+  /**
+   * Send a project AI advisor message
+   * 发送课题 AI 顾问消息
+   */
+  static sendProjectAgentMessage = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const rawContent = typeof req.body.content === 'string' ? req.body.content : '';
+    const content = rawContent.trim();
+
+    if (!content) {
+      return res.error('请输入 AI 顾问消息', 'INVALID_AGENT_MESSAGE', 400);
+    }
+
+    if (content.length > MAX_RESEARCH_AGENT_CONTENT_LENGTH) {
+      return res.error(
+        `AI 顾问消息不能超过 ${MAX_RESEARCH_AGENT_CONTENT_LENGTH} 字`,
+        'AGENT_MESSAGE_TOO_LONG',
+        400
+      );
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以使用 AI 顾问'
+    );
+    if (!access) {
+      return;
+    }
+
+    if (!ResearchAgentService.isEnabled()) {
+      return res.error('AI 顾问尚未配置', 'AI_ADVISOR_DISABLED', 503);
+    }
+
+    const [members, discussionDigest, history] = await Promise.all([
+      ResearchModel.getProjectMembers(projectId),
+      ResearchModel.getRecentProjectDiscussionDigest(projectId, 8),
+      ResearchModel.getRecentProjectAgentMessages(projectId, 12),
+    ]);
+    const context = buildResearchAgentContext(access.project, members, discussionDigest);
+    const chatMessages: ResearchAgentChatMessage[] = [
+      { role: 'system', content: RESEARCH_AGENT_SYSTEM_PROMPT },
+      { role: 'system', content: context },
+      ...history.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      { role: 'user', content },
+    ];
+
+    const userMessage = await ResearchModel.addProjectAgentMessage({
+      projectId,
+      userId: req.user!.sub,
+      role: 'user',
+      content,
+    });
+
+    try {
+      const completion = await ResearchAgentService.createChatCompletion(chatMessages);
+      const assistantMessage = await ResearchModel.addProjectAgentMessage({
+        projectId,
+        userId: req.user!.sub,
+        role: 'assistant',
+        content: completion.content,
+        model: completion.model,
+        usage: completion.usage,
+      });
+
+      res.success({ user: userMessage, assistant: assistantMessage }, 'AI 顾问已回复', 201);
+    } catch (error) {
+      if (error instanceof ResearchAgentDisabledError || error instanceof ResearchAgentUpstreamError) {
+        return res.error(error.message, error.code, error.statusCode);
+      }
+
+      throw error;
+    }
   });
 
   // ============================================================

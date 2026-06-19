@@ -51,6 +51,7 @@ import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectCoverDialog } from "../components/project/ProjectCoverDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
+import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
   ProjectDiscussionSection,
   type ProjectDiscussionJumpRequest,
@@ -535,6 +536,7 @@ export function ResearchProjectPage() {
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
   const canShowDiscussionSection = !isExampleProject && Boolean(projectId && project && isAuthenticated && canParticipateInDiscussion);
+  const canShowAgentPanel = canShowDiscussionSection;
   const researchOutline: ProjectDiscussionOutline = {
     topicSummary: displayProject.description_zh || "",
     questions: splitResearchItems(displayProject.research_questions_zh),
@@ -744,6 +746,10 @@ export function ResearchProjectPage() {
           canJumpToDiscussion={canShowDiscussionSection}
           onJumpToDiscussion={handleJumpToDiscussion}
         />
+
+        {canShowAgentPanel && projectId && (
+          <ResearchAgentPanel projectId={projectId} />
+        )}
 
         {/* Members Section */}
         {!isExampleProject && displayMembers.length > 0 && (

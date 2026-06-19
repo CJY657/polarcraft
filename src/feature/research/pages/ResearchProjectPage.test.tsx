@@ -14,6 +14,7 @@ const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
+const mockResearchAgentPanel = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
@@ -52,6 +53,13 @@ vi.mock("../components/project/ProjectSettingsDialog", () => ({
 
 vi.mock("../components/project/ProjectApplicationForm", () => ({
   ProjectApplicationForm: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>application-form</div> : null),
+}));
+
+vi.mock("../components/project/ResearchAgentPanel", () => ({
+  ResearchAgentPanel: (props: Record<string, unknown>) => {
+    mockResearchAgentPanel(props);
+    return <div data-testid="research-agent-panel" />;
+  },
 }));
 
 vi.mock("../components/project/ProjectDiscussionSection", () => ({
@@ -142,6 +150,7 @@ describe("ResearchProjectPage", () => {
     mockDeleteProject.mockReset();
     mockRemoveProjectMember.mockReset();
     mockProjectDiscussionSection.mockReset();
+    mockResearchAgentPanel.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
       user: { id: "owner-1", username: "owner", role: "user" },
@@ -308,6 +317,44 @@ describe("ResearchProjectPage", () => {
         })
       );
     });
+  });
+
+  it("renders the AI advisor panel for project members", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("research-agent-panel")).toBeTruthy();
+    expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1" });
+  });
+
+  it("does not render the AI advisor panel for authenticated public non-members", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "candidate-1", username: "candidate", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    await screen.findByText("你正在以只读模式浏览这个课题");
+    expect(screen.queryByTestId("research-agent-panel")).toBeNull();
+    expect(mockResearchAgentPanel).not.toHaveBeenCalled();
   });
 
   it("jumps research information into the discussion subsections", async () => {

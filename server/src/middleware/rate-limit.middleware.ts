@@ -166,6 +166,31 @@ export const discussionRateLimiter = rateLimit({
 });
 
 /**
+ * Research AI advisor rate limiter
+ * 课题 AI 顾问速率限制器
+ */
+export const researchAgentRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'AI 顾问请求过于频繁，请稍后再试',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => {
+    const userId = req.user?.sub;
+    return userId ? `user:${userId}` : getClientIp(req);
+  },
+  handler: (req: Request, res: Response) => {
+    sendError(res, 'AI 顾问请求过于频繁，请稍后再试', 'RATE_LIMIT_EXCEEDED', 429);
+  },
+});
+
+/**
  * CAPTCHA rate limiter
  * 验证码速率限制器
  */
