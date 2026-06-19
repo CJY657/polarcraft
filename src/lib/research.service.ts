@@ -91,6 +91,8 @@ export interface ResearchAgentMessagesResponse {
   messages: ResearchAgentMessage[];
 }
 
+export type ResearchAgentLiveMessage = Pick<ResearchAgentMessage, 'role' | 'content'>;
+
 export interface SendResearchAgentMessageResponse {
   user: ResearchAgentMessage;
   assistant: ResearchAgentMessage;
@@ -349,11 +351,12 @@ export const researchApi = {
    */
   sendProjectAgentMessage: async (
     projectId: string,
-    content: string
+    content: string,
+    history: ResearchAgentLiveMessage[] = []
   ): Promise<SendResearchAgentMessageResponse> => {
     const response = await api.post<SendResearchAgentMessageResponse>(
       `/api/research/projects/${projectId}/agent/messages`,
-      { content }
+      { content, history }
     );
     if (response.success && response.data) {
       return response.data;

@@ -78,21 +78,6 @@ export interface ResearchProjectAccess {
   canModerate: boolean;
 }
 
-export type ResearchAgentMessageRole = 'user' | 'assistant';
-
-export interface ResearchAgentMessage {
-  id: string;
-  project_id: string;
-  user_id: string;
-  role: ResearchAgentMessageRole;
-  content: string;
-  model: string | null;
-  usage?: Record<string, unknown> | null;
-  created_at: Date;
-  username?: string;
-  avatar_url?: string | null;
-}
-
 export interface ResearchDiscussionDigestItem {
   username: string;
   content: string;
@@ -1046,55 +1031,6 @@ export class ResearchModel {
       video_count: normalizeVideoUrls(comment.video_urls).length,
       created_at: comment.created_at,
     }));
-  }
-
-  static async getProjectAgentMessages(projectId: string, limit: number = 30): Promise<ResearchAgentMessage[]> {
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
-    const messages = normalizeDocuments<ResearchAgentMessage>(
-      await agentMessagesCollection()
-        .find({ project_id: projectId })
-        .sort({ created_at: -1 })
-        .limit(safeLimit)
-        .toArray()
-    ).reverse();
-    const userMap = await getUserMap(messages.map((message) => message.user_id));
-
-    return messages.map((message) => {
-      const user = userMap.get(message.user_id);
-      return {
-        ...message,
-        username: user?.username || '成员',
-        avatar_url: user?.avatar_url || null,
-      };
-    });
-  }
-
-  static async getRecentProjectAgentMessages(projectId: string, limit: number = 12): Promise<ResearchAgentMessage[]> {
-    return this.getProjectAgentMessages(projectId, limit);
-  }
-
-  static async addProjectAgentMessage(data: {
-    projectId: string;
-    userId: string;
-    role: ResearchAgentMessageRole;
-    content: string;
-    model?: string | null;
-    usage?: Record<string, unknown> | null;
-  }): Promise<ResearchAgentMessage> {
-    const now = new Date();
-    const message: ResearchAgentMessage = {
-      id: generateId(),
-      project_id: data.projectId,
-      user_id: data.userId,
-      role: data.role,
-      content: data.content,
-      model: data.model ?? null,
-      usage: data.usage ?? null,
-      created_at: now,
-    };
-
-    await agentMessagesCollection().insertOne(message);
-    return message;
   }
 
   static async clearProjectAgentMessages(projectId: string): Promise<number> {

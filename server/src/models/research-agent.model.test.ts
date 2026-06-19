@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const aiFind = vi.fn();
-const aiInsertOne = vi.fn();
 const aiDeleteMany = vi.fn();
 const projectsDeleteOne = vi.fn();
 const canvasesFind = vi.fn();
-const usersFind = vi.fn();
 const genericDeleteMany = vi.fn();
 
 type TestCursor = {
@@ -34,8 +31,6 @@ vi.mock('../database/connection.js', () => ({
     switch (name) {
       case 'research_ai_messages':
         return {
-          find: (...args: unknown[]) => aiFind(...args),
-          insertOne: (...args: unknown[]) => aiInsertOne(...args),
           deleteMany: (...args: unknown[]) => aiDeleteMany(...args),
         };
       case 'research_projects':
@@ -49,10 +44,6 @@ vi.mock('../database/connection.js', () => ({
           find: (...args: unknown[]) => canvasesFind(...args),
           countDocuments: async () => 0,
           deleteMany: (...args: unknown[]) => genericDeleteMany(...args),
-        };
-      case 'users':
-        return {
-          find: (...args: unknown[]) => usersFind(...args),
         };
       default:
         return {
@@ -71,112 +62,15 @@ vi.mock('../utils/logger.js', () => ({
   },
 }));
 
-vi.mock('../utils/crypto.util.js', () => ({
-  generateId: () => 'generated-id',
-}));
-
 import { ResearchModel } from './research.model.js';
 
-describe('ResearchModel AI advisor messages', () => {
+describe('ResearchModel AI advisor message cleanup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    aiInsertOne.mockResolvedValue({ insertedId: 'mongo-id' });
     aiDeleteMany.mockResolvedValue({ deletedCount: 1 });
     projectsDeleteOne.mockResolvedValue({ deletedCount: 1 });
     canvasesFind.mockReturnValue(cursor([]));
-    usersFind.mockReturnValue(cursor([]));
     genericDeleteMany.mockResolvedValue({ deletedCount: 0 });
-  });
-
-  it('returns limited project messages in chronological order', async () => {
-    const limits: number[] = [];
-    aiFind.mockReturnValue(
-      cursor(
-        [
-          { id: 'newer', project_id: 'project-1', role: 'assistant', content: 'later', created_at: new Date('2026-01-02') },
-          { id: 'older', project_id: 'project-1', role: 'user', content: 'earlier', created_at: new Date('2026-01-01') },
-        ],
-        (value) => limits.push(value)
-      )
-    );
-
-    const messages = await ResearchModel.getProjectAgentMessages('project-1', 500);
-
-    expect(aiFind).toHaveBeenCalledWith({ project_id: 'project-1' });
-    expect(limits).toEqual([100]);
-    expect(messages.map((message) => message.id)).toEqual(['older', 'newer']);
-  });
-
-  it('enriches project messages with user display data', async () => {
-    aiFind.mockReturnValue(
-      cursor([
-        {
-          id: 'message-2',
-          project_id: 'project-1',
-          user_id: 'missing-user',
-          role: 'assistant',
-          content: '先列变量。',
-          created_at: new Date('2026-01-02'),
-        },
-        {
-          id: 'message-1',
-          project_id: 'project-1',
-          user_id: 'user-1',
-          role: 'user',
-          content: '怎么控变量？',
-          created_at: new Date('2026-01-01'),
-        },
-      ])
-    );
-    usersFind.mockReturnValue(
-      cursor([
-        {
-          id: 'user-1',
-          username: '小李',
-          avatar_url: '/uploads/avatar.png',
-        },
-      ])
-    );
-
-    const messages = await ResearchModel.getProjectAgentMessages('project-1', 30);
-
-    expect(usersFind).toHaveBeenCalledWith({ id: { $in: ['user-1', 'missing-user'] } });
-    expect(messages).toEqual([
-      expect.objectContaining({
-        id: 'message-1',
-        username: '小李',
-        avatar_url: '/uploads/avatar.png',
-      }),
-      expect.objectContaining({
-        id: 'message-2',
-        username: '成员',
-        avatar_url: null,
-      }),
-    ]);
-  });
-
-  it('stores user and assistant messages in the shared project collection', async () => {
-    const message = await ResearchModel.addProjectAgentMessage({
-      projectId: 'project-1',
-      userId: 'user-1',
-      role: 'assistant',
-      content: '下一步先定义变量。',
-      model: 'advisor-model',
-      usage: { total_tokens: 10 },
-    });
-
-    expect(message).toEqual(
-      expect.objectContaining({
-        id: 'generated-id',
-        project_id: 'project-1',
-        user_id: 'user-1',
-        role: 'assistant',
-        content: '下一步先定义变量。',
-        model: 'advisor-model',
-        usage: { total_tokens: 10 },
-      })
-    );
-    expect(aiInsertOne).toHaveBeenCalledWith(message);
   });
 
   it('deletes project advisor messages during project cleanup', async () => {

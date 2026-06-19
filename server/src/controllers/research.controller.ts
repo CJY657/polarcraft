@@ -19,11 +19,13 @@ import {
   ResearchAgentUpstreamError,
   type ResearchAgentChatMessage,
 } from '../services/research-agent.service.js';
+import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
 const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
+const MAX_RESEARCH_AGENT_HISTORY_MESSAGES = 12;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 
@@ -56,6 +58,35 @@ function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null 
   }
 
   return [...uniqueUrls];
+}
+
+function normalizeResearchAgentLiveHistory(value: unknown): ResearchAgentChatMessage[] | null {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(value) || value.length > MAX_RESEARCH_AGENT_HISTORY_MESSAGES) {
+    return null;
+  }
+
+  const messages: ResearchAgentChatMessage[] = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    const { role, content: rawContent } = item as { role?: unknown; content?: unknown };
+    const content = typeof rawContent === 'string' ? rawContent.trim() : '';
+
+    if ((role !== 'user' && role !== 'assistant') || !content || content.length > MAX_RESEARCH_AGENT_CONTENT_LENGTH) {
+      return null;
+    }
+
+    messages.push({ role, content });
+  }
+
+  return messages;
 }
 
 type ProjectAccessLevel = 'read' | 'write' | 'manage' | 'discussion';
@@ -483,7 +514,6 @@ export class ResearchController {
    */
   static getProjectAgentMessages = asyncHandler(async (req: Request, res: Response) => {
     const { projectId } = req.params;
-    const limit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 30;
     const access = await ensureProjectAccess(
       res,
       projectId,
@@ -496,10 +526,9 @@ export class ResearchController {
       return;
     }
 
-    const messages = await ResearchModel.getProjectAgentMessages(projectId, limit);
     res.success({
       enabled: ResearchAgentService.isEnabled(),
-      messages,
+      messages: [],
     });
   });
 
@@ -533,6 +562,7 @@ export class ResearchController {
     const { projectId } = req.params;
     const rawContent = typeof req.body.content === 'string' ? req.body.content : '';
     const content = rawContent.trim();
+    const liveHistory = normalizeResearchAgentLiveHistory(req.body.history);
 
     if (!content) {
       return res.error('请输入 AI 顾问消息', 'INVALID_AGENT_MESSAGE', 400);
@@ -544,6 +574,10 @@ export class ResearchController {
         'AGENT_MESSAGE_TOO_LONG',
         400
       );
+    }
+
+    if (!liveHistory) {
+      return res.error('AI 顾问上下文格式无效', 'INVALID_AGENT_HISTORY', 400);
     }
 
     const access = await ensureProjectAccess(
@@ -562,50 +596,46 @@ export class ResearchController {
       return res.error('AI 顾问尚未配置', 'AI_ADVISOR_DISABLED', 503);
     }
 
-    const [members, discussionDigest, history] = await Promise.all([
+    const [members, discussionDigest] = await Promise.all([
       ResearchModel.getProjectMembers(projectId),
       ResearchModel.getRecentProjectDiscussionDigest(projectId, 8),
-      ResearchModel.getRecentProjectAgentMessages(projectId, 12),
     ]);
     const context = buildResearchAgentContext(access.project, members, discussionDigest);
     const chatMessages: ResearchAgentChatMessage[] = [
       { role: 'system', content: RESEARCH_AGENT_SYSTEM_PROMPT },
       { role: 'system', content: context },
-      ...history.map((message) => ({
-        role: message.role,
-        content: message.content,
-      })),
+      ...liveHistory,
       { role: 'user', content },
     ];
 
-    const userMessage = await ResearchModel.addProjectAgentMessage({
-      projectId,
-      userId: req.user!.sub,
-      role: 'user',
-      content,
-    });
-
     try {
       const completion = await ResearchAgentService.createChatCompletion(chatMessages);
-      const assistantMessage = await ResearchModel.addProjectAgentMessage({
-        projectId,
-        userId: req.user!.sub,
-        role: 'assistant',
-        content: completion.content,
-        model: completion.model,
-        usage: completion.usage,
-      });
+      const username = req.user!.username || '成员';
 
       res.success(
         {
           user: {
-            ...userMessage,
-            username: req.user!.username || '成员',
+            id: generateId(),
+            project_id: projectId,
+            user_id: req.user!.sub,
+            role: 'user',
+            content,
+            model: null,
+            usage: null,
+            created_at: new Date(),
+            username,
             avatar_url: null,
           },
           assistant: {
-            ...assistantMessage,
-            username: req.user!.username || '成员',
+            id: generateId(),
+            project_id: projectId,
+            user_id: req.user!.sub,
+            role: 'assistant',
+            content: completion.content,
+            model: completion.model,
+            usage: completion.usage ?? null,
+            created_at: new Date(),
+            username: 'AI 顾问',
             avatar_url: null,
           },
         },

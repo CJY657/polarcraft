@@ -1,14 +1,14 @@
 import { FormEvent, useCallback, useEffect, useId, useState } from "react";
-import { AlertCircle, Bot, Loader2, Minus, Send, Trash2 } from "lucide-react";
+import { AlertCircle, Bot, Loader2, Minus, Send } from "lucide-react";
 import { cn } from "@/utils/classNames";
 import {
   researchApi,
   type ResearchAgentMessage,
 } from "@/lib/research.service";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MarkdownRenderer } from "../shared/MarkdownRenderer";
 
 const MAX_AGENT_MESSAGE_LENGTH = 2000;
+const MAX_LIVE_HISTORY_MESSAGES = 12;
 
 function formatMessageTime(value: string): string {
   return new Date(value).toLocaleString("zh-CN", {
@@ -21,7 +21,6 @@ function formatMessageTime(value: string): string {
 
 export function ResearchAgentPanel({
   projectId,
-  canClearHistory = false,
 }: {
   projectId: string;
   canClearHistory?: boolean;
@@ -33,8 +32,6 @@ export function ResearchAgentPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadMessages = useCallback(async () => {
@@ -71,7 +68,11 @@ export function ResearchAgentPanel({
     try {
       setIsSending(true);
       setError(null);
-      const response = await researchApi.sendProjectAgentMessage(projectId, content);
+      const history = messages.slice(-MAX_LIVE_HISTORY_MESSAGES).map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+      const response = await researchApi.sendProjectAgentMessage(projectId, content, history);
       setMessages((current) => [...current, response.user, response.assistant]);
       setDraft("");
     } catch (err) {
@@ -84,22 +85,6 @@ export function ResearchAgentPanel({
       setIsSending(false);
     }
   };
-
-  const handleClearHistory = async () => {
-    try {
-      setIsClearing(true);
-      setError(null);
-      await researchApi.clearProjectAgentMessages(projectId);
-      setMessages([]);
-      setIsClearDialogOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "清空 AI 顾问历史失败");
-    } finally {
-      setIsClearing(false);
-    }
-  };
-
-  const showClearButton = canClearHistory && messages.length > 0;
 
   return (
     <>
@@ -133,20 +118,9 @@ export function ResearchAgentPanel({
                     <span className="h-2.5 w-2.5 rounded-full bg-[#00ed64]" />
                     <h2 className="truncate text-base font-semibold">AI 研究顾问</h2>
                   </div>
-                  <p className="mt-1 text-xs leading-5 text-white/70">共享课题建议历史</p>
+                  <p className="mt-1 text-xs leading-5 text-white/70">当前标签页即时对话</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  {showClearButton && (
-                    <button
-                      type="button"
-                      onClick={() => setIsClearDialogOpen(true)}
-                      disabled={isClearing}
-                      className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-white/15 px-2.5 text-xs font-medium text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      清空历史
-                    </button>
-                  )}
                   <button
                     type="button"
                     aria-controls={bodyId}
@@ -213,7 +187,7 @@ export function ResearchAgentPanel({
                                   isAssistant ? "text-slate-500" : "text-white/65"
                                 )}
                               >
-                                <span>{isAssistant ? "AI 顾问" : message.username || "成员"}</span>
+                                <span>{isAssistant ? "AI 顾问" : "你的即时提问"}</span>
                                 <time>{formatMessageTime(message.created_at)}</time>
                               </div>
                               {isAssistant ? (
@@ -270,18 +244,6 @@ export function ResearchAgentPanel({
         </section>
       )}
 
-      <ConfirmDialog
-        open={isClearDialogOpen}
-        title="清空 AI 顾问历史？"
-        description="这会删除本课题组共享的全部 AI 顾问消息，操作无法恢复。"
-        confirmLabel="清空"
-        cancelLabel="取消"
-        isPending={isClearing}
-        onCancel={() => setIsClearDialogOpen(false)}
-        onConfirm={() => {
-          void handleClearHistory();
-        }}
-      />
     </>
   );
 }
