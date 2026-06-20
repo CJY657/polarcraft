@@ -34,13 +34,23 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
 
   // Fetch unread notification count when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchUnreadCount()
-      // Poll for new notifications every 60 seconds
-      const interval = setInterval(fetchUnreadCount, 60000)
-      return () => clearInterval(interval)
+    if (!isAuthenticated) {
+      return undefined
     }
-    return undefined
+
+    fetchUnreadCount()
+    const interval = setInterval(fetchUnreadCount, 15000)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCount()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [isAuthenticated, fetchUnreadCount])
 
   if (compact) {

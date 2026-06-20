@@ -75,11 +75,15 @@ export function InboxDropdown({ className }: InboxDropdownProps) {
   const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead } =
     useNotificationStore();
 
-  // Fetch notifications on mount and when dropdown opens
+  // Fetch notifications when dropdown opens and while it stays open
   useEffect(() => {
-    if (isOpen) {
-      fetchNotifications({ limit: 5 });
+    if (!isOpen) {
+      return undefined;
     }
+
+    fetchNotifications({ limit: 5 });
+    const interval = setInterval(() => fetchNotifications({ limit: 5 }), 15000);
+    return () => clearInterval(interval);
   }, [isOpen, fetchNotifications]);
 
   // Close dropdown when clicking outside
