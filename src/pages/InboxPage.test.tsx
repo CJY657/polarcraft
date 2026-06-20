@@ -1,0 +1,103 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import InboxPage from './InboxPage';
+import type { UserNotification } from '@/lib/notification.service';
+
+const mocks = vi.hoisted(() => ({
+  notifications: [] as UserNotification[],
+  fetchNotifications: vi.fn(),
+  markAsRead: vi.fn(),
+  markAllAsRead: vi.fn(),
+  deleteNotification: vi.fn(),
+}));
+
+vi.mock('@/contexts/ThemeContext', () => ({
+  useTheme: () => ({ theme: 'light' }),
+}));
+
+vi.mock('@/components/shared/PersistentHeader', () => ({
+  PersistentHeader: () => <div data-testid="persistent-header" />,
+}));
+
+vi.mock('@/stores/notificationStore', () => ({
+  useNotificationStore: () => ({
+    notifications: mocks.notifications,
+    unreadCount: mocks.notifications.filter((notification) => !notification.is_read).length,
+    total: mocks.notifications.length,
+    isLoading: false,
+    fetchNotifications: mocks.fetchNotifications,
+    markAsRead: mocks.markAsRead,
+    markAllAsRead: mocks.markAllAsRead,
+    deleteNotification: mocks.deleteNotification,
+  }),
+}));
+
+function createNotification(overrides: Partial<UserNotification>): UserNotification {
+  return {
+    id: 'notification-1',
+    user_id: 'user-1',
+    type: 'project_message',
+    title: '新的课题消息',
+    content: '请看最新同步',
+    data: null,
+    is_read: false,
+    action_url: '/lab/projects/project-1#project-messages',
+    created_at: '2026-06-20T08:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{`${location.pathname}${location.hash}`}</div>;
+}
+
+function renderInbox() {
+  return render(
+    <MemoryRouter initialEntries={['/inbox']}>
+      <Routes>
+        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/lab/projects/:projectId" element={<LocationProbe />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+describe('InboxPage', () => {
+  beforeEach(() => {
+    mocks.notifications = [
+      createNotification({ id: 'notification-1', type: 'project_message', title: '新的课题消息' }),
+      createNotification({
+        id: 'notification-2',
+        type: 'project_announcement',
+        title: '新的课题公告',
+        content: '周五前完成汇报',
+        is_read: true,
+      }),
+    ];
+    mocks.fetchNotifications.mockReset();
+    mocks.markAsRead.mockReset();
+    mocks.markAllAsRead.mockReset();
+    mocks.deleteNotification.mockReset();
+    mocks.fetchNotifications.mockResolvedValue(undefined);
+    mocks.markAsRead.mockResolvedValue(undefined);
+    mocks.markAllAsRead.mockResolvedValue(undefined);
+    mocks.deleteNotification.mockResolvedValue(undefined);
+  });
+
+  it('renders project message types and navigates to the project messages anchor', async () => {
+    renderInbox();
+
+    expect(screen.getByText('课题消息')).toBeTruthy();
+    expect(screen.getByText('课题公告')).toBeTruthy();
+    fireEvent.click(screen.getByText('新的课题消息'));
+
+    await waitFor(() => {
+      expect(mocks.markAsRead).toHaveBeenCalledWith('notification-1');
+    });
+    expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#project-messages');
+  });
+});

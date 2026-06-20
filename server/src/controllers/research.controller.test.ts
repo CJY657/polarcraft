@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mockResearchAgentService } = vi.hoisted(() => ({
+const {
+  mockResearchModel,
+  mockNotificationModel,
+  mockProfileModel,
+  mockManagedUploadCleanupService,
+  mockResearchAgentService,
+} = vi.hoisted(() => ({
   mockResearchModel: {
     getProjectAccess: vi.fn(),
     getUserProjects: vi.fn(),
@@ -13,6 +19,9 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mo
     clearProjectAgentMessages: vi.fn(),
     getRecentProjectAgentMessages: vi.fn(),
     getRecentProjectDiscussionDigest: vi.fn(),
+    getProjectMessages: vi.fn(),
+    addProjectMessage: vi.fn(),
+    getActiveProjectMemberUserIds: vi.fn(),
     addProjectAgentMessage: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
     addProjectMember: vi.fn(),
@@ -20,6 +29,10 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mo
     updateProject: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
+  },
+  mockNotificationModel: {
+    createNotificationForUsers: vi.fn(),
+    markProjectMessagesAsRead: vi.fn(),
   },
   mockProfileModel: {
     getOrCreateProjectSettings: vi.fn(),
@@ -40,6 +53,10 @@ const { mockResearchModel, mockProfileModel, mockManagedUploadCleanupService, mo
 
 vi.mock('../models/research.model.js', () => ({
   ResearchModel: mockResearchModel,
+}));
+
+vi.mock('../models/notification.model.js', () => ({
+  NotificationModel: mockNotificationModel,
 }));
 
 vi.mock('../models/profile.model.js', () => ({
@@ -1157,5 +1174,171 @@ describe('ResearchController member management', () => {
 
     expect(res.error).toHaveBeenCalledWith('AI 顾问尚未配置', 'AI_ADVISOR_DISABLED', 503);
     expect(mockResearchAgentService.createChatCompletion).not.toHaveBeenCalled();
+  });
+});
+
+function projectAccess(overrides: Record<string, unknown> = {}) {
+  return {
+    project: { id: 'project-1', name_zh: '偏振课题' },
+    membership: { user_id: 'member-1', role: 'member' },
+    role: 'member',
+    isAdmin: false,
+    isMember: true,
+    canRead: true,
+    canWrite: true,
+    canManage: false,
+    canAccessDiscussion: true,
+    canModerate: false,
+    ...overrides,
+  };
+}
+
+describe('ResearchController project messages', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockResearchModel.getProjectMessages.mockResolvedValue([]);
+    mockResearchModel.addProjectMessage.mockResolvedValue('message-1');
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['member-1', 'member-2']);
+    mockNotificationModel.createNotificationForUsers.mockResolvedValue(undefined);
+    mockNotificationModel.markProjectMessagesAsRead.mockResolvedValue(2);
+  });
+
+  it('lists project messages for a member', async () => {
+    mockResearchModel.getProjectMessages.mockResolvedValue([
+      { id: 'message-1', project_id: 'project-1', sender_id: 'member-1', kind: 'message', content: 'hello' },
+    ]);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      query: { limit: '20' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectMessages, req, res);
+
+    expect(mockResearchModel.getProjectMessages).toHaveBeenCalledWith('project-1', { limit: 20 });
+    expect(res.success).toHaveBeenCalledWith([
+      { id: 'message-1', project_id: 'project-1', sender_id: 'member-1', kind: 'message', content: 'hello' },
+    ]);
+  });
+
+  it('rejects message listing for a non-member', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      membership: null,
+      role: null,
+      isMember: false,
+      canWrite: false,
+      canAccessDiscussion: false,
+    }));
+
+    const req = {
+      params: { projectId: 'project-1' },
+      query: {},
+      user: { sub: 'candidate-1', username: 'candidate', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectMessages, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有课题成员可以查看消息', 'FORBIDDEN', 403);
+    expect(mockResearchModel.getProjectMessages).not.toHaveBeenCalled();
+  });
+
+  it('sends a project message and notifies other active members only', async () => {
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '  今天先同步样品安排  ' },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.sendProjectMessage, req, res);
+
+    expect(mockResearchModel.addProjectMessage).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      'message',
+      '今天先同步样品安排'
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-2'],
+      expect.objectContaining({
+        type: 'project_message',
+        title: '小林 发送了课题消息',
+        content: '今天先同步样品安排',
+        action_url: '/lab/projects/project-1#project-messages',
+        data: expect.objectContaining({
+          project_id: 'project-1',
+          message_id: 'message-1',
+          sender_id: 'member-1',
+          kind: 'message',
+        }),
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith({ id: 'message-1' }, '消息已发送', 201);
+  });
+
+  it('allows an owner to send an announcement', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      canManage: true,
+      canModerate: true,
+    }));
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '周五完成阶段汇报。' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.sendProjectAnnouncement, req, res);
+
+    expect(mockResearchModel.addProjectMessage).toHaveBeenCalledWith(
+      'project-1',
+      'owner-1',
+      'announcement',
+      '周五完成阶段汇报。'
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-1', 'member-2'],
+      expect.objectContaining({
+        type: 'project_announcement',
+        title: '偏振课题 发布了公告',
+        content: '周五完成阶段汇报。',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith({ id: 'message-1' }, '公告已发送', 201);
+  });
+
+  it('rejects announcements from normal members', async () => {
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '我来发公告' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.sendProjectAnnouncement, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有组长或管理员可以发送公告', 'FORBIDDEN', 403);
+    expect(mockResearchModel.addProjectMessage).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotificationForUsers).not.toHaveBeenCalled();
+  });
+
+  it('clears project message notifications for the current user', async () => {
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.markProjectMessagesRead, req, res);
+
+    expect(mockNotificationModel.markProjectMessagesAsRead).toHaveBeenCalledWith('member-1', 'project-1');
+    expect(res.success).toHaveBeenCalledWith({ updated_count: 2 });
   });
 });

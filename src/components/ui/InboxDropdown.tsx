@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { cn } from '@/utils/classNames';
@@ -31,6 +32,8 @@ const getNotificationIcon = (type: NotificationType) => {
     application_approved: CheckCircle,
     application_rejected: XCircle,
     comment_reply: MessageCircle,
+    project_message: MessageCircle,
+    project_announcement: Megaphone,
     system: Megaphone,
   };
   return icons[type] || Bell;
@@ -43,13 +46,15 @@ const getNotificationIconColor = (type: NotificationType, theme: string) => {
     application_approved: theme === 'dark' ? 'text-green-400' : 'text-green-500',
     application_rejected: theme === 'dark' ? 'text-red-400' : 'text-red-500',
     comment_reply: theme === 'dark' ? 'text-purple-400' : 'text-purple-500',
+    project_message: theme === 'dark' ? 'text-cyan-400' : 'text-cyan-500',
+    project_announcement: theme === 'dark' ? 'text-amber-400' : 'text-amber-500',
     system: theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500',
   };
   return colors[type] || (theme === 'dark' ? 'text-gray-400' : 'text-gray-500');
 };
 
 // Format relative time
-const formatRelativeTime = (dateString: string, t: (key: string, options?: any) => string) => {
+const formatRelativeTime = (dateString: string, t: TFunction) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

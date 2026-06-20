@@ -52,6 +52,7 @@ import { ProjectCoverDialog } from "../components/project/ProjectCoverDialog";
 import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
+import { ProjectMessagesPanel } from "../components/project/ProjectMessagesPanel";
 import {
   ProjectDiscussionSection,
   type ProjectDiscussionJumpRequest,
@@ -536,6 +537,7 @@ export function ResearchProjectPage() {
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
   const canShowDiscussionSection = !isExampleProject && Boolean(projectId && project && isAuthenticated && canParticipateInDiscussion);
+  const canShowMessagesPanel = canShowDiscussionSection;
   const canShowAgentPanel = canShowDiscussionSection;
   const researchOutline: ProjectDiscussionOutline = {
     topicSummary: displayProject.description_zh || "",
@@ -746,6 +748,14 @@ export function ResearchProjectPage() {
           canJumpToDiscussion={canShowDiscussionSection}
           onJumpToDiscussion={handleJumpToDiscussion}
         />
+
+        {canShowMessagesPanel && projectId && (
+          <ProjectMessagesPanel
+            projectId={projectId}
+            currentUserId={user?.id}
+            canAnnounce={canManageProject}
+          />
+        )}
 
         {canShowAgentPanel && projectId && (
           <ResearchAgentPanel projectId={projectId} canClearHistory={canManageProject} />

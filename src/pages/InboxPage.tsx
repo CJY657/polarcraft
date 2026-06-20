@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { cn } from '@/utils/classNames';
@@ -32,6 +33,8 @@ const getNotificationIcon = (type: NotificationType) => {
     application_approved: CheckCircle,
     application_rejected: XCircle,
     comment_reply: MessageCircle,
+    project_message: MessageCircle,
+    project_announcement: Megaphone,
     system: Megaphone,
   };
   return icons[type] || Bell;
@@ -44,25 +47,29 @@ const getNotificationIconColor = (type: NotificationType, theme: string) => {
     application_approved: theme === 'dark' ? 'text-green-400 bg-green-900/30' : 'text-green-500 bg-green-100',
     application_rejected: theme === 'dark' ? 'text-red-400 bg-red-900/30' : 'text-red-500 bg-red-100',
     comment_reply: theme === 'dark' ? 'text-purple-400 bg-purple-900/30' : 'text-purple-500 bg-purple-100',
+    project_message: theme === 'dark' ? 'text-cyan-400 bg-cyan-900/30' : 'text-cyan-500 bg-cyan-100',
+    project_announcement: theme === 'dark' ? 'text-amber-400 bg-amber-900/30' : 'text-amber-500 bg-amber-100',
     system: theme === 'dark' ? 'text-yellow-400 bg-yellow-900/30' : 'text-yellow-500 bg-yellow-100',
   };
   return colors[type] || (theme === 'dark' ? 'text-gray-400 bg-gray-700' : 'text-gray-500 bg-gray-100');
 };
 
 // Get notification type text
-const getNotificationTypeText = (type: NotificationType, t: (key: string) => string) => {
+const getNotificationTypeText = (type: NotificationType, t: TFunction) => {
   const texts: Record<NotificationType, string> = {
     project_invite: t('inbox.types.projectInvite', '课题邀请'),
     application_approved: t('inbox.types.applicationApproved', '申请通过'),
     application_rejected: t('inbox.types.applicationRejected', '申请被拒'),
     comment_reply: t('inbox.types.commentReply', '评论回复'),
+    project_message: t('inbox.types.projectMessage', '课题消息'),
+    project_announcement: t('inbox.types.projectAnnouncement', '课题公告'),
     system: t('inbox.types.system', '系统通知'),
   };
   return texts[type] || type;
 };
 
 // Format relative time
-const formatRelativeTime = (dateString: string, t: (key: string, options?: any) => string) => {
+const formatRelativeTime = (dateString: string, t: TFunction) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();

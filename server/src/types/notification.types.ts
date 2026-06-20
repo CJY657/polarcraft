@@ -12,6 +12,8 @@ export type NotificationType =
   | 'application_approved'
   | 'application_rejected'
   | 'comment_reply'
+  | 'project_message'
+  | 'project_announcement'
   | 'system';
 
 // =====================================================

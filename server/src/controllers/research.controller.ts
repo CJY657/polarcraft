@@ -8,7 +8,8 @@
 
 import { Request, Response } from 'express';
 import { uploadConfig } from '../config/upload.config.js';
-import { ResearchModel } from '../models/research.model.js';
+import { ResearchModel, type ResearchProjectMessageKind } from '../models/research.model.js';
+import { NotificationModel } from '../models/notification.model.js';
 import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
@@ -24,6 +25,7 @@ import { logger } from '../utils/logger.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
+const MAX_PROJECT_MESSAGE_LENGTH = 2000;
 const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
 const MAX_RESEARCH_AGENT_HISTORY_MESSAGES = 12;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
@@ -87,6 +89,45 @@ function normalizeResearchAgentLiveHistory(value: unknown): ResearchAgentChatMes
   }
 
   return messages;
+}
+
+function parseProjectMessageCursor(value: unknown): Date | null | 'invalid' {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  if (typeof rawValue !== 'string') {
+    return 'invalid';
+  }
+
+  const date = new Date(rawValue);
+  return Number.isNaN(date.getTime()) ? 'invalid' : date;
+}
+
+async function notifyProjectMessageRecipients(
+  projectId: string,
+  senderId: string,
+  messageId: string,
+  kind: ResearchProjectMessageKind,
+  title: string,
+  content: string
+): Promise<void> {
+  const recipients = (await ResearchModel.getActiveProjectMemberUserIds(projectId))
+    .filter((userId) => userId !== senderId);
+
+  await NotificationModel.createNotificationForUsers(recipients, {
+    type: kind === 'announcement' ? 'project_announcement' : 'project_message',
+    title,
+    content,
+    data: {
+      project_id: projectId,
+      message_id: messageId,
+      sender_id: senderId,
+      kind,
+    },
+    action_url: `/lab/projects/${projectId}#project-messages`,
+  });
 }
 
 type ProjectAccessLevel = 'read' | 'write' | 'manage' | 'discussion';
@@ -1126,6 +1167,149 @@ export class ResearchController {
     await ResearchModel.deleteComment(id);
     logger.info(`Comment ${id} deleted by user ${req.user!.username}`);
     res.success(null, '评论删除成功');
+  });
+
+  /**
+   * Get project messages
+   * 获取课题成员消息
+   */
+  static getProjectMessages = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit ?? 50))));
+    const before = parseProjectMessageCursor(req.query.before);
+    const after = parseProjectMessageCursor(req.query.after);
+
+    if (before === 'invalid' || after === 'invalid' || Number.isNaN(limit)) {
+      return res.error('消息查询参数无效', 'INVALID_MESSAGE_QUERY', 400);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以查看消息'
+    );
+    if (!access) {
+      return;
+    }
+
+    const messages = await ResearchModel.getProjectMessages(projectId, {
+      limit,
+      ...(before ? { before } : {}),
+      ...(after ? { after } : {}),
+    });
+    res.success(messages);
+  });
+
+  /**
+   * Send project message
+   * 发送课题成员消息
+   */
+  static sendProjectMessage = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const currentUserId = req.user!.sub;
+    const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
+
+    if (!content) {
+      return res.error('消息内容不能为空', 'INVALID_MESSAGE_CONTENT', 400);
+    }
+
+    if (content.length > MAX_PROJECT_MESSAGE_LENGTH) {
+      return res.error(`消息内容不能超过 ${MAX_PROJECT_MESSAGE_LENGTH} 字`, 'MESSAGE_TOO_LONG', 400);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      currentUserId,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以发送消息'
+    );
+    if (!access) {
+      return;
+    }
+
+    const messageId = await ResearchModel.addProjectMessage(projectId, currentUserId, 'message', content);
+
+    await notifyProjectMessageRecipients(
+      projectId,
+      currentUserId,
+      messageId,
+      'message',
+      `${req.user!.username || '成员'} 发送了课题消息`,
+      content
+    );
+
+    res.success({ id: messageId }, '消息已发送', 201);
+  });
+
+  /**
+   * Send project announcement
+   * 发送课题公告
+   */
+  static sendProjectAnnouncement = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const currentUserId = req.user!.sub;
+    const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
+
+    if (!content) {
+      return res.error('公告内容不能为空', 'INVALID_ANNOUNCEMENT_CONTENT', 400);
+    }
+
+    if (content.length > MAX_PROJECT_MESSAGE_LENGTH) {
+      return res.error(`公告内容不能超过 ${MAX_PROJECT_MESSAGE_LENGTH} 字`, 'ANNOUNCEMENT_TOO_LONG', 400);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      currentUserId,
+      req.user!.role,
+      'manage',
+      '只有组长或管理员可以发送公告'
+    );
+    if (!access) {
+      return;
+    }
+
+    const messageId = await ResearchModel.addProjectMessage(projectId, currentUserId, 'announcement', content);
+
+    await notifyProjectMessageRecipients(
+      projectId,
+      currentUserId,
+      messageId,
+      'announcement',
+      `${access.project.name_zh || '课题'} 发布了公告`,
+      content
+    );
+
+    res.success({ id: messageId }, '公告已发送', 201);
+  });
+
+  /**
+   * Mark project messages as read
+   * 标记课题消息为已读
+   */
+  static markProjectMessagesRead = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const currentUserId = req.user!.sub;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      currentUserId,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以标记消息已读'
+    );
+    if (!access) {
+      return;
+    }
+
+    const updatedCount = await NotificationModel.markProjectMessagesAsRead(currentUserId, projectId);
+    res.success({ updated_count: updatedCount });
   });
 
   /**
