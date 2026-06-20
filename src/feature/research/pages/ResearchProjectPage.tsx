@@ -298,12 +298,23 @@ export function ResearchProjectPage() {
   }, [projectId]);
 
   useEffect(() => {
-    if (location.hash !== "#discussion-comments") {
+    const commentHashPrefix = "#discussion-comment-";
+
+    if (location.hash !== "#discussion-comments" && !location.hash.startsWith(commentHashPrefix)) {
+      return;
+    }
+
+    const commentId = location.hash.startsWith(commentHashPrefix)
+      ? location.hash.slice(commentHashPrefix.length)
+      : undefined;
+
+    if (commentId === "") {
       return;
     }
 
     setDiscussionJumpRequest((current) => ({
       section: "comments",
+      commentId,
       version: (current?.version ?? 0) + 1,
     }));
   }, [location.hash, projectId]);

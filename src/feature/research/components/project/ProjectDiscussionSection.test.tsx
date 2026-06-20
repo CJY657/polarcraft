@@ -231,6 +231,42 @@ describe('ProjectDiscussionSection', () => {
     );
   });
 
+  it('expands collapsed comment ancestors and scrolls to a targeted reply', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([
+      createComment({
+        id: 'parent-comment',
+        content: '父级讨论',
+      }),
+      createComment({
+        id: 'reply-comment',
+        parent_comment_id: 'parent-comment',
+        content: '目标回复',
+        user_id: 'user-2',
+        username: '回复者',
+      }),
+    ]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        jumpRequest={{ section: 'comments', commentId: 'reply-comment', version: 1 }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('目标回复')).toBeTruthy();
+    });
+    await waitFor(() => {
+      const scrollMock = HTMLElement.prototype.scrollIntoView as any;
+      const scrollContexts = scrollMock.mock.contexts;
+      expect(scrollContexts[scrollContexts.length - 1]).toBe(
+        document.getElementById('discussion-comment-reply-comment')
+      );
+    });
+  });
+
   it('resets the lightbox zoom state after closing and reopening an image', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({

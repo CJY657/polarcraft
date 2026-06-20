@@ -426,6 +426,25 @@ describe("ResearchProjectPage", () => {
     });
   });
 
+  it("converts the discussion comment hash into a targeted discussion jump request", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1", hash: "#discussion-comment-comment-1" }]);
+
+    expect(await screen.findByTestId("project-discussion-section")).toBeTruthy();
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            section: "comments",
+            commentId: "comment-1",
+            version: 1,
+          }),
+        })
+      );
+    });
+  });
+
   it("allows admins to remove non-owner members without showing them as project members", async () => {
     mockUseAuth.mockReturnValue({
       user: { id: "admin-1", username: "admin", role: "admin" },

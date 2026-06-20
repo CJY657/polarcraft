@@ -111,7 +111,7 @@ async function notifyProjectDiscussionCommentRecipients(
       parent_comment_id: parentCommentId,
       sender_id: senderId,
     },
-    action_url: `/lab/projects/${projectId}#discussion-comments`,
+    action_url: `/lab/projects/${projectId}#discussion-comment-${commentId}`,
   });
 }
 

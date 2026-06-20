@@ -33,6 +33,7 @@ export interface ProjectDiscussionJumpTarget {
 export interface ProjectDiscussionJumpRequest {
   section: ProjectDiscussionJumpSection;
   index?: number;
+  commentId?: string;
   version: number;
 }
 
@@ -500,6 +501,9 @@ export function ProjectDiscussionSection({
       return;
     }
 
+    const commentTargetId = jumpRequest.section === 'comments' && jumpRequest.commentId
+      ? `discussion-comment-${jumpRequest.commentId}`
+      : null;
     const targetIdBySection: Record<ProjectDiscussionJumpSection, string> = {
       topic: 'discussion-topic',
       basic: jumpRequest.index === undefined ? 'discussion-basic' : `discussion-question-${jumpRequest.index}`,
@@ -512,9 +516,20 @@ export function ProjectDiscussionSection({
       extended: 'discussion-extended',
       comments: 'discussion-comments',
     }[jumpRequest.section];
-    const targetId = targetIdBySection[jumpRequest.section];
+    const targetId = commentTargetId ?? targetIdBySection[jumpRequest.section];
 
     setIsDiscussionOpen(true);
+    if (commentTargetId && isLoading) {
+      return;
+    }
+
+    const targetCommentId = jumpRequest.commentId;
+    if (targetCommentId && parentCommentLookup.has(targetCommentId)) {
+      setExpandedCommentIds((current) => ({
+        ...current,
+        ...expandCommentAncestors(targetCommentId, parentCommentLookup),
+      }));
+    }
 
     const timer = window.setTimeout(() => {
       (document.getElementById(targetId) ?? document.getElementById(fallbackTargetId))?.scrollIntoView({
@@ -526,7 +541,7 @@ export function ProjectDiscussionSection({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [jumpRequest?.section, jumpRequest?.version]);
+  }, [comments, isLoading, jumpRequest?.commentId, jumpRequest?.index, jumpRequest?.section, jumpRequest?.version]);
 
   async function uploadDraftAttachments(attachments: DraftAttachment[]): Promise<{
     imageUrls: string[];
@@ -811,8 +826,9 @@ export function ProjectDiscussionSection({
     return (
       <div
         key={comment.id}
+        id={`discussion-comment-${comment.id}`}
         className={cn(
-          'relative',
+          'scroll-mt-28 relative',
           depth === 0
             ? 'rounded-[1.25rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,252,0.96))] p-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] md:p-4'
             : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'

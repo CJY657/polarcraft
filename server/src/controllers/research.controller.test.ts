@@ -1226,7 +1226,7 @@ describe('ResearchController project discussion comments', () => {
         type: 'comment_reply',
         title: '小林 添加了课题讨论',
         content: '新的观察记录',
-        action_url: '/lab/projects/project-1#discussion-comments',
+        action_url: '/lab/projects/project-1#discussion-comment-comment-1',
       })
     );
     expect(res.success).toHaveBeenCalledWith({ id: 'comment-1' }, '讨论留言发布成功', 201);
@@ -1276,7 +1276,7 @@ describe('ResearchController project discussion comments', () => {
       ['member-2', 'owner-1'],
       expect.objectContaining({
         content: null,
-        action_url: '/lab/projects/project-1#discussion-comments',
+        action_url: '/lab/projects/project-1#discussion-comment-comment-1',
         data: {
           project_id: 'project-1',
           comment_id: 'comment-1',
