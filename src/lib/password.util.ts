@@ -14,16 +14,20 @@
  * 第二层（服务器）：bcrypt(哈希) - 防止数据库泄露暴露
  */
 
-import SHA256 from 'crypto-js/sha256';
-import EncHex from 'crypto-js/enc-hex';
-import CryptoJS from 'crypto-js';
+function getWebCrypto(): Crypto {
+  if (
+    typeof globalThis.crypto === 'undefined' ||
+    typeof globalThis.crypto.getRandomValues !== 'function' ||
+    typeof globalThis.crypto.subtle === 'undefined'
+  ) {
+    throw new Error('Web Crypto API is required for password hashing');
+  }
 
-/**
- * Check if Web Crypto API is available
- * 检查 Web Crypto API 是否可用
- */
-function isWebCryptoAvailable(): boolean {
-  return typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined';
+  return globalThis.crypto;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -31,28 +35,9 @@ function isWebCryptoAvailable(): boolean {
  * 为客户端哈希生成随机盐值
  */
 export function generateSalt(): string {
-  // Try using Web Crypto API / 尝试使用 Web Crypto API
-  if (isWebCryptoAvailable() && typeof crypto.getRandomValues === 'function') {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  }
-
-  // Fallback: use crypto-js / 后备方案：使用 crypto-js
-  const wordArray = randomWords(8); // 8 words = 32 bytes
-  return wordArray.toString(EncHex);
-}
-
-/**
- * Generate random words using crypto-js
- * 使用 crypto-js 生成随机字
- */
-function randomWords(count: number): any {
-  const words: number[] = [];
-  for (let i = 0; i < count; i++) {
-    words.push(Math.random() * 0x100000000 | 0);
-  }
-  return CryptoJS.lib.WordArray.create(words);
+  const array = new Uint8Array(32);
+  getWebCrypto().getRandomValues(array);
+  return bytesToHex(array);
 }
 
 /**
@@ -65,23 +50,9 @@ function randomWords(count: number): any {
  */
 export async function hashPasswordClient(password: string, salt: string): Promise<string> {
   const combined = password + salt;
-
-  // Try using Web Crypto API / 尝试使用 Web Crypto API
-  if (isWebCryptoAvailable()) {
-    try {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(combined);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {
-      // Fall through to crypto-js / 降级到 crypto-js
-      console.warn('Web Crypto API failed, falling back to crypto-js:', e);
-    }
-  }
-
-  // Fallback: use crypto-js / 后备方案：使用 crypto-js
-  return SHA256(combined).toString(EncHex);
+  const data = new TextEncoder().encode(combined);
+  const hashBuffer = await getWebCrypto().subtle.digest('SHA-256', data);
+  return bytesToHex(new Uint8Array(hashBuffer));
 }
 
 /**
@@ -177,7 +148,7 @@ export function validatePassword(
   }
 
   // Calculate strength / 计算强度
-  const strength = calculateStrength(password, policy);
+  const strength = calculateStrength(password);
 
   return {
     valid: errors.length === 0,
@@ -190,10 +161,7 @@ export function validatePassword(
  * Calculate password strength
  * 计算密码强度
  */
-function calculateStrength(
-  password: string,
-  policy: PasswordPolicy
-): 'weak' | 'medium' | 'strong' {
+function calculateStrength(password: string): 'weak' | 'medium' | 'strong' {
   let score = 0;
 
   // Length score / 长度评分

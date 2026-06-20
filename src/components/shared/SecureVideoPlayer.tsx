@@ -11,7 +11,7 @@
  * - Prevents iframe embedding (via headers recommendation)
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/utils/classNames'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw } from 'lucide-react'
@@ -88,19 +88,19 @@ export function SecureVideoPlayer({
   }, [])
 
   // Prevent context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     return false
-  }, [])
+  }
 
   // Prevent drag
-  const handleDragStart = useCallback((e: React.DragEvent) => {
+  const handleDragStart = (e: React.DragEvent) => {
     e.preventDefault()
     return false
-  }, [])
+  }
 
   // Toggle play/pause
-  const togglePlay = useCallback(() => {
+  const togglePlay = () => {
     const video = videoRef.current
     if (!video) return
 
@@ -111,36 +111,36 @@ export function SecureVideoPlayer({
       video.pause()
       setIsPlaying(false)
     }
-  }, [])
+  }
 
   // Toggle mute
-  const toggleMute = useCallback(() => {
+  const toggleMute = () => {
     const video = videoRef.current
     if (!video) return
 
     video.muted = !video.muted
     setIsMuted(video.muted)
-  }, [])
+  }
 
   // Handle progress update
-  const handleTimeUpdate = useCallback(() => {
+  const handleTimeUpdate = () => {
     const video = videoRef.current
     if (!video) return
 
     const progress = (video.currentTime / video.duration) * 100
     setProgress(progress)
-  }, [])
+  }
 
   // Handle video loaded
-  const handleLoadedMetadata = useCallback(() => {
+  const handleLoadedMetadata = () => {
     const video = videoRef.current
     if (!video) return
 
     setDuration(video.duration)
-  }, [])
+  }
 
   // Handle seek
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current
     if (!video) return
 
@@ -149,10 +149,10 @@ export function SecureVideoPlayer({
     const percentage = x / rect.width
     video.currentTime = percentage * video.duration
     setProgress(percentage * 100)
-  }, [])
+  }
 
   // Handle fullscreen
-  const toggleFullscreen = useCallback(() => {
+  const toggleFullscreen = () => {
     const container = containerRef.current
     if (!container) return
 
@@ -161,17 +161,17 @@ export function SecureVideoPlayer({
     } else {
       document.exitFullscreen()
     }
-  }, [])
+  }
 
   // Restart video
-  const handleRestart = useCallback(() => {
+  const handleRestart = () => {
     const video = videoRef.current
     if (!video) return
 
     video.currentTime = 0
     video.play()
     setIsPlaying(true)
-  }, [])
+  }
 
   // Format time
   const formatTime = (seconds: number) => {
@@ -352,24 +352,24 @@ export function SecureImageViewer({
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     return false
-  }, [])
+  }
 
-  const handleDragStart = useCallback((e: React.DragEvent) => {
+  const handleDragStart = (e: React.DragEvent) => {
     e.preventDefault()
     return false
-  }, [])
+  }
 
-  const handleLoad = useCallback(() => {
+  const handleLoad = () => {
     setIsLoading(false)
-  }, [])
+  }
 
-  const handleError = useCallback(() => {
+  const handleError = () => {
     setIsLoading(false)
     setHasError(true)
-  }, [])
+  }
 
   // Default background color based on theme and fit mode
   const defaultBgColor = objectFit === 'contain'
