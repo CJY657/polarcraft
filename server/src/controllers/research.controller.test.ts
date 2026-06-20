@@ -24,6 +24,8 @@ const {
     getActiveProjectMemberUserIds: vi.fn(),
     addProjectAgentMessage: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
+    addProjectDiscussionComment: vi.fn(),
+    logActivity: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
     updateProject: vi.fn(),
@@ -1192,6 +1194,102 @@ function projectAccess(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+describe('ResearchController project discussion comments', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockResearchModel.addProjectDiscussionComment.mockResolvedValue('comment-1');
+    mockResearchModel.logActivity.mockResolvedValue(undefined);
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['member-1', 'member-2', 'owner-1']);
+    mockNotificationModel.createNotificationForUsers.mockResolvedValue(undefined);
+  });
+
+  it('notifies other active members after a top-level discussion comment', async () => {
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '  新的观察记录  ' },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, req, res);
+
+    expect(mockResearchModel.addProjectDiscussionComment).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      '新的观察记录',
+      null,
+      [],
+      []
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-2', 'owner-1'],
+      expect.objectContaining({
+        type: 'comment_reply',
+        title: '小林 添加了课题讨论',
+        content: '新的观察记录',
+        action_url: '/lab/projects/project-1#discussion-comments',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith({ id: 'comment-1' }, '讨论留言发布成功', 201);
+  });
+
+  it('notifies every other active member after a discussion reply', async () => {
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['member-1', 'member-2', 'parent-author']);
+    mockResearchModel.getProjectDiscussionCommentById.mockResolvedValue({
+      id: 'parent-comment',
+      project_id: 'project-1',
+      user_id: 'parent-author',
+      is_deleted: false,
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { content: '我补充一个角度', parentCommentId: 'parent-comment' },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, req, res);
+
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-2', 'parent-author'],
+      expect.objectContaining({
+        type: 'comment_reply',
+        title: '小林 回复了课题讨论',
+      })
+    );
+  });
+
+  it('includes discussion comment navigation data in notifications', async () => {
+    const req = {
+      params: { projectId: 'project-1' },
+      body: {
+        content: '',
+        imageUrls: ['/uploads/courses/project-discussion-project-1/image/comment.png'],
+      },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, req, res);
+
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-2', 'owner-1'],
+      expect.objectContaining({
+        content: null,
+        action_url: '/lab/projects/project-1#discussion-comments',
+        data: {
+          project_id: 'project-1',
+          comment_id: 'comment-1',
+          parent_comment_id: null,
+          sender_id: 'member-1',
+        },
+      })
+    );
+  });
+});
 
 describe('ResearchController project messages', () => {
   beforeEach(() => {

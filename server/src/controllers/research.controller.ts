@@ -130,6 +130,31 @@ async function notifyProjectMessageRecipients(
   });
 }
 
+async function notifyProjectDiscussionCommentRecipients(
+  projectId: string,
+  senderId: string,
+  commentId: string,
+  parentCommentId: string | null,
+  senderName: string,
+  content: string
+): Promise<void> {
+  const recipients = (await ResearchModel.getActiveProjectMemberUserIds(projectId))
+    .filter((userId) => userId !== senderId);
+
+  await NotificationModel.createNotificationForUsers(recipients, {
+    type: 'comment_reply',
+    title: `${senderName} ${parentCommentId ? '回复了课题讨论' : '添加了课题讨论'}`,
+    content: content || null,
+    data: {
+      project_id: projectId,
+      comment_id: commentId,
+      parent_comment_id: parentCommentId,
+      sender_id: senderId,
+    },
+    action_url: `/lab/projects/${projectId}#discussion-comments`,
+  });
+}
+
 type ProjectAccessLevel = 'read' | 'write' | 'manage' | 'discussion';
 
 async function ensureProjectAccess(
@@ -1403,6 +1428,15 @@ export class ResearchController {
       parentCommentId,
       imageUrls ?? [],
       videoUrls ?? []
+    );
+
+    await notifyProjectDiscussionCommentRecipients(
+      projectId,
+      currentUserId,
+      commentId,
+      parentCommentId,
+      req.user!.username || '成员',
+      content
     );
 
     await ResearchModel.logActivity(

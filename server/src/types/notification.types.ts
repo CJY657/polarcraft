@@ -36,7 +36,7 @@ export interface CreateNotificationInput {
   user_id: string;
   type: NotificationType;
   title: string;
-  content?: string;
+  content?: string | null;
   data?: Record<string, any>;
   action_url?: string;
 }

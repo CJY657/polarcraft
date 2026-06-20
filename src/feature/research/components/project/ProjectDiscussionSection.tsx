@@ -23,7 +23,7 @@ export interface ProjectDiscussionOutline {
   extendedPlan?: string;
 }
 
-export type ProjectDiscussionJumpSection = 'topic' | 'basic' | 'extended';
+export type ProjectDiscussionJumpSection = 'topic' | 'basic' | 'extended' | 'comments';
 
 export interface ProjectDiscussionJumpTarget {
   section: ProjectDiscussionJumpSection;
@@ -504,11 +504,13 @@ export function ProjectDiscussionSection({
       topic: 'discussion-topic',
       basic: jumpRequest.index === undefined ? 'discussion-basic' : `discussion-question-${jumpRequest.index}`,
       extended: jumpRequest.index === undefined ? 'discussion-extended' : `discussion-hypothesis-${jumpRequest.index}`,
+      comments: 'discussion-comments',
     };
     const fallbackTargetId = {
       topic: 'discussion-topic',
       basic: 'discussion-basic',
       extended: 'discussion-extended',
+      comments: 'discussion-comments',
     }[jumpRequest.section];
     const targetId = targetIdBySection[jumpRequest.section];
 

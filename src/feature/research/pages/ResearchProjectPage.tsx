@@ -298,6 +298,17 @@ export function ResearchProjectPage() {
     setDiscussionJumpRequest(null);
   }, [projectId]);
 
+  useEffect(() => {
+    if (location.hash !== "#discussion-comments") {
+      return;
+    }
+
+    setDiscussionJumpRequest((current) => ({
+      section: "comments",
+      version: (current?.version ?? 0) + 1,
+    }));
+  }, [location.hash, projectId]);
+
   // Fetch project data
   useEffect(() => {
     if (isExampleProject || !projectId) {

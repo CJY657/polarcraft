@@ -210,6 +210,27 @@ describe('ProjectDiscussionSection', () => {
     });
   });
 
+  it('opens and scrolls to the comment composer when jumped to comments', async () => {
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        jumpRequest={{ section: 'comments', version: 1 }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '收起讨论区' })).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    });
+    expect((HTMLElement.prototype.scrollIntoView as any).mock.contexts[0]).toBe(
+      document.getElementById('discussion-comments')
+    );
+  });
+
   it('resets the lightbox zoom state after closing and reopening an image', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({

@@ -99,7 +99,7 @@ vi.mock("@/lib/profile.service", () => ({
   },
 }));
 
-function renderPage(initialEntries: Array<{ pathname: string; state?: unknown }>) {
+function renderPage(initialEntries: Array<{ pathname: string; hash?: string; state?: unknown }>) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
@@ -427,6 +427,24 @@ describe("ResearchProjectPage", () => {
 
     expect(screen.getByText("先做基础观察，再记录变量。")).toBeTruthy();
     expect(screen.getByText("继续验证不同角度下的表现。")).toBeTruthy();
+  });
+
+  it("converts the discussion comments hash into a discussion jump request", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1", hash: "#discussion-comments" }]);
+
+    expect(await screen.findByTestId("project-discussion-section")).toBeTruthy();
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            section: "comments",
+            version: 1,
+          }),
+        })
+      );
+    });
   });
 
   it("allows admins to remove non-owner members without showing them as project members", async () => {
