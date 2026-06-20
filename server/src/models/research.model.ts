@@ -21,7 +21,6 @@ const nodesCollection = () => getCollection('research_nodes');
 const edgesCollection = () => getCollection('research_edges');
 const commentsCollection = () => getCollection('research_node_comments');
 const projectCommentsCollection = () => getCollection('research_project_comments');
-const projectMessagesCollection = () => getCollection('research_project_messages');
 const agentMessagesCollection = () => getCollection('research_ai_messages');
 const activityLogCollection = () => getCollection('research_activity_log');
 const usersCollection = () => getCollection('users');
@@ -86,8 +85,6 @@ export interface ResearchDiscussionDigestItem {
   video_count: number;
   created_at: Date;
 }
-
-export type ResearchProjectMessageKind = 'message' | 'announcement';
 
 function normalizeProjectRole(role: unknown): ResearchProjectRole {
   return role === 'owner' ? 'owner' : 'member';
@@ -369,7 +366,6 @@ export class ResearchModel {
       nodesCollection().deleteMany(canvasIds.length > 0 ? { canvas_id: { $in: canvasIds } } : { canvas_id: '__none__' }),
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
       projectCommentsCollection().deleteMany({ project_id: projectId }),
-      projectMessagesCollection().deleteMany({ project_id: projectId }),
       agentMessagesCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),
@@ -1022,65 +1018,6 @@ export class ResearchModel {
       username: userMap.get(comment.user_id)?.username || '',
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
-  }
-
-  static async getProjectMessages(
-    projectId: string,
-    options?: { limit?: number; before?: Date; after?: Date }
-  ): Promise<any[]> {
-    const safeLimit = Math.min(100, Math.max(1, Math.floor(options?.limit ?? 50)));
-    const createdAtFilter: Record<string, Date> = {};
-
-    if (options?.before) {
-      createdAtFilter.$lt = options.before;
-    }
-
-    if (options?.after) {
-      createdAtFilter.$gt = options.after;
-    }
-
-    const query: Record<string, unknown> = { project_id: projectId };
-    if (Object.keys(createdAtFilter).length > 0) {
-      query.created_at = createdAtFilter;
-    }
-
-    const sortDirection = options?.after && !options.before ? 1 : -1;
-    const messages = normalizeDocuments<any>(
-      await projectMessagesCollection()
-        .find(query)
-        .sort({ created_at: sortDirection })
-        .limit(safeLimit)
-        .toArray()
-    );
-    const orderedMessages = sortDirection === -1 ? messages.reverse() : messages;
-    const userMap = await getUserMap(orderedMessages.map((message) => message.sender_id));
-
-    return orderedMessages.map((message) => ({
-      ...message,
-      username: userMap.get(message.sender_id)?.username || '',
-      avatar_url: userMap.get(message.sender_id)?.avatar_url || null,
-    }));
-  }
-
-  static async addProjectMessage(
-    projectId: string,
-    senderId: string,
-    kind: ResearchProjectMessageKind,
-    content: string
-  ): Promise<string> {
-    const messageId = generateId();
-
-    await projectMessagesCollection().insertOne({
-      id: messageId,
-      project_id: projectId,
-      sender_id: senderId,
-      kind,
-      content,
-      created_at: new Date(),
-    });
-
-    logger.info(`Project message added: ${messageId} in project ${projectId}`);
-    return messageId;
   }
 
   static async getRecentProjectDiscussionDigest(

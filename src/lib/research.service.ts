@@ -73,17 +73,6 @@ export interface ProjectDiscussionComment {
   avatar_url: string | null;
 }
 
-export interface ProjectMessage {
-  id: string;
-  project_id: string;
-  sender_id: string;
-  kind: 'message' | 'announcement';
-  content: string;
-  created_at: string;
-  username: string;
-  avatar_url: string | null;
-}
-
 export interface ResearchAgentMessage {
   id: string;
   project_id: string;
@@ -337,64 +326,6 @@ export const researchApi = {
     if (!response.success) {
       throw new Error(response.error?.message || '删除讨论留言失败');
     }
-  },
-
-  /**
-   * Get project messages
-   * 获取课题成员消息
-   */
-  getProjectMessages: async (
-    projectId: string,
-    options?: { limit?: number; before?: string; after?: string }
-  ): Promise<ProjectMessage[]> => {
-    const params = new URLSearchParams();
-    if (options?.limit) params.set('limit', String(options.limit));
-    if (options?.before) params.set('before', options.before);
-    if (options?.after) params.set('after', options.after);
-    const query = params.toString();
-    const response = await api.get<ProjectMessage[]>(
-      `/api/research/projects/${projectId}/messages${query ? `?${query}` : ''}`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取课题消息失败');
-  },
-
-  /**
-   * Send project message
-   * 发送课题成员消息
-   */
-  sendProjectMessage: async (projectId: string, content: string): Promise<{ id: string }> => {
-    const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/messages`, { content });
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '发送课题消息失败');
-  },
-
-  /**
-   * Send project announcement
-   * 发送课题公告
-   */
-  sendProjectAnnouncement: async (projectId: string, content: string): Promise<{ id: string }> => {
-    const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/announcements`, { content });
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '发送课题公告失败');
-  },
-
-  /**
-   * Mark project message notifications as read
-   * 标记课题消息通知已读
-   */
-  markProjectMessagesRead: async (projectId: string): Promise<{ updated_count: number }> => {
-    const response = await api.put<{ updated_count: number }>(`/api/research/projects/${projectId}/messages/read`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '标记课题消息已读失败');
   },
 
   /**

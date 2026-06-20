@@ -166,13 +166,6 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
-    name: 'research_project_messages',
-    indexes: [
-      { key: { id: 1 }, unique: true, name: 'unique_id' },
-      { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
-    ],
-  },
-  {
     name: 'research_activity_log',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

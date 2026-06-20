@@ -155,34 +155,6 @@ router.post('/projects/:id/members', ResearchController.addProjectMember);
 router.delete('/projects/:id/members/:userId', ResearchController.removeProjectMember);
 
 /**
- * @route   GET /api/research/projects/:projectId/messages
- * @desc    List project messages
- * @access  Private
- */
-router.get('/projects/:projectId/messages', ResearchController.getProjectMessages);
-
-/**
- * @route   POST /api/research/projects/:projectId/messages
- * @desc    Send project message
- * @access  Private
- */
-router.post('/projects/:projectId/messages', ResearchController.sendProjectMessage);
-
-/**
- * @route   POST /api/research/projects/:projectId/announcements
- * @desc    Send project announcement
- * @access  Private
- */
-router.post('/projects/:projectId/announcements', ResearchController.sendProjectAnnouncement);
-
-/**
- * @route   PUT /api/research/projects/:projectId/messages/read
- * @desc    Mark project message notifications as read
- * @access  Private
- */
-router.put('/projects/:projectId/messages/read', ResearchController.markProjectMessagesRead);
-
-/**
  * @route   GET /api/research/projects/:projectId/agent/messages
  * @desc    List project AI advisor messages
  * @access  Private

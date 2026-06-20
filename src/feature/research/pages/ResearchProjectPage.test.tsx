@@ -15,7 +15,6 @@ const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
-const mockProjectMessagesPanel = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
@@ -60,13 +59,6 @@ vi.mock("../components/project/ResearchAgentPanel", () => ({
   ResearchAgentPanel: (props: Record<string, unknown>) => {
     mockResearchAgentPanel(props);
     return <div data-testid="research-agent-panel" />;
-  },
-}));
-
-vi.mock("../components/project/ProjectMessagesPanel", () => ({
-  ProjectMessagesPanel: (props: Record<string, unknown>) => {
-    mockProjectMessagesPanel(props);
-    return <div data-testid="project-messages-panel" />;
   },
 }));
 
@@ -159,7 +151,6 @@ describe("ResearchProjectPage", () => {
     mockRemoveProjectMember.mockReset();
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
-    mockProjectMessagesPanel.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
       user: { id: "owner-1", username: "owner", role: "user" },
@@ -316,7 +307,6 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByTestId("project-discussion-section")).toBeTruthy();
-    expect(screen.getByTestId("project-messages-panel")).toBeTruthy();
     await waitFor(() => {
       expect(mockProjectDiscussionSection).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -327,11 +317,6 @@ describe("ResearchProjectPage", () => {
         })
       );
     });
-    expect(mockProjectMessagesPanel).toHaveBeenCalledWith({
-      projectId: "project-1",
-      currentUserId: "admin-1",
-      canAnnounce: true,
-    });
   });
 
   it("renders the AI advisor panel for project members", async () => {
@@ -340,12 +325,8 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByTestId("research-agent-panel")).toBeTruthy();
+    expect(screen.queryByText("课题消息")).toBeNull();
     expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1", canClearHistory: true });
-    expect(mockProjectMessagesPanel).toHaveBeenCalledWith({
-      projectId: "project-1",
-      currentUserId: "owner-1",
-      canAnnounce: true,
-    });
   });
 
   it("does not render the AI advisor panel for authenticated public non-members", async () => {
@@ -374,9 +355,7 @@ describe("ResearchProjectPage", () => {
 
     await screen.findByText("你正在以只读模式浏览这个课题");
     expect(screen.queryByTestId("research-agent-panel")).toBeNull();
-    expect(screen.queryByTestId("project-messages-panel")).toBeNull();
     expect(mockResearchAgentPanel).not.toHaveBeenCalled();
-    expect(mockProjectMessagesPanel).not.toHaveBeenCalled();
   });
 
   it("jumps research information into the discussion subsections", async () => {

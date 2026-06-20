@@ -39,12 +39,12 @@ function createNotification(overrides: Partial<UserNotification>): UserNotificat
   return {
     id: 'notification-1',
     user_id: 'user-1',
-    type: 'project_message',
-    title: '新的课题消息',
-    content: '请看最新同步',
+    type: 'comment_reply',
+    title: '新的课题讨论',
+    content: '请看最新讨论',
     data: null,
     is_read: false,
-    action_url: '/lab/projects/project-1#project-messages',
+    action_url: '/lab/projects/project-1#discussion-comments',
     created_at: '2026-06-20T08:00:00.000Z',
     ...overrides,
   };
@@ -69,11 +69,11 @@ function renderInbox() {
 describe('InboxPage', () => {
   beforeEach(() => {
     mocks.notifications = [
-      createNotification({ id: 'notification-1', type: 'project_message', title: '新的课题消息' }),
+      createNotification({ id: 'notification-1' }),
       createNotification({
         id: 'notification-2',
-        type: 'project_announcement',
-        title: '新的课题公告',
+        type: 'system',
+        title: '系统通知',
         content: '周五前完成汇报',
         is_read: true,
       }),
@@ -88,16 +88,18 @@ describe('InboxPage', () => {
     mocks.deleteNotification.mockResolvedValue(undefined);
   });
 
-  it('renders project message types and navigates to the project messages anchor', async () => {
+  it('renders discussion notifications and navigates to the discussion comments anchor', async () => {
     renderInbox();
 
-    expect(screen.getByText('课题消息')).toBeTruthy();
-    expect(screen.getByText('课题公告')).toBeTruthy();
-    fireEvent.click(screen.getByText('新的课题消息'));
+    expect(screen.getByText('评论回复')).toBeTruthy();
+    expect(screen.getAllByText('系统通知').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText('新的课题讨论'));
 
     await waitFor(() => {
       expect(mocks.markAsRead).toHaveBeenCalledWith('notification-1');
     });
-    expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#project-messages');
+    await waitFor(() => {
+      expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#discussion-comments');
+    });
   });
 });

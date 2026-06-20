@@ -155,21 +155,6 @@ export class NotificationModel {
     return result.modifiedCount;
   }
 
-  static async markProjectMessagesAsRead(userId: string, projectId: string): Promise<number> {
-    const result = await notificationsCollection().updateMany(
-      {
-        user_id: userId,
-        is_read: false,
-        type: { $in: ['project_message', 'project_announcement'] },
-        'data.project_id': projectId,
-      },
-      { $set: { is_read: true } }
-    );
-
-    logger.info(`${result.modifiedCount} project message notifications marked as read for user ${userId}`);
-    return result.modifiedCount;
-  }
-
   /**
    * Delete notification
    * 删除通知
