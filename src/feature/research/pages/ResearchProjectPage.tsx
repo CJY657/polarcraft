@@ -317,7 +317,7 @@ export function ResearchProjectPage() {
       commentId,
       version: (current?.version ?? 0) + 1,
     }));
-  }, [location.hash, projectId]);
+  }, [location.hash, location.key, projectId]);
 
   // Fetch project data
   useEffect(() => {

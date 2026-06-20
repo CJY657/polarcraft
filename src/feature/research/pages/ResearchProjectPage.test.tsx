@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectWithMembers } from "@/lib/research.service";
 import { ResearchProjectPage } from "./ResearchProjectPage";
@@ -97,6 +97,37 @@ function renderPage(initialEntries: Array<{ pathname: string; hash?: string; sta
       <Routes>
         <Route path="/lab/projects" element={<div>projects-page</div>} />
         <Route path="/lab/projects/:projectId" element={<ResearchProjectPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+function SameHashNavigationProbe() {
+  const navigate = useNavigate();
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/lab/projects/project-1#discussion-comment-comment-1")}
+    >
+      same comment notification
+    </button>
+  );
+}
+
+function renderPageWithSameHashProbe() {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: "/lab/projects/project-1", hash: "#discussion-comment-comment-1" }]}>
+      <Routes>
+        <Route
+          path="/lab/projects/:projectId"
+          element={(
+            <>
+              <SameHashNavigationProbe />
+              <ResearchProjectPage />
+            </>
+          )}
+        />
       </Routes>
     </MemoryRouter>
   );
@@ -439,6 +470,37 @@ describe("ResearchProjectPage", () => {
             section: "comments",
             commentId: "comment-1",
             version: 1,
+          }),
+        })
+      );
+    });
+  });
+
+  it("refreshes the targeted discussion jump when navigating to the same comment hash again", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+
+    renderPageWithSameHashProbe();
+
+    expect(await screen.findByTestId("project-discussion-section")).toBeTruthy();
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            commentId: "comment-1",
+            version: 1,
+          }),
+        })
+      );
+    });
+
+    fireEvent.click(screen.getByText("same comment notification"));
+
+    await waitFor(() => {
+      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          jumpRequest: expect.objectContaining({
+            commentId: "comment-1",
+            version: 2,
           }),
         })
       );
