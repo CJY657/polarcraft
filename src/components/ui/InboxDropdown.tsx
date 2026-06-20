@@ -103,7 +103,7 @@ export function InboxDropdown({ className }: InboxDropdownProps) {
       await markAsRead(notification.id);
     }
     if (notification.action_url) {
-      navigate(notification.action_url);
+      navigate(notification.action_url, { state: { notificationJumpAt: Date.now() } });
     }
     setIsOpen(false);
   };

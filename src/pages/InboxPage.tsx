@@ -113,7 +113,7 @@ export default function InboxPage() {
       await markAsRead(notification.id);
     }
     if (notification.action_url) {
-      navigate(notification.action_url);
+      navigate(notification.action_url, { state: { notificationJumpAt: Date.now() } });
     }
   };
 

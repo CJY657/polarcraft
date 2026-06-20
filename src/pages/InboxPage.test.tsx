@@ -52,7 +52,15 @@ function createNotification(overrides: Partial<UserNotification>): UserNotificat
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{`${location.pathname}${location.hash}`}</div>;
+  const state = location.state as { notificationJumpAt?: number } | null;
+  return (
+    <>
+      <div data-testid="location">{`${location.pathname}${location.hash}`}</div>
+      <div data-testid="notification-jump-state">
+        {typeof state?.notificationJumpAt === 'number' ? 'jump' : 'none'}
+      </div>
+    </>
+  );
 }
 
 function renderInbox() {
@@ -101,5 +109,6 @@ describe('InboxPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#discussion-comments');
     });
+    expect(screen.getByTestId('notification-jump-state').textContent).toBe('jump');
   });
 });
