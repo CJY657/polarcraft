@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
       <div className="glass-panel-strong w-full max-w-md rounded-[2rem] px-8 py-8">
         <div className="mb-6 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--glass-text-muted)]">
-            PolarCraft
+            PolariScope
           </p>
           <h1 className="mt-3 text-3xl font-semibold text-[var(--paper-foreground)]">忘记密码</h1>
           <p className="mt-3 text-sm leading-7 text-[var(--glass-text-muted)]">

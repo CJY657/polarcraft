@@ -14,7 +14,7 @@ export interface AnimatedIconProps {
   theme?: "dark" | "light";
 }
 
-// Polarization colors matching PolarCraftLogo
+// Polarization colors matching PolariScopeLogo
 export const POLAR_COLORS = {
   deg0: "#ff4444", // 0° - Red (horizontal)
   deg45: "#ffaa00", // 45° - Orange

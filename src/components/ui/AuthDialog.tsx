@@ -93,7 +93,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
     <div className="p-6 sm:p-8">
       {/* Header */}
       <div className="mb-6 flex flex-col items-center text-center">
-        <span className="clay-badge mb-3">PolarCraft</span>
+        <span className="clay-badge mb-3">PolariScope</span>
         <h2
           className="text-3xl font-semibold text-clay-ink"
           style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
@@ -247,7 +247,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     <div className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
       {/* Header */}
       <div className="mb-6 flex flex-col items-center text-center">
-        <span className="clay-badge mb-3">PolarCraft</span>
+        <span className="clay-badge mb-3">PolariScope</span>
         <h2
           className="text-3xl font-semibold text-clay-ink"
           style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}

@@ -102,11 +102,11 @@ export class EmailService {
     const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
     const expiryMinutes = PasswordResetModel.DEFAULT_EXPIRY_MINUTES;
 
-    const subject = 'PolarCraft 密码重置 | Password Reset';
+    const subject = 'PolariScope 密码重置 | Password Reset';
     const text = `
 你好 ${username}，
 
-您请求重置 PolarCraft 账户的密码。
+您请求重置 PolariScope 账户的密码。
 
 请点击以下链接重置您的密码：
 ${resetUrl}
@@ -118,7 +118,7 @@ ${resetUrl}
 ---
 Hello ${username},
 
-You have requested to reset your PolarCraft account password.
+You have requested to reset your PolariScope account password.
 
 Please click the following link to reset your password:
 ${resetUrl}
@@ -142,13 +142,13 @@ If you did not request a password reset, please ignore this email.
   </style>
 </head>
 <body>
-  <h1>PolarCraft 密码重置 | Password Reset</h1>
+  <h1>PolariScope 密码重置 | Password Reset</h1>
 
   <p>你好 <strong>${username}</strong>，</p>
   <p>Hello <strong>${username}</strong>,</p>
 
-  <p>您请求重置 PolarCraft 账户的密码。</p>
-  <p>You have requested to reset your PolarCraft account password.</p>
+  <p>您请求重置 PolariScope 账户的密码。</p>
+  <p>You have requested to reset your PolariScope account password.</p>
 
   <p>请点击以下按钮重置您的密码：</p>
   <p>Please click the following button to reset your password:</p>
@@ -166,7 +166,7 @@ If you did not request a password reset, please ignore this email.
   <p>If you did not request a password reset, please ignore this email.</p>
 
   <div class="footer">
-    <p>© ${new Date().getFullYear()} PolarCraft. 偏振光下新世界 | A New World Through Polarized Light</p>
+    <p>© ${new Date().getFullYear()} PolariScope. 偏振光下新世界 | A New World Through Polarized Light</p>
   </div>
 </body>
 </html>

@@ -320,7 +320,7 @@ export function SecureVideoPlayer({
           'text-[10px] px-2 py-0.5 rounded-full',
           theme === 'dark' ? 'bg-white/10 text-white/50' : 'bg-black/10 text-white/70'
         )}>
-          PolarCraft
+          PolariScope
         </span>
       </div>
     </div>
@@ -433,7 +433,7 @@ export function SecureImageViewer({
           'text-[10px] px-2 py-0.5 rounded-full',
           theme === 'dark' ? 'bg-black/30 text-white/50' : 'bg-white/30 text-black/50'
         )}>
-          PolarCraft
+          PolariScope
         </span>
       </div>
     </div>

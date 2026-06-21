@@ -1,5 +1,5 @@
 /**
- * Simple logger utility for PolarCraft
+ * Simple logger utility for PolariScope
  * Can be disabled in production for cleaner console
  *
  * 简单的日志记录器

@@ -4,7 +4,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * 职责范围 | Scope:
- * - PolarCraft 游戏引擎核心 | Core game engine for PolarCraft
+ * - PolariScope 游戏引擎核心 | Core game engine for PolariScope
  * - 偏振光物理规则实现 | Polarized light physics implementation
  * - 方块与光交互逻辑 | Block-light interaction logic
  * - 马吕斯定律 | Malus's Law

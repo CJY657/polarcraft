@@ -346,7 +346,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                     )}
                   </div>
                   <p className="text-xs text-[var(--text-secondary)] truncate">
-                    {user?.email || 'user@polarcraft'}
+                    {user?.email || 'user@polariscope'}
                   </p>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 /**
- * PolarCraft Backend API Server
- * PolarCraft 后端 API 服务器
+ * PolariScope Backend API Server
+ * PolariScope 后端 API 服务器
  *
  * Entry point for the authentication API
  * 认证 API 的入口点
@@ -119,7 +119,7 @@ if (shouldServeFrontend) {
     res.json({
       success: true,
       data: {
-        name: 'PolarCraft Authentication API',
+        name: 'PolariScope Authentication API',
         version: '1.0.0',
         status: 'running',
       },
@@ -151,7 +151,7 @@ async function startServer() {
 
     const server = app.listen(config.port, '0.0.0.0', () => {
       logger.info('='.repeat(50));
-      logger.info('🚀 PolarCraft Authentication API Server');
+      logger.info('🚀 PolariScope Authentication API Server');
       logger.info(`📝 Environment: ${config.env}`);
       logger.info(`🌐 Server running on: http://0.0.0.0:${config.port}`);
       logger.info(`🔒 API Base URL: ${config.apiUrl}`);

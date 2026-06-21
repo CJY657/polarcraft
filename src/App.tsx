@@ -449,7 +449,7 @@ function AppRouterContent() {
               <div className="glass-page flex min-h-screen items-center justify-center px-6">
                 <div className="glass-panel-strong max-w-md rounded-[2.25rem] px-8 py-10 text-center">
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--glass-text-muted)]">
-                    PolarCraft
+                    PolariScope
                   </p>
                   <h1 className="mb-3 text-4xl font-bold text-[var(--paper-foreground)]">404</h1>
                   <p className="mb-6 text-sm leading-7 text-[var(--glass-text-muted)]">

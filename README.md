@@ -1,8 +1,8 @@
-# PolarCraft 开发指南
+# PolariScope 开发指南
 
 ## 项目概述
 
-PolarCraft 是一款由零一学院开发的，基于偏振光物理的教育类体素解谜游戏。它结合了真实的光学原理（马吕斯定律、双折射、干涉）和 Minecraft 风格的体素玩法。玩家通过操控各种光学组件来操纵偏振光束以解决谜题。
+PolariScope 是一款由零一学院开发的偏振光学习与研究平台。它结合真实的光学原理、交互模拟、实验内容与项目协作，让学生通过可视化体验理解偏振光束与光学组件。
 
 ## 如何在项目中贡献代码
 
@@ -205,8 +205,8 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```bash
 cd /var/www
 sudo git clone https://github.com/amatke31/polarcraft.git
-sudo chown -R $USER:$USER /var/www/polarcraft
-cd /var/www/polarcraft
+sudo chown -R $USER:$USER /var/www/polariscope
+cd /var/www/polariscope
 
 npm ci --include=dev
 npm --prefix server ci --include=dev
@@ -216,14 +216,14 @@ npm --prefix server run build
 
 ### 3）配置后端环境变量（生产）
 
-在 `/var/www/polarcraft/server/.env` 中至少填写以下变量（示例）：
+在 `/var/www/polariscope/server/.env` 中至少填写以下变量（示例）：
 
 ```bash
 NODE_ENV=production
 PORT=3001
 
 MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority
-MONGODB_DB_NAME=polarcraft
+MONGODB_DB_NAME=polariscope
 
 JWT_ACCESS_SECRET=<strong_random_string>
 JWT_REFRESH_SECRET=<strong_random_string>
@@ -236,7 +236,7 @@ API_URL=https://你的域名
 COOKIE_SAME_SITE=strict
 COOKIE_SECURE=true
 
-UPLOAD_ROOT_DIR=/var/www/polarcraft/server/uploads
+UPLOAD_ROOT_DIR=/var/www/polariscope/server/uploads
 LOG_LEVEL=info
 LOG_ENABLED=true
 EMAIL_ENABLED=false
@@ -250,10 +250,10 @@ FEEDBACK_PRODUCT_EMAIL_TO=
 ### 4）用 PM2 启动并设置开机自启
 
 ```bash
-cd /var/www/polarcraft
+cd /var/www/polariscope
 
 # 用较保守的 V8 内存上限，适配 1G 机器
-NODE_OPTIONS='--max-old-space-size=384' pm2 start server/dist/index.js --name polarcraft
+NODE_OPTIONS='--max-old-space-size=384' pm2 start server/dist/index.js --name polariscope
 
 pm2 save
 pm2 startup
@@ -262,18 +262,18 @@ pm2 startup
 如需更新代码：
 
 ```bash
-cd /var/www/polarcraft
+cd /var/www/polariscope
 git pull
 npm ci --include=dev
 npm --prefix server ci --include=dev
 npm run build
 npm --prefix server run build
-pm2 restart polarcraft
+pm2 restart polariscope
 ```
 
 ### 5）配置 Nginx 反向代理
 
-新建 `/etc/nginx/sites-available/polarcraft`：
+新建 `/etc/nginx/sites-available/polariscope`：
 
 ```nginx
 server {
@@ -298,7 +298,7 @@ server {
 启用并重载：
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/polarcraft /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/polariscope /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -329,7 +329,7 @@ curl -I https://你的域名/api/health
 
 # 查看进程与日志
 pm2 status
-pm2 logs polarcraft --lines 100
+pm2 logs polariscope --lines 100
 ```
 
 ## Git工作流
@@ -352,7 +352,7 @@ pm2 logs polarcraft --lines 100
 ### 根目录
 
 ```txt
-polarcraft/
+polariscope/
 |--public/       # 公共静态资源
 |--server/       # 后端服务器
 |--src/          # 前端源码

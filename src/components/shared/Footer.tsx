@@ -1,5 +1,5 @@
 /**
- * Footer Component — Clay-style cream surface (NOT dark).
+ * Footer Component - Clay-style cream surface (NOT dark).
  * Anchors every page with surface-soft #faf5e8 background and ink text.
  */
 
@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Github } from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
-import { PolarCraftLogo } from "@/components/icons";
+import { PolariScopeLogo } from "@/components/icons";
 
 interface FooterLink {
   label: string;
@@ -86,10 +86,10 @@ export function Footer() {
           <div className="space-y-6 md:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-clay-surface-card">
-                <PolarCraftLogo size={32} theme={theme} animated={false} />
+                <PolariScopeLogo size={32} theme={theme} animated={false} />
               </div>
               <div>
-                <p className="clay-caption">PolarCraft</p>
+                <p className="clay-caption">PolariScope</p>
                 <p className="clay-display-md mt-1" style={{ fontSize: "1.5rem", lineHeight: 1.2 }}>
                   偏振实验平台
                 </p>
@@ -122,7 +122,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-clay-surface-strong pt-8 text-sm text-clay-muted md:flex-row md:items-center md:justify-between">
-          <p>PolarCraft © 2026</p>
+          <p>PolariScope © 2026</p>
           <p>用偏振光打开科学的窗户</p>
         </div>
       </div>

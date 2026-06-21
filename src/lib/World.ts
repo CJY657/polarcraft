@@ -1,5 +1,5 @@
 /**
- * PolarCraft - 体素世界管理
+ * PolariScope - 体素世界管理
  * 管理方块和光传播的元胞自动机
  *
  * Refactored to use:

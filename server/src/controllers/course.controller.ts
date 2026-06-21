@@ -148,7 +148,7 @@ function normalizeCoverImageInput(value: unknown): string | null | undefined {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-const LOCAL_RESOURCE_URL_BASE = "http://polarcraft.local";
+const LOCAL_RESOURCE_URL_BASE = "http://polariscope.local";
 
 function stripTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");

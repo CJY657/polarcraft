@@ -218,12 +218,12 @@ export default function AboutPage() {
         <section className="grid min-h-[72dvh] gap-8 py-8 md:py-24 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.72fr)] lg:items-center">
           <Reveal>
             <div className="max-w-4xl">
-              <Eyebrow>About PolarCraft</Eyebrow>
+              <Eyebrow>About PolariScope</Eyebrow>
               <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[1.03] tracking-normal text-[var(--paper-foreground)] [font-family:var(--about-display)] sm:text-6xl lg:text-[5.4rem]">
                 让偏振光学的学习变得清晰可见。
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-9 text-[var(--glass-text-muted)]">
-                PolarCraft 将实验内容、历史故事、交互模拟、挑战任务与研究协作连接在一起，构建了一条连贯的学习链路。在这里，你将了解什么是偏振光学，如何开启探索，以及这一切最终将通向何方。
+                PolariScope 将实验内容、历史故事、交互模拟、挑战任务与研究协作连接在一起，构建了一条连贯的学习链路。在这里，你将了解什么是偏振光学，如何开启探索，以及这一切最终将通向何方。
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <ActionLink to="/experiments" variant="primary">

@@ -38,7 +38,7 @@ function resolveUploadRootDir() {
   );
   const fallbackUploadRootDir = resolveFromRepo(
     process.env.UPLOAD_FALLBACK_ROOT_DIR,
-    process.env.RENDER_EXTERNAL_URL ? '/tmp/polarcraft/uploads' : defaultUploadRootDir
+    process.env.RENDER_EXTERNAL_URL ? '/tmp/polariscope/uploads' : defaultUploadRootDir
   );
 
   try {

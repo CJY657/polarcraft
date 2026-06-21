@@ -1,7 +1,7 @@
 {
-  "name": "polarcraft-server",
+  "name": "polariscope-server",
   "version": "1.0.0",
-  "description": "PolarCraft Backend API - User Authentication System",
+  "description": "PolariScope Backend API - User Authentication System",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

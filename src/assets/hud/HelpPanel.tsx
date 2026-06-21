@@ -23,7 +23,7 @@ export function HelpPanel() {
       <DialogContent className="max-w-2xl bg-slate-900/95 border-cyan-400/30 text-gray-100 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl text-cyan-400">
-            ⟡ PolarCraft {t('game.gameGuide')}
+            ⟡ PolariScope {t('game.gameGuide')}
           </DialogTitle>
         </DialogHeader>
 

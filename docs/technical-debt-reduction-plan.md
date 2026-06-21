@@ -1,8 +1,8 @@
-# PolarCraft Technical Debt Reduction Plan
+# PolariScope Technical Debt Reduction Plan
 
 ## Context
 
-This plan addresses the technical debt found in the PolarCraft project, a voxel puzzle game based on polarized light physics built with React 19, TypeScript, Three.js, and Express + MySQL. The codebase consists of approximately 70,000+ lines of code across 180+ TypeScript files.
+This plan addresses the technical debt found in the PolariScope project, an interactive polarized-light learning and research platform built with React 19, TypeScript, Three.js, and Express + MySQL. The codebase consists of approximately 70,000+ lines of code across 180+ TypeScript files.
 
 The technical debt analysis revealed several categories of issues:
 - Deprecated code still present (1,493 lines)

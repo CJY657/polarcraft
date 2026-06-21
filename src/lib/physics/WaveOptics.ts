@@ -18,7 +18,7 @@
  */
 
 /**
- * PolarCraft - Wave Optics Engine
+ * PolariScope - Wave Optics Engine
  * Jones Calculus implementation for accurate polarization simulation
  *
  * This module provides:

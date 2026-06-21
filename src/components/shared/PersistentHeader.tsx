@@ -10,7 +10,7 @@ import { Menu, X } from "lucide-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
-import { ModuleIconMap, PolarCraftLogo, type ModuleIconKey } from "@/components/icons";
+import { ModuleIconMap, PolariScopeLogo, type ModuleIconKey } from "@/components/icons";
 import { AuthThemeSwitcher } from "../ui/AuthThemeSwitcher";
 
 const MODULE_THEMES: Record<
@@ -137,7 +137,7 @@ export function PersistentHeader({
                   : undefined
               }
             >
-              <PolarCraftLogo
+              <PolariScopeLogo
                 size={compact ? 26 : 30}
                 theme={theme}
                 animated={false}
@@ -155,7 +155,7 @@ export function PersistentHeader({
                     isTransparent ? "text-white/70" : "text-clay-muted",
                   )}
                 >
-                  PolarCraft
+                  PolariScope
                 </p>
                 <p
                   className="truncate text-base font-semibold"
@@ -327,7 +327,7 @@ export function MiniLogo({ size = 24, className }: { size?: number; className?: 
       to="/"
       className={cn("inline-flex items-center", className)}
     >
-      <PolarCraftLogo
+      <PolariScopeLogo
         size={size}
         theme={theme}
         animated={false}

@@ -164,7 +164,7 @@ export function InfoBar() {
     <div className="bg-black/70 p-4 rounded-lg border border-cyan-400/30 max-w-xs">
       <h2 className="text-sm text-cyan-400 mb-2 flex items-center gap-2">
         <span>⟡</span>
-        <span>PolarCraft</span>
+        <span>PolariScope</span>
         {currentLevel && (
           <span className="text-gray-500 ml-2">
             {t('game.level')} {currentLevelIndex + 1}: {t(`game.tutorials.${currentLevelIndex}.name`)}

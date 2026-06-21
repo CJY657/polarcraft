@@ -10,11 +10,13 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const THEME_STORAGE_KEY = "polariscope-theme";
+const LEGACY_THEME_STORAGE_KEY = "polarcraft-theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const saved = getStorageItem("polarcraft-theme");
+      const saved = getStorageItem(THEME_STORAGE_KEY) ?? getStorageItem(LEGACY_THEME_STORAGE_KEY);
       if (saved === "light" || saved === "dark") return saved;
     }
     return "light";
@@ -57,7 +59,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.style.setProperty("--accent-green", "#14bf96");
     }
 
-    setStorageItem("polarcraft-theme", theme);
+    setStorageItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
   const toggleTheme = () => {

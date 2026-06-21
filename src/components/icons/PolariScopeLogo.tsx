@@ -1,6 +1,6 @@
 /**
- * PolarCraft Logo - Main brand logo for the homepage
- * PolarCraft 标志 - 首页主品牌标志
+ * PolariScope Logo - Main brand logo for the homepage
+ * PolariScope 标志 - 首页主品牌标志
  *
  * Design concept:
  * - Central crystal/prism representing optical components
@@ -12,7 +12,7 @@
 
 import { cn } from '@/utils/classNames'
 
-interface PolarCraftLogoProps {
+interface PolariScopeLogoProps {
   className?: string
   size?: number
   animated?: boolean
@@ -27,7 +27,7 @@ interface PolarCraftLogoProps {
   activeColor?: string
 }
 
-export function PolarCraftLogo({
+export function PolariScopeLogo({
   className,
   size = 80,
   animated = true,
@@ -36,7 +36,7 @@ export function PolarCraftLogo({
   rotationSpeed = 'slow',
   beamActive = false,
   activeColor,
-}: PolarCraftLogoProps) {
+}: PolariScopeLogoProps) {
   // 旋转速度映射
   const rotationDurations = {
     slow: '60s',

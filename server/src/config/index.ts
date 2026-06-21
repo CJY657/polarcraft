@@ -120,7 +120,7 @@ export const config = {
   // Database / 数据库
   database: {
     uri: process.env.MONGODB_URI || process.env.DB_URI || 'mongodb://127.0.0.1:27017',
-    name: process.env.MONGODB_DB_NAME || process.env.DB_NAME || 'polarcraft',
+    name: process.env.MONGODB_DB_NAME || process.env.DB_NAME || 'polariscope',
     maxPoolSize: parseInt(
       process.env.DB_MAX_POOL_SIZE || process.env.DB_CONNECTION_LIMIT || '10',
       10,
@@ -183,8 +183,8 @@ export const config = {
     secure: process.env.EMAIL_SECURE === 'true',
     user: process.env.EMAIL_USER || '',
     password: process.env.EMAIL_PASSWORD || '',
-    from: process.env.EMAIL_FROM || 'noreply@polarcraft.com',
-    fromName: process.env.EMAIL_FROM_NAME || 'PolarCraft',
+    from: process.env.EMAIL_FROM || 'noreply@polariscope.app',
+    fromName: process.env.EMAIL_FROM_NAME || 'PolariScope',
   },
 
   // PostHog private API / PostHog 私有接口配置
