@@ -302,13 +302,12 @@ export function HomePage() {
           </figure>
         </section>
 
-        <section aria-label="PolariScope 学习空间" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <section aria-label="PolariScope 平台的六个模块" className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
             {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isUnavailable = module.status === "unavailable";
               const variantClass = VARIANT_CARD_CLASS[module.variant];
               const variantStyle = VARIANT_TEXT[module.variant];
-              const isLab = module.id === "lab";
               const layoutClass = MODULE_CARD_LAYOUT[module.id] ?? "lg:col-span-2";
 
               return (
