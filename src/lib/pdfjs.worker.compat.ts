@@ -1,3 +1,4 @@
+import "@/lib/promise.with-resolvers.polyfill";
 import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 type URLWithParseStatics = typeof URL & {

@@ -1,3 +1,4 @@
+import "./lib/promise.with-resolvers.polyfill";
 import React from "react"; //导入react模块
 import ReactDOM from "react-dom/client"; //导入react-dom模块
 import { App } from "./App"; //导入App组件
