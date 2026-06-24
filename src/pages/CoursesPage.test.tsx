@@ -119,6 +119,7 @@ describe("CoursesPage", () => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
     });
+    expect(mockGetPublicUnitCourses).toHaveBeenCalledTimes(2);
 
     expect(screen.getByText("查看全部实验")).toBeDefined();
     expect(screen.getAllByText("3 个实验").length).toBeGreaterThan(0);
@@ -140,24 +141,24 @@ describe("CoursesPage", () => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
       expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
     });
+    expect(mockGetPublicUnitCourses).toHaveBeenCalledTimes(2);
 
     mockGetPublicUnitCourses.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: /第一单元/i }));
 
     await waitFor(() => {
-      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
+      expect(screen.getByText("course-selector-2")).toBeDefined();
     });
-    expect(screen.getByText("course-selector-2")).toBeDefined();
+    expect(mockGetPublicUnitCourses).not.toHaveBeenCalled();
 
     mockGetPublicUnitCourses.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: /查看全部实验/i }));
 
     await waitFor(() => {
-      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit1");
-      expect(mockGetPublicUnitCourses).toHaveBeenCalledWith("unit2");
+      expect(screen.getByText("course-selector-3")).toBeDefined();
     });
-    expect(screen.getByText("course-selector-3")).toBeDefined();
+    expect(mockGetPublicUnitCourses).not.toHaveBeenCalled();
   });
 });

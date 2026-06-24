@@ -5,7 +5,7 @@
  * 顶部保留站点导航与实验返回入口
  */
 
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, MessageSquarePlus, MessageSquare } from "lucide-react";
@@ -53,8 +53,11 @@ export default function CourseViewerPage() {
 
   const isZh = i18n.language.startsWith("zh");
   const isPendingInitialLoad = Boolean(resolvedExperimentId) && !course && !error;
-  const getLabel = (label?: { "zh-CN"?: string; "en-US"?: string }) =>
-    label?.[isZh ? "zh-CN" : "en-US"] || label?.["zh-CN"] || label?.["en-US"] || "";
+  const getLabel = useCallback(
+    (label?: { "zh-CN"?: string; "en-US"?: string }) =>
+      label?.[isZh ? "zh-CN" : "en-US"] || label?.["zh-CN"] || label?.["en-US"] || "",
+    [isZh],
+  );
 
   const courseTitle = getLabel(course?.title) || (isZh ? "实验详情" : "Experiment");
   const backLabel = isZh ? "返回实验总览" : "Back to experiments";
@@ -73,58 +76,66 @@ export default function CourseViewerPage() {
     });
   }, [course, location.key, location.pathname]);
 
-  const courseData = course
-    ? {
-        id: course.id,
-        unitId: course.unitId,
-        title: { "zh-CN": course.title["zh-CN"] || "", "en-US": course.title["en-US"] || "" },
-        description: {
-          "zh-CN": course.description["zh-CN"] || "",
-          "en-US": course.description["en-US"] || "",
-        },
-        coverImage: course.coverImage,
-        color: course.color,
-        lastUpdated: course.updatedAt,
-        mainSlide: mainSlide
-          ? {
-              id: mainSlide.id,
-              url: mainSlide.url,
-              title: {
-                "zh-CN": mainSlide.title["zh-CN"] || "",
-                "en-US": mainSlide.title["en-US"] || "",
-              },
-            }
-          : undefined,
-        hyperlinks: hyperlinks.map((hyperlink) => ({
-          id: hyperlink.id,
-          sourceMediaId: hyperlink.sourceMediaId,
-          page: hyperlink.page,
-          x: hyperlink.x,
-          y: hyperlink.y,
-          width: hyperlink.width,
-          height: hyperlink.height,
-          targetMediaId: hyperlink.targetMediaId,
-        })),
-        media: media.map((item) => ({
-          id: item.id,
-          type: item.type,
-          url: item.url,
-          previewPdfUrl: item.previewPdfUrl,
-          title: { "zh-CN": item.title["zh-CN"] || "", "en-US": item.title["en-US"] || "" },
-          duration: item.duration,
-        })),
-      }
-    : null;
+  const courseData = useMemo(() => {
+    if (!course) {
+      return null;
+    }
 
-  const feedbackSearch = course
-    ? new URLSearchParams({
-        feedback: "experiment",
-        courseId: course.id,
-        courseTitle,
-        originPage: "experiment-viewer",
-        originPath: location.pathname,
-      }).toString()
-    : "";
+    return {
+      id: course.id,
+      unitId: course.unitId,
+      title: { "zh-CN": course.title["zh-CN"] || "", "en-US": course.title["en-US"] || "" },
+      description: {
+        "zh-CN": course.description["zh-CN"] || "",
+        "en-US": course.description["en-US"] || "",
+      },
+      coverImage: course.coverImage,
+      color: course.color,
+      lastUpdated: course.updatedAt,
+      mainSlide: mainSlide
+        ? {
+            id: mainSlide.id,
+            url: mainSlide.url,
+            title: {
+              "zh-CN": mainSlide.title["zh-CN"] || "",
+              "en-US": mainSlide.title["en-US"] || "",
+            },
+          }
+        : undefined,
+      hyperlinks: hyperlinks.map((hyperlink) => ({
+        id: hyperlink.id,
+        sourceMediaId: hyperlink.sourceMediaId,
+        page: hyperlink.page,
+        x: hyperlink.x,
+        y: hyperlink.y,
+        width: hyperlink.width,
+        height: hyperlink.height,
+        targetMediaId: hyperlink.targetMediaId,
+      })),
+      media: media.map((item) => ({
+        id: item.id,
+        type: item.type,
+        url: item.url,
+        previewPdfUrl: item.previewPdfUrl,
+        title: { "zh-CN": item.title["zh-CN"] || "", "en-US": item.title["en-US"] || "" },
+        duration: item.duration,
+      })),
+    };
+  }, [course, hyperlinks, mainSlide, media]);
+
+  const feedbackSearch = useMemo(
+    () =>
+      course
+        ? new URLSearchParams({
+            feedback: "experiment",
+            courseId: course.id,
+            courseTitle,
+            originPage: "experiment-viewer",
+            originPath: location.pathname,
+          }).toString()
+        : "",
+    [course, courseTitle, location.pathname],
+  );
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>

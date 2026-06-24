@@ -73,18 +73,13 @@ export const useCourseDetailStore = create<CourseDetailState>((set) => ({
   fetchCourse: async (courseId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const [course, mainSlide, media, hyperlinks] = await Promise.all([
-        courseApi.getPublicCourse(courseId),
-        courseApi.getPublicMainSlide(courseId),
-        courseApi.getPublicMediaList(courseId),
-        courseApi.getPublicHyperlinks(courseId),
-      ]);
+      const course = await courseApi.getPublicCourse(courseId);
 
       set({
         course,
-        mainSlide,
-        media,
-        hyperlinks,
+        mainSlide: course.mainSlide ?? null,
+        media: course.media ?? [],
+        hyperlinks: course.hyperlinks ?? [],
         isLoading: false,
       });
     } catch (err) {

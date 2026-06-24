@@ -3,7 +3,7 @@
  * 聚焦实验单元和实验入口，不再混合历史时间线导航
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BookOpenText,
@@ -18,7 +18,7 @@ import { Link } from "react-router-dom";
 
 import { PersistentHeader } from "@/components/shared";
 import { useTheme } from "@/contexts/ThemeContext";
-import { unitApi } from "@/lib/unit.service";
+import { unitApi, type Unit } from "@/lib/unit.service";
 import { useUnitStore } from "@/stores/unitStore";
 import { CourseSelector, type CourseSelectorCourse } from "@/feature/unit/CourseSelector";
 import { cn } from "@/utils/classNames";
@@ -67,12 +67,47 @@ export function CoursesPage() {
   >({});
   const [unitCourseStructuresLoading, setUnitCourseStructuresLoading] = useState(false);
   const [unitCourseStructuresError, setUnitCourseStructuresError] = useState<string | null>(null);
+  const unitCoursesCacheRef = useRef<
+    Record<string, CourseSelectorCourse[] | Promise<CourseSelectorCourse[]>>
+  >({});
 
   const { units, isLoading: unitsLoading, fetchUnits } = useUnitStore();
+
+  const getUnitCourses = useCallback((unit: Unit) => {
+    const cachedCourses = unitCoursesCacheRef.current[unit.id];
+    if (cachedCourses) {
+      return Promise.resolve(cachedCourses);
+    }
+
+    const request = unitApi
+      .getPublicUnitCourses(unit.id)
+      .then((courses) => {
+        unitCoursesCacheRef.current[unit.id] = courses;
+        return courses;
+      })
+      .catch((error: unknown) => {
+        if (unitCoursesCacheRef.current[unit.id] === request) {
+          delete unitCoursesCacheRef.current[unit.id];
+        }
+        throw error;
+      });
+
+    unitCoursesCacheRef.current[unit.id] = request;
+    return request;
+  }, []);
 
   useEffect(() => {
     fetchUnits();
   }, [fetchUnits]);
+
+  useEffect(() => {
+    const activeUnitIds = new Set(units.map((unit) => unit.id));
+    Object.keys(unitCoursesCacheRef.current).forEach((unitId) => {
+      if (!activeUnitIds.has(unitId)) {
+        delete unitCoursesCacheRef.current[unitId];
+      }
+    });
+  }, [units]);
 
   useEffect(() => {
     if (units.length === 0) {
@@ -124,7 +159,7 @@ export function CoursesPage() {
     const coursesRequest = isAllExperimentsSelected
       ? Promise.all(
           units.map(async (unit, unitIndex) => {
-            const courses = await unitApi.getPublicUnitCourses(unit.id);
+            const courses = await getUnitCourses(unit);
 
             return courses.map((course, courseIndex) => ({
               ...course,
@@ -140,7 +175,7 @@ export function CoursesPage() {
             .map(({ sortKey: _sortKey, ...course }) => course),
         )
       : selectedUnit
-        ? unitApi.getPublicUnitCourses(selectedUnit.id)
+        ? getUnitCourses(selectedUnit)
         : Promise.resolve([]);
 
     coursesRequest
@@ -171,7 +206,14 @@ export function CoursesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [isAllExperimentsSelected, isZh, selectedUnit, selectedUnitCoursesReloadKey, units]);
+  }, [
+    getUnitCourses,
+    isAllExperimentsSelected,
+    isZh,
+    selectedUnit,
+    selectedUnitCoursesReloadKey,
+    units,
+  ]);
 
   useEffect(() => {
     if (units.length === 0) {
@@ -188,7 +230,7 @@ export function CoursesPage() {
 
     Promise.all(
       units.map(async (unit) => {
-        const courses = await unitApi.getPublicUnitCourses(unit.id);
+        const courses = await getUnitCourses(unit);
 
         return [unit.id, courses] as const;
       }),
@@ -220,7 +262,7 @@ export function CoursesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [isZh, units]);
+  }, [getUnitCourses, isZh, units]);
 
   const surfaceClass =
     theme === "dark" ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-white";
