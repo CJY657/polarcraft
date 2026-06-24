@@ -6,7 +6,7 @@
  * 显示单个研究课题及其成员和设置
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -45,12 +45,7 @@ import {
   type PublicProjectDetail,
   type PublicProjectMember,
 } from "@/lib/profile.service";
-import { ApplicationManagementDialog } from "../components/project/ApplicationManagementDialog";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
-import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
-import { ProjectCoverDialog } from "../components/project/ProjectCoverDialog";
-import { ProjectSettingsDialog } from "../components/project/ProjectSettingsDialog";
-import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
   ProjectDiscussionSection,
@@ -60,6 +55,24 @@ import {
 } from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+
+const ApplicationManagementDialog = lazy(() =>
+  import("../components/project/ApplicationManagementDialog").then((module) => ({
+    default: module.ApplicationManagementDialog,
+  }))
+);
+const ProjectEditDialog = lazy(() =>
+  import("../components/project/ProjectEditDialog").then((module) => ({ default: module.ProjectEditDialog }))
+);
+const ProjectCoverDialog = lazy(() =>
+  import("../components/project/ProjectCoverDialog").then((module) => ({ default: module.ProjectCoverDialog }))
+);
+const ProjectSettingsDialog = lazy(() =>
+  import("../components/project/ProjectSettingsDialog").then((module) => ({ default: module.ProjectSettingsDialog }))
+);
+const ProjectApplicationForm = lazy(() =>
+  import("../components/project/ProjectApplicationForm").then((module) => ({ default: module.ProjectApplicationForm }))
+);
 
 function isProjectMember(member: ProjectMember | PublicProjectMember): member is ProjectMember {
   return "user_id" in member && "id" in member;
@@ -937,88 +950,90 @@ export function ResearchProjectPage() {
 
       </main>
 
-      {/* Application Management Dialog */}
-      {!isExampleProject && projectId && canManageProject && (
-        <ApplicationManagementDialog
-          isOpen={isApplicationDialogOpen}
-          onClose={() => setIsApplicationDialogOpen(false)}
-          projectId={projectId}
-          onStatusChange={() => void refreshProjectData()}
-        />
-      )}
+      <Suspense fallback={null}>
+        {/* Application Management Dialog */}
+        {!isExampleProject && projectId && canManageProject && isApplicationDialogOpen && (
+          <ApplicationManagementDialog
+            isOpen={isApplicationDialogOpen}
+            onClose={() => setIsApplicationDialogOpen(false)}
+            projectId={projectId}
+            onStatusChange={() => void refreshProjectData()}
+          />
+        )}
 
-      {/* Edit Dialog */}
-      {!isExampleProject && project && (
-        <ProjectEditDialog
-          isOpen={isEditDialogOpen}
-          onClose={() => setIsEditDialogOpen(false)}
-          project={project}
-          onSuccess={(updatedProject) => {
-            setProject({ ...project, ...updatedProject });
-          }}
-        />
-      )}
+        {/* Edit Dialog */}
+        {!isExampleProject && project && isEditDialogOpen && (
+          <ProjectEditDialog
+            isOpen={isEditDialogOpen}
+            onClose={() => setIsEditDialogOpen(false)}
+            project={project}
+            onSuccess={(updatedProject) => {
+              setProject({ ...project, ...updatedProject });
+            }}
+          />
+        )}
 
-      {/* Cover Dialog */}
-      {!isExampleProject && project && canManageProject && (
-        <ProjectCoverDialog
-          isOpen={isCoverDialogOpen}
-          onClose={() => setIsCoverDialogOpen(false)}
-          project={project}
-          onSuccess={(updatedProject) => {
-            setProject({ ...project, ...updatedProject });
-          }}
-        />
-      )}
+        {/* Cover Dialog */}
+        {!isExampleProject && project && canManageProject && isCoverDialogOpen && (
+          <ProjectCoverDialog
+            isOpen={isCoverDialogOpen}
+            onClose={() => setIsCoverDialogOpen(false)}
+            project={project}
+            onSuccess={(updatedProject) => {
+              setProject({ ...project, ...updatedProject });
+            }}
+          />
+        )}
 
-      {/* Settings Dialog */}
-      {!isExampleProject && projectId && (
-        <ProjectSettingsDialog
-          isOpen={isSettingsDialogOpen}
-          onClose={() => setIsSettingsDialogOpen(false)}
-          projectId={projectId}
-          onSuccess={(updatedSettings) => {
-            setSettings(updatedSettings);
-          }}
-        />
-      )}
+        {/* Settings Dialog */}
+        {!isExampleProject && projectId && isSettingsDialogOpen && (
+          <ProjectSettingsDialog
+            isOpen={isSettingsDialogOpen}
+            onClose={() => setIsSettingsDialogOpen(false)}
+            projectId={projectId}
+            onSuccess={(updatedSettings) => {
+              setSettings(updatedSettings);
+            }}
+          />
+        )}
 
-      {/* Application Form for Read-Only Mode */}
-      {isReadOnlyMode && project && (
-        <ProjectApplicationForm
-          isOpen={isApplicationFormOpen}
-          onClose={() => setIsApplicationFormOpen(false)}
-          project={{
-            id: project.id,
-            name_zh: project.name_zh,
-            name_en: project.name_en,
-            description_zh: project.description_zh,
-            description_en: project.description_en,
-            thumbnail: project.thumbnail,
-            status: project.status,
-            visibility: 'public' as const,
-            require_approval: displayRequireApproval,
-            recruitment_requirements: displayRecruitmentRequirements,
-            is_recruiting: displayIsRecruiting,
-            max_members: settings?.max_members ?? null,
-            member_count: project.member_count,
-            is_member: false,
-            owner_username: projectOwner?.username ?? null,
-            owner_avatar_url: projectOwner?.avatar_url ?? null,
-            members: project.members.map((member) => ({
-              username: member.username,
-              avatar_url: member.avatar_url,
-              role: member.role,
-            })),
-            created_at: project.created_at,
-            updated_at: project.updated_at,
-          }}
-          onSuccess={() => {
-            setIsApplicationFormOpen(false);
-            void refreshProjectData();
-          }}
-        />
-      )}
+        {/* Application Form for Read-Only Mode */}
+        {isReadOnlyMode && project && isApplicationFormOpen && (
+          <ProjectApplicationForm
+            isOpen={isApplicationFormOpen}
+            onClose={() => setIsApplicationFormOpen(false)}
+            project={{
+              id: project.id,
+              name_zh: project.name_zh,
+              name_en: project.name_en,
+              description_zh: project.description_zh,
+              description_en: project.description_en,
+              thumbnail: project.thumbnail,
+              status: project.status,
+              visibility: 'public' as const,
+              require_approval: displayRequireApproval,
+              recruitment_requirements: displayRecruitmentRequirements,
+              is_recruiting: displayIsRecruiting,
+              max_members: settings?.max_members ?? null,
+              member_count: project.member_count,
+              is_member: false,
+              owner_username: projectOwner?.username ?? null,
+              owner_avatar_url: projectOwner?.avatar_url ?? null,
+              members: project.members.map((member) => ({
+                username: member.username,
+                avatar_url: member.avatar_url,
+                role: member.role,
+              })),
+              created_at: project.created_at,
+              updated_at: project.updated_at,
+            }}
+            onSuccess={() => {
+              setIsApplicationFormOpen(false);
+              void refreshProjectData();
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Remove Member Confirmation Dialog */}
       {memberToRemove && (

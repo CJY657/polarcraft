@@ -3,7 +3,7 @@
  * 我的研究项目页面
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -19,8 +19,11 @@ import { useSystem } from "@/contexts/SystemContext";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
-import { CreateProjectWizard } from "../components/project/CreateProjectWizard";
 import { ProjectListItem } from "../components/project/ProjectListItem";
+
+const CreateProjectWizard = lazy(() =>
+  import("../components/project/CreateProjectWizard").then((module) => ({ default: module.CreateProjectWizard }))
+);
 
 function getHealthDisplay(healthStatus: string) {
   switch (healthStatus) {
@@ -384,14 +387,18 @@ export function MyProjectsPage() {
         )}
       </main>
 
-      <CreateProjectWizard
-        isOpen={isCreateWizardOpen}
-        onClose={() => setIsCreateWizardOpen(false)}
-        onSuccess={(projectId) => {
-          setIsCreateWizardOpen(false);
-          navigate(`/lab/projects/${projectId}`);
-        }}
-      />
+      <Suspense fallback={null}>
+        {isCreateWizardOpen && (
+          <CreateProjectWizard
+            isOpen={isCreateWizardOpen}
+            onClose={() => setIsCreateWizardOpen(false)}
+            onSuccess={(projectId) => {
+              setIsCreateWizardOpen(false);
+              navigate(`/lab/projects/${projectId}`);
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

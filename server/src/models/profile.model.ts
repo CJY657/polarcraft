@@ -88,6 +88,76 @@ async function enrichApplications(applications: ProjectApplication[]): Promise<P
   });
 }
 
+async function enrichPublicProjects(
+  projects: any[],
+  settings: ProjectSettings[],
+  userId?: string
+): Promise<any[]> {
+  if (projects.length === 0) {
+    return [];
+  }
+
+  const visibleProjectIds = projects.map((project) => project.id);
+  const [members, pendingApplications, coverMap] = await Promise.all([
+    normalizeDocuments<any>(
+      await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: visibleProjectIds } })).toArray()
+    ),
+    userId
+      ? normalizeDocuments<{ project_id: string }>(
+          await applicationsCollection()
+            .find({ project_id: { $in: visibleProjectIds }, user_id: userId, status: 'pending' })
+            .project({ _id: 0, project_id: 1 })
+            .toArray()
+        )
+      : Promise.resolve([] as { project_id: string }[]),
+    getProjectCoverImageMap(visibleProjectIds),
+  ]);
+  const userMap = await getUserMap(members.map((member) => member.user_id));
+
+  const settingsMap = new Map(settings.map((item) => [item.project_id, item]));
+  const membersByProject = new Map<string, any[]>();
+  const pendingProjectIds = new Set(pendingApplications.map((application) => application.project_id));
+
+  for (const member of members) {
+    const list = membersByProject.get(member.project_id) || [];
+    list.push(member);
+    membersByProject.set(member.project_id, list);
+  }
+
+  return projects.map((project) => {
+    const setting = settingsMap.get(project.id);
+    const projectMembers = (membersByProject.get(project.id) || []).sort((a, b) => {
+      const roleCompare = compareRole(a.role, b.role);
+      if (roleCompare !== 0) {
+        return roleCompare;
+      }
+      return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
+    });
+    const owner = projectMembers.find((member) => member.role === 'owner');
+    const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
+
+    return {
+      ...project,
+      cover_image: coverMap.get(project.id) ?? null,
+      visibility: setting?.visibility,
+      require_approval: setting?.require_approval,
+      recruitment_requirements: setting?.recruitment_requirements,
+      is_recruiting: setting?.is_recruiting,
+      max_members: setting?.max_members,
+      member_count: projectMembers.length,
+      is_member: userId ? projectMembers.some((member) => member.user_id === userId) : false,
+      has_pending_application: userId ? pendingProjectIds.has(project.id) : false,
+      owner_username: ownerUser?.username || null,
+      owner_avatar_url: ownerUser?.avatar_url || null,
+      members: projectMembers.map((member) => ({
+        username: userMap.get(member.user_id)?.username || '',
+        avatar_url: userMap.get(member.user_id)?.avatar_url || null,
+        role: normalizeProjectRole(member.role) ?? 'member',
+      })),
+    };
+  });
+}
+
 export class ProfileModel {
   /**
    * Get all educations for a user
@@ -584,65 +654,7 @@ export class ProfileModel {
       return [];
     }
 
-    const visibleProjectIds = projects.map((project) => project.id);
-    const [members, pendingApplications, coverMap] = await Promise.all([
-      normalizeDocuments<any>(
-        await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: visibleProjectIds } })).toArray()
-      ),
-      userId
-        ? normalizeDocuments<{ project_id: string }>(
-            await applicationsCollection()
-              .find({ project_id: { $in: visibleProjectIds }, user_id: userId, status: 'pending' })
-              .project({ _id: 0, project_id: 1 })
-              .toArray()
-          )
-        : Promise.resolve([] as { project_id: string }[]),
-      getProjectCoverImageMap(visibleProjectIds),
-    ]);
-    const userMap = await getUserMap(members.map((member) => member.user_id));
-
-    const settingsMap = new Map(settings.map((item) => [item.project_id, item]));
-    const membersByProject = new Map<string, any[]>();
-    const pendingProjectIds = new Set(pendingApplications.map((application) => application.project_id));
-
-    for (const member of members) {
-      const list = membersByProject.get(member.project_id) || [];
-      list.push(member);
-      membersByProject.set(member.project_id, list);
-    }
-
-    return projects.map((project) => {
-      const setting = settingsMap.get(project.id);
-      const projectMembers = (membersByProject.get(project.id) || []).sort((a, b) => {
-        const roleCompare = compareRole(a.role, b.role);
-        if (roleCompare !== 0) {
-          return roleCompare;
-        }
-        return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
-      });
-      const owner = projectMembers.find((member) => member.role === 'owner');
-      const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
-
-      return {
-        ...project,
-        cover_image: coverMap.get(project.id) ?? null,
-        visibility: setting?.visibility,
-        require_approval: setting?.require_approval,
-        recruitment_requirements: setting?.recruitment_requirements,
-        is_recruiting: setting?.is_recruiting,
-        max_members: setting?.max_members,
-        member_count: projectMembers.length,
-        is_member: userId ? projectMembers.some((member) => member.user_id === userId) : false,
-        has_pending_application: userId ? pendingProjectIds.has(project.id) : false,
-        owner_username: ownerUser?.username || null,
-        owner_avatar_url: ownerUser?.avatar_url || null,
-        members: projectMembers.map((member) => ({
-          username: userMap.get(member.user_id)?.username || '',
-          avatar_url: userMap.get(member.user_id)?.avatar_url || null,
-          role: normalizeProjectRole(member.role) ?? 'member',
-        })),
-      };
-    });
+    return enrichPublicProjects(projects, settings, userId);
   }
 
   /**
@@ -650,7 +662,24 @@ export class ProfileModel {
    * 获取单个公开项目详情
    */
   static async getPublicProjectById(projectId: string, userId?: string): Promise<any | null> {
-    const projects = await this.getPublicProjects({}, userId);
-    return projects.find((project) => project.id === projectId) || null;
+    const setting = normalizeDocument<ProjectSettings>(
+      await projectSettingsCollection().findOne({ project_id: projectId, visibility: 'public' })
+    );
+    if (!setting) {
+      return null;
+    }
+
+    const project = normalizeDocument<any>(
+      await researchProjectsCollection().findOne({
+        id: projectId,
+        status: { $in: ['draft', 'active'] },
+      })
+    );
+    if (!project) {
+      return null;
+    }
+
+    const [enrichedProject] = await enrichPublicProjects([project], [setting], userId);
+    return enrichedProject ?? null;
   }
 }

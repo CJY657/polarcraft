@@ -3,7 +3,7 @@
  * 公开课题浏览页面
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
@@ -18,8 +18,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
-import { CreateProjectWizard } from "../components/project/CreateProjectWizard";
-import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
 import {
   PROJECT_DISPLAY_MODE_OPTIONS,
   sortPublicProjectsByDisplayMode,
@@ -27,6 +25,13 @@ import {
 } from "../components/project/projectDisplayModes";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+
+const CreateProjectWizard = lazy(() =>
+  import("../components/project/CreateProjectWizard").then((module) => ({ default: module.CreateProjectWizard }))
+);
+const ProjectApplicationForm = lazy(() =>
+  import("../components/project/ProjectApplicationForm").then((module) => ({ default: module.ProjectApplicationForm }))
+);
 
 export function PublicProjectExplorePage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -44,6 +49,8 @@ export function PublicProjectExplorePage() {
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
 
   useEffect(() => {
+    let shouldIgnoreResult = false;
+
     async function fetchProjects() {
       if (!isSystemHealthy) {
         setIsLoading(false);
@@ -57,17 +64,33 @@ export function PublicProjectExplorePage() {
           recruiting: recruitingOnly || undefined,
           search: searchQuery || undefined,
         });
-        setProjects(data);
+        if (!shouldIgnoreResult) {
+          setProjects(data);
+        }
       } catch (err) {
         console.error("Failed to fetch public projects:", err);
-        setError(err instanceof Error ? err.message : "加载课题失败");
+        if (!shouldIgnoreResult) {
+          setError(err instanceof Error ? err.message : "加载课题失败");
+        }
       } finally {
-        setIsLoading(false);
+        if (!shouldIgnoreResult) {
+          setIsLoading(false);
+        }
       }
     }
 
-    const timer = setTimeout(fetchProjects, 300);
-    return () => clearTimeout(timer);
+    if (searchQuery) {
+      const timer = window.setTimeout(() => void fetchProjects(), 300);
+      return () => {
+        shouldIgnoreResult = true;
+        window.clearTimeout(timer);
+      };
+    }
+
+    void fetchProjects();
+    return () => {
+      shouldIgnoreResult = true;
+    };
   }, [recruitingOnly, searchQuery, isSystemHealthy]);
 
   const handleApplyClick = (project: PublicProject) => {
@@ -450,17 +473,23 @@ export function PublicProjectExplorePage() {
         )}
       </main>
 
-      <CreateProjectWizard
-        isOpen={isCreateWizardOpen}
-        onClose={() => setIsCreateWizardOpen(false)}
-      />
+      <Suspense fallback={null}>
+        {isCreateWizardOpen && (
+          <CreateProjectWizard
+            isOpen={isCreateWizardOpen}
+            onClose={() => setIsCreateWizardOpen(false)}
+          />
+        )}
 
-      <ProjectApplicationForm
-        isOpen={isApplicationFormOpen}
-        onClose={() => setIsApplicationFormOpen(false)}
-        project={selectedProject}
-        onSuccess={handleApplicationSuccess}
-      />
+        {isApplicationFormOpen && (
+          <ProjectApplicationForm
+            isOpen={isApplicationFormOpen}
+            onClose={() => setIsApplicationFormOpen(false)}
+            project={selectedProject}
+            onSuccess={handleApplicationSuccess}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
