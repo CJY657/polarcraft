@@ -1,0 +1,160 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PublicProject } from "@/lib/profile.service";
+import { PublicProjectExplorePage } from "./PublicProjectExplorePage";
+
+const getPublicProjects = vi.fn();
+const openDialog = vi.fn();
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@/contexts/SystemContext", () => ({
+  useSystem: () => ({
+    isSystemHealthy: true,
+  }),
+}));
+
+vi.mock("@/components/shared", () => ({
+  PersistentHeader: () => <header />,
+}));
+
+vi.mock("@/stores/authDialogStore", () => ({
+  useAuthDialogStore: () => openDialog,
+}));
+
+vi.mock("@/lib/profile.service", () => ({
+  profileApi: {
+    getPublicProjects: (...args: unknown[]) => getPublicProjects(...args),
+  },
+}));
+
+vi.mock("../components/project/CreateProjectWizard", () => ({
+  CreateProjectWizard: () => null,
+}));
+
+vi.mock("../components/project/ProjectApplicationForm", () => ({
+  ProjectApplicationForm: () => null,
+}));
+
+vi.mock("../components/shared/ProjectCoverImage", () => ({
+  ProjectCoverImage: ({ alt }: { alt: string }) => <div data-testid={`project-cover-${alt}`} />,
+}));
+
+function createPublicProject(overrides: Partial<PublicProject>): PublicProject {
+  return {
+    id: overrides.id ?? "project-id",
+    name_zh: overrides.name_zh ?? "默认课题",
+    name_en: null,
+    description_zh: "公开课题简介",
+    description_en: null,
+    thumbnail: null,
+    status: "active",
+    visibility: "public",
+    require_approval: true,
+    recruitment_requirements: null,
+    is_recruiting: false,
+    max_members: null,
+    member_count: 1,
+    is_member: false,
+    has_pending_application: false,
+    owner_username: "owner",
+    owner_avatar_url: null,
+    members: [],
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function getCardTitles(container: HTMLElement) {
+  return Array.from(container.querySelectorAll("article h2")).map((heading) => heading.textContent);
+}
+
+describe("PublicProjectExplorePage", () => {
+  beforeEach(() => {
+    getPublicProjects.mockReset();
+    openDialog.mockReset();
+  });
+
+  it("reorders rendered cards when switching display modes without refetching", async () => {
+    getPublicProjects.mockResolvedValue([
+      createPublicProject({
+        id: "project-1",
+        name_zh: "推荐更新课题",
+        is_recruiting: true,
+        member_count: 2,
+        updated_at: "2026-06-20T00:00:00.000Z",
+        created_at: "2026-02-01T00:00:00.000Z",
+      }),
+      createPublicProject({
+        id: "project-2",
+        name_zh: "成员最多课题",
+        member_count: 9,
+        updated_at: "2026-06-10T00:00:00.000Z",
+        created_at: "2026-03-01T00:00:00.000Z",
+      }),
+      createPublicProject({
+        id: "project-3",
+        name_zh: "最新创建课题",
+        member_count: 1,
+        updated_at: "2026-06-01T00:00:00.000Z",
+        created_at: "2026-06-10T00:00:00.000Z",
+      }),
+      createPublicProject({
+        id: "project-4",
+        name_zh: "招募旧课题",
+        is_recruiting: true,
+        member_count: 5,
+        updated_at: "2026-06-01T00:00:00.000Z",
+        created_at: "2026-01-01T00:00:00.000Z",
+      }),
+    ]);
+
+    const { container } = render(
+      <MemoryRouter>
+        <PublicProjectExplorePage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("推荐更新课题", {}, { timeout: 2000 });
+    expect(getCardTitles(container)).toEqual([
+      "推荐更新课题",
+      "招募旧课题",
+      "成员最多课题",
+      "最新创建课题",
+    ]);
+
+    fireEvent.change(screen.getByLabelText("排序方式"), {
+      target: { value: "member_count" },
+    });
+
+    expect(getCardTitles(container)).toEqual([
+      "成员最多课题",
+      "招募旧课题",
+      "推荐更新课题",
+      "最新创建课题",
+    ]);
+
+    fireEvent.change(screen.getByLabelText("排序方式"), {
+      target: { value: "created_desc" },
+    });
+
+    expect(getCardTitles(container)).toEqual([
+      "最新创建课题",
+      "成员最多课题",
+      "推荐更新课题",
+      "招募旧课题",
+    ]);
+    await waitFor(() => {
+      expect(getPublicProjects).toHaveBeenCalledTimes(1);
+    });
+  });
+});

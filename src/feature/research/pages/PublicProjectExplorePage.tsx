@@ -20,6 +20,11 @@ import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { CreateProjectWizard } from "../components/project/CreateProjectWizard";
 import { ProjectApplicationForm } from "../components/project/ProjectApplicationForm";
+import {
+  PROJECT_DISPLAY_MODE_OPTIONS,
+  sortPublicProjectsByDisplayMode,
+  type ProjectDisplayMode,
+} from "../components/project/projectDisplayModes";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
@@ -33,6 +38,7 @@ export function PublicProjectExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [displayMode, setDisplayMode] = useState<ProjectDisplayMode>("recommended");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
@@ -93,6 +99,11 @@ export function PublicProjectExplorePage() {
   const recruitingCount = useMemo(
     () => projects.filter((project) => project.is_recruiting).length,
     [projects]
+  );
+
+  const displayedProjects = useMemo(
+    () => sortPublicProjectsByDisplayMode(projects, displayMode),
+    [projects, displayMode]
   );
 
   const handleCreateProject = () => {
@@ -211,6 +222,20 @@ export function PublicProjectExplorePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-base font-medium text-[var(--paper-foreground)]">
+                <span className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">排序方式</span>
+                <select
+                  value={displayMode}
+                  onChange={(e) => setDisplayMode(e.target.value as ProjectDisplayMode)}
+                  className="research-input rounded-full px-4 py-2 text-base"
+                >
+                  {PROJECT_DISPLAY_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="research-chip inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-base font-medium">
                 <input
                   type="checkbox"
@@ -293,9 +318,9 @@ export function PublicProjectExplorePage() {
           </div>
         )}
 
-        {!isLoading && !error && projects.length > 0 && (
+        {!isLoading && !error && displayedProjects.length > 0 && (
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {projects.map((project) => (
+            {displayedProjects.map((project) => (
               <article
                 key={project.id}
                 className="research-panel rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"

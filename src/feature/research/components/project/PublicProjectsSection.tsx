@@ -15,6 +15,11 @@ import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
+import {
+  PROJECT_DISPLAY_MODE_OPTIONS,
+  sortPublicProjectsByDisplayMode,
+  type ProjectDisplayMode,
+} from "./projectDisplayModes";
 
 export function PublicProjectsSection() {
   const { isAuthenticated } = useAuth();
@@ -24,6 +29,7 @@ export function PublicProjectsSection() {
   const [projects, setProjects] = useState<PublicProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<ProjectDisplayMode>("recommended");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
 
@@ -74,10 +80,8 @@ export function PublicProjectsSection() {
   };
 
   const featuredProjects = useMemo(() => {
-    return [...projects]
-      .sort((a, b) => Number(b.is_recruiting) - Number(a.is_recruiting))
-      .slice(0, 4);
-  }, [projects]);
+    return sortPublicProjectsByDisplayMode(projects, displayMode).slice(0, 4);
+  }, [projects, displayMode]);
 
   const recruitingCount = projects.filter((project) => project.is_recruiting).length;
 
@@ -112,13 +116,30 @@ export function PublicProjectsSection() {
         </Link>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2 text-sm">
-        <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1.5 font-medium">
-          {recruitingCount} 个课题正在招募
-        </span>
-        <span className="research-chip inline-flex items-center rounded-full px-3 py-1.5 font-medium">
-          共 {projects.length} 个公开方向可浏览
-        </span>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1.5 font-medium">
+            {recruitingCount} 个课题正在招募
+          </span>
+          <span className="research-chip inline-flex items-center rounded-full px-3 py-1.5 font-medium">
+            共 {projects.length} 个公开方向可浏览
+          </span>
+        </div>
+
+        <label className="inline-flex items-center gap-2 text-base font-medium text-[var(--paper-foreground)]">
+          <span className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">排序方式</span>
+          <select
+            value={displayMode}
+            onChange={(e) => setDisplayMode(e.target.value as ProjectDisplayMode)}
+            className="research-input rounded-full px-4 py-2 text-base"
+          >
+            {PROJECT_DISPLAY_MODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {isLoading && (
