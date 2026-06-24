@@ -23,7 +23,7 @@ import { getPptPdfFallbackUrl, hasPdfSidecar } from '@/feature/course/pptMedia';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { HyperlinkFormDialog } from './HyperlinkFormDialog';
 
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import pdfjsWorker from '@/lib/pdfjs.worker.compat?worker&url';
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 

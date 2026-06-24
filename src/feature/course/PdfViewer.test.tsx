@@ -9,7 +9,7 @@ const pdfMockState = vi.hoisted(() => ({
   onDocumentLoadSuccess: null as null | ((document: { numPages: number }) => void),
 }));
 
-vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
+vi.mock("@/lib/pdfjs.worker.compat?worker&url", () => ({
   default: "mock-pdf-worker",
 }));
 

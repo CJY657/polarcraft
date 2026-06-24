@@ -27,7 +27,7 @@ import {
 } from "./mediaReference";
 import { getPreservedPageAfterResize } from "./pdfViewerState";
 
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import pdfjsWorker from "@/lib/pdfjs.worker.compat?worker&url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
