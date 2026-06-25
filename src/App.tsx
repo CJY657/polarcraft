@@ -41,9 +41,10 @@ const TimelinePage = lazy(() => import("@/pages/TimelinePage"));
 // 单元列表（旧单元详情页已收敛为课程入口）
 const UnitRedirectPage = lazy(() => import("@/pages/UnitRedirectPage"));
 
-// Module 2: 光学器件
-// 偏振器件 × 光路设计
+// Module 2: 偏振挑战
+// 冰洲石案件 × 偏振推理
 const DevicesPage = lazy(() => import("@/pages/DevicesPage"));
+const CalciteCasePage = lazy(() => import("@/pages/CalciteCasePage"));
 
 // Module 3: 理论模拟
 // 基础理论 × 计算模拟
@@ -332,10 +333,14 @@ function AppRouterContent() {
             element={<LegacyCourseViewerRedirect />}
           />
 
-          {/* Module 2: 光学器件 */}
+          {/* Module 2: 偏振挑战 */}
           <Route
             path="/devices"
             element={<DevicesPage />}
+          />
+          <Route
+            path="/devices/calcite-case"
+            element={<CalciteCasePage />}
           />
 
           {/* Module 4: 游戏挑战 */}

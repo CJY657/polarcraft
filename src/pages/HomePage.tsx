@@ -145,14 +145,12 @@ const MODULES: ModuleConfig[] = [
     path: "/devices",
     IconComponent: DevicesModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.studio.link1", path: "/devices" },
+      { labelKey: "home.modules.studio.link1", path: "/devices/calcite-case" },
       { labelKey: "home.modules.studio.link2", path: "/devices" },
       { labelKey: "home.modules.studio.link3", path: "/devices" },
     ],
-    workspaceLabel: "数字器件",
+    workspaceLabel: "可玩案件",
     variant: "teal",
-    status: "unavailable",
-    statusLabel: "即将上线",
   },
   {
     id: "demos",

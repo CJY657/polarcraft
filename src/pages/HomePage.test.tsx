@@ -59,12 +59,12 @@ describe('HomePage', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('marks unavailable modules as disabled', () => {
+  it('marks only the games module as disabled', () => {
     render(<HomePage />);
 
-    expect(screen.getByTestId('home-module-devices').getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByTestId('home-module-devices').getAttribute('aria-disabled')).toBe('false');
     expect(screen.getByTestId('home-module-games').getAttribute('aria-disabled')).toBe('true');
-    expect(screen.getAllByText('暂不开放')).toHaveLength(2);
+    expect(screen.getAllByText('即将上线')).toHaveLength(1);
   });
 
   it('offers one clear first-step action from the hero', () => {
@@ -73,7 +73,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('home-hero')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /先看一个模拟/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /从实验内容开始/ }));
+    fireEvent.click(screen.getByRole('button', { name: /开启实验探索/ }));
     expect(mockNavigate).toHaveBeenCalledWith('/experiments');
   });
 
@@ -82,6 +82,9 @@ describe('HomePage', () => {
 
     fireEvent.click(screen.getByTestId('home-module-demos'));
     expect(mockNavigate).toHaveBeenLastCalledWith('/demos');
+
+    fireEvent.click(screen.getByTestId('home-module-devices'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/devices');
 
     fireEvent.click(screen.getByTestId('home-module-lab'));
     expect(mockNavigate).toHaveBeenLastCalledWith('/lab/explore');

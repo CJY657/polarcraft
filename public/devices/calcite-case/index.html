@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>冰洲石双影迷案 | 光学隐秘维度侦察档案</title>
+  <style>
+    :root {
+      --clay-canvas: #fffaf0;
+      --clay-surface-soft: #faf5e8;
+      --clay-surface-card: #f5f0e0;
+      --clay-surface-strong: #ebe6d6;
+      --clay-ink: #0a0a0a;
+      --clay-body: #3a3a3a;
+      --clay-muted: #6a6a6a;
+      --clay-pink: #ff4d8b;
+      --clay-teal: #1a3a3a;
+      --clay-lavender: #b8a4ed;
+      --clay-peach: #ffb084;
+      --clay-ochre: #e8b94a;
+      --clay-mint: #a4d4c5;
+      --clay-coral: #ff6b5a;
+      --bg: var(--clay-canvas);
+      --paper: var(--clay-canvas);
+      --paper-strong: var(--clay-canvas);
+      --ink: var(--clay-ink);
+      --muted: var(--clay-muted);
+      --line: #e5dece;
+      --blue: var(--clay-ink);
+      --blue-hover: #1f1f1f;
+      --blue-light: var(--clay-canvas);
+      --cyan: var(--clay-pink);
+      --green: #1c7c5a;
+      --green-light: var(--clay-canvas);
+      --red: #c84d3f;
+      --red-light: var(--clay-canvas);
+      --sidebar-bg: var(--clay-canvas);
+      --sidebar-border: var(--line);
+      --shadow-sm: 0 10px 24px -18px rgba(26, 58, 58, 0.35);
+      --shadow-lg: 0 26px 60px -42px rgba(26, 58, 58, 0.48);
+      --radius: 1.5rem;
+      --radius-sm: 0.85rem;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --font-main: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--clay-canvas);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font-main);
+      background: var(--clay-canvas);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, input, textarea {
+      font: inherit;
+      outline: none;
+    }
+
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(255, 77, 139, 0.36);
+      outline-offset: 3px;
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      padding: 28px 22px;
+      background: var(--clay-canvas);
+      border-right: 1px solid var(--sidebar-border);
+      color: var(--ink);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .gem {
+      width: 48px;
+      height: 48px;
+      border-radius: 1.05rem;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 42%),
+        linear-gradient(135deg, var(--clay-pink), var(--clay-lavender));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 16px 32px -20px rgba(255, 77, 139, 0.9);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .gem::after {
+      content: '';
+      position: absolute;
+      inset: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.54);
+      border-radius: 0.7rem;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 4px 0 0;
+    }
+
+    .stat {
+      background: var(--clay-canvas);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .stat-grow { flex: 1; }
+
+    #rank {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .progress-meta {
+      margin: 9px 0 0;
+      color: var(--muted);
+    }
+
+    .progress-meta #xp {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .xpbar {
+      height: 8px;
+      background: var(--clay-canvas);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 13px 0 8px;
+    }
+
+    .xpbar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--clay-pink), var(--clay-peach));
+      border-radius: inherit;
+      transition: width 0.8s var(--ease);
+    }
+
+    .case-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .case-list {
+      scrollbar-width: thin;
+      scrollbar-color: #c7beab transparent;
+    }
+
+    .case-list::-webkit-scrollbar { width: 8px; }
+
+    .case-list::-webkit-scrollbar-track { background: transparent; }
+
+    .case-list::-webkit-scrollbar-thumb {
+      background: #c7beab;
+      border-radius: 999px;
+    }
+
+    .case-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color 180ms var(--ease), background-color 180ms var(--ease), transform 180ms var(--ease);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .case-btn:hover:not(.locked) {
+      background: var(--clay-canvas);
+      border-color: var(--line);
+      transform: translateX(3px);
+    }
+
+    .case-btn.active {
+      background: var(--clay-canvas);
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .case-btn.locked {
+      opacity: 0.42;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+
+    .case-btn small {
+      font-size: 11px;
+      line-height: 1.4;
+      opacity: 0.72;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--clay-canvas);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    main {
+      padding: 32px 40px 56px;
+      min-width: 0;
+      max-width: 1380px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero {
+      background: var(--clay-canvas);
+      border-radius: var(--radius);
+      padding: clamp(24px, 4vw, 42px);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 24px;
+      color: var(--ink);
+    }
+
+    .hero::after {
+      content: none;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      margin: 0 0 14px;
+      color: var(--ink);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      max-width: 720px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .subtitle {
+      color: var(--clay-body);
+      font-size: 16px;
+      max-width: 760px;
+      line-height: 1.75;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pillrow {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pill {
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: var(--clay-canvas);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid rgba(10, 10, 10, 0.08);
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(20px, 3vw, 30px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .section-card { margin-top: 24px; }
+
+    .card h3 {
+      margin: 0 0 16px;
+      color: var(--ink);
+      font-size: 21px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    .brief {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--clay-body);
+      background: var(--clay-canvas);
+      padding: 16px;
+      border-radius: 1rem;
+      margin-bottom: 20px;
+      border: 1px solid var(--clay-surface-strong);
+      box-shadow: none;
+    }
+
+    .media {
+      border-radius: 1.25rem;
+      background: #161616;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    .media::after {
+      content: '媒体加载中';
+      position: absolute;
+      color: rgba(255, 255, 255, 0.36);
+      z-index: 0;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    video, img {
+      max-width: 100%;
+      width: 100%;
+      height: auto;
+      display: block;
+      position: relative;
+      z-index: 1;
+      border-radius: 1.25rem;
+    }
+
+    .question { margin-top: 24px; }
+
+    .question h4 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+    }
+
+    .option {
+      border: 2px solid var(--line);
+      background: var(--clay-canvas);
+      border-radius: 1rem;
+      padding: 16px 18px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 180ms var(--ease), background-color 180ms var(--ease), transform 180ms var(--ease);
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      line-height: 1.55;
+    }
+
+    .option::before {
+      content: '';
+      width: 18px;
+      height: 18px;
+      margin-top: 3px;
+      border: 2px solid #c7beab;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: border-color 180ms var(--ease), border-width 180ms var(--ease);
+    }
+
+    .option:hover {
+      border-color: var(--blue);
+      background: var(--clay-canvas);
+      transform: translateY(-1px);
+    }
+
+    .option.selected {
+      border-color: var(--blue);
+      background: var(--clay-canvas);
+    }
+
+    .option.selected::before {
+      border-color: var(--blue);
+      border-width: 5px;
+    }
+
+    .option.correct {
+      border-color: var(--green);
+      background: var(--green-light);
+    }
+
+    .option.correct::before {
+      border-color: var(--green);
+      border-width: 5px;
+    }
+
+    .option.wrong {
+      border-color: var(--red);
+      background: var(--red-light);
+    }
+
+    .option.wrong::before {
+      border-color: var(--red);
+      border-width: 5px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      border: 2px solid var(--line);
+      border-radius: 1rem;
+      padding: 16px;
+      resize: vertical;
+      background: var(--clay-canvas);
+      color: var(--ink);
+      transition: border-color 180ms var(--ease), background-color 180ms var(--ease);
+      font-family: inherit;
+      line-height: 1.65;
+    }
+
+    textarea::placeholder { color: #82796a; }
+
+    textarea:focus {
+      border-color: var(--blue);
+      background: var(--clay-canvas);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 0.75rem;
+      min-height: 44px;
+      padding: 0 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 180ms var(--ease), border-color 180ms var(--ease), color 180ms var(--ease), transform 180ms var(--ease);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .primary {
+      background: var(--blue);
+      color: #ffffff;
+    }
+
+    .primary:hover:not(:disabled) {
+      background: var(--blue-hover);
+      transform: translateY(-1px);
+    }
+
+    .primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      background: var(--clay-canvas);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .secondary:hover { border-color: var(--ink); }
+
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .ghost:hover {
+      background: var(--clay-canvas);
+      color: var(--ink);
+    }
+
+    .sidebar-reset {
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    .sidebar-reset:hover {
+      background: var(--clay-canvas);
+      color: var(--ink);
+    }
+
+    .intro-action {
+      width: 100%;
+      min-height: 52px;
+      font-size: 16px;
+    }
+
+    .feedback {
+      margin-top: 16px;
+      border-radius: 1rem;
+      padding: 14px 16px;
+      display: none;
+      font-size: 14px;
+      line-height: 1.65;
+      animation: fadeIn 0.35s var(--ease);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feedback.ok {
+      display: block;
+      background: var(--green-light);
+      border-left: 4px solid var(--green);
+      color: #0d553b;
+    }
+
+    .feedback.no {
+      display: block;
+      background: var(--red-light);
+      border-left: 4px solid var(--red);
+      color: #8a2f25;
+    }
+
+    .clue-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .clue {
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 14px;
+      background: var(--clay-canvas);
+      transition: border-color 180ms var(--ease), background-color 180ms var(--ease), transform 180ms var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .clue::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--line);
+    }
+
+    .clue.done {
+      background: var(--clay-canvas);
+      border-color: rgba(28, 124, 90, 0.28);
+    }
+
+    .clue.done::before { background: var(--green); }
+
+    .clue strong {
+      display: block;
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .clue span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .report {
+      white-space: pre-wrap;
+      background: var(--clay-canvas);
+      color: var(--ink);
+      border-radius: 1.25rem;
+      padding: 22px;
+      min-height: 260px;
+      font-family: var(--font-mono);
+      line-height: 1.8;
+      font-size: 13px;
+      box-shadow: none;
+      border: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 250, 240, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal.open {
+      display: flex;
+      animation: modalBg 0.25s var(--ease);
+    }
+
+    @keyframes modalBg {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-inner {
+      max-width: 700px;
+      width: 100%;
+      max-height: min(780px, calc(100dvh - 40px));
+      overflow-y: auto;
+      background: var(--clay-canvas);
+      border-radius: var(--radius);
+      padding: clamp(24px, 4vw, 40px);
+      box-shadow: 0 30px 80px -52px rgba(10, 10, 10, 0.7);
+      border: 1px solid var(--line);
+      animation: modalPop 0.32s var(--ease);
+    }
+
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.97) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-inner h2 {
+      font-size: clamp(1.65rem, 4vw, 2rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin: 0 0 16px;
+      color: var(--ink);
+    }
+
+    .modal-inner .brief {
+      background: var(--clay-canvas);
+      color: var(--clay-body);
+      margin-bottom: 24px;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .mini {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    aside .mini { color: var(--muted); }
+
+    .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app { grid-template-columns: 1fr; }
+      aside {
+        position: relative;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--sidebar-border);
+      }
+      .stat-grow { flex: none; }
+      aside .case-list {
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .grid { grid-template-columns: 1fr; }
+      main { padding: 22px; }
+      .two { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      aside { padding: 22px 16px; }
+      main { padding: 16px; }
+      .hero,
+      .card { border-radius: 1.25rem; }
+      .pill { white-space: normal; }
+      .actions { flex-direction: column; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="gem"></div>
+      <div>
+        <h1>冰洲石双影迷案</h1>
+        <p>PolariScope 光学档案馆系统</p>
+      </div>
+    </div>
+    <div class="stat">
+      <strong>系统权限级别</strong>
+      <div id="rank">R0 见习观察员</div>
+      <div class="xpbar"><span id="xpbar"></span></div>
+      <p class="mini progress-meta"><span id="xp">0</span> / <span id="totalXp">0</span> 算力 (XP)</p>
+    </div>
+    <div class="stat">
+      <strong>已解锁成就徽章</strong>
+      <div class="badges" id="badges"><span class="mini">系统暂无记录，等待数据录入...</span></div>
+    </div>
+    <div class="stat stat-grow">
+      <strong>案件分析进度</strong>
+      <div class="case-list" id="caseList"></div>
+    </div>
+    <button class="btn ghost sidebar-reset" id="resetBtn">清除进度</button>
+  </aside>
+  
+  <main>
+    <section class="hero">
+      <h2>1669年，一块透明晶体制造了两个影子</h2>
+      <p class="subtitle">欢迎接入 PolariScope 光学系统。你目前的任务不是去死记硬背“双折射”的定义，而是通过处理实验现场录像，收集证据、排除伪假设，一步步还原光在冰洲石内展现出的隐藏维度。所有分析进度将被加密保存在本地终端。</p>
+      <div class="pillrow">
+        <span class="pill">分析流程：预测 → 观察 → 证据 → 模型</span>
+        <span class="pill">系统载荷：8 张证据卡 + 终端复盘报告</span>
+        <span class="pill">状态：本地存储在线</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3 id="caseTitle">系统数据载入中...</h3>
+        <p class="brief" id="caseBrief"></p>
+        <div class="media" id="mediaBox"></div>
+        
+        <div class="question">
+          <h4 id="question"></h4>
+          <div class="options" id="options"></div>
+          <div class="feedback" id="feedback"></div>
+        </div>
+        
+        <div class="question">
+          <h4>探员观察日志</h4>
+          <textarea id="note" placeholder="请在此录入你的观察结论：你在影像中捕获了什么特征？这些特征更倾向于支持或反驳哪一种假设模型？(至少12个字符)"></textarea>
+          <div class="actions">
+            <button class="btn primary" id="submitBtn">确认录入证据库</button>
+            <button class="btn secondary" id="hintBtn">请求 AI 逻辑辅助</button>
+            <button class="btn ghost" id="reportBtn">生成全景案件分析</button>
+          </div>
+          <div class="feedback" id="noteFeedback"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>证据链追踪板</h3>
+        <p class="mini" style="margin-bottom:16px;">指示灯绿色表示该线索已成功归档入库。当收集完所有拼图，系统将为你解锁 Boss 级最终结算。</p>
+        <div class="clue-grid" id="clueBoard"></div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <h3>案件总结合成终端</h3>
+      <p class="mini" style="margin-bottom:12px;">当证据卡逐步解开后，系统将在此处自动编译属于你的侦探勘察报告，可用于向总部汇报。</p>
+      <div class="report" id="report">等待首次数据输入...</div>
+      <div class="actions">
+        <button class="btn secondary" id="copyReport">复制报告至剪贴板</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal open" id="intro">
+  <div class="modal-inner">
+    <h2>系统初始化：《冰洲石双影迷案》</h2>
+    <p class="brief">欢迎你，侦探。本次任务规则已下发：面对每个实验阶段，请先查阅视觉影像，随后在系统给出的假设中进行推断，并务必留下你的观察日志。<br><br>当你的推断与物理法则相符时，系统会发放算力(XP)与权限徽章。你的终极目标是解释：<b>为何一块石头里会出现两个影子？为什么偏振片能凭空“抹除”其中一个？</b></p>
+    <div class="two">
+      <div class="clue">
+        <strong>行动指令 (胜利条件)</strong>
+        <span>破解 8 张加密证据卡，生成一份逻辑严密、可供同僚复核的勘察报告。</span>
+      </div>
+      <div class="clue">
+        <strong>技能树 (学习目标)</strong>
+        <span>掌握双折射机理、o光/e光特性、起偏与检偏逻辑，及折射率椭球模型。</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary intro-action" onclick="document.getElementById('intro').classList.remove('open')">授权确认，开始勘察</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = "";
+// 文案已经过“AI助理/侦探”风格的润色，逻辑结构（answer, xp等）严格保持不变
+const cases = [
+  {
+    id:"r0", rank:"R0", title:"建立基线：普通玻璃的干涉嫌疑", badge:"排除伪像",
+    xp:10, type:"video", src:"/courses/unit1/290ff791d6af4c5f5823d677d96a6214.mp4",
+    brief:"【AI 助理提示】在将矛头指向冰洲石的“超自然”属性前，我们需要建立基线对照。厚玻璃同样会引发折射偏移，但它能否复现我们所寻找的“稳定双重虚影”？请侦探仔细观察。",
+    q:"系统提问：引入厚玻璃实验，其核心侦察目的是什么？",
+    options:["为了证明任何透明介质都会导致双影现象","作为控制变量，排除“普通折射足以导致双像”的干扰假设","为了说明双重影子其实是玻璃表面的反光"],
+    answer:1,
+    explain:"系统判定逻辑：基线对照表明，普通折射会改变光路导致图像偏移，但不足以直接拆分出我们在冰洲石中看到的两个并列的清晰影像。"
+  },
+  {
+    id:"r1", rank:"R1", title:"案发现场：旋转过程中的运动轨迹", badge:"轨迹追踪者",
+    xp:15, type:"video", src:"/courses/unit1/冰洲石实验/视频1.1-旋转冰洲石进行观察.mp4",
+    brief:"【AI 助理提示】已进入核心案发现场。当冰洲石开始旋转时，请锁定两个影子的运动轨迹。它们是协同共舞，还是各行其道？是否存在一个“守规矩”的常态像，以及一个“越界”的异常像？",
+    q:"系统提问：在冰洲石旋转的影像中，最具突破性的发现是什么？",
+    options:["两道虚影的运动轨迹完全一致同步","两道虚影展现出了截然不同的相对位置与运动规律","画面仅有颜色改变，影像坐标毫无偏差"],
+    answer:1,
+    explain:"系统判定逻辑：双像存在差异化的运动规律，这一铁证暗示：原始光束极有可能在这里被拆分成了两束遵循不同传播法则的光。"
+  },
+  {
+    id:"r2", rank:"R2", title:"深度测试：双重晶体的叠加效应", badge:"交叉验证官",
+    xp:20, type:"video", src:"/courses/unit1/冰洲石实验/视频1.2-重叠两块冰洲石实验.mp4",
+    brief:"【AI 助理提示】单片晶体制造了双影，如果叠加第二片会怎样？优秀的侦探必须思考：第一片晶体输出的光，是否已经携带了某种“隐藏状态”，从而影响第二片晶体的处理结果？",
+    q:"系统提问：叠加第二块冰洲石的实验，其本质是在验证什么假设？",
+    options:["验证最初的双影是否仅仅是人类视觉系统的视错觉","验证初次分离出的光，在遭遇第二层介质时，是否会因偏振/方向属性产生可预测的变化","验证只要晶体足够多，影子的数量就会呈指数级无限复制"],
+    answer:1,
+    explain:"系统判定逻辑：双晶体叠加的结果表明，经过首次拆分的光，其内部属性（即偏振态）已被改变，第二块晶体是在对这些已改变的属性进行二次筛选。"
+  },
+  {
+    id:"r3", rank:"R3", title:"致命证据：被抹除的影像", badge:"偏振裁决者",
+    xp:20, type:"video", src:"/courses/unit1/冰洲石实验/视频1.3-偏振片观察冰洲石所成的像.mp4",
+    brief:"【AI 助理提示】现在引入新设备：偏振片。如果两个影子仅仅是普通的折射光路，为何旋转偏振片就像按下了删除键，能让其中一个影子彻底黯淡乃至消失？",
+    q:"系统提问：偏振片导致单个影像消失的现象，最直接支撑了以下哪个推论？",
+    options:["这两个影子本质上是由不同偏振方向的光所构成的","偏振片接触后导致冰洲石丧失了透明度","偏振片自带的滤镜改变了纸面文字的内容"],
+    answer:0,
+    explain:"系统判定逻辑：偏振片具备特定方向的滤光特性，影像在不同角度下的亮暗交替，是证明两束光具有不同偏振态的“实锤”证据。"
+  },
+  {
+    id:"r4", rank:"R4", title:"光路显影：绿色激光的内部透视", badge:"光路测绘师",
+    xp:25, type:"video", src:"/courses/unit1/冰洲石实验/视频1.5-绿色激光穿过冰洲石.mp4",
+    brief:"【AI 助理提示】文字成像是结果，现在我们需要透视过程。我们将射入一束绿色激光，这将使光束在晶体内部的折射路径完全显影化。请在脑海中绘制它们的分岔路线。",
+    q:"系统提问：相较于观察文字双像，引入激光实验的核心价值在于？",
+    options:["单纯为了提供更清晰、更有科技感的实验画面","将抽象的成像现象转化为可视化的内部光束传播路径，便于建立几何模型","证明冰洲石内部结构对绿色波长更为敏感"],
+    answer:1,
+    explain:"系统判定逻辑：激光使隐秘的光路显现，这让侦探得以将宏观的“双影子”现象，降维转化成可进行几何推导的“两根光束模型”。"
+  },
+  {
+    id:"r5", rank:"R5", title:"异常干扰：光谱色差与滞留残影", badge:"异常剔除者",
+    xp:20, type:"video", src:"/courses/unit1/冰洲石实验/视频1.7-0.25倍速观察红光滞留现象.mp4",
+    brief:"【AI 助理提示】警报：并非所有异常现象都是主线线索。影像中出现了红色光晕的滞留现象，这可能涉及材料杂质、荧光效应或散射。侦探，请保持科学的克制。",
+    q:"系统提问：面对这种红色光晕异常时，最符合科学逻辑的处理方式是？",
+    options:["不假思索地将其一并归入“双折射”的特征中","将其标记为“异常干扰”，提出杂质荧光或散射等可被后续独立验证的旁支假设","将其判定为无效数据，直接从档案中永久删除"],
+    answer:1,
+    explain:"系统判定逻辑：成熟的科学分析需要剥离干扰项。识别并隔离非主线现象，既能保证双折射模型的纯粹性，也能为未来的材料学研究留下接口。"
+  },
+  {
+    id:"r6", rank:"R6", title:"静态检偏：影像数据的变量控制", badge:"变量控制大师",
+    xp:25, type:"image", src:"/images/calcite/0度偏振片看冰洲石的像.jpg",
+    alt:"0度偏振片观察冰洲石双像的静态记录",
+    brief:"【AI 助理提示】这是一份使用 0° 偏振片捕捉的静态影像档案。这里的重点不是纠结偏振片的初始摆放姿态，而是要在控制变量的前提下，对比偏振片“检偏”时两束光的相对变化。",
+    q:"系统提问：在此类偏振片检偏的观测记录中，侦探最应关注的参数变量是？",
+    options:["随着偏振片旋转角度的变化，两道影像呈现出的此消彼长的亮暗关系","现场相机的曝光参数与感光度设置","偏振片是否对纸面墨迹产生了化学反应"],
+    answer:0,
+    explain:"系统判定逻辑：检偏实验的核心在于“选择”。偏振片角度的每一次变化，都是在筛选特定方向的光波，由此导致的明暗更替是建立偏振模型的关键依据。"
+  },
+  {
+    id:"r7", rank:"R7", title:"建立模型：寻光法则与折射率椭球", badge:"模型架构师",
+    xp:30, type:"video", src:"/courses/unit1/冰洲石实验/视频1.4-邦加球表示偏振态.mp4",
+    brief:"【AI 助理提示】线索已收集完毕，现在进入系统建模阶段。我们称遵循折射定律的光为“o光（寻常光）”，而与方向相关的光为“e光（非常光）”。我们需要一个‘折射率椭球’来映射这种方向上的差异。",
+    q:"系统提问：关于系统中 o光 与 e光 的理论模型，哪种表述最为精准？",
+    options:["o光与e光在介质中完全服从单一且恒定的折射率法则","o光的折射率参数相对恒定，而e光的有效折射率参数高度依赖于其在晶体内的传播方向","o光代表低频红色光谱，e光代表高频绿色光谱"],
+    answer:1,
+    explain:"系统判定逻辑：这是双折射的核心模型：o光受恒定折射率支配，而e光的折射率则随着方向的改变而发生偏移。折射率椭球正是这一空间特性的完美数学可视化。"
+  },
+  {
+    id:"boss", rank:"Boss", title:"终局结算：匹配液与系统报告", badge:"高维破壁人",
+    xp:50, type:"video", src:"/courses/unit1/冰洲石实验/视频1.6-冰洲石泡在甘油匹配液中并更改激光入射角.mp4",
+    brief:"【AI 助理提示】终局挑战已解锁。实验将晶体浸入折射率匹配液中以消除边界干扰，并改变了入射角度。侦探，请整合你所有的证据链，提交最终的案件机理报告。",
+    q:"系统提问：面对终局审查，系统期望你提交怎样的终审结论？",
+    options:["只需背诵《光学字典》中关于“双折射”的标准词条即可","利用包含叠加晶体、激光寻迹、偏振检偏在内的完整证据链，支撑起 o光/e光 及偏振椭球模型","在报告中写下“大自然真是太神奇了”作为结语"],
+    answer:1,
+    explain:"系统判定逻辑：科学的终局不是名词解释，而是用无懈可击的证据链构建出一个能够完美解释旧现象、并能预测新现象的物理模型。恭喜你，案件告破！"
+  }
+];
+
+const ranks = [
+  [0,"R0 见习观察员"],
+  [25,"R1 异常记录员"],
+  [45,"R2 证据分析师"],
+  [65,"R3 偏振裁决官"],
+  [110,"R4 光学测绘师"],
+  [165,"R5 模型架构师"],
+  [215,"Boss 首席探测专家"]
+];
+const state = JSON.parse(localStorage.getItem("calciteCaseState")||"{}");
+state.done = state.done || {};
+state.notes = state.notes || {};
+state.selected = state.selected || {};
+let current = state.current || "r0";
+
+function save(){ state.current=current; localStorage.setItem("calciteCaseState", JSON.stringify(state)); }
+function xp(){ return cases.filter(c=>state.done[c.id]).reduce((s,c)=>s+c.xp,0); }
+function totalXp(){ return cases.reduce((s,c)=>s+c.xp,0); }
+function isUnlocked(index){
+  if(index===0) return true;
+  if(cases[index].id==="boss") return cases.slice(0,-1).every(c=>state.done[c.id]);
+  return state.done[cases[index-1].id];
+}
+function currentCase(){ return cases.find(c=>c.id===current) || cases[0]; }
+function resetFeedback(el){
+  el.className="feedback";
+  el.removeAttribute("style");
+  el.textContent="";
+}
+function goToCase(id){
+  current=id;
+  save();
+  render();
+}
+function nextCaseAction(c){
+  const nextIdx=cases.findIndex(item=>item.id===c.id)+1;
+  if(nextIdx>=cases.length) return "";
+  return `<div class="actions"><button class="btn secondary" type="button" onclick="goToCase('${cases[nextIdx].id}')">进入下一阶段 &rarr;</button></div>`;
+}
+
+function renderSidebar(){
+  const x=xp(), total=totalXp();
+  document.getElementById("xp").textContent=x;
+  document.getElementById("totalXp").textContent=total;
+  document.getElementById("xpbar").style.width=Math.round(x/total*100)+"%";
+  document.getElementById("rank").innerHTML= `<span>${[...ranks].reverse().find(r=>x>=r[0])[1]}</span>`;
+  
+  const list=document.getElementById("caseList");
+  list.innerHTML="";
+  cases.forEach((c,i)=>{
+    const b=document.createElement("button");
+    const isDone = state.done[c.id];
+    const unlocked = isUnlocked(i);
+    b.className="case-btn" + (c.id===current?" active":"") + (unlocked?"":" locked");
+    b.innerHTML=`<div style="font-weight:600;">${isDone?"<span style='color:var(--cyan);'>[√]</span> ":""}${c.rank} ${c.title}</div><small>${isDone?"档案已录入":"等待解析"} // 载荷: ${c.xp} XP</small>`;
+    b.onclick=()=>{ if(unlocked){ current=c.id; save(); render(); } };
+    list.appendChild(b);
+  });
+  
+  const badges=cases.filter(c=>state.done[c.id]).map(c=>c.badge);
+  document.getElementById("badges").innerHTML=badges.length
+    ? badges.map(b=>`<span class="badge">✦ ${b}</span>`).join("")
+    : `<span class="mini" style="color:#64748b;">系统暂无记录，等待数据录入...</span>`;
+}
+
+function renderClues(){
+  const board=document.getElementById("clueBoard");
+  board.innerHTML=cases.map(c=>`
+    <div class="clue ${state.done[c.id]?"done":""}">
+      <strong>${state.done[c.id]?"✓ ":""}${c.rank} - 权限徽章：${c.badge}</strong>
+      <span>节点任务：${c.title}</span>
+    </div>`).join("");
+}
+
+function renderCase(){
+  const c=currentCase();
+  const isDone=Boolean(state.done[c.id]);
+  document.getElementById("caseTitle").textContent=`档案代号 ${c.rank}：${c.title}`;
+  document.getElementById("caseBrief").innerHTML=c.brief;
+  
+  const media=document.getElementById("mediaBox");
+  const src=BASE+encodeURI(c.src);
+  media.innerHTML=c.type==="image"
+    ? `<img src="${src}" alt="${c.alt||c.title}">`
+    : `<video src="${src}" controls playsinline preload="metadata"></video>`;
+    
+  document.getElementById("question").textContent=c.q;
+  
+  const opts=document.getElementById("options");
+  opts.innerHTML="";
+  c.options.forEach((o,i)=>{
+    const btn=document.createElement("button");
+    btn.className="option"+(state.selected[c.id]===i?" selected":"");
+    btn.textContent=o;
+    btn.onclick=()=>{
+      if(state.done[c.id]) return;
+      state.selected[c.id]=i;
+      save();
+      renderOptionsFeedback(false);
+    };
+    opts.appendChild(btn);
+  });
+  
+  document.getElementById("note").value=state.notes[c.id]||"";
+  const submitBtn=document.getElementById("submitBtn");
+  submitBtn.disabled=isDone;
+  submitBtn.textContent=isDone ? "证据已归档" : "确认录入证据库";
+  
+  const fb = document.getElementById("feedback");
+  const nf = document.getElementById("noteFeedback");
+  resetFeedback(fb);
+  resetFeedback(nf);
+  
+  if(isDone){
+    fb.className="feedback ok";
+    fb.innerHTML=`【归档成功】${c.explain} -> 已发放 ${c.xp} 算力及[${c.badge}]徽章。${nextCaseAction(c)}`;
+  }
+  
+  renderOptionsFeedback(isDone);
+}
+
+function renderOptionsFeedback(show){
+  const c=currentCase();
+  const selected=state.selected[c.id];
+  [...document.querySelectorAll(".option")].forEach((el,i)=>{
+    el.classList.toggle("selected", selected===i);
+    el.classList.remove("correct","wrong");
+    if(show && selected!==undefined){
+      if(i===c.answer && selected===c.answer) el.classList.add("correct");
+      if(i===selected && i!==c.answer) el.classList.add("wrong");
+    }
+  });
+}
+
+function submit(){
+  const c=currentCase();
+  if(state.done[c.id]) return;
+
+  const selected=state.selected[c.id];
+  const note=document.getElementById("note").value.trim();
+  state.notes[c.id]=note;
+  
+  const fb=document.getElementById("feedback");
+  const nf=document.getElementById("noteFeedback");
+  resetFeedback(fb);
+  resetFeedback(nf);
+  
+  if(selected===undefined){
+    fb.className="feedback no"; fb.textContent="【系统驳回】未检测到逻辑推断。身为探员，你必须明确你的立场。"; save(); return;
+  }
+  if(note.length<12){
+    nf.className="feedback no"; nf.textContent="【系统驳回】日志记录过于简略（至少需录入12个字符的证据描述）。"; save(); return;
+  }
+  
+  renderOptionsFeedback(true);
+  
+  if(selected===c.answer){
+    state.done[c.id]=true;
+    fb.className="feedback ok";
+    fb.innerHTML=`【归档成功】${c.explain} -> 已发放 ${c.xp} 算力及[${c.badge}]徽章。${nextCaseAction(c)}`;
+    document.getElementById("submitBtn").disabled=true;
+    document.getElementById("submitBtn").textContent="证据已归档";
+  }else{
+    fb.className="feedback no"; fb.textContent=`【逻辑冲突】推断存在漏洞。AI提示：${c.explain} (请修正你的假设后重新录入)`;
+  }
+  save(); renderSidebar(); renderClues(); makeReport();
+}
+
+function hint(){
+  const c=currentCase();
+  const fb=document.getElementById("feedback");
+  fb.className="feedback ok";
+  fb.style.borderColor = "var(--cyan)";
+  fb.style.backgroundColor = "var(--blue-light)";
+  fb.style.color = "var(--blue)";
+  fb.textContent="【AI 逻辑辅助】" + c.explain;
+}
+
+function makeReport(){
+  const lines=[];
+  lines.push("=================================================");
+  lines.push(" PolariScope 终端报告:《冰洲石双影隐秘维度档案》 ");
+  lines.push("=================================================");
+  lines.push(`系统状态: 运转正常`);
+  lines.push(`探员级别: ${[...ranks].reverse().find(r=>xp()>=r[0])[1]}`);
+  lines.push(`累计算力: ${xp()} / ${totalXp()} XP`);
+  lines.push(`解锁成就: ${cases.filter(c=>state.done[c.id]).map(c=>c.badge).join(" | ") || "系统暂无记录"}`);
+  lines.push("");
+  lines.push("[第一卷：勘察证据链]");
+  cases.forEach(c=>{
+    if(state.done[c.id]){
+      lines.push(`>> 档案 ${c.rank}：${c.title}`);
+      lines.push(`   观察日志: ${state.notes[c.id] || "空"}`);
+      lines.push(`   AI结论核验: ${c.explain}`);
+      lines.push("");
+    }
+  });
+  
+  lines.push("[第二卷：全景物理模型构建]");
+  if(cases.slice(0,-1).every(c=>state.done[c.id])){
+    lines.push(">> 综合推演结论：");
+    lines.push("冰洲石内部结构将入射光拆分成了两束遵循不同传播法则的光束，且二者具备差异化的偏振特性。");
+    lines.push("o光(寻常光)的折射率在该介质中维持相对恒定；而e光(非常光)的有效折射率则与光束传播的方向高度绑定。");
+    lines.push("由于偏振片能针对特定偏振方向进行空间过滤，因此能够选择性地将某一像“抹除”。这种折射率的方向性差异，可通过‘折射率椭球’模型进行精确描述。");
+  }else{
+    lines.push(">> 警告：底层证据链尚未闭环，不足以进行模型生成。");
+    lines.push(">> 建议指令：请继续解析剩余影像档案，特别是关于激光寻迹、偏振检偏及模型验证的关卡。");
+  }
+  lines.push("");
+  lines.push("[附录：提交同僚交叉核验清单]");
+  lines.push(" - 现有证据是否已经完全排除了普通的单一折射假设？");
+  lines.push(" - 建立的光束分离模型，能否完美自洽地解释偏振片的过滤现象？");
+  lines.push(" - 若改变入射参数或匹配液折射率，当前椭球模型能做出怎样的预判？");
+  lines.push("======================== EOF ========================");
+  
+  document.getElementById("report").textContent=lines.join("\n");
+}
+
+function render(){
+  renderSidebar(); renderClues(); renderCase(); makeReport();
+}
+
+document.getElementById("submitBtn").onclick=submit;
+document.getElementById("hintBtn").onclick=hint;
+document.getElementById("reportBtn").onclick=makeReport;
+document.getElementById("note").addEventListener("input", e=>{ state.notes[currentCase().id]=e.target.value; save(); });
+document.getElementById("copyReport").onclick=async()=>{
+  const text=document.getElementById("report").textContent;
+  try{ await navigator.clipboard.writeText(text); alert("【系统通知】报告已加密复制至剪贴板，可前往外部终端粘贴。"); }
+  catch{ alert("【系统警报】剪贴板接口调用失败，请手动框选文本执行复制操作。"); }
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("【警告】确认要擦除终端所有侦察进度吗？此操作无法撤销。")){
+    localStorage.removeItem("calciteCaseState");
+    location.reload();
+  }
+};
+
+render();
+</script>
+</body>
+</html>
