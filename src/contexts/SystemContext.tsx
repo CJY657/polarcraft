@@ -69,7 +69,7 @@ const DEFAULT_HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
 
 // Match the main API client behavior:
 // - local dev can point to an explicit VITE_API_URL
-// - production single-service deployments (e.g. Render) should use same-origin /api
+// - production single-service deployments should use same-origin /api
 const API_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_URL);
 
 // =====================================================
