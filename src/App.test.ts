@@ -7,6 +7,10 @@ describe("shouldHideGlobalFooter", () => {
     expect(shouldHideGlobalFooter("/experiments/course1")).toBe(true);
   });
 
+  it("hides the footer on application detail pages", () => {
+    expect(shouldHideGlobalFooter("/applications/course1")).toBe(true);
+  });
+
   it("keeps the footer on the experiments index", () => {
     expect(shouldHideGlobalFooter("/experiments")).toBe(false);
   });
@@ -20,6 +24,8 @@ describe("shouldRequireStudentAuth", () => {
   it("requires login for protected student routes", () => {
     expect(shouldRequireStudentAuth("/experiments")).toBe(true);
     expect(shouldRequireStudentAuth("/experiments/course1")).toBe(true);
+    expect(shouldRequireStudentAuth("/applications")).toBe(true);
+    expect(shouldRequireStudentAuth("/applications/course1")).toBe(true);
     expect(shouldRequireStudentAuth("/units")).toBe(true);
     expect(shouldRequireStudentAuth("/units/unit1")).toBe(true);
     expect(shouldRequireStudentAuth("/profile")).toBe(true);

@@ -28,16 +28,48 @@ import type {
   UpdateMediaInput,
   CreateHyperlinkInput,
   UpdateHyperlinkInput,
+  KnowledgeTag,
 } from "../types/course.types.js";
 
 // ============================================================
 // Helper Functions / 辅助函数
 // ============================================================
 
+const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = "foundation";
+const KNOWLEDGE_TAGS = new Set<KnowledgeTag>(["foundation", "optical_device"]);
+
+function normalizeKnowledgeTag(
+  value: unknown,
+  fallback: KnowledgeTag = DEFAULT_KNOWLEDGE_TAG
+): KnowledgeTag {
+  return typeof value === "string" && KNOWLEDGE_TAGS.has(value as KnowledgeTag)
+    ? (value as KnowledgeTag)
+    : fallback;
+}
+
+function parseKnowledgeTagInput(value: unknown): KnowledgeTag | undefined | null {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!KNOWLEDGE_TAGS.has(trimmed as KnowledgeTag)) {
+    return null;
+  }
+
+  return trimmed as KnowledgeTag;
+}
+
 /**
  * Transform course row to API response format
  */
 function transformCourseRow(row: CourseRow) {
+  const knowledgeTag = normalizeKnowledgeTag(row.knowledge_tag);
+
   return {
     id: row.id,
     unitId: row.unit_id,
@@ -51,6 +83,7 @@ function transformCourseRow(row: CourseRow) {
     },
     coverImage: row.cover_image || undefined,
     color: row.color,
+    knowledgeTag,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -59,7 +92,7 @@ function transformCourseRow(row: CourseRow) {
 /**
  * Transform main slide row to API response format
  */
-function transformMainSlideRow(row: MainSlideRow) {
+function transformMainSlideRow(row: MainSlideRow, fallbackKnowledgeTag = DEFAULT_KNOWLEDGE_TAG) {
   return {
     id: row.id,
     url: row.url,
@@ -67,13 +100,14 @@ function transformMainSlideRow(row: MainSlideRow) {
       "zh-CN": row.title_zh || undefined,
       "en-US": row.title_en || undefined,
     },
+    knowledgeTag: normalizeKnowledgeTag(row.knowledge_tag, fallbackKnowledgeTag),
   };
 }
 
 /**
  * Transform media row to API response format
  */
-function transformMediaRow(row: MediaRow) {
+function transformMediaRow(row: MediaRow, fallbackKnowledgeTag = DEFAULT_KNOWLEDGE_TAG) {
   return {
     id: row.id,
     type: row.type,
@@ -83,6 +117,7 @@ function transformMediaRow(row: MediaRow) {
       "zh-CN": row.title_zh,
       "en-US": row.title_en || undefined,
     },
+    knowledgeTag: normalizeKnowledgeTag(row.knowledge_tag, fallbackKnowledgeTag),
     duration: row.duration || undefined,
     sortOrder: row.sort_order,
   };
@@ -334,11 +369,12 @@ export class CourseController {
         const mainSlide = await CourseModel.getMainSlide(course.id);
         const media = await CourseModel.getMediaByCourse(course.id);
         const hyperlinks = await CourseModel.getHyperlinksByCourse(course.id);
+        const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
 
         return {
           ...transformCourseRow(course),
-          mainSlide: mainSlide ? transformMainSlideRow(mainSlide) : undefined,
-          media: media.map(transformMediaRow),
+          mainSlide: mainSlide ? transformMainSlideRow(mainSlide, courseKnowledgeTag) : undefined,
+          media: media.map((item) => transformMediaRow(item, courseKnowledgeTag)),
           hyperlinks: hyperlinks.map(transformHyperlinkRow),
         };
       })
@@ -362,11 +398,12 @@ export class CourseController {
     const mainSlide = await CourseModel.getMainSlide(id);
     const media = await CourseModel.getMediaByCourse(id);
     const hyperlinks = await CourseModel.getHyperlinksByCourse(id);
+    const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
 
     res.success({
       ...transformCourseRow(course),
-      mainSlide: mainSlide ? transformMainSlideRow(mainSlide) : undefined,
-      media: media.map(transformMediaRow),
+      mainSlide: mainSlide ? transformMainSlideRow(mainSlide, courseKnowledgeTag) : undefined,
+      media: media.map((item) => transformMediaRow(item, courseKnowledgeTag)),
       hyperlinks: hyperlinks.map(transformHyperlinkRow),
     });
   });
@@ -381,11 +418,17 @@ export class CourseController {
       return res.error("封面图地址格式无效", "VALIDATION_ERROR", 400);
     }
 
+    const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    if (parsedKnowledgeTag === null) {
+      return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
+
     const data: CreateCourseInput = {
       ...req.body,
       unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
       title_zh: typeof req.body.title_zh === "string" ? req.body.title_zh.trim() : req.body.title_zh,
       coverImage: normalizedCoverImage,
+      knowledgeTag: parsedKnowledgeTag || DEFAULT_KNOWLEDGE_TAG,
     };
 
     if (!data.unitId || !data.title_zh) {
@@ -414,10 +457,16 @@ export class CourseController {
       return res.error("封面图地址格式无效", "VALIDATION_ERROR", 400);
     }
 
+    const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    if (parsedKnowledgeTag === null) {
+      return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
+
     const data: UpdateCourseInput = {
       ...req.body,
       unitId: typeof req.body.unitId === "string" ? req.body.unitId.trim() : req.body.unitId,
       ...(hasCoverImage ? { coverImage: normalizedCoverImage } : {}),
+      ...(parsedKnowledgeTag ? { knowledgeTag: parsedKnowledgeTag } : {}),
     };
 
     const course = await CourseModel.getCourseById(id);
@@ -476,12 +525,14 @@ export class CourseController {
   static getMainSlide = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const course = await CourseModel.getCourseById(id);
+    const courseKnowledgeTag = normalizeKnowledgeTag(course?.knowledge_tag);
     const mainSlide = await CourseModel.getMainSlide(id);
     if (!mainSlide) {
       return res.success(null);
     }
 
-    res.success(transformMainSlideRow(mainSlide));
+    res.success(transformMainSlideRow(mainSlide, courseKnowledgeTag));
   });
 
   /**
@@ -505,9 +556,12 @@ export class CourseController {
    */
   static upsertMainSlide = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data: CreateMainSlideInput = req.body;
+    const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    if (parsedKnowledgeTag === null) {
+      return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
 
-    if (!data.url) {
+    if (!req.body.url) {
       return res.error("缺少 PDF URL", "VALIDATION_ERROR", 400);
     }
 
@@ -515,6 +569,12 @@ export class CourseController {
     if (!course) {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
+
+    const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
+    const data: CreateMainSlideInput = {
+      ...req.body,
+      knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
+    };
 
     const existingMainSlide = await CourseModel.getMainSlide(id);
     await CourseModel.upsertMainSlide(id, data);
@@ -524,7 +584,7 @@ export class CourseController {
     const mainSlide = await CourseModel.getMainSlide(id);
 
     logger.info(`Main slide upserted by ${req.user!.username} for course: ${id}`);
-    res.success(transformMainSlideRow(mainSlide!));
+    res.success(transformMainSlideRow(mainSlide!, courseKnowledgeTag));
   });
 
   /**
@@ -662,8 +722,10 @@ export class CourseController {
   static getMediaList = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const course = await CourseModel.getCourseById(id);
+    const courseKnowledgeTag = normalizeKnowledgeTag(course?.knowledge_tag);
     const media = await CourseModel.getMediaByCourse(id);
-    res.success(media.map(transformMediaRow));
+    res.success(media.map((item) => transformMediaRow(item, courseKnowledgeTag)));
   });
 
   /**
@@ -678,7 +740,8 @@ export class CourseController {
       return res.error("媒体资源不存在", "NOT_FOUND", 404);
     }
 
-    res.success(transformMediaRow(media));
+    const course = await CourseModel.getCourseById(media.course_id);
+    res.success(transformMediaRow(media, normalizeKnowledgeTag(course?.knowledge_tag)));
   });
 
   /**
@@ -702,9 +765,12 @@ export class CourseController {
    */
   static createMedia = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data: CreateMediaInput = req.body;
+    const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    if (parsedKnowledgeTag === null) {
+      return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
 
-    if (!data.type || !data.url || !data.title_zh) {
+    if (!req.body.type || !req.body.url || !req.body.title_zh) {
       return res.error("缺少必要字段", "VALIDATION_ERROR", 400);
     }
 
@@ -713,11 +779,17 @@ export class CourseController {
       return res.error("课程不存在", "NOT_FOUND", 404);
     }
 
+    const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
+    const data: CreateMediaInput = {
+      ...req.body,
+      knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
+    };
+
     const mediaId = await CourseModel.createMedia(id, data);
     const media = await CourseModel.getMediaById(mediaId);
 
     logger.info(`Media created by ${req.user!.username}: ${mediaId}`);
-    res.success(transformMediaRow(media!), "媒体资源创建成功", 201);
+    res.success(transformMediaRow(media!, courseKnowledgeTag), "媒体资源创建成功", 201);
   });
 
   /**
@@ -726,12 +798,22 @@ export class CourseController {
    */
   static updateMedia = asyncHandler(async (req: Request, res: Response) => {
     const { mediaId } = req.params;
-    const data: UpdateMediaInput = req.body;
+    const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    if (parsedKnowledgeTag === null) {
+      return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
 
     const media = await CourseModel.getMediaById(mediaId);
     if (!media) {
       return res.error("媒体资源不存在", "NOT_FOUND", 404);
     }
+
+    const course = await CourseModel.getCourseById(media.course_id);
+    const courseKnowledgeTag = normalizeKnowledgeTag(course?.knowledge_tag);
+    const data: UpdateMediaInput = {
+      ...req.body,
+      knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
+    };
 
     await CourseModel.updateMedia(mediaId, data);
     await ManagedUploadCleanupService.cleanupUrls([media.url, media.preview_pdf_url], {
@@ -740,7 +822,7 @@ export class CourseController {
     const updatedMedia = await CourseModel.getMediaById(mediaId);
 
     logger.info(`Media updated by ${req.user!.username}: ${mediaId}`);
-    res.success(transformMediaRow(updatedMedia!));
+    res.success(transformMediaRow(updatedMedia!, courseKnowledgeTag));
   });
 
   /**

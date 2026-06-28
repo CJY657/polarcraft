@@ -13,6 +13,7 @@ import { cn } from "@/utils/classNames";
 import { preloadCourseViewerRoute } from "@/lib/routePreload";
 import { BookOpen, Play, FileText, ChevronRight } from "lucide-react";
 import type { UnitCourse } from "@/lib/unit.service";
+import { getKnowledgeTagLabel } from "@/lib/course.service";
 
 export interface CourseSelectorCourse extends UnitCourse {
   unitTitle?: { "zh-CN"?: string; "en-US"?: string };
@@ -22,19 +23,25 @@ export interface CourseSelectorCourse extends UnitCourse {
 interface CourseSelectorProps {
   courses: CourseSelectorCourse[];
   unitColor: string;
+  basePath?: string;
   layout?: "grid" | "sidebar";
   title?: string;
   description?: string;
   showHeader?: boolean;
+  itemLabel?: string;
+  openLabel?: string;
 }
 
 export function CourseSelector({
   courses,
   unitColor,
+  basePath = "/experiments",
   layout = "grid",
   title,
   description,
   showHeader = true,
+  itemLabel,
+  openLabel,
 }: CourseSelectorProps) {
   const { theme } = useTheme();
   const { i18n } = useTranslation();
@@ -46,7 +53,7 @@ export function CourseSelector({
     return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
   };
 
-  const getCourseHref = (courseId: string) => `/experiments/${courseId}`;
+  const getCourseHref = (courseId: string) => `${basePath}/${courseId}`;
 
   if (courses.length === 0) {
     return (
@@ -186,8 +193,8 @@ export function CourseSelector({
                           )}
                         >
                           {isZh
-                            ? `实验 ${String(index + 1).padStart(2, "0")}`
-                            : `Experiment ${String(index + 1).padStart(2, "0")}`}
+                            ? `${itemLabel || "实验"} ${String(index + 1).padStart(2, "0")}`
+                            : `${itemLabel || "Experiment"} ${String(index + 1).padStart(2, "0")}`}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           <h4
@@ -212,6 +219,35 @@ export function CourseSelector({
                               {course.mediaCount} {isZh ? "个媒体" : "media"}
                             </span>
                           )}
+                          <span
+                            className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                            style={{
+                              color:
+                                theme === "dark"
+                                  ? "#f8fafc"
+                                  : course.knowledgeTag === "optical_device"
+                                    ? "#0f766e"
+                                    : "#1d4ed8",
+                              backgroundColor:
+                                course.knowledgeTag === "optical_device"
+                                  ? theme === "dark"
+                                    ? "rgba(20,184,166,0.18)"
+                                    : "rgba(20,184,166,0.10)"
+                                  : theme === "dark"
+                                    ? "rgba(59,130,246,0.18)"
+                                    : "rgba(59,130,246,0.10)",
+                              borderColor:
+                                course.knowledgeTag === "optical_device"
+                                  ? theme === "dark"
+                                    ? "rgba(45,212,191,0.30)"
+                                    : "rgba(20,184,166,0.24)"
+                                  : theme === "dark"
+                                    ? "rgba(96,165,250,0.30)"
+                                    : "rgba(37,99,235,0.20)",
+                            }}
+                          >
+                            {getKnowledgeTagLabel(course.knowledgeTag, isZh)}
+                          </span>
                           {course.unitTitle && (
                             <span
                               className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
@@ -237,7 +273,7 @@ export function CourseSelector({
                         className="hidden shrink-0 items-center gap-1.5 text-[13px] font-semibold sm:inline-flex"
                         style={{ color: course.color }}
                       >
-                        {isZh ? "进入实验" : "Open"}
+                        {openLabel || (isZh ? "进入实验" : "Open")}
                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
@@ -272,7 +308,7 @@ export function CourseSelector({
                         className="inline-flex items-center gap-1.5 text-sm font-semibold sm:hidden"
                         style={{ color: course.color }}
                       >
-                        {isZh ? "进入实验" : "Open"}
+                        {openLabel || (isZh ? "进入实验" : "Open")}
                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>

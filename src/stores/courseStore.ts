@@ -7,7 +7,14 @@
  */
 
 import { create } from "zustand";
-import { courseApi, Course, CourseMedia, CourseHyperlink, MainSlide } from "@/lib/course.service";
+import {
+  courseApi,
+  Course,
+  CourseMedia,
+  CourseHyperlink,
+  MainSlide,
+  normalizeKnowledgeTag,
+} from "@/lib/course.service";
 
 interface CourseState {
   courses: Course[];
@@ -20,6 +27,23 @@ interface CourseState {
   clearError: () => void;
 }
 
+function normalizeCourse(course: Course): Course {
+  return {
+    ...course,
+    knowledgeTag: normalizeKnowledgeTag(course.knowledgeTag),
+    mainSlide: course.mainSlide
+      ? { ...course.mainSlide, knowledgeTag: normalizeKnowledgeTag(course.mainSlide.knowledgeTag) }
+      : undefined,
+    media: Array.isArray(course.media)
+      ? course.media.map((item) => ({
+          ...item,
+          knowledgeTag: normalizeKnowledgeTag(item.knowledgeTag),
+        }))
+      : [],
+    hyperlinks: Array.isArray(course.hyperlinks) ? course.hyperlinks : [],
+  };
+}
+
 export const useCourseStore = create<CourseState>((set, get) => ({
   courses: [],
   isLoading: false,
@@ -29,7 +53,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const courses = await courseApi.getPublicCourses();
-      set({ courses, isLoading: false });
+      set({ courses: courses.map(normalizeCourse), isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch courses";
       set({ error: message, isLoading: false });
@@ -73,7 +97,7 @@ export const useCourseDetailStore = create<CourseDetailState>((set) => ({
   fetchCourse: async (courseId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const course = await courseApi.getPublicCourse(courseId);
+      const course = normalizeCourse(await courseApi.getPublicCourse(courseId));
 
       set({
         course,

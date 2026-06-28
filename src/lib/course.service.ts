@@ -19,10 +19,35 @@ export interface LabelI18n {
 
 export type MediaType = "pptx" | "image" | "video";
 
+export type KnowledgeTag = "foundation" | "optical_device";
+
+export const KNOWLEDGE_TAG_LABELS: Record<
+  KnowledgeTag,
+  { "zh-CN": string; "en-US": string }
+> = {
+  foundation: {
+    "zh-CN": "基础知识",
+    "en-US": "Foundation",
+  },
+  optical_device: {
+    "zh-CN": "光学设备",
+    "en-US": "Optical device",
+  },
+};
+
+export function normalizeKnowledgeTag(tag?: KnowledgeTag | null): KnowledgeTag {
+  return tag === "optical_device" ? "optical_device" : "foundation";
+}
+
+export function getKnowledgeTagLabel(tag: KnowledgeTag | undefined | null, isZh: boolean): string {
+  return KNOWLEDGE_TAG_LABELS[normalizeKnowledgeTag(tag)][isZh ? "zh-CN" : "en-US"];
+}
+
 export interface MainSlide {
   id: string;
   url: string;
   title: LabelI18n;
+  knowledgeTag: KnowledgeTag;
 }
 
 export interface CourseMedia {
@@ -31,6 +56,7 @@ export interface CourseMedia {
   url: string;
   previewPdfUrl?: string;
   title: LabelI18n;
+  knowledgeTag: KnowledgeTag;
   duration?: number;
   sortOrder: number;
 }
@@ -53,6 +79,7 @@ export interface Course {
   description: LabelI18n;
   coverImage?: string;
   color: string;
+  knowledgeTag: KnowledgeTag;
   mainSlide?: MainSlide;
   media: CourseMedia[];
   hyperlinks: CourseHyperlink[];
@@ -88,6 +115,7 @@ export interface CreateCourseInput {
   description_en?: string;
   coverImage?: string | null;
   color?: string;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface UpdateCourseInput {
@@ -98,6 +126,7 @@ export interface UpdateCourseInput {
   description_en?: string;
   coverImage?: string | null;
   color?: string;
+  knowledgeTag?: KnowledgeTag;
   sortOrder?: number;
 }
 
@@ -105,6 +134,7 @@ export interface UpsertMainSlideInput {
   url: string;
   title_zh?: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface CreateMediaInput {
@@ -113,6 +143,7 @@ export interface CreateMediaInput {
   previewPdfUrl?: string;
   title_zh: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
   duration?: number;
 }
 
@@ -122,6 +153,7 @@ export interface UpdateMediaInput {
   previewPdfUrl?: string;
   title_zh?: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
   duration?: number;
 }
 

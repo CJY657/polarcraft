@@ -17,13 +17,119 @@ import {
 import { Link } from "react-router-dom";
 
 import { PersistentHeader } from "@/components/shared";
+import type { ModuleIconKey } from "@/components/icons";
 import { useTheme } from "@/contexts/ThemeContext";
 import { unitApi, type Unit } from "@/lib/unit.service";
+import { normalizeKnowledgeTag, type KnowledgeTag } from "@/lib/course.service";
 import { useUnitStore } from "@/stores/unitStore";
 import { CourseSelector, type CourseSelectorCourse } from "@/feature/unit/CourseSelector";
 import { cn } from "@/utils/classNames";
 
 const ALL_EXPERIMENTS_ID = "__all_experiments__";
+
+type CourseLibraryVariant = "experiments" | "applications";
+
+interface CourseLibraryConfig {
+  knowledgeTag: KnowledgeTag;
+  moduleKey: ModuleIconKey;
+  titleKey?: string;
+  titleZh: string;
+  titleEn: string;
+  eyebrow: string;
+  basePath: string;
+  allTitleZh: string;
+  allTitleEn: string;
+  unitTitleZh: string;
+  unitTitleEn: string;
+  allDescriptionZh: string;
+  allDescriptionEn: string;
+  unitDescriptionZh: string;
+  unitDescriptionEn: string;
+  unitsHeadingZh: string;
+  unitsHeadingEn: string;
+  unitsDescriptionZh: string;
+  unitsDescriptionEn: string;
+  browseAllZh: string;
+  browseAllEn: string;
+  emptyUnitTitleZh: string;
+  emptyUnitTitleEn: string;
+  emptyUnitDescriptionZh: string;
+  emptyUnitDescriptionEn: string;
+  loadingZh: string;
+  loadingEn: string;
+  itemLabelZh: string;
+  itemLabelEn: string;
+  openLabelZh: string;
+  openLabelEn: string;
+}
+
+const COURSE_LIBRARY_CONFIGS: Record<CourseLibraryVariant, CourseLibraryConfig> = {
+  experiments: {
+    knowledgeTag: "foundation",
+    moduleKey: "courses",
+    titleKey: "page.courses.title",
+    titleZh: "实验内容",
+    titleEn: "Experiments",
+    eyebrow: "Experiment Library",
+    basePath: "/experiments",
+    allTitleZh: "全部实验",
+    allTitleEn: "All experiments",
+    unitTitleZh: "本单元实验",
+    unitTitleEn: "Experiments in this unit",
+    allDescriptionZh: "跨单元浏览全部基础知识实验入口，适合直接查找或快速进入。",
+    allDescriptionEn: "Browse every foundation experiment across units from one unified library.",
+    unitDescriptionZh: "选择一个实验，直接进入课件与媒体内容。",
+    unitDescriptionEn: "Choose an experiment to open its slides and media.",
+    unitsHeadingZh: "实验单元",
+    unitsHeadingEn: "Units",
+    unitsDescriptionZh: "先选单元，再进入当前单元下的基础知识实验。",
+    unitsDescriptionEn: "Choose a unit, then open one of its foundation experiments.",
+    browseAllZh: "查看全部实验",
+    browseAllEn: "Browse all experiments",
+    emptyUnitTitleZh: "该单元暂无基础知识实验",
+    emptyUnitTitleEn: "No foundation experiments in this unit",
+    emptyUnitDescriptionZh: "当前单元还没有可进入的基础知识内容。",
+    emptyUnitDescriptionEn: "There are no foundation entries available in this unit yet.",
+    loadingZh: "实验加载中",
+    loadingEn: "Loading experiments",
+    itemLabelZh: "实验",
+    itemLabelEn: "Experiment",
+    openLabelZh: "进入实验",
+    openLabelEn: "Open",
+  },
+  applications: {
+    knowledgeTag: "optical_device",
+    moduleKey: "applications",
+    titleZh: "前沿应用",
+    titleEn: "Frontier Applications",
+    eyebrow: "Application Library",
+    basePath: "/applications",
+    allTitleZh: "全部应用",
+    allTitleEn: "All applications",
+    unitTitleZh: "本单元应用",
+    unitTitleEn: "Applications in this unit",
+    allDescriptionZh: "集中浏览光学设备类内容，连接仪器、检测与前沿应用场景。",
+    allDescriptionEn: "Browse optical-device content across instruments, detection, and frontier use cases.",
+    unitDescriptionZh: "选择一个应用，直接进入课件与媒体内容。",
+    unitDescriptionEn: "Choose an application to open its slides and media.",
+    unitsHeadingZh: "应用单元",
+    unitsHeadingEn: "Application units",
+    unitsDescriptionZh: "先选单元，再进入当前单元下的光学设备应用。",
+    unitsDescriptionEn: "Choose a unit, then open one of its optical-device applications.",
+    browseAllZh: "查看全部应用",
+    browseAllEn: "Browse all applications",
+    emptyUnitTitleZh: "该单元暂无光学设备应用",
+    emptyUnitTitleEn: "No optical-device applications in this unit",
+    emptyUnitDescriptionZh: "当前单元还没有可进入的光学设备内容。",
+    emptyUnitDescriptionEn: "There are no optical-device entries available in this unit yet.",
+    loadingZh: "应用加载中",
+    loadingEn: "Loading applications",
+    itemLabelZh: "应用",
+    itemLabelEn: "Application",
+    openLabelZh: "进入应用",
+    openLabelEn: "Open",
+  },
+};
 
 function EmptyWorkspace({
   theme,
@@ -54,9 +160,10 @@ function EmptyWorkspace({
   );
 }
 
-export function CoursesPage() {
+export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibraryVariant } = {}) {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
+  const config = COURSE_LIBRARY_CONFIGS[variant];
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedUnitCourses, setSelectedUnitCourses] = useState<CourseSelectorCourse[]>([]);
   const [selectedUnitCoursesLoading, setSelectedUnitCoursesLoading] = useState(false);
@@ -72,6 +179,13 @@ export function CoursesPage() {
   >({});
 
   const { units, isLoading: unitsLoading, fetchUnits } = useUnitStore();
+  const isZh = i18n.language !== "en-US";
+  const pageTitle = config.titleKey ? t(config.titleKey) : isZh ? config.titleZh : config.titleEn;
+
+  const courseMatchesLibrary = useCallback(
+    (course: CourseSelectorCourse) => normalizeKnowledgeTag(course.knowledgeTag) === config.knowledgeTag,
+    [config.knowledgeTag],
+  );
 
   const getUnitCourses = useCallback((unit: Unit) => {
     const cachedCourses = unitCoursesCacheRef.current[unit.id];
@@ -82,8 +196,9 @@ export function CoursesPage() {
     const request = unitApi
       .getPublicUnitCourses(unit.id)
       .then((courses) => {
-        unitCoursesCacheRef.current[unit.id] = courses;
-        return courses;
+        const matchingCourses = courses.filter(courseMatchesLibrary);
+        unitCoursesCacheRef.current[unit.id] = matchingCourses;
+        return matchingCourses;
       })
       .catch((error: unknown) => {
         if (unitCoursesCacheRef.current[unit.id] === request) {
@@ -94,7 +209,7 @@ export function CoursesPage() {
 
     unitCoursesCacheRef.current[unit.id] = request;
     return request;
-  }, []);
+  }, [courseMatchesLibrary]);
 
   useEffect(() => {
     fetchUnits();
@@ -127,8 +242,6 @@ export function CoursesPage() {
     });
   }, [units]);
 
-  const isZh = i18n.language !== "en-US";
-
   const getLabel = useCallback(
     (label: { "zh-CN"?: string; "en-US"?: string }) => {
       return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
@@ -141,7 +254,11 @@ export function CoursesPage() {
       ? null
       : (units.find((unit) => unit.id === selectedUnitId) ?? units[0] ?? null);
   const isAllExperimentsSelected = selectedUnitId === ALL_EXPERIMENTS_ID;
-  const totalExperimentCount = units.reduce((total, unit) => total + (unit.courseCount || 0), 0);
+  const getVisibleCourseCount = useCallback(
+    (unit: Unit) => unitCourseStructures[unit.id]?.length ?? 0,
+    [unitCourseStructures],
+  );
+  const totalExperimentCount = units.reduce((total, unit) => total + getVisibleCourseCount(unit), 0);
 
   useEffect(() => {
     if (units.length === 0) {
@@ -198,8 +315,8 @@ export function CoursesPage() {
           error instanceof Error
             ? error.message
             : isZh
-              ? "实验加载失败"
-              : "Failed to load experiments",
+              ? `${config.itemLabelZh}加载失败`
+              : `Failed to load ${config.itemLabelEn.toLowerCase()}s`,
         );
       });
 
@@ -254,8 +371,8 @@ export function CoursesPage() {
           error instanceof Error
             ? error.message
             : isZh
-              ? "实验加载失败"
-              : "Failed to load experiments",
+              ? `${config.itemLabelZh}加载失败`
+              : `Failed to load ${config.itemLabelEn.toLowerCase()}s`,
         );
       });
 
@@ -275,18 +392,18 @@ export function CoursesPage() {
   );
   const selectedSectionTitle = isAllExperimentsSelected
     ? isZh
-      ? "全部实验"
-      : "All experiments"
+      ? config.allTitleZh
+      : config.allTitleEn
     : isZh
-      ? "本单元实验"
-      : "Experiments in this unit";
+      ? config.unitTitleZh
+      : config.unitTitleEn;
   const selectedSectionDescription = isAllExperimentsSelected
     ? isZh
-      ? "跨单元浏览全部实验入口，适合直接查找或快速进入。"
-      : "Browse every experiment across units from one unified library."
+      ? config.allDescriptionZh
+      : config.allDescriptionEn
     : isZh
-      ? "选择一个实验，直接进入课件与媒体内容。"
-      : "Choose an experiment to open its slides and media.";
+      ? config.unitDescriptionZh
+      : config.unitDescriptionEn;
 
   return (
     <div
@@ -299,8 +416,8 @@ export function CoursesPage() {
       }}
     >
       <PersistentHeader
-        moduleKey="courses"
-        moduleName={t("page.courses.title")}
+        moduleKey={config.moduleKey}
+        moduleName={pageTitle}
         variant="solid"
         className="sticky top-0 z-40"
       />
@@ -310,14 +427,14 @@ export function CoursesPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
-                Experiment Library
+                {config.eyebrow}
               </p>
               <div className="mt-2 flex items-center gap-4">
                 <h1
                   className="text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
                   style={{ fontFamily: "var(--font-ui-display)" }}
                 >
-                  {t("page.courses.title")}
+                  {pageTitle}
                 </h1>
                 <Link
                   to="/"
@@ -340,11 +457,11 @@ export function CoursesPage() {
           <aside className="lg:sticky lg:top-[108px] lg:self-start">
             <section className={cn("rounded-[1.75rem] border px-4 py-5", surfaceClass)}>
               <div className="px-2 pb-3">
-                <h2 className="text-lg font-semibold">{isZh ? "实验单元" : "Units"}</h2>
+                <h2 className="text-lg font-semibold">
+                  {isZh ? config.unitsHeadingZh : config.unitsHeadingEn}
+                </h2>
                 <p className={cn("mt-1 text-sm leading-6", mutedTextClass)}>
-                  {isZh
-                    ? "先选单元，再进入当前单元下的实验。"
-                    : "Choose a unit, then open one of its experiments."}
+                  {isZh ? config.unitsDescriptionZh : config.unitsDescriptionEn}
                 </p>
               </div>
 
@@ -358,7 +475,7 @@ export function CoursesPage() {
                   icon={Layers}
                   title={isZh ? "暂无单元" : "No units"}
                   description={
-                    isZh ? "当前还没有可展示的实验单元。" : "No experiment units are available yet."
+                    isZh ? "当前还没有可展示的单元。" : "No units are available yet."
                   }
                 />
               ) : (
@@ -402,11 +519,11 @@ export function CoursesPage() {
                               {isZh ? "总览入口" : "Library view"}
                             </p>
                             <p className="mt-1 text-sm font-semibold truncate">
-                              {isZh ? "查看全部实验" : "Browse all experiments"}
+                              {isZh ? config.browseAllZh : config.browseAllEn}
                             </p>
                           </div>
                           <span className={cn(pillClass, "shrink-0")}>
-                            {totalExperimentCount} {isZh ? "个实验" : "experiments"}
+                            {totalExperimentCount} {isZh ? `个${config.itemLabelZh}` : `${config.itemLabelEn.toLowerCase()}s`}
                           </span>
                         </div>
                       </div>
@@ -428,7 +545,7 @@ export function CoursesPage() {
                       {units.map((unit) => {
                         const isSelected = selectedUnit?.id === unit.id;
                         const unitCourses = unitCourseStructures[unit.id] ?? [];
-                        const unitExperimentCount = unit.courseCount || 0;
+                        const unitExperimentCount = getVisibleCourseCount(unit);
                         const isUnitStructureLoading =
                           unitCourseStructuresLoading && !unitCourseStructures[unit.id];
 
@@ -479,7 +596,7 @@ export function CoursesPage() {
                                       : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
                                   )}
                                 >
-                                  {unitExperimentCount} {isZh ? "个实验" : "experiments"}
+                                  {unitExperimentCount} {isZh ? `个${config.itemLabelZh}` : `${config.itemLabelEn.toLowerCase()}s`}
                                 </span>
                               </div>
                               <div
@@ -510,7 +627,7 @@ export function CoursesPage() {
                                   </p>
                                 ) : unitCourses.length === 0 ? (
                                   <p className={cn("mt-1 text-xs", mutedTextClass)}>
-                                    {isZh ? "暂无实验章节" : "No experiment chapters"}
+                                    {isZh ? `暂无${config.itemLabelZh}章节` : `No ${config.itemLabelEn.toLowerCase()} chapters`}
                                   </p>
                                 ) : (
                                   <ol className="mt-1.5 space-y-1">
@@ -563,8 +680,8 @@ export function CoursesPage() {
                     title={isZh ? "暂无单元" : "No units"}
                     description={
                       isZh
-                        ? "当前还没有可展示的实验单元。"
-                        : "No experiment units are available yet."
+                        ? "当前还没有可展示的单元。"
+                        : "No units are available yet."
                     }
                   />
                 </section>
@@ -580,9 +697,9 @@ export function CoursesPage() {
                     <span className={pillClass}>
                       {selectedUnitCoursesLoading
                         ? isZh
-                          ? "实验加载中"
-                          : "Loading experiments"
-                        : `${selectedUnitCourses.length} ${isZh ? "个实验" : "experiments"}`}
+                          ? config.loadingZh
+                          : config.loadingEn
+                        : `${selectedUnitCourses.length} ${isZh ? `个${config.itemLabelZh}` : `${config.itemLabelEn.toLowerCase()}s`}`}
                     </span>
                   </div>
 
@@ -613,17 +730,16 @@ export function CoursesPage() {
                       <EmptyWorkspace
                         theme={theme}
                         icon={BookOpenText}
-                        title={isZh ? "该单元暂无实验" : "No experiments in this unit"}
-                        description={
-                          isZh
-                            ? "当前单元还没有可进入的实验内容。"
-                            : "There are no experiment entries available in this unit yet."
-                        }
+                        title={isZh ? config.emptyUnitTitleZh : config.emptyUnitTitleEn}
+                        description={isZh ? config.emptyUnitDescriptionZh : config.emptyUnitDescriptionEn}
                       />
                     ) : (
                       <CourseSelector
                         courses={selectedUnitCourses}
                         unitColor={selectedUnit?.color || "#d97706"}
+                        basePath={config.basePath}
+                        itemLabel={isZh ? config.itemLabelZh : config.itemLabelEn}
+                        openLabel={isZh ? config.openLabelZh : config.openLabelEn}
                         showHeader={false}
                       />
                     )}

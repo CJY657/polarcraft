@@ -103,27 +103,42 @@ describe('HomePage', () => {
     }
   });
 
-  it('marks only the frontier applications module as disabled and blocks navigation', () => {
+  it('keeps the existing clay card palette classes', () => {
     render(<HomePage />);
 
-    for (const moduleId of ['courses', 'demos', 'devices', 'gallery', 'lab']) {
+    const expectedClasses = [
+      ['courses', 'clay-card-pink'],
+      ['applications', 'clay-card-peach'],
+      ['demos', 'clay-card-lavender'],
+      ['devices', 'clay-card-teal'],
+      ['gallery', 'clay-card-ochre'],
+      ['lab', 'clay-card-cream'],
+    ];
+
+    for (const [moduleId, className] of expectedClasses) {
+      expect(screen.getByTestId(`home-module-${moduleId}`).className).toContain(className);
+    }
+  });
+
+  it('opens the frontier applications module', () => {
+    render(<HomePage />);
+
+    for (const moduleId of ['courses', 'applications', 'demos', 'devices', 'gallery', 'lab']) {
       expect(screen.getByTestId(`home-module-${moduleId}`).getAttribute('aria-disabled')).toBe('false');
     }
 
-    expect(screen.getByTestId('home-module-applications').getAttribute('aria-disabled')).toBe('true');
-    expect(screen.getAllByText('即将上线')).toHaveLength(1);
+    expect(screen.queryByText('即将上线')).toBeNull();
 
     fireEvent.click(screen.getByTestId('home-module-applications'));
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/applications');
   });
 
-  it('offers one clear first-step action from the hero', () => {
+  it('offers one clear first-step action from the CTA band', () => {
     render(<HomePage />);
 
-    expect(screen.getByTestId('home-hero')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /先看一个模拟/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /开启实验探索/ }));
+    fireEvent.click(screen.getByRole('button', { name: /开启实验之旅/ }));
     expect(mockNavigate).toHaveBeenCalledWith('/experiments');
   });
 
@@ -132,6 +147,9 @@ describe('HomePage', () => {
 
     fireEvent.click(screen.getByTestId('home-module-courses'));
     expect(mockNavigate).toHaveBeenLastCalledWith('/experiments');
+
+    fireEvent.click(screen.getByTestId('home-module-applications'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/applications');
 
     fireEvent.click(screen.getByTestId('home-module-demos'));
     expect(mockNavigate).toHaveBeenLastCalledWith('/demos');

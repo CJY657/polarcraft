@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockCourseModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
   mockCourseModel: {
+    getCourseById: vi.fn(),
     getMainSlide: vi.fn(),
+    getMediaByCourse: vi.fn(),
+    getHyperlinksByCourse: vi.fn(),
     getMediaById: vi.fn(),
     getMediaByIds: vi.fn(),
+    createCourse: vi.fn(),
+    createMedia: vi.fn(),
     deleteMediaBatch: vi.fn(),
   },
   mockManagedUploadCleanupService: {
@@ -21,6 +26,8 @@ vi.mock('../services/managed-upload-cleanup.service.js', () => ({
 }));
 
 import { CourseController } from './course.controller.js';
+
+const now = new Date('2026-06-28T00:00:00.000Z');
 
 function createResponse() {
   return {
@@ -113,6 +120,147 @@ describe('CourseController.deleteMediaBatch', () => {
       }
     );
     expect(res.success).toHaveBeenCalledWith({ deletedCount: 2 }, '已删除 2 个媒体资源');
+  });
+});
+
+describe('CourseController knowledge tags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('defaults untagged legacy course data to foundation in responses', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue({
+      id: 'course-legacy',
+      unit_id: 'unit-1',
+      title_zh: '冰洲石实验',
+      title_en: null,
+      description_zh: null,
+      description_en: null,
+      cover_image: null,
+      color: '#0ea5e9',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+    mockCourseModel.getMainSlide.mockResolvedValue({
+      id: 'slide-1',
+      course_id: 'course-legacy',
+      url: '/courses/unit1/legacy.pdf',
+      title_zh: '主课件',
+      title_en: null,
+      created_at: now,
+      updated_at: now,
+    });
+    mockCourseModel.getMediaByCourse.mockResolvedValue([
+      {
+        id: 'media-1',
+        course_id: 'course-legacy',
+        type: 'image',
+        url: '/uploads/unit-1/image/a.png',
+        preview_pdf_url: null,
+        title_zh: '图片',
+        title_en: null,
+        duration: null,
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+    mockCourseModel.getHyperlinksByCourse.mockResolvedValue([]);
+
+    const req = {
+      params: { id: 'course-legacy' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.getCourse, req, res);
+
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'course-legacy',
+        knowledgeTag: 'foundation',
+        mainSlide: expect.objectContaining({ knowledgeTag: 'foundation' }),
+        media: [expect.objectContaining({ knowledgeTag: 'foundation' })],
+      })
+    );
+  });
+
+  it('creates media with the parent course tag when no media tag is supplied', async () => {
+    let receivedInput: unknown = null;
+
+    mockCourseModel.getCourseById.mockResolvedValue({
+      id: 'course-device',
+      unit_id: 'unit-1',
+      title_zh: '缪勒显微镜',
+      title_en: null,
+      description_zh: null,
+      description_en: null,
+      cover_image: null,
+      color: '#14b8a6',
+      knowledge_tag: 'optical_device',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+    mockCourseModel.createMedia.mockImplementation((_courseId: string, input: unknown) => {
+      receivedInput = input;
+      return Promise.resolve('media-device');
+    });
+    mockCourseModel.getMediaById.mockResolvedValue({
+      id: 'media-device',
+      course_id: 'course-device',
+      type: 'video',
+      url: 'https://example-cos.example.com/device.mp4',
+      preview_pdf_url: null,
+      title_zh: '设备视频',
+      title_en: null,
+      knowledge_tag: 'optical_device',
+      duration: null,
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+
+    const req = {
+      params: { id: 'course-device' },
+      body: {
+        type: 'video',
+        url: 'https://example-cos.example.com/device.mp4',
+        title_zh: '设备视频',
+      },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.createMedia, req, res);
+
+    expect(receivedInput).toEqual(
+      expect.objectContaining({
+        knowledgeTag: 'optical_device',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ knowledgeTag: 'optical_device' }),
+      '媒体资源创建成功',
+      201
+    );
+  });
+
+  it('rejects invalid knowledge tags when creating a course', async () => {
+    const req = {
+      body: {
+        unitId: 'unit-1',
+        title_zh: '测试实验',
+        knowledgeTag: 'device',
+      },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.createCourse, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('知识分类无效', 'VALIDATION_ERROR', 400);
+    expect(mockCourseModel.createCourse).not.toHaveBeenCalled();
   });
 });
 

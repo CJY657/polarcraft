@@ -20,6 +20,7 @@ import type {
   UpdateMediaInput,
   CreateHyperlinkInput,
   UpdateHyperlinkInput,
+  KnowledgeTag,
 } from '../types/course.types.js';
 
 const coursesCollection = () => getCollection('courses');
@@ -28,6 +29,8 @@ const courseMediaCollection = () => getCollection('course_media');
 const courseHyperlinksCollection = () => getCollection('course_hyperlinks');
 const courseDiscussionCommentsCollection = () => getCollection('course_discussion_comments');
 const usersCollection = () => getCollection('users');
+
+const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = 'foundation';
 
 async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
   if (userIds.length === 0) {
@@ -111,6 +114,7 @@ export class CourseModel {
       description_en: data.description_en || null,
       cover_image: data.coverImage ?? null,
       color: data.color || '#C9A227',
+      knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
       sort_order: 0,
       created_at: now,
       updated_at: now,
@@ -135,6 +139,7 @@ export class CourseModel {
       description_en: data.description_en,
       cover_image: data.coverImage,
       color: data.color,
+      knowledge_tag: data.knowledgeTag,
       sort_order: data.sortOrder,
     });
 
@@ -187,6 +192,7 @@ export class CourseModel {
             url: data.url,
             title_zh: data.title_zh || null,
             title_en: data.title_en || null,
+            knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
             updated_at: now,
           },
         }
@@ -202,6 +208,7 @@ export class CourseModel {
       url: data.url,
       title_zh: data.title_zh || null,
       title_en: data.title_en || null,
+      knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
       created_at: now,
       updated_at: now,
     };
@@ -467,6 +474,7 @@ export class CourseModel {
       preview_pdf_url: data.previewPdfUrl || null,
       title_zh: data.title_zh,
       title_en: data.title_en || null,
+      knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
       duration: data.duration || null,
       sort_order: sortOrder,
       created_at: now,
@@ -490,6 +498,7 @@ export class CourseModel {
       preview_pdf_url: data.previewPdfUrl === '' ? null : data.previewPdfUrl,
       title_zh: data.title_zh,
       title_en: data.title_en,
+      knowledge_tag: data.knowledgeTag,
       duration: data.duration,
       sort_order: data.sort_order,
     });

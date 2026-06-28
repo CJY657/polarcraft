@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import { MediaType, CreateMediaInput } from '@/lib/course.service';
+import type { MediaType, CreateMediaInput, KnowledgeTag } from '@/lib/course.service';
 import { uploadApi, getFileCategory, FileCategory } from '@/lib/upload.service';
 import { X, Upload, Loader2, CheckCircle, AlertCircle, File, Image, Video, FileText } from 'lucide-react';
 import { cn } from '@/utils/classNames';
@@ -23,6 +23,7 @@ interface FileUploadItem {
   error?: string;
   title_zh: string;
   type: MediaType;
+  knowledgeTag: KnowledgeTag;
 }
 
 interface BatchMediaUploadDialogProps {
@@ -30,6 +31,7 @@ interface BatchMediaUploadDialogProps {
   onClose: () => void;
   courseId: string;
   unitId?: string;
+  courseKnowledgeTag?: KnowledgeTag;
 }
 
 const ACCEPT_ALL_MEDIA = '.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.pptx,.ppt';
@@ -70,6 +72,7 @@ export function BatchMediaUploadDialog({
   onClose,
   courseId,
   unitId,
+  courseKnowledgeTag = 'foundation',
 }: BatchMediaUploadDialogProps) {
   const { createMedia } = useCourseAdminStore();
   const [files, setFiles] = useState<FileUploadItem[]>([]);
@@ -90,12 +93,13 @@ export function BatchMediaUploadDialog({
           progress: 0,
           title_zh: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
           type: mediaType,
+          knowledgeTag: courseKnowledgeTag,
         });
       }
     });
 
     setFiles((prev) => [...prev, ...newFiles]);
-  }, []);
+  }, [courseKnowledgeTag]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -158,6 +162,7 @@ export function BatchMediaUploadDialog({
         type: item.type,
         url: result.url,
         title_zh: item.title_zh,
+        knowledgeTag: item.knowledgeTag,
         duration: duration,
       };
       await createMedia(courseId, input);

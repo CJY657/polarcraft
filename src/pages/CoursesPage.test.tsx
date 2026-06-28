@@ -37,12 +37,14 @@ const { mockUnitStore, mockGetPublicUnitCourses, mockCoursesByUnit } = vi.hoiste
         title: { "zh-CN": "冰洲石实验" },
         description: { "zh-CN": "观察双折射" },
         color: "#0ea5e9",
+        knowledgeTag: "foundation",
       },
       {
         id: "course2",
-        title: { "zh-CN": "反射偏振" },
-        description: { "zh-CN": "观察布儒斯特角" },
+        title: { "zh-CN": "缪勒显微镜" },
+        description: { "zh-CN": "观察设备应用" },
         color: "#0ea5e9",
+        knowledgeTag: "optical_device",
       },
     ],
     unit2: [
@@ -51,6 +53,7 @@ const { mockUnitStore, mockGetPublicUnitCourses, mockCoursesByUnit } = vi.hoiste
         title: { "zh-CN": "色偏振" },
         description: { "zh-CN": "观察应力色彩" },
         color: "#f97316",
+        knowledgeTag: "foundation",
       },
     ],
   },
@@ -122,12 +125,12 @@ describe("CoursesPage", () => {
     expect(mockGetPublicUnitCourses).toHaveBeenCalledTimes(2);
 
     expect(screen.getByText("查看全部实验")).toBeDefined();
-    expect(screen.getAllByText("3 个实验").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("2 个实验").length).toBeGreaterThan(0);
     expect(screen.getAllByText("章节结构").length).toBe(2);
     expect(screen.getByText("冰洲石实验")).toBeDefined();
-    expect(screen.getByText("反射偏振")).toBeDefined();
+    expect(screen.queryByText("缪勒显微镜")).toBeNull();
     expect(screen.getByText("色偏振")).toBeDefined();
-    expect(screen.getByText("course-selector-3")).toBeDefined();
+    expect(screen.getByText("course-selector-2")).toBeDefined();
   });
 
   it("can switch from a unit back to all experiments", async () => {
@@ -148,7 +151,7 @@ describe("CoursesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /第一单元/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("course-selector-2")).toBeDefined();
+      expect(screen.getByText("course-selector-1")).toBeDefined();
     });
     expect(mockGetPublicUnitCourses).not.toHaveBeenCalled();
 
@@ -157,7 +160,7 @@ describe("CoursesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /查看全部实验/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("course-selector-3")).toBeDefined();
+      expect(screen.getByText("course-selector-2")).toBeDefined();
     });
     expect(mockGetPublicUnitCourses).not.toHaveBeenCalled();
   });

@@ -19,12 +19,14 @@ const courseStoreState = {
     title: { "zh-CN": "冰洲石实验" },
     description: { "zh-CN": "观察双折射与偏振现象" },
     color: "#0ea5e9",
+    knowledgeTag: "foundation" as const,
     updatedAt: "2026-03-14T00:00:00.000Z",
   },
   mainSlide: {
     id: "slide-1",
     url: "/slides/course1.pdf",
     title: { "zh-CN": "主课件" },
+    knowledgeTag: "foundation" as const,
   },
   media: [
     {
@@ -32,12 +34,14 @@ const courseStoreState = {
       type: "pptx" as const,
       url: "/media/course1-extra.pptx",
       title: { "zh-CN": "补充课件" },
+      knowledgeTag: "foundation" as const,
     },
     {
       id: "video-1",
       type: "video" as const,
       url: "/media/course1-video.mp4",
       title: { "zh-CN": "实验视频" },
+      knowledgeTag: "foundation" as const,
       duration: 28,
     },
   ],
@@ -87,10 +91,16 @@ vi.mock("@/lib/routePreload", () => ({
     CourseViewer: ({
       course,
       canDownloadResources,
+      backPath,
     }: {
       course: { id: string };
       canDownloadResources?: boolean;
-    }) => <div>mock-viewer-{course.id}-download-{String(canDownloadResources)}</div>,
+      backPath?: string;
+    }) => (
+      <div>
+        mock-viewer-{course.id}-download-{String(canDownloadResources)}-back-{backPath}
+      </div>
+    ),
   }),
 }));
 
@@ -99,6 +109,7 @@ describe("CourseViewerPage", () => {
     fetchCourse.mockReset();
     reset.mockReset();
     authState.user = null;
+    courseStoreState.course.knowledgeTag = "foundation";
   });
 
   it("loads the experiment viewer page with the current course context", async () => {
@@ -112,7 +123,7 @@ describe("CourseViewerPage", () => {
 
     expect(fetchCourse).toHaveBeenCalledWith("course1");
     expect(screen.getByText("冰洲石实验")).toBeDefined();
-    expect(await screen.findByText("mock-viewer-course1-download-false")).toBeDefined();
+    expect(await screen.findByText("mock-viewer-course1-download-false-back-/experiments")).toBeDefined();
   });
 
   it("allows only admin users to receive download-enabled viewer props", async () => {
@@ -126,6 +137,6 @@ describe("CourseViewerPage", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText("mock-viewer-course1-download-true")).toBeDefined();
+    expect(await screen.findByText("mock-viewer-course1-download-true-back-/experiments")).toBeDefined();
   });
 });

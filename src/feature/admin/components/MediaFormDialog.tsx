@@ -8,7 +8,13 @@
 
 import { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import { CourseMedia, CreateMediaInput, UpdateMediaInput, MediaType } from '@/lib/course.service';
+import type {
+  CourseMedia,
+  CreateMediaInput,
+  KnowledgeTag,
+  MediaType,
+  UpdateMediaInput,
+} from '@/lib/course.service';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { FileCategory } from '@/lib/upload.service';
 import { X } from 'lucide-react';
@@ -18,6 +24,7 @@ interface MediaFormDialogProps {
   onClose: () => void;
   courseId?: string;
   unitId?: string;
+  courseKnowledgeTag?: KnowledgeTag;
   mode: 'create' | 'edit';
   media?: CourseMedia;
 }
@@ -26,6 +33,11 @@ const MEDIA_TYPES: { value: MediaType; label: string }[] = [
   { value: 'pptx', label: 'PowerPoint' },
   { value: 'image', label: '图片' },
   { value: 'video', label: '视频' },
+];
+
+const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
+  { value: 'foundation', label: '基础知识' },
+  { value: 'optical_device', label: '光学设备' },
 ];
 
 // Helper to map MediaType to FileCategory
@@ -42,6 +54,7 @@ export function MediaFormDialog({
   onClose,
   courseId,
   unitId,
+  courseKnowledgeTag = 'foundation',
   mode,
   media,
 }: MediaFormDialogProps) {
@@ -54,6 +67,7 @@ export function MediaFormDialog({
     title_zh: '',
     title_en: '',
     duration: '',
+    knowledgeTag: courseKnowledgeTag,
   });
 
   useEffect(() => {
@@ -65,6 +79,7 @@ export function MediaFormDialog({
         title_zh: media.title['zh-CN'] || '',
         title_en: media.title['en-US'] || '',
         duration: media.duration?.toString() || '',
+        knowledgeTag: media.knowledgeTag || courseKnowledgeTag,
       });
     } else {
       setFormData({
@@ -74,9 +89,10 @@ export function MediaFormDialog({
         title_zh: '',
         title_en: '',
         duration: '',
+        knowledgeTag: courseKnowledgeTag,
       });
     }
-  }, [mode, media, isOpen]);
+  }, [mode, media, isOpen, courseKnowledgeTag]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +105,7 @@ export function MediaFormDialog({
           previewPdfUrl: formData.type === 'pptx' && formData.previewPdfUrl ? formData.previewPdfUrl : undefined,
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
+          knowledgeTag: formData.knowledgeTag,
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
         };
         await createMedia(courseId, input);
@@ -99,6 +116,7 @@ export function MediaFormDialog({
           previewPdfUrl: formData.type === 'pptx' ? formData.previewPdfUrl : '',
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
+          knowledgeTag: formData.knowledgeTag,
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
         };
         await updateMedia(media.id, input);
@@ -148,6 +166,24 @@ export function MediaFormDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Media File */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">内容分类</label>
+            <select
+              value={formData.knowledgeTag}
+              onChange={(e) =>
+                setFormData({ ...formData, knowledgeTag: e.target.value as KnowledgeTag })
+              }
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+              {KNOWLEDGE_TAG_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Media File */}

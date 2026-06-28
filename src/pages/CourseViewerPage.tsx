@@ -32,13 +32,17 @@ function ViewerLoader({ theme }: { theme: "dark" | "light" }) {
 }
 
 export default function CourseViewerPage() {
-  const { courseId, experimentId } = useParams<{ courseId?: string; experimentId?: string }>();
+  const { courseId, experimentId, applicationId } = useParams<{
+    courseId?: string;
+    experimentId?: string;
+    applicationId?: string;
+  }>();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const resolvedExperimentId = experimentId || courseId;
+  const resolvedExperimentId = applicationId || experimentId || courseId;
 
   const { course, mainSlide, media, hyperlinks, isLoading, error, fetchCourse, reset } =
     useCourseDetailStore();
@@ -52,6 +56,8 @@ export default function CourseViewerPage() {
   }, [fetchCourse, reset, resolvedExperimentId]);
 
   const isZh = i18n.language.startsWith("zh");
+  const isApplicationRoute = location.pathname.startsWith("/applications");
+  const viewerRootPath = isApplicationRoute ? "/applications" : "/experiments";
   const isPendingInitialLoad = Boolean(resolvedExperimentId) && !course && !error;
   const getLabel = useCallback(
     (label?: { "zh-CN"?: string; "en-US"?: string }) =>
@@ -60,7 +66,21 @@ export default function CourseViewerPage() {
   );
 
   const courseTitle = getLabel(course?.title) || (isZh ? "实验详情" : "Experiment");
-  const backLabel = isZh ? "返回实验总览" : "Back to experiments";
+  const backLabel = isApplicationRoute
+    ? isZh
+      ? "返回前沿应用"
+      : "Back to applications"
+    : isZh
+      ? "返回实验总览"
+      : "Back to experiments";
+
+  useEffect(() => {
+    if (!course || isApplicationRoute || course.knowledgeTag !== "optical_device") {
+      return;
+    }
+
+    navigate(`/applications/${course.id}`, { replace: true });
+  }, [course, isApplicationRoute, navigate]);
 
   useEffect(() => {
     if (!course) {
@@ -91,6 +111,7 @@ export default function CourseViewerPage() {
       },
       coverImage: course.coverImage,
       color: course.color,
+      knowledgeTag: course.knowledgeTag,
       lastUpdated: course.updatedAt,
       mainSlide: mainSlide
         ? {
@@ -100,6 +121,7 @@ export default function CourseViewerPage() {
               "zh-CN": mainSlide.title["zh-CN"] || "",
               "en-US": mainSlide.title["en-US"] || "",
             },
+            knowledgeTag: mainSlide.knowledgeTag,
           }
         : undefined,
       hyperlinks: hyperlinks.map((hyperlink) => ({
@@ -118,6 +140,7 @@ export default function CourseViewerPage() {
         url: item.url,
         previewPdfUrl: item.previewPdfUrl,
         title: { "zh-CN": item.title["zh-CN"] || "", "en-US": item.title["en-US"] || "" },
+        knowledgeTag: item.knowledgeTag,
         duration: item.duration,
       })),
     };
@@ -162,7 +185,7 @@ export default function CourseViewerPage() {
               {error || (isZh ? "实验不存在" : "Experiment not found")}
             </p>
             <button
-              onClick={() => navigate("/experiments")}
+              onClick={() => navigate(viewerRootPath)}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               {backLabel}
@@ -176,6 +199,8 @@ export default function CourseViewerPage() {
               course={courseData}
               theme={theme}
               canDownloadResources={user?.role === "admin"}
+              backPath={viewerRootPath}
+              backLabel={isZh ? "返回" : "Back"}
             />
           </Suspense>
 

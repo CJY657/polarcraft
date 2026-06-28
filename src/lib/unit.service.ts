@@ -7,7 +7,7 @@
  */
 
 import { api } from "./api";
-import type { LabelI18n } from "./course.service";
+import type { KnowledgeTag, LabelI18n } from "./course.service";
 
 // =====================================================
 // Types / 类型定义
@@ -17,6 +17,7 @@ export interface UnitMainSlide {
   id: string;
   url: string;
   title: LabelI18n;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface Unit {
@@ -40,6 +41,7 @@ export interface UnitCourse {
   coverImage?: string;
   thumbnailImage?: string;
   color: string;
+  knowledgeTag: KnowledgeTag;
   mainSlide?: UnitMainSlide;
   mediaCount?: number;
 }

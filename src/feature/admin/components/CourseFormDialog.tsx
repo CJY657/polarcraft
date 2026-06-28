@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import { Course, CreateCourseInput, UpdateCourseInput } from '@/lib/course.service';
+import type { Course, CreateCourseInput, KnowledgeTag, UpdateCourseInput } from '@/lib/course.service';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { X } from 'lucide-react';
 
@@ -20,6 +20,10 @@ interface CourseFormDialogProps {
 }
 
 const DEFAULT_COLOR = '#C9A227';
+const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
+  { value: 'foundation', label: '基础知识' },
+  { value: 'optical_device', label: '光学设备' },
+];
 
 export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDialogProps) {
   const { createCourse, updateCourse, isLoading, error } = useCourseAdminStore();
@@ -32,6 +36,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
     description_en: '',
     coverImage: '',
     color: DEFAULT_COLOR,
+    knowledgeTag: 'foundation' as KnowledgeTag,
   });
 
   useEffect(() => {
@@ -44,6 +49,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
         description_en: course.description['en-US'] || '',
         coverImage: course.coverImage || '',
         color: course.color,
+        knowledgeTag: course.knowledgeTag,
       });
     } else {
       setFormData({
@@ -54,6 +60,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
         description_en: '',
         coverImage: '',
         color: DEFAULT_COLOR,
+        knowledgeTag: 'foundation',
       });
     }
   }, [mode, course, isOpen]);
@@ -71,6 +78,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
           description_en: formData.description_en || undefined,
           coverImage: formData.coverImage || undefined,
           color: formData.color,
+          knowledgeTag: formData.knowledgeTag,
         };
         await createCourse(input);
       } else if (course) {
@@ -81,6 +89,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
           description_en: formData.description_en || undefined,
           coverImage: formData.coverImage || undefined,
           color: formData.color,
+          knowledgeTag: formData.knowledgeTag,
         };
         await updateCourse(course.id, input);
       }
@@ -190,6 +199,26 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               placeholder="Experiment description"
               rows={3}
             />
+          </div>
+
+          {/* Cover Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              内容分类
+            </label>
+            <select
+              value={formData.knowledgeTag}
+              onChange={(e) =>
+                setFormData({ ...formData, knowledgeTag: e.target.value as KnowledgeTag })
+              }
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+              {KNOWLEDGE_TAG_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Cover Image */}

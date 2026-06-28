@@ -17,6 +17,7 @@ import {
   UpdateMediaInput,
   CreateHyperlinkInput,
   UpdateHyperlinkInput,
+  normalizeKnowledgeTag,
 } from '@/lib/course.service';
 
 interface CourseAdminState {
@@ -63,9 +64,20 @@ const initialState = {
 };
 
 function normalizeCourse(course: Course): Course {
+  const knowledgeTag = normalizeKnowledgeTag(course.knowledgeTag);
+
   return {
     ...course,
-    media: Array.isArray(course.media) ? course.media : [],
+    knowledgeTag,
+    mainSlide: course.mainSlide
+      ? { ...course.mainSlide, knowledgeTag: normalizeKnowledgeTag(course.mainSlide.knowledgeTag) }
+      : undefined,
+    media: Array.isArray(course.media)
+      ? course.media.map((item) => ({
+          ...item,
+          knowledgeTag: normalizeKnowledgeTag(item.knowledgeTag),
+        }))
+      : [],
     hyperlinks: Array.isArray(course.hyperlinks) ? course.hyperlinks : [],
   };
 }

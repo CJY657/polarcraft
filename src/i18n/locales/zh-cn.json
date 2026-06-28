@@ -55,6 +55,9 @@
       "experiment": "实验",
       "application": "应用"
     },
+    "applications": {
+      "title": "前沿应用"
+    },
     "demos": {
       "title": "计算与模拟"
     },

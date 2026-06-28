@@ -12,6 +12,7 @@ import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
 import { useCourseAdminStore } from "@/stores/courseAdminStore";
 import { UnitFormDialog } from "@/feature/admin/components/UnitFormDialog";
+import type { KnowledgeTag } from "@/lib/course.service";
 import {
   ArrowLeft,
   Settings,
@@ -30,6 +31,11 @@ type TabId = "settings" | "experiments";
 const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "settings", label: "设置", icon: <Settings className="w-4 h-4" /> },
   { id: "experiments", label: "实验", icon: <BookOpen className="w-4 h-4" /> },
+];
+
+const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
+  { value: "foundation", label: "基础知识" },
+  { value: "optical_device", label: "光学设备" },
 ];
 
 export default function UnitEditorPage() {
@@ -378,6 +384,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
     description_zh: "",
     description_en: "",
     color: "#06b6d4",
+    knowledgeTag: "foundation" as KnowledgeTag,
   });
 
   if (!unit) return null;
@@ -449,6 +456,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         description_zh: newCourse.description_zh || undefined,
         description_en: newCourse.description_en || undefined,
         color: newCourse.color,
+        knowledgeTag: newCourse.knowledgeTag,
       });
 
       // Reset form and refresh
@@ -458,6 +466,7 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         description_zh: "",
         description_en: "",
         color: "#06b6d4",
+        knowledgeTag: "foundation",
       });
       setShowCreateForm(false);
       fetchUnit(unit.id);
@@ -647,6 +656,34 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   />
                 </div>
               </div>
+              <div>
+                <label
+                  className={cn(
+                    "block text-sm font-medium mb-2",
+                    theme === "dark" ? "text-gray-300" : "text-gray-700",
+                  )}
+                >
+                  内容分类
+                </label>
+                <select
+                  value={newCourse.knowledgeTag}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, knowledgeTag: e.target.value as KnowledgeTag })
+                  }
+                  className={cn(
+                    "px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm",
+                    theme === "dark"
+                      ? "bg-slate-700 border-slate-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900",
+                  )}
+                >
+                  {KNOWLEDGE_TAG_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -767,6 +804,20 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   >
                     {course.description?.["zh-CN"] || "暂无描述"}
                   </p>
+                  <span
+                    className={cn(
+                      "mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
+                      course.knowledgeTag === "optical_device"
+                        ? theme === "dark"
+                          ? "border-teal-300/30 bg-teal-400/10 text-teal-200"
+                          : "border-teal-200 bg-teal-50 text-teal-700"
+                        : theme === "dark"
+                          ? "border-blue-300/25 bg-blue-400/10 text-blue-200"
+                          : "border-blue-200 bg-blue-50 text-blue-700",
+                    )}
+                  >
+                    {course.knowledgeTag === "optical_device" ? "光学设备" : "基础知识"}
+                  </span>
                 </div>
 
                 {/* Reorder Buttons */}

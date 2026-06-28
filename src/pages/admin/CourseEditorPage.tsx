@@ -365,6 +365,12 @@ function SettingsTab({ course }: { course: Course }) {
             <p className="text-white">{course.unitId}</p>
           </div>
           <div>
+            <span className="text-gray-400">内容分类:</span>
+            <p className="text-white">
+              {course.knowledgeTag === 'optical_device' ? '光学设备' : '基础知识'}
+            </p>
+          </div>
+          <div>
             <span className="text-gray-400">主题色:</span>
             <div className="flex items-center gap-2">
               <div

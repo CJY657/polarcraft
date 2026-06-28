@@ -19,11 +19,28 @@ import type {
   UpdateUnitInput,
   UpsertUnitMainSlideInput,
 } from "../types/unit.types.js";
-import type { CourseRow, MainSlideRow, MediaRow, HyperlinkRow } from "../types/course.types.js";
+import type {
+  CourseRow,
+  MainSlideRow,
+  MediaRow,
+  HyperlinkRow,
+  KnowledgeTag,
+} from "../types/course.types.js";
 
 // ============================================================
 // Helper Functions / 辅助函数
 // ============================================================
+
+const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = "foundation";
+
+function normalizeKnowledgeTag(
+  value: unknown,
+  fallback: KnowledgeTag = DEFAULT_KNOWLEDGE_TAG
+): KnowledgeTag {
+  return value === "optical_device" || value === "foundation"
+    ? value
+    : fallback;
+}
 
 /**
  * Transform unit row to API response format
@@ -65,6 +82,8 @@ function transformUnitMainSlideRow(row: UnitMainSlideRow) {
  * Transform course row to API response format (for unit courses)
  */
 function transformCourseRowSimple(row: CourseRow) {
+  const knowledgeTag = normalizeKnowledgeTag(row.knowledge_tag);
+
   return {
     id: row.id,
     title: {
@@ -77,6 +96,7 @@ function transformCourseRowSimple(row: CourseRow) {
     },
     coverImage: row.cover_image || undefined,
     color: row.color,
+    knowledgeTag,
   };
 }
 
@@ -105,6 +125,10 @@ async function buildUnitCourseSummary(course: CourseRow) {
             "zh-CN": mainSlide.title_zh || undefined,
             "en-US": mainSlide.title_en || undefined,
           },
+          knowledgeTag: normalizeKnowledgeTag(
+            mainSlide.knowledge_tag,
+            normalizeKnowledgeTag(course.knowledge_tag)
+          ),
         }
       : undefined,
     mediaCount: media.length,
@@ -435,6 +459,10 @@ export class UnitController {
                   "zh-CN": mainSlide.title_zh || undefined,
                   "en-US": mainSlide.title_en || undefined,
                 },
+                knowledgeTag: normalizeKnowledgeTag(
+                  mainSlide.knowledge_tag,
+                  normalizeKnowledgeTag(course.knowledge_tag)
+                ),
               }
             : undefined,
           mediaCount: media.length,

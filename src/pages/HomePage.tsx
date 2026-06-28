@@ -142,8 +142,6 @@ const MODULES: ModuleConfig[] = [
     ],
     workspaceLabel: "Frontier Applications",
     variant: "peach",
-    status: "unavailable",
-    statusLabel: "即将上线",
   },
   {
     id: "demos",

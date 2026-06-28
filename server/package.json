@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "cleanup:uploads": "tsx src/scripts/prune-orphaned-managed-uploads.ts",
+    "backfill:knowledge-tags": "tsx src/scripts/backfill-course-knowledge-tags.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"

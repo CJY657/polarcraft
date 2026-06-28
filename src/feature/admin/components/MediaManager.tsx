@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import { CourseMedia, MediaType } from '@/lib/course.service';
+import { getKnowledgeTagLabel, type CourseMedia, type MediaType } from '@/lib/course.service';
 import { Plus, Pencil, Trash2, FileText, Image, Video, GripVertical, Upload } from 'lucide-react';
 import { MediaFormDialog } from './MediaFormDialog';
 import { BatchMediaUploadDialog } from './BatchMediaUploadDialog';
@@ -30,6 +30,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
   const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
 
   const media = currentCourse?.media || [];
+  const courseKnowledgeTag = currentCourse?.knowledgeTag || 'foundation';
   const selectedIdSet = useMemo(() => new Set(selectedMediaIds), [selectedMediaIds]);
   const allSelected = media.length > 0 && selectedMediaIds.length === media.length;
   const deleteTargetCount = deleteConfirmIds.length;
@@ -242,6 +243,9 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
                   )}
                 </h4>
                 <p className="text-gray-400 text-sm truncate">{item.url}</p>
+                <span className="mt-1 inline-flex rounded-full border border-slate-600 bg-slate-700/70 px-2 py-0.5 text-xs text-slate-200">
+                  {getKnowledgeTagLabel(item.knowledgeTag, true)}
+                </span>
               </div>
 
               {/* Duration (for videos) */}
@@ -288,6 +292,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
         onClose={() => setIsCreateDialogOpen(false)}
         courseId={courseId}
         unitId={unitId}
+        courseKnowledgeTag={courseKnowledgeTag}
         mode="create"
       />
 
@@ -297,6 +302,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
         onClose={() => setIsBatchUploadOpen(false)}
         courseId={courseId}
         unitId={unitId}
+        courseKnowledgeTag={courseKnowledgeTag}
       />
 
       {/* Edit Dialog */}
@@ -306,6 +312,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
           onClose={() => setEditingMedia(null)}
           media={editingMedia}
           unitId={unitId}
+          courseKnowledgeTag={courseKnowledgeTag}
           mode="edit"
         />
       )}

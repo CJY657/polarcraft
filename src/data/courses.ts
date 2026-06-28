@@ -6,6 +6,8 @@
  * 一个 unit 对应一节课
  */
 
+import type { KnowledgeTag } from "@/lib/course.service";
+
 // ============================================================
 // Types - 类型定义
 // ============================================================
@@ -20,6 +22,8 @@ export interface MainSlide {
   url: string;
   /** 标题 */
   title: LabelI18n;
+  /** 知识分类 */
+  knowledgeTag?: KnowledgeTag;
 }
 
 /** PPT/PDF 预览上的超链接区域 */
@@ -50,6 +54,8 @@ export interface MediaResource {
   previewPdfUrl?: string;
   /** 媒体标题 */
   title: LabelI18n;
+  /** 知识分类 */
+  knowledgeTag?: KnowledgeTag;
   /** 持续时间（秒，用于视频） */
   duration?: number;
 }
@@ -67,6 +73,8 @@ export interface CourseData {
   coverImage?: string;
   /** 课程颜色 */
   color: string;
+  /** 知识分类 */
+  knowledgeTag?: KnowledgeTag;
   /** 主课件 PDF */
   mainSlide?: MainSlide;
   /** PPT/PDF 预览上的超链接区域 */

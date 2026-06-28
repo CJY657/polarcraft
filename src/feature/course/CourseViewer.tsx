@@ -29,6 +29,7 @@ import {
 import { ExperimentDiscussionSection } from "./ExperimentDiscussionSection";
 import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
 import { resolveApiEndpoint } from "@/lib/api";
+import { getKnowledgeTagLabel, normalizeKnowledgeTag } from "@/lib/course.service";
 
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
@@ -36,6 +37,8 @@ interface CourseViewerProps {
   course: CourseData;
   theme: "dark" | "light";
   canDownloadResources?: boolean;
+  backPath?: string;
+  backLabel?: string;
 }
 
 // 媒体类型图标映射
@@ -1052,11 +1055,31 @@ export function CourseViewer({
   course,
   theme,
   canDownloadResources = false,
+  backPath = "/experiments",
+  backLabel,
 }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
   const courseTitle =
     course.title[i18n.language] || course.title["zh-CN"] || course.title["en-US"] || "";
+  const fallbackKnowledgeTag = normalizeKnowledgeTag(course.knowledgeTag);
+  const getResourceKnowledgeTag = (resource?: { knowledgeTag?: typeof fallbackKnowledgeTag }) =>
+    normalizeKnowledgeTag(resource?.knowledgeTag ?? fallbackKnowledgeTag);
+  const renderKnowledgeTagBadge = (knowledgeTag = fallbackKnowledgeTag) => (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+        knowledgeTag === "optical_device"
+          ? theme === "dark"
+            ? "border-teal-300/30 bg-teal-400/10 text-teal-200"
+            : "border-teal-200 bg-teal-50 text-teal-700"
+          : theme === "dark"
+            ? "border-blue-300/25 bg-blue-400/10 text-blue-200"
+            : "border-blue-200 bg-blue-50 text-blue-700"
+      }`}
+    >
+      {getKnowledgeTagLabel(knowledgeTag, isZh)}
+    </span>
+  );
   const getMediaDownloadUrl = (media: MediaResource) =>
     resolveApiEndpoint(`/api/courses/media/${encodeURIComponent(media.id)}/download`);
   const getMainSlideDownloadUrl = () =>
@@ -1558,8 +1581,9 @@ export function CourseViewer({
         <div
           className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}
         >
-          {canDownloadResources && (
-            <div className="mb-3 flex justify-end">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            {renderKnowledgeTagBadge(getResourceKnowledgeTag(mainSlide))}
+            {canDownloadResources && (
               <button
                 onClick={() => openDownloadUrl(getMainSlideDownloadUrl())}
                 className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
@@ -1571,8 +1595,8 @@ export function CourseViewer({
               >
                 <Download className="h-5 w-5" />
               </button>
-            </div>
-          )}
+            )}
+          </div>
           <div className="aspect-video">{renderMainSlide()}</div>
         </div>
       )}
@@ -1633,7 +1657,7 @@ export function CourseViewer({
                   </h2>
                 </div>
                 <Link
-                  to="/experiments"
+                  to={backPath}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
                     theme === "dark"
                       ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
@@ -1641,7 +1665,7 @@ export function CourseViewer({
                   }`}
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                  {isZh ? "返回" : "Back"}
+                  {backLabel || (isZh ? "返回" : "Back")}
                 </Link>
               </div>
 
@@ -1763,6 +1787,7 @@ export function CourseViewer({
                                 </div>
 
                                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                  {renderKnowledgeTagBadge(getResourceKnowledgeTag(media))}
                                   <span
                                     className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                                     style={{
@@ -1854,6 +1879,11 @@ export function CourseViewer({
                             ? "暂无课件"
                             : "No deck"}
                       </h3>
+                      {activePptMedia ? (
+                        <div className="mt-2">
+                          {renderKnowledgeTagBadge(getResourceKnowledgeTag(activePptMedia))}
+                        </div>
+                      ) : null}
                     </div>
 
                     {activePptMedia && canDownloadResources && (
@@ -2013,6 +2043,7 @@ export function CourseViewer({
                     {activePreviewMedia ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
+                          {renderKnowledgeTagBadge(getResourceKnowledgeTag(activePreviewMedia))}
                           <span
                             className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
                             style={{
@@ -2131,6 +2162,9 @@ export function CourseViewer({
                       <span className="block text-xs font-bold truncate">
                         {getMediaTitle(media)}
                       </span>
+                      <span className="mt-1 inline-flex">
+                        {renderKnowledgeTagBadge(getResourceKnowledgeTag(media))}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -2159,6 +2193,9 @@ export function CourseViewer({
                           >
                             {getMediaTitle(selectedMedia)}
                           </h3>
+                          <div className="mt-1">
+                            {renderKnowledgeTagBadge(getResourceKnowledgeTag(selectedMedia))}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

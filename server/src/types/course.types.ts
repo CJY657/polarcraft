@@ -18,6 +18,8 @@ export interface LabelI18n {
 
 export type MediaType = 'pptx' | 'image' | 'video';
 
+export type KnowledgeTag = 'foundation' | 'optical_device';
+
 // =====================================================
 // Course Types / 课程类型
 // =====================================================
@@ -26,6 +28,7 @@ export interface CourseMainSlide {
   id: string;
   url: string;
   title: LabelI18n;
+  knowledgeTag: KnowledgeTag;
 }
 
 export interface CourseMedia {
@@ -34,6 +37,7 @@ export interface CourseMedia {
   url: string;
   previewPdfUrl?: string;
   title: LabelI18n;
+  knowledgeTag: KnowledgeTag;
   duration?: number;
   sortOrder: number;
 }
@@ -56,6 +60,7 @@ export interface Course {
   description: LabelI18n;
   coverImage?: string;
   color: string;
+  knowledgeTag: KnowledgeTag;
   mainSlide?: CourseMainSlide;
   media: CourseMedia[];
   hyperlinks: CourseHyperlink[];
@@ -75,6 +80,7 @@ export interface CreateCourseInput {
   description_en?: string;
   coverImage?: string | null;
   color?: string;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface UpdateCourseInput {
@@ -85,6 +91,7 @@ export interface UpdateCourseInput {
   description_en?: string;
   coverImage?: string | null;
   color?: string;
+  knowledgeTag?: KnowledgeTag;
   sortOrder?: number;
 }
 
@@ -92,6 +99,7 @@ export interface CreateMainSlideInput {
   url: string;
   title_zh?: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface CreateMediaInput {
@@ -100,6 +108,7 @@ export interface CreateMediaInput {
   previewPdfUrl?: string;
   title_zh: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
   duration?: number;
 }
 
@@ -109,6 +118,7 @@ export interface UpdateMediaInput {
   previewPdfUrl?: string;
   title_zh?: string;
   title_en?: string;
+  knowledgeTag?: KnowledgeTag;
   duration?: number;
   sort_order?: number;
 }
@@ -153,6 +163,7 @@ export interface CourseRow {
   description_en: string | null;
   cover_image: string | null;
   color: string;
+  knowledge_tag?: KnowledgeTag | null;
   sort_order: number;
   created_at: Date;
   updated_at: Date;
@@ -164,6 +175,7 @@ export interface MainSlideRow {
   url: string;
   title_zh: string | null;
   title_en: string | null;
+  knowledge_tag?: KnowledgeTag | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -176,6 +188,7 @@ export interface MediaRow {
   preview_pdf_url: string | null;
   title_zh: string;
   title_en: string | null;
+  knowledge_tag?: KnowledgeTag | null;
   duration: number | null;
   sort_order: number;
   created_at: Date;
