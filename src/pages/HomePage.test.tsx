@@ -103,16 +103,16 @@ describe('HomePage', () => {
     }
   });
 
-  it('keeps the existing clay card palette classes', () => {
+  it('uses the requested Coolors palette for module cards', () => {
     render(<HomePage />);
 
     const expectedClasses = [
-      ['courses', 'clay-card-pink'],
-      ['applications', 'clay-card-peach'],
-      ['demos', 'clay-card-lavender'],
-      ['devices', 'clay-card-teal'],
-      ['gallery', 'clay-card-ochre'],
-      ['lab', 'clay-card-cream'],
+      ['courses', 'bg-[#264653]'],
+      ['applications', 'bg-[#2a9d8f]'],
+      ['demos', 'bg-[#e9c46a]'],
+      ['devices', 'bg-[#f4a261]'],
+      ['gallery', 'bg-[#e76f51]'],
+      ['lab', 'bg-[#264653]'],
     ];
 
     for (const [moduleId, className] of expectedClasses) {

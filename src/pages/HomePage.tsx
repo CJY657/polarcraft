@@ -36,7 +36,7 @@ interface QuickLink {
   path: string;
 }
 
-type ClayVariant = "pink" | "teal" | "lavender" | "peach" | "ochre" | "cream";
+type ModulePalette = "pine" | "jungle" | "saffron" | "sand" | "terracotta";
 
 interface ModuleConfig {
   id: string;
@@ -45,63 +45,52 @@ interface ModuleConfig {
   IconComponent: AnimatedIconComponent;
   quickLinks: QuickLink[];
   workspaceLabel: string;
-  variant: ClayVariant;
+  variant: ModulePalette;
   status?: "available" | "unavailable";
   statusLabel?: string;
 }
 
-const VARIANT_TEXT: Record<ClayVariant, { title: string; body: string; caption: string; iconBg: string; iconFg: string }> = {
-  pink: {
+const MODULE_CARD_STYLE: Record<ModulePalette, { card: string; title: string; body: string; caption: string; iconBg: string; iconFg: string }> = {
+  pine: {
+    card: "bg-[#264653]",
     title: "text-white",
-    body: "text-white/85",
-    caption: "text-white/70",
+    body: "text-white",
+    caption: "text-white",
     iconBg: "bg-white/20",
     iconFg: "text-white",
   },
-  teal: {
-    title: "text-white",
-    body: "text-white/85",
-    caption: "text-white/70",
-    iconBg: "bg-white/15",
-    iconFg: "text-white",
-  },
-  lavender: {
-    title: "text-clay-ink",
-    body: "text-clay-ink/80",
-    caption: "text-clay-ink/65",
+  jungle: {
+    card: "bg-[#2a9d8f]",
+    title: "text-[#10201f]",
+    body: "text-[#10201f]",
+    caption: "text-[#10201f]",
     iconBg: "bg-white/55",
-    iconFg: "text-clay-ink",
+    iconFg: "text-[#10201f]",
   },
-  peach: {
-    title: "text-clay-ink",
-    body: "text-clay-ink/80",
-    caption: "text-clay-ink/65",
+  saffron: {
+    card: "bg-[#e9c46a]",
+    title: "text-[#10201f]",
+    body: "text-[#10201f]",
+    caption: "text-[#10201f]",
     iconBg: "bg-white/55",
-    iconFg: "text-clay-ink",
+    iconFg: "text-[#10201f]",
   },
-  ochre: {
-    title: "text-clay-ink",
-    body: "text-clay-ink/80",
-    caption: "text-clay-ink/65",
+  sand: {
+    card: "bg-[#f4a261]",
+    title: "text-[#10201f]",
+    body: "text-[#10201f]",
+    caption: "text-[#10201f]",
     iconBg: "bg-white/55",
-    iconFg: "text-clay-ink",
+    iconFg: "text-[#10201f]",
   },
-  cream: {
-    title: "text-clay-ink",
-    body: "text-clay-body",
-    caption: "text-clay-muted",
-    iconBg: "bg-white",
-    iconFg: "text-clay-ink",
+  terracotta: {
+    card: "bg-[#e76f51]",
+    title: "text-[#10201f]",
+    body: "text-[#10201f]",
+    caption: "text-[#10201f]",
+    iconBg: "bg-white/55",
+    iconFg: "text-[#10201f]",
   },
-};
-
-const VARIANT_CARD_CLASS: Record<ClayVariant, string> = {
-  pink: "clay-card-pink",
-  teal: "clay-card-teal",
-  lavender: "clay-card-lavender",
-  peach: "clay-card-peach",
-  ochre: "clay-card-ochre",
-  cream: "clay-card-cream",
 };
 
 const HERO_IMAGE = "/images/chromatic-polarization/钢化玻璃-正交偏振系统-正视图.jpg";
@@ -128,7 +117,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.courses.link3", path: "/experiments" },
     ],
     workspaceLabel: "Classic Experiments",
-    variant: "pink",
+    variant: "pine",
   },
   {
     id: "applications",
@@ -141,7 +130,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.applications.link3", path: "/applications/in-situ-detection" },
     ],
     workspaceLabel: "Frontier Applications",
-    variant: "peach",
+    variant: "jungle",
   },
   {
     id: "demos",
@@ -154,7 +143,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.theory.link3", path: "/demos/brewster-angle" },
     ],
     workspaceLabel: "Computational Simulation",
-    variant: "lavender",
+    variant: "saffron",
   },
   {
     id: "devices",
@@ -167,7 +156,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.studio.link3", path: "/devices" },
     ],
     workspaceLabel: "Gamified Learning",
-    variant: "teal",
+    variant: "sand",
   },
   {
     id: "gallery",
@@ -180,7 +169,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.gallery.link3", path: "/gallery/gallery" },
     ],
     workspaceLabel: "Achievement Showcase",
-    variant: "ochre",
+    variant: "terracotta",
   },
   {
     id: "lab",
@@ -193,7 +182,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.lab.link3", path: "/lab/explore" },
     ],
     workspaceLabel: "Virtual Research Group",
-    variant: "cream",
+    variant: "pine",
   },
 ];
 
@@ -237,8 +226,7 @@ export function HomePage() {
             {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isUnavailable = module.status === "unavailable";
-              const variantClass = VARIANT_CARD_CLASS[module.variant];
-              const variantStyle = VARIANT_TEXT[module.variant];
+              const variantStyle = MODULE_CARD_STYLE[module.variant];
 
               return (
                 <button
@@ -253,7 +241,7 @@ export function HomePage() {
                   }}
                   className={cn(
                     "clay-card group relative flex min-h-[160px] flex-col p-5 text-left transition-all duration-300",
-                    variantClass,
+                    variantStyle.card,
                     isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1.5 hover:shadow-lg",
                   )}
                 >
@@ -281,7 +269,7 @@ export function HomePage() {
                     )}
                   </div>
 
-                  <p className={cn("clay-caption mt-4 text-xs font-medium tracking-wide", variantStyle.caption)}>
+                  <p className={cn("mt-4 text-xs font-semibold uppercase tracking-[0.12em]", variantStyle.caption)}>
                     {module.workspaceLabel}
                   </p>
                   <h3
