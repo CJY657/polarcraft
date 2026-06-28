@@ -104,15 +104,6 @@ const VARIANT_CARD_CLASS: Record<ClayVariant, string> = {
   cream: "clay-card-cream",
 };
 
-const MODULE_CARD_LAYOUT: Record<string, string> = {
-  courses: "lg:col-span-2",
-  devices: "lg:col-span-2",
-  demos: "lg:col-span-2",
-  games: "lg:col-span-2",
-  gallery: "lg:col-span-2",
-  lab: "lg:col-span-2",
-};
-
 const HERO_IMAGE = "/images/chromatic-polarization/钢化玻璃-正交偏振系统-正视图.jpg";
 const SUPPORTING_IMAGES = [
   {
@@ -136,21 +127,23 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.courses.link2", path: "/experiments" },
       { labelKey: "home.modules.courses.link3", path: "/experiments" },
     ],
-    workspaceLabel: "核心实验",
+    workspaceLabel: "Classic Experiments",
     variant: "pink",
   },
   {
-    id: "devices",
-    i18nNamespace: "home.modules.studio",
-    path: "/devices",
-    IconComponent: DevicesModuleIcon,
+    id: "applications",
+    i18nNamespace: "home.modules.applications",
+    path: "/applications",
+    IconComponent: GamesModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.studio.link1", path: "/devices/calcite-case" },
-      { labelKey: "home.modules.studio.link2", path: "/devices" },
-      { labelKey: "home.modules.studio.link3", path: "/devices" },
+      { labelKey: "home.modules.applications.link1", path: "/applications/mueller-microscopy" },
+      { labelKey: "home.modules.applications.link2", path: "/applications/polarization-scattering" },
+      { labelKey: "home.modules.applications.link3", path: "/applications/in-situ-detection" },
     ],
-    workspaceLabel: "可玩案件",
-    variant: "teal",
+    workspaceLabel: "Frontier Applications",
+    variant: "peach",
+    status: "unavailable",
+    statusLabel: "即将上线",
   },
   {
     id: "demos",
@@ -162,23 +155,21 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.theory.link2", path: "/demos/birefringence-iceland-spar" },
       { labelKey: "home.modules.theory.link3", path: "/demos/brewster-angle" },
     ],
-    workspaceLabel: "交互模拟",
+    workspaceLabel: "Computational Simulation",
     variant: "lavender",
   },
   {
-    id: "games",
-    i18nNamespace: "home.modules.games",
-    path: "/games",
-    IconComponent: GamesModuleIcon,
+    id: "devices",
+    i18nNamespace: "home.modules.studio",
+    path: "/devices",
+    IconComponent: DevicesModuleIcon,
     quickLinks: [
-      { labelKey: "home.modules.games.link1", path: "/games/escape" },
-      { labelKey: "home.modules.games.link2", path: "/games/minecraft" },
-      { labelKey: "home.modules.games.link3", path: "/games" },
+      { labelKey: "home.modules.studio.link1", path: "/devices/calcite-case" },
+      { labelKey: "home.modules.studio.link2", path: "/devices" },
+      { labelKey: "home.modules.studio.link3", path: "/devices" },
     ],
-    workspaceLabel: "通关挑战",
-    variant: "peach",
-    status: "unavailable",
-    statusLabel: "即将上线",
+    workspaceLabel: "Gamified Learning",
+    variant: "teal",
   },
   {
     id: "gallery",
@@ -190,7 +181,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.gallery.link2", path: "/gallery/generator" },
       { labelKey: "home.modules.gallery.link3", path: "/gallery/gallery" },
     ],
-    workspaceLabel: "视觉归档",
+    workspaceLabel: "Achievement Showcase",
     variant: "ochre",
   },
   {
@@ -203,7 +194,7 @@ const MODULES: ModuleConfig[] = [
       { labelKey: "home.modules.lab.link2", path: "/lab/explore" },
       { labelKey: "home.modules.lab.link3", path: "/lab/explore" },
     ],
-    workspaceLabel: "开放研究",
+    workspaceLabel: "Virtual Research Group",
     variant: "cream",
   },
 ];
@@ -239,74 +230,17 @@ export function HomePage() {
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
       <main className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:gap-14 lg:px-8 lg:pb-20 lg:pt-8">
-        {/* ============ LAUNCHER ============ */}
+        {/* ============ MODULES & IMAGES ============ */}
         <section
-          data-testid="home-hero"
-          className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] lg:items-center"
+          data-testid="home-modules-showcase"
+          className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(400px,0.9fr)] lg:items-start"
         >
-          <div className="flex flex-col gap-5">
-            <span className="inline-flex w-fit rounded-full bg-clay-surface-card px-4 py-2 text-sm font-semibold text-clay-ink">
-              PolariScope
-            </span>
-            <h1 className="clay-display-xl">
-              透过偏振光<br />洞察科学的结构
-            </h1>
-
-            <p className="max-w-2xl text-base leading-7 text-clay-body sm:text-lg">
-              连接真实实验、交互模拟与开放研究，为您构建一条直观、沉浸式的光学探索之路。
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/experiments")}
-                className="clay-button-primary"
-              >
-                <BookOpenText className="h-4 w-4" />
-                开启实验探索
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/lab/explore")}
-                className="clay-button-secondary"
-              >
-                浏览前沿研究
-              </button>
-            </div>
-          </div>
-
-          <figure className="grid gap-3">
-            <div className="overflow-hidden rounded-[1.5rem] border border-clay-surface-strong bg-clay-surface-card p-2">
-              <img
-                src={HERO_IMAGE}
-                alt="偏振光下的钢化玻璃纹理"
-                className="aspect-[16/9] w-full rounded-[1.1rem] object-cover"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {SUPPORTING_IMAGES.map((image) => (
-                <div
-                  key={image.src}
-                  className="overflow-hidden rounded-[1rem] border border-clay-surface-strong bg-clay-surface-card p-1.5"
-                >
-                  <img
-                    src={image.src}
-                    alt={image.alt}
-                    className="aspect-[2/1] w-full rounded-[0.65rem] object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </figure>
-        </section>
-
-        <section aria-label="PolariScope 平台的六个模块" className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
+          <div aria-label="PolariScope 平台的六个模块" className="grid gap-5 sm:grid-cols-2">
             {MODULES.map((module) => {
               const IconComponent = module.IconComponent;
               const isUnavailable = module.status === "unavailable";
               const variantClass = VARIANT_CARD_CLASS[module.variant];
               const variantStyle = VARIANT_TEXT[module.variant];
-              const layoutClass = MODULE_CARD_LAYOUT[module.id] ?? "lg:col-span-2";
 
               return (
                 <button
@@ -314,44 +248,47 @@ export function HomePage() {
                   type="button"
                   data-testid={`home-module-${module.id}`}
                   aria-disabled={isUnavailable}
-                  onClick={() => navigate(module.path)}
+                  onClick={() => {
+                    if (!isUnavailable) {
+                      navigate(module.path);
+                    }
+                  }}
                   className={cn(
-                    "clay-card group relative flex min-h-[160px] flex-col p-4 text-left transition-transform duration-200 sm:p-5",
+                    "clay-card group relative flex min-h-[160px] flex-col p-5 text-left transition-all duration-300",
                     variantClass,
-                    layoutClass,
-                    isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1",
+                    isUnavailable ? "cursor-default opacity-90" : "hover:-translate-y-1.5 hover:shadow-lg",
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-2xl",
+                        "flex h-11 w-11 items-center justify-center rounded-2xl transition-colors duration-300",
                         variantStyle.iconBg,
                         variantStyle.iconFg,
                       )}
                     >
-                      <IconComponent size={22} theme={theme} />
+                      <IconComponent size={24} theme={theme} />
                     </div>
                     {isUnavailable && (
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.1em]",
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase",
                           variantStyle.iconBg,
                           variantStyle.iconFg,
                         )}
                       >
-                        <LockKeyhole className="h-3 w-3" />
+                        <LockKeyhole className="h-3.5 w-3.5" />
                         {module.statusLabel}
                       </span>
                     )}
                   </div>
 
-                  <p className={cn("clay-caption mt-3 text-xs", variantStyle.caption)}>
+                  <p className={cn("clay-caption mt-4 text-xs font-medium tracking-wide", variantStyle.caption)}>
                     {module.workspaceLabel}
                   </p>
                   <h3
                     className={cn(
-                      "mt-1 font-semibold text-lg",
+                      "mt-1.5 font-bold text-xl",
                       variantStyle.title,
                     )}
                     style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
@@ -360,7 +297,7 @@ export function HomePage() {
                   </h3>
                   <p
                     className={cn(
-                      "mt-1 leading-snug text-xs line-clamp-2",
+                      "mt-2 leading-relaxed text-sm line-clamp-2",
                       variantStyle.body,
                     )}
                   >
@@ -370,17 +307,46 @@ export function HomePage() {
                   {!isUnavailable && (
                     <span
                       className={cn(
-                        "mt-auto pt-2 inline-flex items-center gap-1 text-xs font-semibold",
+                        "mt-auto pt-4 inline-flex items-center gap-1.5 text-sm font-bold tracking-wide",
                         variantStyle.title,
                       )}
                     >
-                      进入
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      进入探索
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
                     </span>
                   )}
                 </button>
               );
             })}
+          </div>
+
+          <figure className="grid gap-5 lg:sticky lg:top-24">
+            <div className="group overflow-hidden rounded-[1.75rem] border border-clay-surface-strong bg-clay-surface-card p-2.5 shadow-sm transition-all duration-300 hover:shadow-md">
+              <div className="overflow-hidden rounded-[1.25rem]">
+                <img
+                  src={HERO_IMAGE}
+                  alt="偏振光下的钢化玻璃纹理"
+                  className="aspect-[4/3] xl:aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-5">
+              {SUPPORTING_IMAGES.map((image) => (
+                <div
+                  key={image.src}
+                  className="group overflow-hidden rounded-[1.25rem] border border-clay-surface-strong bg-clay-surface-card p-2 shadow-sm transition-all duration-300 hover:shadow-md"
+                >
+                  <div className="overflow-hidden rounded-[0.9rem]">
+                    <img
+                      src={image.src}
+                      alt={image.alt}
+                      className="aspect-[4/3] xl:aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </figure>
         </section>
 
         {/* ============ MISSION BAND ============ */}

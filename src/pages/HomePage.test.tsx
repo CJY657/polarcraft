@@ -13,7 +13,18 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'home.modules.courses.title': '经典实验',
+        'home.modules.applications.title': '前沿应用',
+        'home.modules.theory.title': '计算模拟',
+        'home.modules.studio.title': '游戏化',
+        'home.modules.gallery.title': '成果展示',
+        'home.modules.lab.title': '虚拟课题组',
+      };
+
+      return translations[key] ?? key;
+    },
   }),
 }));
 
@@ -59,12 +70,51 @@ describe('HomePage', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('marks only the games module as disabled', () => {
+  it('renders modules in the requested order with Chinese and English names', () => {
     render(<HomePage />);
 
-    expect(screen.getByTestId('home-module-devices').getAttribute('aria-disabled')).toBe('false');
-    expect(screen.getByTestId('home-module-games').getAttribute('aria-disabled')).toBe('true');
+    const moduleIds = screen
+      .getAllByTestId(/^home-module-/)
+      .map((module) => module.getAttribute('data-testid'));
+
+    expect(moduleIds).toEqual([
+      'home-module-courses',
+      'home-module-applications',
+      'home-module-demos',
+      'home-module-devices',
+      'home-module-gallery',
+      'home-module-lab',
+    ]);
+
+    const expectedNames = [
+      ['home-module-courses', '经典实验', 'Classic Experiments'],
+      ['home-module-applications', '前沿应用', 'Frontier Applications'],
+      ['home-module-demos', '计算模拟', 'Computational Simulation'],
+      ['home-module-devices', '游戏化', 'Gamified Learning'],
+      ['home-module-gallery', '成果展示', 'Achievement Showcase'],
+      ['home-module-lab', '虚拟课题组', 'Virtual Research Group'],
+    ];
+
+    for (const [testId, chineseName, englishName] of expectedNames) {
+      const cardText = screen.getByTestId(testId).textContent;
+
+      expect(cardText).toContain(chineseName);
+      expect(cardText).toContain(englishName);
+    }
+  });
+
+  it('marks only the frontier applications module as disabled and blocks navigation', () => {
+    render(<HomePage />);
+
+    for (const moduleId of ['courses', 'demos', 'devices', 'gallery', 'lab']) {
+      expect(screen.getByTestId(`home-module-${moduleId}`).getAttribute('aria-disabled')).toBe('false');
+    }
+
+    expect(screen.getByTestId('home-module-applications').getAttribute('aria-disabled')).toBe('true');
     expect(screen.getAllByText('即将上线')).toHaveLength(1);
+
+    fireEvent.click(screen.getByTestId('home-module-applications'));
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('offers one clear first-step action from the hero', () => {
@@ -79,6 +129,9 @@ describe('HomePage', () => {
 
   it('navigates to the module route when a card is clicked', () => {
     render(<HomePage />);
+
+    fireEvent.click(screen.getByTestId('home-module-courses'));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/experiments');
 
     fireEvent.click(screen.getByTestId('home-module-demos'));
     expect(mockNavigate).toHaveBeenLastCalledWith('/demos');
