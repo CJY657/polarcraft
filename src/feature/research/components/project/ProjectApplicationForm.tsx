@@ -5,7 +5,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, X } from 'lucide-react';
+import { AlertTriangle, Send, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
@@ -20,6 +20,14 @@ interface ProjectApplicationFormProps {
   onSuccess?: () => void;
 }
 
+const CLOSED_RECRUITMENT_TITLE = '招募已停止';
+const CLOSED_RECRUITMENT_MESSAGE = '该课题组已停止招募，暂时不能申请加入。';
+
+function isClosedRecruitmentError(err: unknown) {
+  if (!(err instanceof Error)) return false;
+  return err.message.includes('暂未招募') || err.message.includes('NOT_RECRUITING');
+}
+
 export function ProjectApplicationForm({
   isOpen,
   onClose,
@@ -29,6 +37,7 @@ export function ProjectApplicationForm({
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const isRecruitmentClosed = project?.is_recruiting === false;
 
   const [educations, setEducations] = useState<UserEducation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,13 +59,19 @@ export function ProjectApplicationForm({
   // Load user educations on mount
   useEffect(() => {
     if (isOpen) {
-      profileApi.getUserEducations().then(setEducations).catch(console.error);
       // Pre-fill display name
       if (user?.username) {
         setFormData((prev) => ({ ...prev, display_name: user.username }));
       }
+
+      if (isRecruitmentClosed) {
+        setEducations([]);
+        return;
+      }
+
+      profileApi.getUserEducations().then(setEducations).catch(console.error);
     }
-  }, [isOpen, user?.username]);
+  }, [isOpen, isRecruitmentClosed, user?.username]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -94,13 +109,18 @@ export function ProjectApplicationForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
     if (!project) {
       setError('课题不存在');
-      setIsLoading(false);
       return;
     }
+
+    if (project.is_recruiting === false) {
+      setError(CLOSED_RECRUITMENT_MESSAGE);
+      return;
+    }
+
+    setIsLoading(true);
 
     if (!formData.organization.trim()) {
       setError(t('project.create.organizationRequired') || '请输入单位');
@@ -136,7 +156,7 @@ export function ProjectApplicationForm({
         if (onSuccess) onSuccess();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.error'));
+      setError(isClosedRecruitmentError(err) ? CLOSED_RECRUITMENT_MESSAGE : err instanceof Error ? err.message : t('common.error'));
     } finally {
       setIsLoading(false);
     }
@@ -168,8 +188,9 @@ export function ProjectApplicationForm({
           </div>
           <button
             onClick={onClose}
+            aria-label="关闭申请弹窗"
             className={cn(
-              "p-1.5 rounded-lg transition-colors",
+              "flex h-11 w-11 items-center justify-center rounded-xl transition-colors",
               theme === "dark"
                 ? "hover:bg-gray-700 text-gray-400"
                 : "hover:bg-gray-100 text-gray-500"
@@ -191,7 +212,45 @@ export function ProjectApplicationForm({
         )}
 
         {/* Success message */}
-        {success ? (
+        {isRecruitmentClosed ? (
+          <div className="space-y-5">
+            <div
+              className={cn(
+                "rounded-2xl border p-4",
+                theme === "dark" ? "text-[#fef3c7]" : "text-[#78350f]"
+              )}
+              style={{
+                borderColor: "color-mix(in srgb, #f59e0b 42%, var(--glass-stroke))",
+                background: "color-mix(in srgb, #f59e0b 14%, transparent)",
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                  style={{ background: "color-mix(in srgb, #f59e0b 20%, transparent)" }}
+                >
+                  <AlertTriangle className="h-5 w-5 text-[#f59e0b]" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-semibold">{CLOSED_RECRUITMENT_TITLE}</h3>
+                  <p className="mt-1 text-base leading-6">{CLOSED_RECRUITMENT_MESSAGE}</p>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className={cn(
+                "min-h-11 w-full rounded-xl px-4 py-2.5 text-base font-semibold transition-colors",
+                theme === "dark"
+                  ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+              )}
+            >
+              关闭
+            </button>
+          </div>
+        ) : success ? (
           <div className={cn(
             "p-6 rounded-lg text-center",
             theme === "dark" ? "bg-green-900/30 text-green-400" : "bg-green-50 text-green-600"

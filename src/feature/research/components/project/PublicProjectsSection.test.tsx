@@ -7,11 +7,11 @@ import type { PublicProject } from "@/lib/profile.service";
 import { PublicProjectsSection } from "./PublicProjectsSection";
 
 const getPublicProjects = vi.fn();
+const openDialog = vi.fn();
+const mockUseAuth = vi.fn();
 
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({
-    isAuthenticated: true,
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock("@/contexts/SystemContext", () => ({
@@ -21,7 +21,7 @@ vi.mock("@/contexts/SystemContext", () => ({
 }));
 
 vi.mock("@/stores/authDialogStore", () => ({
-  useAuthDialogStore: () => vi.fn(),
+  useAuthDialogStore: () => openDialog,
 }));
 
 vi.mock("@/lib/profile.service", () => ({
@@ -31,7 +31,22 @@ vi.mock("@/lib/profile.service", () => ({
 }));
 
 vi.mock("./ProjectApplicationForm", () => ({
-  ProjectApplicationForm: () => null,
+  ProjectApplicationForm: ({
+    isOpen,
+    project,
+  }: {
+    isOpen: boolean;
+    project: PublicProject | null;
+  }) => (
+    isOpen && project?.is_recruiting === false
+      ? (
+        <div role="dialog">
+          <h2>招募已停止</h2>
+          <p>该课题组已停止招募，暂时不能申请加入。</p>
+        </div>
+      )
+      : null
+  ),
 }));
 
 function createPublicProject(overrides: Partial<PublicProject>): PublicProject {
@@ -67,6 +82,10 @@ function getCardTitles() {
 describe("PublicProjectsSection", () => {
   beforeEach(() => {
     getPublicProjects.mockReset();
+    openDialog.mockReset();
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+    });
   });
 
   it("shows pending state instead of a re-applicable action when the user already has a pending application", async () => {
@@ -94,6 +113,41 @@ describe("PublicProjectsSection", () => {
     });
 
     expect((await screen.findByRole("button", { name: "待审核" })).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("opens the stopped-recruitment warning for closed guest cards without login", async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: false,
+    });
+    getPublicProjects.mockResolvedValue([
+      createPublicProject({
+        id: "project-closed",
+        name_zh: "停止招募课题",
+        is_recruiting: false,
+        updated_at: "2026-06-20T00:00:00.000Z",
+      }),
+      createPublicProject({
+        id: "project-pending",
+        name_zh: "待审核课题",
+        is_recruiting: true,
+        has_pending_application: true,
+        updated_at: "2026-06-10T00:00:00.000Z",
+      }),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <PublicProjectsSection />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "停止招募课题", level: 3 });
+    expect((screen.getByRole("button", { name: "待审核" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "招募已停止" }));
+
+    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
+    expect(openDialog).not.toHaveBeenCalled();
   });
 
   it("sorts all fetched projects before keeping the four-card preview", async () => {

@@ -4,17 +4,20 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectWithMembers } from "@/lib/research.service";
+import type { ProjectSettings, PublicProjectDetail } from "@/lib/profile.service";
 import { ResearchProjectPage } from "./ResearchProjectPage";
 
 const mockGetProject = vi.fn();
 const mockGetProjectSettings = vi.fn();
 const mockGetProjectCanvases = vi.fn();
 const mockGetProjectApplications = vi.fn();
+const mockGetPublicProjectById = vi.fn();
 const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
+const openDialog = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
@@ -26,7 +29,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 }));
 
 vi.mock("@/stores/authDialogStore", () => ({
-  useAuthDialogStore: () => vi.fn(),
+  useAuthDialogStore: () => openDialog,
 }));
 
 vi.mock("@/data/researchExampleProjects", () => ({
@@ -52,7 +55,28 @@ vi.mock("../components/project/ProjectSettingsDialog", () => ({
 }));
 
 vi.mock("../components/project/ProjectApplicationForm", () => ({
-  ProjectApplicationForm: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>application-form</div> : null),
+  ProjectApplicationForm: ({
+    isOpen,
+    project,
+  }: {
+    isOpen: boolean;
+    project: { is_recruiting: boolean } | null;
+  }) => (
+    isOpen
+      ? (
+        <div role="dialog">
+          {project?.is_recruiting === false ? (
+            <>
+              <h2>招募已停止</h2>
+              <p>该课题组已停止招募，暂时不能申请加入。</p>
+            </>
+          ) : (
+            <div>application-form</div>
+          )}
+        </div>
+      )
+      : null
+  ),
 }));
 
 vi.mock("../components/project/ResearchAgentPanel", () => ({
@@ -87,7 +111,7 @@ vi.mock("@/lib/profile.service", () => ({
   profileApi: {
     getProjectSettings: (...args: unknown[]) => mockGetProjectSettings(...args),
     getProjectApplications: (...args: unknown[]) => mockGetProjectApplications(...args),
-    getPublicProjectById: vi.fn(),
+    getPublicProjectById: (...args: unknown[]) => mockGetPublicProjectById(...args),
   },
 }));
 
@@ -171,17 +195,66 @@ function createProject(overrides: Partial<ProjectWithMembers> = {}): ProjectWith
   };
 }
 
+function createProjectSettings(overrides: Partial<ProjectSettings> = {}): ProjectSettings {
+  return {
+    id: "settings-1",
+    project_id: "project-1",
+    visibility: "public",
+    require_approval: true,
+    recruitment_requirements: null,
+    max_members: null,
+    recruitment_deadline: null,
+    is_recruiting: true,
+    contact_email: null,
+    discussion_channel: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function createPublicProjectDetail(overrides: Partial<PublicProjectDetail> = {}): PublicProjectDetail {
+  return {
+    id: "project-1",
+    name_zh: "公开课题",
+    name_en: null,
+    description_zh: "公开课题简介",
+    description_en: null,
+    thumbnail: null,
+    status: "active",
+    visibility: "public",
+    require_approval: true,
+    recruitment_requirements: null,
+    is_recruiting: false,
+    max_members: null,
+    member_count: 1,
+    is_member: false,
+    has_pending_application: false,
+    owner_username: "组长",
+    owner_avatar_url: null,
+    members: [{ username: "组长", avatar_url: null, role: "owner" }],
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    is_public: true,
+    allow_guest_comments: false,
+    enable_task_board: false,
+    ...overrides,
+  };
+}
+
 describe("ResearchProjectPage", () => {
   beforeEach(() => {
     mockGetProject.mockReset();
     mockGetProjectSettings.mockReset();
     mockGetProjectCanvases.mockReset();
     mockGetProjectApplications.mockReset();
+    mockGetPublicProjectById.mockReset();
     mockAddProjectMember.mockReset();
     mockDeleteProject.mockReset();
     mockRemoveProjectMember.mockReset();
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
+    openDialog.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
       user: { id: "owner-1", username: "owner", role: "user" },
@@ -387,6 +460,61 @@ describe("ResearchProjectPage", () => {
     await screen.findByText("你正在以只读模式浏览这个课题");
     expect(screen.queryByTestId("research-agent-panel")).toBeNull();
     expect(mockResearchAgentPanel).not.toHaveBeenCalled();
+  });
+
+  it("shows stopped-recruitment warning for closed public project details without opening login", async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    mockGetPublicProjectById.mockResolvedValue(
+      createPublicProjectDetail({
+        name_zh: "关闭招募公开课题",
+        is_recruiting: false,
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("关闭招募公开课题")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "招募已停止" })[0]);
+
+    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
+    expect(openDialog).not.toHaveBeenCalled();
+    expect(mockGetProject).not.toHaveBeenCalled();
+  });
+
+  it("shows stopped-recruitment warning for closed authenticated read-only projects", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "candidate-1", username: "candidate", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+    mockGetProjectSettings.mockResolvedValue(createProjectSettings({ is_recruiting: false }));
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("你正在以只读模式浏览这个课题")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "招募已停止" })[0]);
+
+    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
+    expect(openDialog).not.toHaveBeenCalled();
   });
 
   it("jumps research information into the discussion subsections", async () => {

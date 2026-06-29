@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+import { cn } from "@/utils/classNames";
 import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
 import {
@@ -20,6 +21,12 @@ import {
   sortPublicProjectsByDisplayMode,
   type ProjectDisplayMode,
 } from "./projectDisplayModes";
+
+function getApplyButtonLabel(project: PublicProject) {
+  if (project.has_pending_application) return "待审核";
+  if (project.is_recruiting === false) return "招募已停止";
+  return project.require_approval ? "提交申请" : "立即加入";
+}
 
 export function PublicProjectsSection() {
   const { isAuthenticated } = useAuth();
@@ -57,11 +64,16 @@ export function PublicProjectsSection() {
   }, [isSystemHealthy]);
 
   const handleApplyClick = (project: PublicProject) => {
-    if (!isAuthenticated) {
-      openDialog("login");
+    if (project.has_pending_application) {
       return;
     }
-    if (project.has_pending_application) {
+    if (project.is_recruiting === false) {
+      setSelectedProject(project);
+      setIsApplicationFormOpen(true);
+      return;
+    }
+    if (!isAuthenticated) {
+      openDialog("login");
       return;
     }
     setSelectedProject(project);
@@ -247,9 +259,14 @@ export function PublicProjectsSection() {
                   <button
                     onClick={() => handleApplyClick(project)}
                     disabled={project.has_pending_application}
-                    className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className={cn(
+                      "glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60",
+                      project.is_recruiting === false && !project.has_pending_application
+                        ? "border-[#f59e0b]/50 bg-[#f59e0b]/15 text-[#78350f] hover:border-[#f59e0b]/70 dark:text-[#fef3c7]"
+                        : "glass-button-primary text-white"
+                    )}
                   >
-                    {project.has_pending_application ? "待审核" : project.require_approval ? "提交申请" : "立即加入"}
+                    {getApplyButtonLabel(project)}
                   </button>
                 )}
               </div>

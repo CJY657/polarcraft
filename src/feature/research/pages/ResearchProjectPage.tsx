@@ -42,6 +42,7 @@ import {
   profileApi,
   type ProjectSettings,
   type ProjectApplication,
+  type PublicProject,
   type PublicProjectDetail,
   type PublicProjectMember,
 } from "@/lib/profile.service";
@@ -554,15 +555,50 @@ export function ResearchProjectPage() {
     settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
   const hasPendingApplication = project?.has_pending_application ?? publicProject?.has_pending_application ?? false;
   const projectOwner = project?.members.find((member) => member.role === "owner") ?? null;
+  const isRecruitmentClosed = settings?.is_recruiting === false || publicProject?.is_recruiting === false;
+  const applicationProject: PublicProject | null = publicProject ?? (project ? {
+    id: project.id,
+    name_zh: project.name_zh,
+    name_en: project.name_en,
+    description_zh: project.description_zh,
+    description_en: project.description_en,
+    thumbnail: project.thumbnail,
+    status: project.status,
+    visibility: 'public' as const,
+    require_approval: displayRequireApproval,
+    recruitment_requirements: displayRecruitmentRequirements,
+    is_recruiting: !isRecruitmentClosed,
+    max_members: settings?.max_members ?? null,
+    member_count: project.member_count,
+    is_member: false,
+    has_pending_application: project.has_pending_application,
+    owner_username: projectOwner?.username ?? null,
+    owner_avatar_url: projectOwner?.avatar_url ?? null,
+    members: project.members.map((member) => ({
+      username: member.username,
+      avatar_url: member.avatar_url,
+      role: member.role,
+    })),
+    created_at: project.created_at,
+    updated_at: project.updated_at,
+  } : null);
   const applyButtonLabel = isPublicGuestMode
-    ? "登录后申请加入"
+    ? isRecruitmentClosed
+      ? "招募已停止"
+      : "登录后申请加入"
     : hasPendingApplication
       ? "申请已提交"
+      : isRecruitmentClosed
+        ? "招募已停止"
       : "申请加入课题";
   const applyBannerButtonLabel = isPublicGuestMode
-    ? "登录后加入"
+    ? isRecruitmentClosed
+      ? "招募已停止"
+      : "登录后加入"
     : hasPendingApplication
       ? "申请已提交"
+      : isRecruitmentClosed
+        ? "招募已停止"
       : "申请加入";
   const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
 
@@ -581,14 +617,21 @@ export function ResearchProjectPage() {
   };
 
   const handleApplyAction = () => {
+    if (hasPendingApplication) {
+      return;
+    }
+
+    if (isRecruitmentClosed) {
+      setIsApplicationFormOpen(true);
+      return;
+    }
+
     if (isPublicGuestMode) {
       openDialog("login");
       return;
     }
 
-    if (!hasPendingApplication) {
-      setIsApplicationFormOpen(true);
-    }
+    setIsApplicationFormOpen(true);
   };
 
   const handleJumpToDiscussion = (target: ProjectDiscussionJumpTarget) => {
@@ -998,38 +1041,16 @@ export function ResearchProjectPage() {
         )}
 
         {/* Application Form for Read-Only Mode */}
-        {isReadOnlyMode && project && isApplicationFormOpen && (
+        {isReadOnlyMode && applicationProject && isApplicationFormOpen && (
           <ProjectApplicationForm
             isOpen={isApplicationFormOpen}
             onClose={() => setIsApplicationFormOpen(false)}
-            project={{
-              id: project.id,
-              name_zh: project.name_zh,
-              name_en: project.name_en,
-              description_zh: project.description_zh,
-              description_en: project.description_en,
-              thumbnail: project.thumbnail,
-              status: project.status,
-              visibility: 'public' as const,
-              require_approval: displayRequireApproval,
-              recruitment_requirements: displayRecruitmentRequirements,
-              is_recruiting: displayIsRecruiting,
-              max_members: settings?.max_members ?? null,
-              member_count: project.member_count,
-              is_member: false,
-              owner_username: projectOwner?.username ?? null,
-              owner_avatar_url: projectOwner?.avatar_url ?? null,
-              members: project.members.map((member) => ({
-                username: member.username,
-                avatar_url: member.avatar_url,
-                role: member.role,
-              })),
-              created_at: project.created_at,
-              updated_at: project.updated_at,
-            }}
+            project={applicationProject}
             onSuccess={() => {
               setIsApplicationFormOpen(false);
-              void refreshProjectData();
+              if (project) {
+                void refreshProjectData();
+              }
             }}
           />
         )}
