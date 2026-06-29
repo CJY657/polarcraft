@@ -40,7 +40,7 @@ describe("FeedbackSection", () => {
   it("lets anonymous visitors submit feedback without opening the login dialog", async () => {
     render(
       <MemoryRouter initialEntries={["/feedback"]}>
-        <FeedbackSection isDark={false} />
+        <FeedbackSection />
       </MemoryRouter>
     );
 
