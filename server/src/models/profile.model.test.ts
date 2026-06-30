@@ -102,6 +102,9 @@ describe('ProfileModel.createApplication', () => {
     const applicationId = await ProfileModel.createApplication('project-1', 'user-1', {
       display_name: '用户',
       organization: '组织',
+      desired_role: '观察记录员',
+      proposed_contribution: '整理第一轮观察记录',
+      weekly_time_commitment: '每周 2 小时',
     });
 
     expect(applicationId).toBe('existing-application');
@@ -111,6 +114,9 @@ describe('ProfileModel.createApplication', () => {
         $set: expect.objectContaining({
           status: 'pending',
           review_notes: null,
+          desired_role: '观察记录员',
+          proposed_contribution: '整理第一轮观察记录',
+          weekly_time_commitment: '每周 2 小时',
         }),
       })
     );

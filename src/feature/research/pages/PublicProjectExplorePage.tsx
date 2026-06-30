@@ -25,6 +25,7 @@ import {
   type ProjectDisplayMode,
 } from "../components/project/projectDisplayModes";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
+import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 const CreateProjectWizard = lazy(() =>
@@ -380,28 +381,21 @@ export function PublicProjectExplorePage() {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
-                    <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">简介</p>
-                    <p className="mt-2 text-lg leading-7 text-[var(--paper-foreground)]">
-                      {project.description_zh || "暂无课题简介。"}
-                    </p>
-                  </div>
-                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
-                    <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">组长</p>
-                    <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
-                      {project.owner_username || "暂未署名"}
-                    </p>
-                  </div>
+                  <ProjectChallengePreview project={project} />
+
                   <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
+                      <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
                       <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
                         <Users className="h-3.5 w-3.5" />
                         {project.member_count}
                         {project.max_members && ` / ${project.max_members}`} 人
                       </span>
                     </div>
-                    <p className="mt-2 text-base leading-6 text-[var(--paper-foreground)]">
+                    <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
+                      {project.owner_username || "暂未署名"}
+                    </p>
+                    <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                       {getMemberSummary(project)}
                     </p>
                   </div>

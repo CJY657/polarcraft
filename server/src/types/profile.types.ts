@@ -122,6 +122,9 @@ export interface ProjectApplication {
   education_id: string | null;
   major: string | null;
   grade: string | null;
+  desired_role: string;
+  proposed_contribution: string;
+  weekly_time_commitment: string;
   research_experience: string | null;
   expertise: string | null;
   motivation: string | null;
@@ -139,6 +142,9 @@ export interface ProjectApplication {
 export interface CreateApplicationInput {
   display_name: string;
   organization: string;
+  desired_role: string;
+  proposed_contribution: string;
+  weekly_time_commitment: string;
   education_id?: string;
   major?: string;
   grade?: string;

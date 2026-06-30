@@ -50,6 +50,9 @@ export function ProjectApplicationForm({
     education_id: '',
     major: '',
     grade: '',
+    desired_role: '',
+    proposed_contribution: '',
+    weekly_time_commitment: '',
     research_experience: '',
     expertise: '',
     motivation: '',
@@ -82,6 +85,9 @@ export function ProjectApplicationForm({
         education_id: '',
         major: '',
         grade: '',
+        desired_role: '',
+        proposed_contribution: '',
+        weekly_time_commitment: '',
         research_experience: '',
         expertise: '',
         motivation: '',
@@ -120,18 +126,35 @@ export function ProjectApplicationForm({
       return;
     }
 
-    setIsLoading(true);
+    if (!formData.desired_role.trim()) {
+      setError('请填写想承担的角色');
+      return;
+    }
+
+    if (!formData.proposed_contribution.trim()) {
+      setError('请填写你可以贡献的内容');
+      return;
+    }
+
+    if (!formData.weekly_time_commitment.trim()) {
+      setError('请填写每周可投入时间');
+      return;
+    }
 
     if (!formData.organization.trim()) {
       setError(t('project.create.organizationRequired') || '请输入单位');
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     try {
       await profileApi.createApplication(project.id, {
         display_name: formData.display_name || user?.username || '',
         organization: formData.organization,
+        desired_role: formData.desired_role.trim(),
+        proposed_contribution: formData.proposed_contribution.trim(),
+        weekly_time_commitment: formData.weekly_time_commitment.trim(),
         education_id: formData.education_id || undefined,
         major: formData.major || undefined,
         grade: formData.grade || undefined,
@@ -146,6 +169,8 @@ export function ProjectApplicationForm({
         project_name_en: project.name_en || undefined,
         require_approval: project.require_approval,
         organization: formData.organization,
+        desired_role: formData.desired_role.trim(),
+        weekly_time_commitment: formData.weekly_time_commitment.trim(),
         has_education_id: Boolean(formData.education_id),
         used_profile_education: formData.useProfile,
       });
@@ -263,6 +288,69 @@ export function ProjectApplicationForm({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className={cn(
+                "block text-base font-medium mb-1.5",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                想承担的角色 *
+              </label>
+              <input
+                type="text"
+                value={formData.desired_role}
+                onChange={(e) => setFormData({ ...formData, desired_role: e.target.value })}
+                placeholder="例如：观察记录员、数据整理员、实验复核员"
+                className={cn(
+                  "w-full px-3 py-2 rounded-lg border transition-colors",
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                )}
+              />
+            </div>
+
+            <div>
+              <label className={cn(
+                "block text-base font-medium mb-1.5",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                你可以贡献什么 *
+              </label>
+              <textarea
+                value={formData.proposed_contribution}
+                onChange={(e) => setFormData({ ...formData, proposed_contribution: e.target.value })}
+                placeholder="说明你能承担的任务、已有经验或想练习的能力。"
+                rows={3}
+                className={cn(
+                  "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                )}
+              />
+            </div>
+
+            <div>
+              <label className={cn(
+                "block text-base font-medium mb-1.5",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                每周可投入时间 *
+              </label>
+              <input
+                type="text"
+                value={formData.weekly_time_commitment}
+                onChange={(e) => setFormData({ ...formData, weekly_time_commitment: e.target.value })}
+                placeholder="例如：每周 2-3 小时，周末可集中整理"
+                className={cn(
+                  "w-full px-3 py-2 rounded-lg border transition-colors",
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
+                )}
+              />
+            </div>
+
             {/* Display Name */}
             <div>
               <label className={cn(

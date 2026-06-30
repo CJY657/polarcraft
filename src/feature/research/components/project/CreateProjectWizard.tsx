@@ -12,6 +12,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
+import {
+  ProjectChallengeFieldsEditor,
+  emptyProjectChallengeFields,
+} from './ProjectChallengeFieldsEditor';
 
 interface CreateProjectWizardProps {
   isOpen: boolean;
@@ -42,6 +46,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
     research_hypotheses_zh: '',
     basic_plan_zh: '',
     extended_plan_zh: '',
+    ...emptyProjectChallengeFields,
     is_public: false,
   });
 
@@ -86,6 +91,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         research_hypotheses_zh: '',
         basic_plan_zh: '',
         extended_plan_zh: '',
+        ...emptyProjectChallengeFields,
         is_public: false,
       });
       setCreatorData({
@@ -388,6 +394,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   )}
                 />
               </div>
+
+              <ProjectChallengeFieldsEditor
+                value={projectData}
+                onChange={setProjectData}
+                theme={theme}
+              />
             </div>
           )}
 

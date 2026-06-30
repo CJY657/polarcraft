@@ -95,6 +95,9 @@ describe("PublicProjectsSection", () => {
         name_zh: "偏振成像课题",
         require_approval: true,
         is_recruiting: true,
+        challenge_roles_zh: "观察记录员",
+        challenge_missing_roles_zh: "需要实验复核员",
+        challenge_beginner_steps_zh: "先完成一次明暗记录",
         member_count: 3,
         has_pending_application: true,
         created_at: new Date().toISOString(),
@@ -113,6 +116,9 @@ describe("PublicProjectsSection", () => {
     });
 
     expect((await screen.findByRole("button", { name: "待审核" })).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("观察记录员")).toBeTruthy();
+    expect(screen.getByText("需要实验复核员")).toBeTruthy();
+    expect(screen.getByText("先完成一次明暗记录")).toBeTruthy();
   });
 
   it("opens the stopped-recruitment warning for closed guest cards without login", async () => {

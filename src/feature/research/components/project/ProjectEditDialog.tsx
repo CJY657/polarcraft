@@ -10,6 +10,10 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { researchApi, type ResearchProject } from '@/lib/research.service';
+import {
+  ProjectChallengeFieldsEditor,
+  emptyProjectChallengeFields,
+} from './ProjectChallengeFieldsEditor';
 
 interface ProjectEditDialogProps {
   isOpen: boolean;
@@ -31,6 +35,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     research_hypotheses_zh: '',
     basic_plan_zh: '',
     extended_plan_zh: '',
+    ...emptyProjectChallengeFields,
     status: 'active' as ResearchProject['status'],
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +53,16 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         research_hypotheses_zh: project.research_hypotheses_zh || '',
         basic_plan_zh: project.basic_plan_zh || '',
         extended_plan_zh: project.extended_plan_zh || '',
+        challenge_value_zh: project.challenge_value_zh || '',
+        challenge_objectives_zh: project.challenge_objectives_zh || '',
+        challenge_beginner_steps_zh: project.challenge_beginner_steps_zh || '',
+        challenge_min_deliverables_zh: project.challenge_min_deliverables_zh || '',
+        challenge_review_criteria_zh: project.challenge_review_criteria_zh || '',
+        challenge_timeline_zh: project.challenge_timeline_zh || '',
+        challenge_difficulty: project.challenge_difficulty || 'beginner',
+        challenge_roles_zh: project.challenge_roles_zh || '',
+        challenge_missing_roles_zh: project.challenge_missing_roles_zh || '',
+        challenge_progress_zh: project.challenge_progress_zh || '',
         status: project.status || 'active',
       });
     }
@@ -76,6 +91,16 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
         research_hypotheses_zh: formData.research_hypotheses_zh,
         basic_plan_zh: formData.basic_plan_zh,
         extended_plan_zh: formData.extended_plan_zh,
+        challenge_value_zh: formData.challenge_value_zh,
+        challenge_objectives_zh: formData.challenge_objectives_zh,
+        challenge_beginner_steps_zh: formData.challenge_beginner_steps_zh,
+        challenge_min_deliverables_zh: formData.challenge_min_deliverables_zh,
+        challenge_review_criteria_zh: formData.challenge_review_criteria_zh,
+        challenge_timeline_zh: formData.challenge_timeline_zh,
+        challenge_difficulty: formData.challenge_difficulty,
+        challenge_roles_zh: formData.challenge_roles_zh,
+        challenge_missing_roles_zh: formData.challenge_missing_roles_zh,
+        challenge_progress_zh: formData.challenge_progress_zh,
         status: formData.status,
       });
 
@@ -261,6 +286,12 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
               )}
             />
           </div>
+
+          <ProjectChallengeFieldsEditor
+            value={formData}
+            onChange={setFormData}
+            theme={theme}
+          />
 
           {/* Description (English) */}
           {/* <div>

@@ -47,6 +47,7 @@ import {
   type PublicProjectMember,
 } from "@/lib/profile.service";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
+import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
   ProjectDiscussionSection,
@@ -562,6 +563,20 @@ export function ResearchProjectPage() {
     name_en: project.name_en,
     description_zh: project.description_zh,
     description_en: project.description_en,
+    research_questions_zh: project.research_questions_zh,
+    research_hypotheses_zh: project.research_hypotheses_zh,
+    basic_plan_zh: project.basic_plan_zh,
+    extended_plan_zh: project.extended_plan_zh,
+    challenge_value_zh: project.challenge_value_zh,
+    challenge_objectives_zh: project.challenge_objectives_zh,
+    challenge_beginner_steps_zh: project.challenge_beginner_steps_zh,
+    challenge_min_deliverables_zh: project.challenge_min_deliverables_zh,
+    challenge_review_criteria_zh: project.challenge_review_criteria_zh,
+    challenge_timeline_zh: project.challenge_timeline_zh,
+    challenge_difficulty: project.challenge_difficulty,
+    challenge_roles_zh: project.challenge_roles_zh,
+    challenge_missing_roles_zh: project.challenge_missing_roles_zh,
+    challenge_progress_zh: project.challenge_progress_zh,
     thumbnail: project.thumbnail,
     status: project.status,
     visibility: 'public' as const,
@@ -818,6 +833,14 @@ export function ResearchProjectPage() {
             </div>
           </div>
         </section>
+
+        <ProjectChallengeDetail
+          project={{
+            ...displayProject,
+            recruitment_requirements: displayRecruitmentRequirements,
+            is_recruiting: displayIsRecruiting,
+          }}
+        />
 
         <ResearchInfoSection
           outline={researchOutline}

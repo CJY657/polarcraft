@@ -15,6 +15,7 @@ import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { cn } from "@/utils/classNames";
 import { ProjectCoverImage } from "../shared/ProjectCoverImage";
+import { ProjectChallengePreview } from "./ProjectChallengeCards";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
 import {
   PROJECT_DISPLAY_MODE_OPTIONS,
@@ -212,26 +213,12 @@ export function PublicProjectsSection() {
                 </div>
               </div>
 
-              <p className="line-clamp-3 text-lg leading-7 text-[var(--glass-text-muted)]">
-                {project.description_zh || "课题简介待补充，可以先进入查看结构和成员情况。"}
-              </p>
+              <ProjectChallengePreview project={project} />
 
-              {(project.owner_username || project.recruitment_requirements) && (
-                <div className="mt-4 space-y-2">
-                  {project.owner_username && (
-                    <p className="text-sm text-[var(--glass-text-muted)]">
-                      组长 <span className="font-semibold text-[var(--paper-foreground)]">{project.owner_username}</span>
-                    </p>
-                  )}
-                  {project.recruitment_requirements && (
-                    <p
-                      className="rounded-[1rem] px-3 py-2 text-sm leading-5 text-[var(--paper-foreground)]"
-                      style={{ background: "color-mix(in srgb, var(--paper-link) 8%, transparent)" }}
-                    >
-                      {project.recruitment_requirements}
-                    </p>
-                  )}
-                </div>
+              {project.owner_username && (
+                <p className="mt-4 text-sm text-[var(--glass-text-muted)]">
+                  组长 <span className="font-semibold text-[var(--paper-foreground)]">{project.owner_username}</span>
+                </p>
               )}
 
               <div className="mt-4 flex flex-wrap gap-2 text-sm">

@@ -289,6 +289,10 @@ function ApplicationCard({
   formatDate,
   t,
 }: ApplicationCardProps) {
+  const desiredRole = application.desired_role || application.expertise || '未填写';
+  const proposedContribution = application.proposed_contribution || application.motivation || '未填写';
+  const weeklyTimeCommitment = application.weekly_time_commitment || '未填写';
+
   return (
     <div className={cn(
       "rounded-lg border overflow-hidden",
@@ -344,6 +348,12 @@ function ApplicationCard({
               {application.organization}
               {application.major && ` · ${application.major}`}
             </div>
+            <div className={cn(
+              "text-base",
+              theme === "dark" ? "text-gray-300" : "text-gray-700"
+            )}>
+              意向角色：{desiredRole}
+            </div>
           </div>
         </div>
 
@@ -375,6 +385,51 @@ function ApplicationCard({
           theme === "dark" ? "border-gray-600" : "border-gray-200"
         )}>
           <div className="pt-4 space-y-3">
+            <div>
+              <span className={cn(
+                "text-base font-medium block mb-1",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}>
+                想承担的角色:
+              </span>
+              <p className={cn(
+                "text-base whitespace-pre-wrap",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                {desiredRole}
+              </p>
+            </div>
+
+            <div>
+              <span className={cn(
+                "text-base font-medium block mb-1",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}>
+                可贡献内容:
+              </span>
+              <p className={cn(
+                "text-base whitespace-pre-wrap",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                {proposedContribution}
+              </p>
+            </div>
+
+            <div>
+              <span className={cn(
+                "text-base font-medium",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}>
+                每周可投入时间:
+              </span>
+              <span className={cn(
+                "ml-2",
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              )}>
+                {weeklyTimeCommitment}
+              </span>
+            </div>
+
             {application.grade && (
               <div>
                 <span className={cn(

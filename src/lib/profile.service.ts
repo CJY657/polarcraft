@@ -79,6 +79,9 @@ export interface ProjectApplication {
   education_id: string | null;
   major: string | null;
   grade: string | null;
+  desired_role?: string | null;
+  proposed_contribution?: string | null;
+  weekly_time_commitment?: string | null;
   research_experience: string | null;
   expertise: string | null;
   motivation: string | null;
@@ -97,6 +100,9 @@ export interface ProjectApplication {
 export interface CreateApplicationInput {
   display_name: string;
   organization: string;
+  desired_role: string;
+  proposed_contribution: string;
+  weekly_time_commitment: string;
   education_id?: string;
   major?: string;
   grade?: string;
@@ -129,6 +135,16 @@ export interface CreateProjectWithProfileInput {
     research_hypotheses_zh?: string;
     basic_plan_zh?: string;
     extended_plan_zh?: string;
+    challenge_value_zh?: string;
+    challenge_objectives_zh?: string;
+    challenge_beginner_steps_zh?: string;
+    challenge_min_deliverables_zh?: string;
+    challenge_review_criteria_zh?: string;
+    challenge_timeline_zh?: string;
+    challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced';
+    challenge_roles_zh?: string;
+    challenge_missing_roles_zh?: string;
+    challenge_progress_zh?: string;
     is_public?: boolean;
   };
   creatorProfile: {
@@ -157,6 +173,16 @@ export interface PublicProject {
   research_hypotheses_zh?: string | null;
   basic_plan_zh?: string | null;
   extended_plan_zh?: string | null;
+  challenge_value_zh?: string | null;
+  challenge_objectives_zh?: string | null;
+  challenge_beginner_steps_zh?: string | null;
+  challenge_min_deliverables_zh?: string | null;
+  challenge_review_criteria_zh?: string | null;
+  challenge_timeline_zh?: string | null;
+  challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced' | null;
+  challenge_roles_zh?: string | null;
+  challenge_missing_roles_zh?: string | null;
+  challenge_progress_zh?: string | null;
   thumbnail: string | null;
   cover_image?: string | null;
   status: string;

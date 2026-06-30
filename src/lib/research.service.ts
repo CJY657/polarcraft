@@ -22,6 +22,16 @@ export interface ResearchProject {
   research_hypotheses_zh?: string | null;
   basic_plan_zh?: string | null;
   extended_plan_zh?: string | null;
+  challenge_value_zh?: string | null;
+  challenge_objectives_zh?: string | null;
+  challenge_beginner_steps_zh?: string | null;
+  challenge_min_deliverables_zh?: string | null;
+  challenge_review_criteria_zh?: string | null;
+  challenge_timeline_zh?: string | null;
+  challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced' | null;
+  challenge_roles_zh?: string | null;
+  challenge_missing_roles_zh?: string | null;
+  challenge_progress_zh?: string | null;
   thumbnail: string | null;
   cover_image?: string | null;
   status: 'draft' | 'active' | 'completed' | 'archived';
@@ -129,6 +139,16 @@ export interface CreateProjectInput {
   research_hypotheses_zh?: string;
   basic_plan_zh?: string;
   extended_plan_zh?: string;
+  challenge_value_zh?: string;
+  challenge_objectives_zh?: string;
+  challenge_beginner_steps_zh?: string;
+  challenge_min_deliverables_zh?: string;
+  challenge_review_criteria_zh?: string;
+  challenge_timeline_zh?: string;
+  challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  challenge_roles_zh?: string;
+  challenge_missing_roles_zh?: string;
+  challenge_progress_zh?: string;
   is_public?: boolean;
 }
 
@@ -141,6 +161,16 @@ export interface UpdateProjectInput {
   research_hypotheses_zh?: string;
   basic_plan_zh?: string;
   extended_plan_zh?: string;
+  challenge_value_zh?: string | null;
+  challenge_objectives_zh?: string | null;
+  challenge_beginner_steps_zh?: string | null;
+  challenge_min_deliverables_zh?: string | null;
+  challenge_review_criteria_zh?: string | null;
+  challenge_timeline_zh?: string | null;
+  challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced' | null;
+  challenge_roles_zh?: string | null;
+  challenge_missing_roles_zh?: string | null;
+  challenge_progress_zh?: string | null;
   thumbnail?: string | null;
   status?: 'draft' | 'active' | 'completed' | 'archived';
   is_public?: boolean;

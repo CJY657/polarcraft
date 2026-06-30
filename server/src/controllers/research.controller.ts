@@ -230,6 +230,16 @@ function buildResearchAgentContext(
     formatContextField('Hypotheses', project.research_hypotheses_zh),
     formatContextField('Basic plan', project.basic_plan_zh),
     formatContextField('Extended plan', project.extended_plan_zh),
+    formatContextField('Challenge value', project.challenge_value_zh),
+    formatContextField('Challenge objectives', project.challenge_objectives_zh),
+    formatContextField('Beginner steps', project.challenge_beginner_steps_zh),
+    formatContextField('Deliverables', project.challenge_min_deliverables_zh),
+    formatContextField('Review criteria', project.challenge_review_criteria_zh),
+    formatContextField('Timeline', project.challenge_timeline_zh),
+    formatContextField('Difficulty', project.challenge_difficulty),
+    formatContextField('Roles', project.challenge_roles_zh),
+    formatContextField('Missing roles', project.challenge_missing_roles_zh),
+    formatContextField('Progress', project.challenge_progress_zh),
     formatContextField('Status', project.status),
   ].filter((line): line is string => Boolean(line));
 
@@ -339,6 +349,16 @@ export class ResearchController {
       research_hypotheses_zh,
       basic_plan_zh,
       extended_plan_zh,
+      challenge_value_zh,
+      challenge_objectives_zh,
+      challenge_beginner_steps_zh,
+      challenge_min_deliverables_zh,
+      challenge_review_criteria_zh,
+      challenge_timeline_zh,
+      challenge_difficulty,
+      challenge_roles_zh,
+      challenge_missing_roles_zh,
+      challenge_progress_zh,
       is_public,
     } = req.body;
     const projectId = await ResearchModel.createProject(
@@ -351,6 +371,16 @@ export class ResearchController {
         research_hypotheses_zh,
         basic_plan_zh,
         extended_plan_zh,
+        challenge_value_zh,
+        challenge_objectives_zh,
+        challenge_beginner_steps_zh,
+        challenge_min_deliverables_zh,
+        challenge_review_criteria_zh,
+        challenge_timeline_zh,
+        challenge_difficulty,
+        challenge_roles_zh,
+        challenge_missing_roles_zh,
+        challenge_progress_zh,
         is_public,
       },
       req.user!.sub
@@ -1485,6 +1515,17 @@ export class ResearchController {
   static createApplication = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.sub;
+    const { desired_role, proposed_contribution, weekly_time_commitment } = req.body;
+
+    if (typeof desired_role !== 'string' || !desired_role.trim()) {
+      return res.error('请填写想承担的角色', 'DESIRED_ROLE_REQUIRED', 400);
+    }
+    if (typeof proposed_contribution !== 'string' || !proposed_contribution.trim()) {
+      return res.error('请填写可贡献的内容', 'PROPOSED_CONTRIBUTION_REQUIRED', 400);
+    }
+    if (typeof weekly_time_commitment !== 'string' || !weekly_time_commitment.trim()) {
+      return res.error('请填写每周可投入时间', 'WEEKLY_TIME_COMMITMENT_REQUIRED', 400);
+    }
 
     // Check if project exists and is recruiting
     const settings = await ProfileModel.getOrCreateProjectSettings(id);
@@ -1660,6 +1701,16 @@ export class ResearchController {
         research_hypotheses_zh: project.research_hypotheses_zh,
         basic_plan_zh: project.basic_plan_zh,
         extended_plan_zh: project.extended_plan_zh,
+        challenge_value_zh: project.challenge_value_zh,
+        challenge_objectives_zh: project.challenge_objectives_zh,
+        challenge_beginner_steps_zh: project.challenge_beginner_steps_zh,
+        challenge_min_deliverables_zh: project.challenge_min_deliverables_zh,
+        challenge_review_criteria_zh: project.challenge_review_criteria_zh,
+        challenge_timeline_zh: project.challenge_timeline_zh,
+        challenge_difficulty: project.challenge_difficulty,
+        challenge_roles_zh: project.challenge_roles_zh,
+        challenge_missing_roles_zh: project.challenge_missing_roles_zh,
+        challenge_progress_zh: project.challenge_progress_zh,
         is_public: project.is_public,
       },
       userId

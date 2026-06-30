@@ -392,7 +392,13 @@ describe('ResearchController member management', () => {
       canModerate: true,
     });
     mockProfileModel.getProjectApplications.mockResolvedValue([
-      { id: 'application-1', status: 'pending' },
+      {
+        id: 'application-1',
+        status: 'pending',
+        desired_role: '观察记录员',
+        proposed_contribution: '整理观察记录',
+        weekly_time_commitment: '每周 2 小时',
+      },
     ]);
 
     const req = {
@@ -404,7 +410,15 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.getProjectApplications, req, res);
 
     expect(mockProfileModel.getProjectApplications).toHaveBeenCalledWith('project-1');
-    expect(res.success).toHaveBeenCalledWith([{ id: 'application-1', status: 'pending' }]);
+    expect(res.success).toHaveBeenCalledWith([
+      {
+        id: 'application-1',
+        status: 'pending',
+        desired_role: '观察记录员',
+        proposed_contribution: '整理观察记录',
+        weekly_time_commitment: '每周 2 小时',
+      },
+    ]);
   });
 
   it('allows an admin to delete a project without owner membership', async () => {
@@ -840,7 +854,12 @@ describe('ResearchController member management', () => {
 
     const req = {
       params: { id: 'project-1' },
-      body: { motivation: 'I want to help.' },
+      body: {
+        desired_role: '观察记录员',
+        proposed_contribution: '整理观察记录',
+        weekly_time_commitment: '每周 2 小时',
+        motivation: 'I want to help.',
+      },
       user: { sub: 'candidate-1', username: 'candidate' },
     };
     const res = createResponse();
@@ -852,6 +871,25 @@ describe('ResearchController member management', () => {
       'PROJECT_MEMBER_LIMIT_REACHED',
       400
     );
+    expect(mockProfileModel.createApplication).not.toHaveBeenCalled();
+  });
+
+  it('requires role registration fields before creating a join application', async () => {
+    const req = {
+      params: { id: 'project-1' },
+      body: {
+        desired_role: '观察记录员',
+        proposed_contribution: '整理观察记录',
+        weekly_time_commitment: '',
+      },
+      user: { sub: 'candidate-1', username: 'candidate' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createApplication, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('请填写每周可投入时间', 'WEEKLY_TIME_COMMITMENT_REQUIRED', 400);
+    expect(mockProfileModel.getOrCreateProjectSettings).not.toHaveBeenCalled();
     expect(mockProfileModel.createApplication).not.toHaveBeenCalled();
   });
 

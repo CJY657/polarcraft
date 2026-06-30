@@ -71,6 +71,7 @@ describe("ProjectApplicationForm", () => {
   beforeEach(() => {
     getUserEducations.mockReset();
     createApplication.mockReset();
+    getUserEducations.mockResolvedValue([]);
   });
 
   it("shows a closed-recruitment warning without loading education options or submitting", () => {
@@ -94,6 +95,23 @@ describe("ProjectApplicationForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "关闭" }));
 
     expect(onClose).toHaveBeenCalled();
+    expect(createApplication).not.toHaveBeenCalled();
+  });
+
+  it("requires the intended role before submitting an application", async () => {
+    getUserEducations.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <ProjectApplicationForm
+        isOpen
+        onClose={vi.fn()}
+        project={createPublicProject({ is_recruiting: true })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "project.application.submit" }));
+
+    expect(await screen.findByText("请填写想承担的角色")).toBeTruthy();
     expect(createApplication).not.toHaveBeenCalled();
   });
 });

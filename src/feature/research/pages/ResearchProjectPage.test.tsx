@@ -433,6 +433,31 @@ describe("ResearchProjectPage", () => {
     expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1", canClearHistory: true });
   });
 
+  it("renders the full challenge card on the project detail page", async () => {
+    mockGetProject.mockResolvedValue(
+      createProject({
+        challenge_value_zh: "把偏振观察转化为可复核的变量记录。",
+        challenge_objectives_zh: "建立变量表\n形成观察结论",
+        challenge_beginner_steps_zh: "先拍摄一组偏振图样",
+        challenge_min_deliverables_zh: "一份观察记录",
+        challenge_review_criteria_zh: "变量明确，证据完整",
+        challenge_timeline_zh: "1 周完成入门观察",
+        challenge_difficulty: "intermediate",
+        challenge_roles_zh: "观察记录员\n数据整理员",
+        challenge_missing_roles_zh: "需要数据整理员",
+        challenge_progress_zh: "已完成选题",
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("挑战卡")).toBeTruthy();
+    expect(screen.getByText("进阶")).toBeTruthy();
+    expect(screen.getByText("把偏振观察转化为可复核的变量记录。")).toBeTruthy();
+    expect(screen.getByText("需要数据整理员")).toBeTruthy();
+    expect(screen.getByText("一份观察记录")).toBeTruthy();
+  });
+
   it("does not render the AI advisor panel for authenticated public non-members", async () => {
     mockUseAuth.mockReturnValue({
       user: { id: "candidate-1", username: "candidate", role: "user" },
@@ -563,7 +588,7 @@ describe("ResearchProjectPage", () => {
       );
     });
 
-    expect(screen.getByText("先做基础观察，再记录变量。")).toBeTruthy();
+    expect(screen.getAllByText("先做基础观察，再记录变量。").length).toBeGreaterThan(0);
     expect(screen.getByText("继续验证不同角度下的表现。")).toBeTruthy();
   });
 
