@@ -13,13 +13,17 @@ import {
   RefreshCw,
   Search,
   WifiOff,
+  Users,
+  FlaskConical,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
-import { ProjectListItem } from "../components/project/ProjectListItem";
+import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
+import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
 
 const CreateProjectWizard = lazy(() =>
   import("../components/project/CreateProjectWizard").then((module) => ({ default: module.CreateProjectWizard }))
@@ -106,10 +110,7 @@ export function MyProjectsPage() {
     () => projects.filter((project) => project.status === "active").length,
     [projects]
   );
-  const completedProjects = useMemo(
-    () => projects.filter((project) => project.status === "completed").length,
-    [projects]
-  );
+
 
   const handleCreateProject = () => {
     if (!isAuthenticated) {
@@ -146,30 +147,39 @@ export function MyProjectsPage() {
         />
 
         <main className="research-shell py-8">
-          <section className="research-hero rounded-[2rem] px-6 py-8 sm:px-8">
-            <div className="max-w-3xl">
-              <div className="research-kicker mb-3">我的课题</div>
-              <h1
-                className="text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.08] text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                登录后再回到这里管理你的研究进度
-              </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
-                个人项目页会集中展示你参与的课题、当前状态和继续推进的入口。现在可以先去发现公开课题，或者直接登录开始创建。
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
+          <section className="mb-8 grid gap-4 md:grid-cols-3">
+            <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[2.15rem] p-6 sm:p-8 md:col-span-3">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+              <div className="relative">
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="research-chip flex h-12 w-12 items-center justify-center rounded-2xl">
+                    <Users className="h-6 w-6 text-[var(--paper-link)]" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
+                      我的课题
+                    </h1>
+                    <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                      My Research Projects
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+                  个人项目页会集中展示你参与的课题、当前状态和继续推进的入口。现在可以先去发现公开课题，或者直接登录开始创建。
+                </p>
+              </div>
+              
+              <div className="relative mt-8 flex flex-wrap gap-3">
                 <button
                   onClick={() => openDialog("login")}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white"
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5"
                 >
                   <LogIn className="h-4 w-4" />
                   立即登录
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   浏览公开课题
@@ -192,60 +202,56 @@ export function MyProjectsPage() {
       />
 
       <main className="research-shell py-6 md:py-8">
-        <section className="research-hero mb-8 rounded-[2.1rem] px-6 py-7 sm:px-8">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <div className="research-kicker mb-3">我的课题</div>
-              <h1
-                className="text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.08] text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                继续推进你的研究项目，而不是重新找入口
-              </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
-                这一页只保留管理自己课题需要的信息：状态、摘要、更新时间，以及继续进入项目的直接入口。
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  onClick={handleCreateProject}
-                  disabled={!isSystemHealthy}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Plus className="h-4 w-4" />
-                  创建新课题
-                </button>
-                <Link
-                  to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
-                >
-                  <Search className="h-4 w-4 text-[var(--paper-link)]" />
-                  寻找协作课题
-                </Link>
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[2.15rem] p-6 sm:p-8 md:col-span-2">
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+            <div className="relative">
+              <div className="mb-2 flex items-center gap-3">
+                <div className="research-chip flex h-12 w-12 items-center justify-center rounded-2xl">
+                  <Users className="h-6 w-6 text-[var(--paper-link)]" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
+                    我的课题
+                  </h1>
+                  <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                    My Research Projects
+                  </p>
+                </div>
               </div>
             </div>
+            
+            <div className="relative mt-8 flex flex-wrap gap-3">
+              <button
+                onClick={handleCreateProject}
+                disabled={!isSystemHealthy}
+                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                <Plus className="h-4 w-4" />
+                创建新课题
+              </button>
+              <Link
+                to="/lab/explore"
+                className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
+              >
+                <Search className="h-4 w-4 text-[var(--paper-link)]" />
+                寻找协作课题
+              </Link>
+            </div>
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 xl:w-[28rem]">
-              <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
-                  全部课题
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
-              </div>
-              <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
-                  进行中
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{activeProjects}</p>
-              </div>
-              <div className="research-metric rounded-[1.4rem] p-4">
-                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
-                  已完成
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">
-                  {completedProjects}
-                </p>
-              </div>
+          <div className="grid grid-rows-2 gap-4">
+            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
+              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
+                全部课题
+              </p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
+            </div>
+            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
+              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
+                进行中
+              </p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--paper-accent-strong)]">{activeProjects}</p>
             </div>
           </div>
         </section>
@@ -372,15 +378,65 @@ export function MyProjectsPage() {
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {projects.map((project) => (
-                <ProjectListItem
+                <article
                   key={project.id}
-                  project={project}
-                  canDelete={user?.role === "admin" || project.current_user_role === "owner"}
-                  isDeleting={deletingProjectId === project.id}
-                  onDelete={handleDeleteProject}
-                />
+                  className="research-panel flex flex-col rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+                >
+                  <ProjectCoverImage
+                    src={project.thumbnail || project.cover_image}
+                    alt={project.name_zh}
+                    className="mb-5 aspect-[16/9] w-full rounded-[1.25rem] object-cover"
+                  />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h2
+                        className="text-[1.35rem] font-semibold leading-tight text-[var(--paper-foreground)]"
+                        style={{ fontFamily: "var(--font-ui-display)" }}
+                      >
+                        {project.name_zh}
+                      </h2>
+                    </div>
+                    <div className="research-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                      <FlaskConical className="h-5 w-5 text-[var(--paper-link)]" />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-1 flex-col space-y-3">
+                    <ProjectChallengePreview project={project} />
+
+                    <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-[var(--glass-text-muted)]">课题成员</p>
+                        <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
+                          <Users className="h-3.5 w-3.5" />
+                          {project.member_count} 人
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                    <Link
+                      to={`/lab/projects/${project.id}`}
+                      className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white"
+                    >
+                      进入课题
+                    </Link>
+                    
+                    {(user?.role === "admin" || project.current_user_role === "owner") && (
+                      <button
+                        onClick={() => handleDeleteProject(project, project.name_zh)}
+                        disabled={deletingProjectId === project.id}
+                        className="glass-button inline-flex items-center justify-center rounded-full px-4 py-2 text-base font-medium text-[#b33d3d] hover:bg-[#d95b5b]/10 disabled:opacity-50"
+                        title="删除课题"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </article>
               ))}
             </div>
           </section>
