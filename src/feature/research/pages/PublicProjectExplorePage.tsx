@@ -355,16 +355,16 @@ export function PublicProjectExplorePage() {
         )}
 
         {!isLoading && !error && displayedProjects.length > 0 && (
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {displayedProjects.map((project) => (
               <article
                 key={project.id}
-                className="research-panel rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+                className="research-panel flex flex-col rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
               >
                 <ProjectCoverImage
                   src={project.thumbnail || project.cover_image}
                   alt={project.name_zh}
-                  className="mb-5 aspect-[16/9] rounded-[1.25rem]"
+                  className="mb-5 aspect-[16/9] w-full rounded-[1.25rem] object-cover"
                 />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -380,10 +380,10 @@ export function PublicProjectExplorePage() {
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 flex flex-1 flex-col space-y-3">
                   <ProjectChallengePreview project={project} />
 
-                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
+                  <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
                       <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
