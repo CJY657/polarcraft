@@ -912,6 +912,10 @@
             "colorState": {
               "title": "量糖计与旋光色散",
               "description": "观察糖溶液中不同波长光的旋转差异，理解旋光色散现象"
+            },
+            "visuphyPolarization": {
+              "title": "3D 偏振光路模拟器",
+              "description": "用 Jones 矩阵搭建偏振片、波片、镜面和法拉第旋转器组成的光路，并实时观察电场、偏振椭圆和强度变化。"
             }
           }
         },

@@ -4,11 +4,11 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 
 // UI 组件导入
 import {
+  ArrowRight,
   // Gamepad2,
   // BookOpen,
   // Box,
@@ -42,6 +42,7 @@ import { ElectromagneticWaveDemo } from "@/feature/demos/unit0/ElectromagneticWa
 import { BiRefringenceIcelandSparDemo } from "@/feature/demos/unit0/BiRefringenceIcelandSparDemo";
 import { BrewsterAngleDemo } from "@/feature/demos/unit0/BrewsterAngleDemo";
 import { ColorStateDemo } from "@/feature/demos/unit1/ColorStateDemo";
+import { VisuPhyPolarizationEmbed } from "@/feature/demos/unit1/VisuPhyPolarizationEmbed";
 
 // Unit 1 Demo components
 
@@ -106,6 +107,14 @@ const DEMOS: DemoItem[] = [
     descriptionKey: "demos.theorySimulation.units.unit1.demos.colorState.description",
     visualType: "2D",
   },
+  {
+    id: "visuphy-polarization",
+    titleKey: "demos.theorySimulation.units.unit1.demos.visuphyPolarization.title",
+    unit: 1,
+    component: VisuPhyPolarizationEmbed,
+    descriptionKey: "demos.theorySimulation.units.unit1.demos.visuphyPolarization.description",
+    visualType: "3D",
+  },
 
 
   // 单元2 - 光散射与部分偏振形成机制
@@ -144,10 +153,48 @@ const UNITS = [
   },
 ];
 
+const DEMO_CARD_STYLES = [
+  {
+    card: "clay-card clay-card-ochre",
+    title: "text-clay-ink",
+    body: "text-clay-ink/75",
+    badge: "bg-white/55 text-clay-ink",
+    cta: "text-clay-ink",
+  },
+  {
+    card: "clay-card clay-card-lavender",
+    title: "text-clay-ink",
+    body: "text-clay-ink/75",
+    badge: "bg-white/55 text-clay-ink",
+    cta: "text-clay-ink",
+  },
+  {
+    card: "clay-card clay-card-peach",
+    title: "text-clay-ink",
+    body: "text-clay-ink/75",
+    badge: "bg-white/55 text-clay-ink",
+    cta: "text-clay-ink",
+  },
+  {
+    card: "clay-card clay-card-teal",
+    title: "text-white",
+    body: "text-white/80",
+    badge: "bg-white/14 text-white",
+    cta: "text-white",
+  },
+  {
+    card: "clay-card clay-card-mint",
+    title: "text-clay-ink",
+    body: "text-clay-ink/75",
+    badge: "bg-white/55 text-clay-ink",
+    cta: "text-clay-ink",
+  },
+];
+
 // 简化的加载组件
 const DemoLoading = () => {
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex h-full min-h-[240px] items-center justify-center text-sm font-medium text-clay-muted">
       <div>Loading...</div>
     </div>
   );
@@ -155,12 +202,11 @@ const DemoLoading = () => {
 
 // 视觉类型徽章
 const VisualTypeBadge = ({ type }: { type: "2D" | "3D" }) => {
-  return <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800">{type}</span>;
+  return <span className="clay-badge px-2 py-1 text-xs">{type}</span>;
 };
 
 export function DemosPage() {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const { demoId: urlDemoId } = useParams<{ demoId?: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -236,40 +282,25 @@ export function DemosPage() {
 
   const currentDemo = activeDemo ? DEMOS.find((d) => d.id === activeDemo) : null;
   const DemoComponent = currentDemo?.component;
+  const isWideEmbedDemo = currentDemo?.id === "visuphy-polarization";
+  const isViewingDemo = Boolean(currentDemo && !showMuseumHomepage);
 
   return (
-    <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark" ? "bg-[#0a0a0f] text-gray-200" : "bg-[#f8fafc] text-gray-800",
-      )}
-    >
+    <div className="clay-canvas min-h-screen">
       {/* Navigation Header with Persistent Logo 永久头部logo导航栏 */}
       <PersistentHeader
         moduleKey="demos"
         moduleName={t("page.demos.title")}
-        variant="glass"
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50",
-          isCompact ? "px-3 py-2" : "px-6 py-3",
-          theme === "dark"
-            ? "bg-slate-900/95 border-b border-cyan-400/20"
-            : "bg-white/95 border-b border-cyan-500/20",
-        )}
+        variant="solid"
+        className="fixed left-0 right-0 top-0 z-50"
         showSettings={false}
         rightContent={
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Back to Gallery button - only show when viewing a demo */}
-            {currentDemo && !showMuseumHomepage && (
+            {isViewingDemo && (
               <button
                 onClick={handleShowMuseumHomepage}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200",
-                  "text-sm font-medium",
-                  theme === "dark"
-                    ? "text-cyan-400 hover:bg-cyan-400/15 border border-cyan-400/30 hover:border-cyan-400/50"
-                    : "text-cyan-600 hover:bg-cyan-100 border border-cyan-500/30 hover:border-cyan-500/50",
-                )}
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-clay-surface-strong bg-clay-canvas px-3 text-sm font-semibold text-clay-ink transition-transform hover:-translate-y-0.5"
                 title={t("museum.backToGallery", "返回演示馆")}
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -277,15 +308,11 @@ export function DemosPage() {
               </button>
             )}
             {/* Mobile menu button - only show when viewing a demo */}
-            {currentDemo && !showMuseumHomepage && isCompact && (
+            {isViewingDemo && isCompact && (
               <button
                 onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  theme === "dark"
-                    ? "text-cyan-400 hover:bg-cyan-400/10"
-                    : "text-cyan-600 hover:bg-cyan-100",
-                )}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-clay-surface-card text-clay-ink"
+                aria-label={showMobileSidebar ? "关闭演示目录" : "打开演示目录"}
               >
                 {showMobileSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -296,22 +323,19 @@ export function DemosPage() {
       />
 
       {/* Main Container */}
-      <div className={cn("flex", isCompact ? "pt-[84px]" : "pt-[92px]")}>
+      <div className={cn("flex", isViewingDemo ? "pt-[76px]" : isCompact ? "pt-[84px]" : "pt-[92px]")}>
         {/* Sidebar - 仅在查看演示时显示 */}
-        {currentDemo && !showMuseumHomepage && (
+        {isViewingDemo && (
           <aside
             className={cn(
-              "fixed top-0 border-r overflow-y-auto transition-transform duration-300 z-40",
+              "fixed top-0 z-40 overflow-y-auto border-r border-clay-surface-strong bg-clay-surface-soft transition-transform duration-300",
               isCompact
                 ? cn(
                     "w-72 left-0 bottom-0",
                     showMobileSidebar ? "translate-x-0" : "-translate-x-full",
-                    "pt-[84px]",
+                    "pt-[76px]",
                   )
-                : "w-64 left-0 top-[92px] bottom-0", // 为 footer 留出空间
-              theme === "dark"
-                ? "bg-slate-900/95 border-cyan-400/10"
-                : "bg-white/95 border-cyan-200",
+                : "w-64 left-0 top-[76px] bottom-0", // 为 footer 留出空间
             )}
           >
             <div className="p-4">
@@ -330,13 +354,9 @@ export function DemosPage() {
                       onClick={() =>
                         isCompact && setExpandedUnit(expandedUnit === unit.num ? null : unit.num)
                       }
-                      className={cn(
-                        "w-full text-[10px] uppercase tracking-wider mb-2 px-2 font-semibold flex items-center gap-2",
-                        theme === "dark" ? "text-gray-500" : "text-gray-500",
-                        "transition-colors",
-                      )}
+                      className="mb-2 flex w-full items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-clay-muted transition-colors"
                     >
-                      <span className="text-yellow-400">★</span>
+                      <span className="text-clay-ochre">★</span>
                       <span className="flex-1 text-left">{t(unit.titleKey)}</span>
                     </button>
                     {/* 单元展开时显示演示列表 */}
@@ -352,15 +372,10 @@ export function DemosPage() {
                                   if (isCompact) setShowMobileSidebar(false);
                                 }}
                                 className={cn(
-                                  "w-full flex flex-col gap-1 px-3 py-2 rounded-lg text-sm text-left transition-all duration-200",
-                                  "hover:translate-x-1 active:scale-[0.98]",
+                                  "flex w-full flex-col gap-1 rounded-xl px-3 py-2 text-left text-sm transition-all duration-200 active:scale-[0.98]",
                                   activeDemo === demo.id
-                                    ? theme === "dark"
-                                      ? "bg-gradient-to-r from-cyan-400/20 to-blue-400/10 text-cyan-400 border-l-2 border-cyan-400"
-                                      : "bg-gradient-to-r from-cyan-100 to-blue-50 text-cyan-700 border-l-2 border-cyan-500"
-                                    : theme === "dark"
-                                      ? "text-gray-400 hover:bg-slate-800/50 hover:text-white"
-                                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                                    ? "bg-clay-lavender text-clay-ink"
+                                    : "text-clay-body hover:bg-clay-surface-card hover:text-clay-ink",
                                 )}
                               >
                                 <div className="flex items-center gap-2">
@@ -368,12 +383,8 @@ export function DemosPage() {
                                     className={cn(
                                       "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0",
                                       activeDemo === demo.id
-                                        ? theme === "dark"
-                                          ? "bg-cyan-400 text-black"
-                                          : "bg-cyan-500 text-white"
-                                        : theme === "dark"
-                                          ? "bg-slate-700 text-gray-400"
-                                          : "bg-gray-200 text-gray-500",
+                                        ? "bg-white/55 text-clay-ink"
+                                        : "bg-clay-surface-card text-clay-muted",
                                     )}
                                   >
                                     {unitDemos.indexOf(demo) + 1}
@@ -386,12 +397,7 @@ export function DemosPage() {
                           ))
                         ) : (
                           // 无演示项时显示占位符
-                          <li
-                            className={cn(
-                              "px-3 py-2 text-sm",
-                              theme === "dark" ? "text-gray-500" : "text-gray-400",
-                            )}
-                          >
+                          <li className="px-3 py-2 text-sm text-clay-muted">
                             {t("demos.theorySimulation.comingSoon", "即将推出")}
                           </li>
                         )}
@@ -405,7 +411,7 @@ export function DemosPage() {
         )}
 
         {/* Mobile sidebar overlay - 仅在查看演示时显示 */}
-        {currentDemo && !showMuseumHomepage && isCompact && showMobileSidebar && (
+        {isViewingDemo && isCompact && showMobileSidebar && (
           <div
             className="fixed inset-0 bg-black/50 z-30"
             onClick={() => setShowMobileSidebar(false)}
@@ -416,98 +422,89 @@ export function DemosPage() {
         <main
           className={cn(
             "flex-1 min-w-0",
-            isCompact ? "p-3" : currentDemo && !showMuseumHomepage ? "ml-64 p-6" : "p-6",
+            isCompact
+              ? isWideEmbedDemo ? "px-2 pb-2 pt-1" : "px-4 pb-4 pt-2"
+              : isViewingDemo
+                ? isWideEmbedDemo ? "ml-64 px-4 pb-4 pt-2" : "ml-64 px-8 pb-8 pt-3"
+                : "p-6 sm:p-8",
           )}
         >
           {/* 理论模拟主标题 */}
-          <div className="mb-6 text-center">
-            <h1
-              className={cn(
-                "text-3xl font-bold sm:text-4xl lg:text-5xl",
-                theme === "dark" ? "text-white" : "text-gray-900",
-              )}
-            >
-              {t("demos.theorySimulation.title", "计算与模拟")}
-            </h1>
-            <p className={cn("mt-2 text-base sm:text-lg lg:text-xl", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-              {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
-            </p>
-          </div>
+          {(showMuseumHomepage || !currentDemo) && (
+            <div className="mx-auto mb-8 max-w-4xl text-center">
+              <span className="clay-caption">Computational Simulation</span>
+              <h1 className="clay-display-lg mt-3">
+                {t("demos.theorySimulation.title", "计算与模拟")}
+              </h1>
+              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-clay-body sm:text-lg">
+                {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
+              </p>
+            </div>
+          )}
 
           {/* Show Gallery Hero when no demo is selected, otherwise show demo content */}
           {showMuseumHomepage || !currentDemo ? (
-            <div className="max-w-[1400px] mx-auto space-y-8">
+            <div className="mx-auto max-w-7xl space-y-8">
               {/* 演示卡片网格 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {DEMOS.map((demo) => (
-                  <button
-                    key={demo.id}
-                    onClick={() => handleDemoChange(demo.id)}
-                    className={cn(
-                      "p-6 rounded-xl border text-left transition-all duration-200 hover:shadow-lg",
-                      "hover:-translate-y-1 active:scale-[0.98]",
-                      theme === "dark"
-                        ? "bg-slate-800 text-white border-slate-700 hover:border-cyan-400"
-                        : "bg-white text-gray-800 border-gray-200 hover:border-cyan-500",
-                    )}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-lg font-semibold">{t(demo.titleKey)}</h3>
-                      <VisualTypeBadge type={demo.visualType} />
-                    </div>
-                    <p
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {DEMOS.map((demo, index) => {
+                  const cardStyle = DEMO_CARD_STYLES[index % DEMO_CARD_STYLES.length];
+
+                  return (
+                    <button
+                      key={demo.id}
+                      onClick={() => handleDemoChange(demo.id)}
                       className={cn(
-                        "text-sm",
-                        theme === "dark" ? "text-gray-400" : "text-gray-600",
+                        "group flex min-h-[220px] flex-col text-left transition-transform duration-300 hover:-translate-y-1.5 active:scale-[0.98]",
+                        cardStyle.card,
                       )}
                     >
-                      {t(demo.descriptionKey)}
-                    </p>
-                    <div
-                      className={cn(
-                        "mt-4 text-sm font-medium",
-                        theme === "dark" ? "text-cyan-400" : "text-cyan-600",
-                      )}
-                    >
-                      开始探索 →
-                    </div>
-                  </button>
-                ))}
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
+                          单元 {demo.unit}
+                        </span>
+                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
+                          {demo.visualType}
+                        </span>
+                      </div>
+                      <h3
+                        className={cn("text-2xl font-semibold", cardStyle.title)}
+                        style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
+                      >
+                        {t(demo.titleKey)}
+                      </h3>
+                      <p className={cn("mt-3 text-sm leading-6", cardStyle.body)}>
+                        {t(demo.descriptionKey)}
+                      </p>
+                      <span className={cn("mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold tracking-wide", cardStyle.cta)}>
+                        开始探索
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : (
-            <div className="max-w-[1400px] mx-auto">
+            <div className={cn("mx-auto", isWideEmbedDemo ? "max-w-none" : "max-w-[1400px]")}>
               {/* 标题和描述 */}
-              <div className="mb-5">
-                <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="mb-3 rounded-2xl bg-clay-surface-soft px-4 py-3 sm:px-5 sm:py-3.5">
+                <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:gap-x-2.5">
                   {/* 单元徽章 */}
-                  <span
-                    className={cn(
-                      "px-2.5 py-1 text-xs rounded-lg border",
-                      theme === "dark"
-                        ? "bg-gradient-to-r from-cyan-400/20 to-blue-400/20 text-cyan-400 border-cyan-400/30"
-                        : "bg-gradient-to-r from-cyan-100 to-blue-100 text-cyan-700 border-cyan-300",
-                    )}
-                  >
+                  <span className="clay-badge">
                     {currentDemo && UNITS.find((u) => u.num === currentDemo.unit)?.titleKey
                       ? t(UNITS.find((u) => u.num === currentDemo.unit)!.titleKey)
                       : t("demos.theorySimulation.title", "计算与模拟")}
                   </span>
                   <VisualTypeBadge type={currentDemo?.visualType || "2D"} />
                   <h1
-                    className={cn(
-                      "w-full text-xl font-bold sm:w-auto sm:text-2xl",
-                      theme === "dark" ? "text-white" : "text-gray-900",
-                    )}
+                    className="w-full text-2xl font-semibold text-clay-ink sm:w-auto"
+                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
                   >
                     {t(currentDemo?.titleKey || "")}
                   </h1>
                 </div>
-                <p
-                  className={cn(
-                    theme === "dark" ? "text-gray-400 text-sm" : "text-gray-700 text-sm",
-                  )}
-                >
+                <p className="max-w-4xl text-sm leading-6 text-clay-body">
                   {t(currentDemo?.descriptionKey || "")}
                 </p>
               </div>
@@ -515,13 +512,16 @@ export function DemosPage() {
               {/* Demo area */}
               <div
                 className={cn(
-                  "rounded-2xl border overflow-hidden",
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-slate-900/80 to-slate-800/50 border-cyan-400/20"
-                    : "bg-gradient-to-br from-white to-gray-50 border-cyan-200",
+                  "overflow-hidden rounded-[1.5rem] border border-clay-surface-strong bg-clay-surface-card",
                 )}
               >
-                <div className="p-3 min-h-[420px] sm:p-5 sm:min-h-[550px]">
+                <div
+                  className={cn(
+                    isWideEmbedDemo
+                      ? "min-h-[560px] p-0 sm:min-h-[680px]"
+                      : "p-3 min-h-[420px] sm:p-5 sm:min-h-[550px]",
+                  )}
+                >
                   <ErrorBoundary>
                     <Suspense fallback={<DemoLoading />}>
                       {DemoComponent && <DemoComponent />}
