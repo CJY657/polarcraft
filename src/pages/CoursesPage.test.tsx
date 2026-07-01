@@ -85,8 +85,11 @@ vi.mock("@/lib/unit.service", () => ({
 }));
 
 vi.mock("@/feature/unit/CourseSelector", () => ({
-  CourseSelector: ({ courses }: { courses: unknown[] }) => (
-    <div>course-selector-{courses.length}</div>
+  CourseSelector: ({ courses, tone }: { courses: unknown[]; tone?: string }) => (
+    <div>
+      <span data-testid="selector-tone">{tone || "legacy"}</span>
+      <span>course-selector-{courses.length}</span>
+    </div>
   ),
 }));
 
@@ -105,6 +108,7 @@ describe("CoursesPage", () => {
       </MemoryRouter>
     );
 
+    expect(screen.getByTestId("experiments-clay-shell")).toBeDefined();
     expect(screen.getByRole("link", { name: "返回主页" }).getAttribute("href")).toBe("/");
     await waitFor(() => {
       expect(mockGetPublicUnitCourses).toHaveBeenCalled();
@@ -131,6 +135,7 @@ describe("CoursesPage", () => {
     expect(screen.queryByText("缪勒显微镜")).toBeNull();
     expect(screen.getByText("色偏振")).toBeDefined();
     expect(screen.getByText("course-selector-2")).toBeDefined();
+    expect(screen.getByTestId("selector-tone").textContent).toBe("clay");
   });
 
   it("can switch from a unit back to all experiments", async () => {

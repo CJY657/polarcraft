@@ -88,12 +88,15 @@ vi.mock("@/feature/unit/CourseSelector", () => ({
   CourseSelector: ({
     courses,
     basePath,
+    tone,
   }: {
     courses: Array<{ title: { "zh-CN"?: string } }>;
     basePath: string;
+    tone?: string;
   }) => (
     <div>
       <div data-testid="selector-count">course-selector-{basePath}-{courses.length}</div>
+      <div data-testid="selector-tone">{tone || "legacy"}</div>
       {courses.map((course) => (
         <span key={course.title["zh-CN"]}>{course.title["zh-CN"]}</span>
       ))}
@@ -122,10 +125,13 @@ describe("ApplicationsPage", () => {
     });
 
     expect(screen.getAllByText("前沿应用").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("experiments-clay-shell")).toBeNull();
+    expect(screen.getByTestId("applications-clay-shell")).toBeDefined();
     expect(screen.getAllByText("2 个应用").length).toBeGreaterThan(0);
     expect(screen.queryByText("冰洲石实验")).toBeNull();
     expect(screen.getAllByText("缪勒显微镜").length).toBeGreaterThan(0);
     expect(screen.getAllByText("偏振散射仪").length).toBeGreaterThan(0);
     expect(screen.getByTestId("selector-count").textContent).toBe("course-selector-/applications-2");
+    expect(screen.getByTestId("selector-tone").textContent).toBe("clay");
   });
 });

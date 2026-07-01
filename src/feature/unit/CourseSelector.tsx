@@ -30,6 +30,7 @@ interface CourseSelectorProps {
   showHeader?: boolean;
   itemLabel?: string;
   openLabel?: string;
+  tone?: "legacy" | "clay";
 }
 
 export function CourseSelector({
@@ -42,12 +43,15 @@ export function CourseSelector({
   showHeader = true,
   itemLabel,
   openLabel,
+  tone = "legacy",
 }: CourseSelectorProps) {
   const { theme } = useTheme();
   const { i18n } = useTranslation();
 
   const isZh = i18n.language === "zh-CN";
   const isSidebar = layout === "sidebar";
+  const isClay = tone === "clay";
+  const useDarkTheme = !isClay && theme === "dark";
 
   const getLabel = (label: { "zh-CN"?: string; "en-US"?: string }) => {
     return label[isZh ? "zh-CN" : "en-US"] || label["zh-CN"] || label["en-US"] || "";
@@ -60,18 +64,29 @@ export function CourseSelector({
       <div
         className={cn(
           "rounded-[1.5rem] border px-5 py-10 text-center",
-          theme === "dark"
-            ? "border-slate-800 bg-slate-900/60"
-            : "border-slate-200 bg-slate-50/90",
+          isClay
+            ? "border-clay-surface-strong bg-clay-surface-soft text-clay-body"
+            : useDarkTheme
+              ? "border-slate-800 bg-slate-900/60"
+              : "border-slate-200 bg-slate-50/90",
         )}
       >
         <BookOpen
           className={cn(
             "w-10 h-10 mx-auto mb-3",
-            theme === "dark" ? "text-gray-600" : "text-gray-400"
+            isClay
+              ? "text-clay-muted"
+              : useDarkTheme
+                ? "text-gray-600"
+                : "text-gray-400",
           )}
         />
-        <p className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+        <p
+          className={cn(
+            "text-sm",
+            isClay ? "text-clay-body" : useDarkTheme ? "text-gray-400" : "text-gray-600",
+          )}
+        >
           {isZh ? "该单元暂无实验" : "No experiments in this unit"}
         </p>
       </div>
@@ -108,22 +123,29 @@ export function CourseSelector({
               <h3
                 className={cn(
                   "text-lg font-semibold",
-                  theme === "dark" ? "text-white" : "text-gray-900",
+                  isClay ? "text-clay-ink" : useDarkTheme ? "text-white" : "text-gray-900",
                 )}
               >
                 {sectionTitle}
               </h3>
             </div>
-            <p className={cn("mt-2 text-sm leading-6", theme === "dark" ? "text-slate-400" : "text-slate-600")}>
+            <p
+              className={cn(
+                "mt-2 text-sm leading-6",
+                isClay ? "text-clay-body" : useDarkTheme ? "text-slate-400" : "text-slate-600",
+              )}
+            >
               {sectionDescription}
             </p>
           </div>
           <span
             className={cn(
               "shrink-0 rounded-full border px-3 py-1 text-sm font-semibold",
-              theme === "dark"
-                ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                : "border-slate-200 bg-slate-50 text-slate-600",
+              isClay
+                ? "border-clay-surface-strong bg-clay-surface-card text-clay-body"
+                : useDarkTheme
+                  ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                  : "border-slate-200 bg-slate-50 text-slate-600",
             )}
           >
             {courses.length}
@@ -134,12 +156,23 @@ export function CourseSelector({
       <div
         className={cn(
           "overflow-hidden rounded-[1.25rem] border",
-          theme === "dark"
-            ? "border-slate-800 bg-slate-950/65"
-            : "border-slate-200 bg-white/92",
+          isClay
+            ? "border-clay-surface-strong bg-clay-canvas shadow-sm"
+            : useDarkTheme
+              ? "border-slate-800 bg-slate-950/65"
+              : "border-slate-200 bg-white/92",
         )}
       >
-        <div className={cn("divide-y", theme === "dark" ? "divide-slate-800" : "divide-slate-200")}>
+        <div
+          className={cn(
+            "divide-y",
+            isClay
+              ? "divide-clay-surface-strong"
+              : useDarkTheme
+                ? "divide-slate-800"
+                : "divide-slate-200",
+          )}
+        >
           {courses.map((course, index) => {
             const thumbnailImage = course.thumbnailImage || course.coverImage;
             const descriptionText = getLabel(course.description);
@@ -152,8 +185,12 @@ export function CourseSelector({
                 onFocus={preloadCourseViewerRoute}
                 onTouchStart={preloadCourseViewerRoute}
                 className={cn(
-                  "group block px-3.5 py-3 transition-colors sm:px-4",
-                  theme === "dark" ? "hover:bg-slate-900/85" : "hover:bg-slate-50/90",
+                  "group block px-3.5 py-3 transition-all sm:px-4",
+                  isClay
+                    ? "hover:bg-clay-surface-soft"
+                    : useDarkTheme
+                      ? "hover:bg-slate-900/85"
+                      : "hover:bg-slate-50/90",
                 )}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -162,9 +199,11 @@ export function CourseSelector({
                       "relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[1rem] sm:w-32",
                       thumbnailImage
                         ? "bg-black"
-                        : theme === "dark"
-                          ? "border border-slate-800 bg-slate-900/85"
-                          : "border border-slate-200 bg-slate-50",
+                        : isClay
+                          ? "border border-clay-surface-strong bg-clay-surface-soft"
+                          : useDarkTheme
+                            ? "border border-slate-800 bg-slate-900/85"
+                            : "border border-slate-200 bg-slate-50",
                     )}
                     style={!thumbnailImage ? { backgroundColor: `${course.color}12` } : undefined}
                   >
@@ -189,7 +228,11 @@ export function CourseSelector({
                         <p
                           className={cn(
                             "text-[11px] font-semibold uppercase tracking-[0.18em]",
-                            theme === "dark" ? "text-slate-500" : "text-slate-400",
+                            isClay
+                              ? "text-clay-muted"
+                              : useDarkTheme
+                                ? "text-slate-500"
+                                : "text-slate-400",
                           )}
                         >
                           {isZh
@@ -201,7 +244,11 @@ export function CourseSelector({
                             className={cn(
                               "font-semibold",
                               isSidebar ? "text-sm leading-5" : "text-[15px] leading-5",
-                              theme === "dark" ? "text-white" : "text-gray-900",
+                              isClay
+                                ? "text-clay-ink"
+                                : useDarkTheme
+                                  ? "text-white"
+                                  : "text-gray-900",
                             )}
                           >
                             {getLabel(course.title)}
@@ -210,9 +257,9 @@ export function CourseSelector({
                             <span
                               className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
                               style={{
-                                color: theme === "dark" ? "#f8fafc" : course.color,
-                                backgroundColor: theme === "dark" ? `${course.color}20` : `${course.color}10`,
-                                borderColor: theme === "dark" ? `${course.color}36` : `${course.color}20`,
+                                color: useDarkTheme ? "#f8fafc" : course.color,
+                                backgroundColor: useDarkTheme ? `${course.color}20` : `${course.color}10`,
+                                borderColor: useDarkTheme ? `${course.color}36` : `${course.color}20`,
                               }}
                             >
                               <Play className="h-3 w-3" />
@@ -223,25 +270,25 @@ export function CourseSelector({
                             className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
                             style={{
                               color:
-                                theme === "dark"
+                                useDarkTheme
                                   ? "#f8fafc"
                                   : course.knowledgeTag === "optical_device"
                                     ? "#0f766e"
                                     : "#1d4ed8",
                               backgroundColor:
                                 course.knowledgeTag === "optical_device"
-                                  ? theme === "dark"
+                                  ? useDarkTheme
                                     ? "rgba(20,184,166,0.18)"
                                     : "rgba(20,184,166,0.10)"
-                                  : theme === "dark"
+                                  : useDarkTheme
                                     ? "rgba(59,130,246,0.18)"
                                     : "rgba(59,130,246,0.10)",
                               borderColor:
                                 course.knowledgeTag === "optical_device"
-                                  ? theme === "dark"
+                                  ? useDarkTheme
                                     ? "rgba(45,212,191,0.30)"
                                     : "rgba(20,184,166,0.24)"
-                                  : theme === "dark"
+                                  : useDarkTheme
                                     ? "rgba(96,165,250,0.30)"
                                     : "rgba(37,99,235,0.20)",
                             }}
@@ -252,13 +299,13 @@ export function CourseSelector({
                             <span
                               className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
                               style={{
-                                color: theme === "dark" ? "#e2e8f0" : course.unitAccentColor || "#475569",
+                                color: useDarkTheme ? "#e2e8f0" : course.unitAccentColor || "#475569",
                                 backgroundColor:
-                                  theme === "dark"
+                                  useDarkTheme
                                     ? `${course.unitAccentColor || course.color}22`
                                     : `${course.unitAccentColor || course.color}12`,
                                 borderColor:
-                                  theme === "dark"
+                                  useDarkTheme
                                     ? `${course.unitAccentColor || course.color}38`
                                     : `${course.unitAccentColor || course.color}24`,
                               }}
@@ -283,7 +330,11 @@ export function CourseSelector({
                         className={cn(
                           "mt-1 text-sm leading-5",
                           "line-clamp-2",
-                          theme === "dark" ? "text-slate-400" : "text-slate-600",
+                          isClay
+                            ? "text-clay-body"
+                            : useDarkTheme
+                              ? "text-slate-400"
+                              : "text-slate-600",
                         )}
                       >
                         {descriptionText}
@@ -295,9 +346,11 @@ export function CourseSelector({
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                            theme === "dark"
-                              ? "border-slate-700 bg-slate-900/85 text-slate-300"
-                              : "border-slate-200 bg-slate-50 text-slate-600",
+                            isClay
+                              ? "border-clay-surface-strong bg-clay-surface-card text-clay-body"
+                              : useDarkTheme
+                                ? "border-slate-700 bg-slate-900/85 text-slate-300"
+                                : "border-slate-200 bg-slate-50 text-slate-600",
                           )}
                         >
                           <FileText className="h-3.5 w-3.5" style={{ color: course.color }} />

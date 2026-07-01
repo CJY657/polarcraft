@@ -32,6 +32,9 @@ type CourseLibraryVariant = "experiments" | "applications";
 interface CourseLibraryConfig {
   knowledgeTag: KnowledgeTag;
   moduleKey: ModuleIconKey;
+  visualTone: "legacy" | "clay";
+  shellTestId: string;
+  accentColor: string;
   titleKey?: string;
   titleZh: string;
   titleEn: string;
@@ -67,6 +70,9 @@ const COURSE_LIBRARY_CONFIGS: Record<CourseLibraryVariant, CourseLibraryConfig> 
   experiments: {
     knowledgeTag: "foundation",
     moduleKey: "courses",
+    visualTone: "clay",
+    shellTestId: "experiments-clay-shell",
+    accentColor: "#264653",
     titleKey: "page.courses.title",
     titleZh: "实验内容",
     titleEn: "Experiments",
@@ -100,6 +106,9 @@ const COURSE_LIBRARY_CONFIGS: Record<CourseLibraryVariant, CourseLibraryConfig> 
   applications: {
     knowledgeTag: "optical_device",
     moduleKey: "applications",
+    visualTone: "clay",
+    shellTestId: "applications-clay-shell",
+    accentColor: "#2a9d8f",
     titleZh: "前沿应用",
     titleEn: "Frontier Applications",
     eyebrow: "Application Library",
@@ -164,6 +173,8 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
   const config = COURSE_LIBRARY_CONFIGS[variant];
+  const useClayTone = config.visualTone === "clay";
+  const useDarkTheme = !useClayTone && theme === "dark";
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedUnitCourses, setSelectedUnitCourses] = useState<CourseSelectorCourse[]>([]);
   const [selectedUnitCoursesLoading, setSelectedUnitCoursesLoading] = useState(false);
@@ -381,15 +392,26 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
     };
   }, [getUnitCourses, isZh, units]);
 
-  const surfaceClass =
-    theme === "dark" ? "border-slate-800 bg-slate-950/80" : "border-slate-200 bg-white";
-  const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
+  const surfaceClass = useClayTone
+    ? "border-clay-surface-strong bg-clay-surface-card text-clay-ink shadow-sm"
+    : useDarkTheme
+      ? "border-slate-800 bg-slate-950/80"
+      : "border-slate-200 bg-white";
+  const mutedTextClass = useClayTone
+    ? "text-clay-body"
+    : useDarkTheme
+      ? "text-slate-400"
+      : "text-slate-600";
   const pillClass = cn(
     "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold",
-    theme === "dark"
-      ? "border-slate-700 bg-slate-900 text-slate-300"
-      : "border-slate-200 bg-slate-50 text-slate-600",
+    useClayTone
+      ? "border-clay-surface-strong bg-clay-canvas text-clay-body"
+      : useDarkTheme
+        ? "border-slate-700 bg-slate-900 text-slate-300"
+        : "border-slate-200 bg-slate-50 text-slate-600",
   );
+  const emptyWorkspaceTheme = useClayTone ? "light" : theme;
+  const spinnerClass = useClayTone ? "text-clay-ink" : "text-[#1d4ed8]";
   const selectedSectionTitle = isAllExperimentsSelected
     ? isZh
       ? config.allTitleZh
@@ -407,13 +429,25 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
 
   return (
     <div
-      className={cn("min-h-screen", theme === "dark" ? "text-slate-100" : "text-slate-900")}
-      style={{
-        background:
-          theme === "dark"
-            ? "linear-gradient(180deg, rgba(7,20,34,0.98) 0%, rgba(9,24,40,0.98) 100%)"
-            : "linear-gradient(180deg, #f6f8fc 0%, #ffffff 28%, #f8fafc 100%)",
-      }}
+      data-testid={useClayTone ? config.shellTestId : undefined}
+      className={cn(
+        "min-h-screen",
+        useClayTone
+          ? "clay-canvas text-clay-ink"
+          : useDarkTheme
+            ? "text-slate-100"
+            : "text-slate-900",
+      )}
+      style={
+        useClayTone
+          ? undefined
+          : {
+              background:
+                useDarkTheme
+                  ? "linear-gradient(180deg, rgba(7,20,34,0.98) 0%, rgba(9,24,40,0.98) 100%)"
+                  : "linear-gradient(180deg, #f6f8fc 0%, #ffffff 28%, #f8fafc 100%)",
+            }
+      }
     >
       <PersistentHeader
         moduleKey={config.moduleKey}
@@ -426,12 +460,20 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
         <section className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
+              <p
+                className={cn(
+                  "text-[11px] font-semibold uppercase tracking-[0.22em]",
+                  useClayTone ? "text-clay-muted" : "text-[#1d4ed8]",
+                )}
+              >
                 {config.eyebrow}
               </p>
               <div className="mt-2 flex items-center gap-4">
                 <h1
-                  className="text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
+                  className={cn(
+                    "text-3xl font-semibold tracking-tight sm:text-[2.35rem]",
+                    useClayTone && "text-clay-ink",
+                  )}
                   style={{ fontFamily: "var(--font-ui-display)" }}
                 >
                   {pageTitle}
@@ -439,10 +481,12 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                 <Link
                   to="/"
                   className={cn(
-                    "group inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95",
-                    theme === "dark"
-                      ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300 ring-4 ring-cyan-400/20"
-                      : "bg-cyan-600 text-white hover:bg-cyan-700 ring-4 ring-cyan-600/20",
+                    "group inline-flex items-center gap-2 text-sm font-bold transition-all active:scale-95",
+                    useClayTone
+                      ? "rounded-xl border border-clay-surface-strong bg-clay-surface-card px-4 py-2 text-clay-ink shadow-sm hover:border-clay-ink"
+                      : useDarkTheme
+                        ? "rounded-full bg-cyan-400 px-4 py-1.5 text-slate-950 shadow-lg ring-4 ring-cyan-400/20 hover:scale-105 hover:bg-cyan-300"
+                        : "rounded-full bg-cyan-600 px-4 py-1.5 text-white shadow-lg ring-4 ring-cyan-600/20 hover:scale-105 hover:bg-cyan-700",
                   )}
                 >
                   <Home className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
@@ -467,11 +511,11 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
 
               {unitsLoading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-6 w-6 animate-spin text-[#1d4ed8]" />
+                  <Loader2 className={cn("h-6 w-6 animate-spin", spinnerClass)} />
                 </div>
               ) : units.length === 0 ? (
                 <EmptyWorkspace
-                  theme={theme}
+                  theme={emptyWorkspaceTheme}
                   icon={Layers}
                   title={isZh ? "暂无单元" : "No units"}
                   description={
@@ -485,24 +529,47 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                     onClick={() => setSelectedUnitId(ALL_EXPERIMENTS_ID)}
                     className={cn(
                       "group relative w-full overflow-hidden rounded-[1.4rem] border p-4 text-left transition-all duration-200",
-                      isAllExperimentsSelected
-                        ? theme === "dark"
-                          ? "border-amber-300/40 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(15,23,42,0.88))] shadow-[0_18px_40px_rgba(251,191,36,0.12)]"
-                          : "border-amber-300 bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))] shadow-[0_18px_40px_rgba(217,119,6,0.12)]"
-                        : theme === "dark"
-                          ? "border-slate-800 bg-[linear-gradient(135deg,rgba(148,163,184,0.08),rgba(15,23,42,0.88))] hover:border-amber-300/25 hover:bg-[linear-gradient(135deg,rgba(251,191,36,0.10),rgba(15,23,42,0.92))]"
-                          : "border-slate-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.88),rgba(255,255,255,1))] hover:border-amber-200 hover:bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))]",
+                      useClayTone
+                        ? isAllExperimentsSelected
+                          ? "border-transparent text-white shadow-sm"
+                          : "border-clay-surface-strong bg-clay-canvas text-clay-ink hover:border-clay-ink"
+                        : isAllExperimentsSelected
+                          ? useDarkTheme
+                            ? "border-amber-300/40 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(15,23,42,0.88))] shadow-[0_18px_40px_rgba(251,191,36,0.12)]"
+                            : "border-amber-300 bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))] shadow-[0_18px_40px_rgba(217,119,6,0.12)]"
+                          : useDarkTheme
+                            ? "border-slate-800 bg-[linear-gradient(135deg,rgba(148,163,184,0.08),rgba(15,23,42,0.88))] hover:border-amber-300/25 hover:bg-[linear-gradient(135deg,rgba(251,191,36,0.10),rgba(15,23,42,0.92))]"
+                            : "border-slate-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.88),rgba(255,255,255,1))] hover:border-amber-200 hover:bg-[linear-gradient(135deg,rgba(255,247,214,1),rgba(255,255,255,1))]",
                     )}
+                    style={
+                      useClayTone && isAllExperimentsSelected
+                        ? {
+                            backgroundColor: config.accentColor,
+                            borderColor: config.accentColor,
+                          }
+                        : undefined
+                    }
                   >
-                    <div className="absolute right-0 top-0 h-20 w-20 translate-x-5 -translate-y-5 rounded-full bg-amber-300/20 blur-2xl" />
+                    {!useClayTone && (
+                      <div className="absolute right-0 top-0 h-20 w-20 translate-x-5 -translate-y-5 rounded-full bg-amber-300/20 blur-2xl" />
+                    )}
                     <div className="relative flex items-start gap-3">
                       <div
                         className={cn(
                           "flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border",
-                          theme === "dark"
+                          useClayTone
+                            ? isAllExperimentsSelected
+                              ? "border-white/25 bg-white/20 text-white"
+                              : "border-clay-surface-strong bg-clay-surface-card"
+                            : useDarkTheme
                             ? "border-amber-300/25 bg-slate-950/55 text-amber-200"
                             : "border-amber-200 bg-white/80 text-amber-700",
                         )}
+                        style={
+                          useClayTone && !isAllExperimentsSelected
+                            ? { color: config.accentColor }
+                            : undefined
+                        }
                       >
                         <Compass className="h-5 w-5" />
                       </div>
@@ -512,7 +579,13 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                             <p
                               className={cn(
                                 "inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap",
-                                theme === "dark" ? "text-amber-200/85" : "text-amber-700",
+                                useClayTone
+                                  ? isAllExperimentsSelected
+                                    ? "text-white/75"
+                                    : "text-clay-muted"
+                                  : useDarkTheme
+                                    ? "text-amber-200/85"
+                                    : "text-amber-700",
                               )}
                             >
                               <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -533,13 +606,21 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                   <div
                     className={cn(
                       "overflow-hidden rounded-[1.25rem] border",
-                      theme === "dark" ? "border-slate-800" : "border-slate-200",
+                      useClayTone
+                        ? "border-clay-surface-strong bg-clay-canvas"
+                        : useDarkTheme
+                          ? "border-slate-800"
+                          : "border-slate-200",
                     )}
                   >
                     <div
                       className={cn(
                         "divide-y",
-                        theme === "dark" ? "divide-slate-800" : "divide-slate-200",
+                        useClayTone
+                          ? "divide-clay-surface-strong"
+                          : useDarkTheme
+                            ? "divide-slate-800"
+                            : "divide-slate-200",
                       )}
                     >
                       {units.map((unit) => {
@@ -556,13 +637,21 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                             onClick={() => setSelectedUnitId(unit.id)}
                             className={cn(
                               "flex w-full items-start gap-3 px-3 py-4 text-left transition-colors",
-                              theme === "dark" ? "hover:bg-slate-900/80" : "hover:bg-slate-50",
+                              useClayTone
+                                ? "hover:bg-clay-surface-soft"
+                                : useDarkTheme
+                                  ? "hover:bg-slate-900/80"
+                                  : "hover:bg-slate-50",
                             )}
                             style={
                               isSelected
                                 ? {
                                     backgroundColor:
-                                      theme === "dark" ? `${unit.color}16` : `${unit.color}0d`,
+                                      useClayTone
+                                        ? `${unit.color}14`
+                                        : useDarkTheme
+                                          ? `${unit.color}16`
+                                          : `${unit.color}0d`,
                                   }
                                 : undefined
                             }
@@ -579,7 +668,9 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                                 <span
                                   className={cn(
                                     "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                    theme === "dark"
+                                    useClayTone
+                                      ? "bg-clay-surface-card text-clay-body"
+                                      : useDarkTheme
                                       ? "bg-slate-800 text-slate-300"
                                       : "bg-slate-100 text-slate-600",
                                   )}
@@ -591,10 +682,21 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                                 <span
                                   className={cn(
                                     "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                                    theme === "dark"
+                                    useClayTone
+                                      ? "ring-1 ring-inset"
+                                      : useDarkTheme
                                       ? "bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-400/20"
                                       : "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
                                   )}
+                                  style={
+                                    useClayTone
+                                      ? {
+                                          color: config.accentColor,
+                                          backgroundColor: `${config.accentColor}1A`,
+                                          boxShadow: `inset 0 0 0 1px ${config.accentColor}33`,
+                                        }
+                                      : undefined
+                                  }
                                 >
                                   {unitExperimentCount} {isZh ? `个${config.itemLabelZh}` : `${config.itemLabelEn.toLowerCase()}s`}
                                 </span>
@@ -602,7 +704,9 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                               <div
                                 className={cn(
                                   "mt-3 rounded-xl border px-3 py-2",
-                                  theme === "dark"
+                                  useClayTone
+                                    ? "border-clay-surface-strong bg-clay-surface-soft"
+                                    : useDarkTheme
                                     ? "border-slate-800 bg-slate-950/45"
                                     : "border-slate-200 bg-white/72",
                                 )}
@@ -610,7 +714,11 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                                 <p
                                   className={cn(
                                     "text-[10px] font-bold uppercase tracking-[0.16em]",
-                                    theme === "dark" ? "text-slate-500" : "text-slate-400",
+                                    useClayTone
+                                      ? "text-clay-muted"
+                                      : useDarkTheme
+                                        ? "text-slate-500"
+                                        : "text-slate-400",
                                   )}
                                 >
                                   {isZh ? "章节结构" : "Structure"}
@@ -637,7 +745,7 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                                           className="mt-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-bold"
                                           style={{
                                             backgroundColor:
-                                              theme === "dark"
+                                              useDarkTheme
                                                 ? `${unit.color}24`
                                                 : `${unit.color}14`,
                                             color: unit.color,
@@ -669,13 +777,13 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
               {unitsLoading ? (
                 <section className={cn("rounded-[2rem] border", surfaceClass)}>
                   <div className="flex items-center justify-center py-24">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#1d4ed8]" />
+                    <Loader2 className={cn("h-8 w-8 animate-spin", spinnerClass)} />
                   </div>
                 </section>
               ) : !isAllExperimentsSelected && !selectedUnit ? (
                 <section className={cn("rounded-[2rem] border", surfaceClass)}>
                   <EmptyWorkspace
-                    theme={theme}
+                    theme={emptyWorkspaceTheme}
                     icon={Layers}
                     title={isZh ? "暂无单元" : "No units"}
                     description={
@@ -706,14 +814,14 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                   <div className="mt-5">
                     {selectedUnitCoursesLoading ? (
                       <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-6 w-6 animate-spin text-[#1d4ed8]" />
+                        <Loader2 className={cn("h-6 w-6 animate-spin", spinnerClass)} />
                       </div>
                     ) : selectedUnitCoursesError ? (
                       <div className="py-8 text-center">
                         <p
                           className={cn(
                             "text-sm",
-                            theme === "dark" ? "text-red-300" : "text-red-600",
+                            useDarkTheme ? "text-red-300" : "text-red-600",
                           )}
                         >
                           {selectedUnitCoursesError}
@@ -721,14 +829,18 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                         <button
                           type="button"
                           onClick={() => setSelectedUnitCoursesReloadKey((value) => value + 1)}
-                          className="mt-4 text-sm font-semibold text-[#1d4ed8] transition-opacity hover:opacity-80"
+                          className={cn(
+                            "mt-4 text-sm font-semibold transition-opacity hover:opacity-80",
+                            useClayTone ? "text-clay-ink" : "text-[#1d4ed8]",
+                          )}
+                          style={useClayTone ? { color: config.accentColor } : undefined}
                         >
                           {isZh ? "重新加载" : "Retry"}
                         </button>
                       </div>
                     ) : selectedUnitCourses.length === 0 ? (
                       <EmptyWorkspace
-                        theme={theme}
+                        theme={emptyWorkspaceTheme}
                         icon={BookOpenText}
                         title={isZh ? config.emptyUnitTitleZh : config.emptyUnitTitleEn}
                         description={isZh ? config.emptyUnitDescriptionZh : config.emptyUnitDescriptionEn}
@@ -736,11 +848,12 @@ export function CoursesPage({ variant = "experiments" }: { variant?: CourseLibra
                     ) : (
                       <CourseSelector
                         courses={selectedUnitCourses}
-                        unitColor={selectedUnit?.color || "#d97706"}
+                        unitColor={selectedUnit?.color || config.accentColor}
                         basePath={config.basePath}
                         itemLabel={isZh ? config.itemLabelZh : config.itemLabelEn}
                         openLabel={isZh ? config.openLabelZh : config.openLabelEn}
                         showHeader={false}
+                        tone={useClayTone ? "clay" : "legacy"}
                       />
                     )}
                   </div>
