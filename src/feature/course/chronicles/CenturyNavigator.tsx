@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import type { TimelineEvent } from '@/data/timeline-events'
@@ -22,7 +21,6 @@ export function CenturyNavigator({
   className,
   variant = 'floating',
 }: CenturyNavigatorProps) {
-  const { theme } = useTheme()
   const [activeCentury, setActiveCentury] = useState<number | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const isInline = variant === 'inline'
@@ -112,10 +110,7 @@ export function CenturyNavigator({
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'md:hidden p-2 rounded-full shadow-lg transition-all',
-            theme === 'dark'
-              ? 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
+            'md:hidden p-2 rounded-full shadow-lg transition-all bg-white text-clay-ink hover:bg-[#faf5e8] border border-[#e5e5e5]'
           )}
         >
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
@@ -124,55 +119,45 @@ export function CenturyNavigator({
 
       {/* Navigator bar */}
       <div className={cn(
-        'flex flex-col gap-1 transition-all duration-300',
+        'flex flex-col gap-2 transition-all duration-300',
         isInline
           ? 'opacity-100 translate-x-0'
           : 'md:opacity-100 md:translate-x-0',
         !isInline && (isExpanded
           ? 'opacity-100 translate-x-0'
           : 'opacity-0 translate-x-full md:opacity-100 md:translate-x-0'),
-        'pointer-events-auto'
+        'pointer-events-auto relative z-10'
       )}>
         {centuries.map(century => (
           <button
             key={century}
             onClick={() => scrollToCentury(century)}
             className={cn(
-              'group relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-              'shadow-sm hover:shadow-md',
+              'group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all',
+              'shadow-sm',
               activeCentury === century
-                ? theme === 'dark'
-                  ? 'bg-gradient-to-r from-amber-500/30 to-cyan-500/30 text-white border border-amber-500/50'
-                  : 'bg-gradient-to-r from-amber-100 to-cyan-100 text-gray-900 border border-amber-300'
-                : theme === 'dark'
-                  ? 'bg-slate-800/90 text-gray-400 hover:text-white hover:bg-slate-700'
-                  : 'bg-white/90 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-clay-ink text-white border-clay-ink hover:bg-clay-ink/90 shadow-md scale-105 origin-right'
+                : 'bg-white text-clay-ink hover:text-white hover:bg-clay-ink border border-[#e5e5e5]'
             )}
           >
             {/* Century label */}
-            <span className="font-mono">{getCenturyLabel(century)}</span>
+            <span className="font-mono tracking-widest uppercase">{getCenturyLabel(century)}</span>
 
             {/* Event count indicator */}
             <span className={cn(
-              'w-5 h-5 rounded-full flex items-center justify-center text-[10px]',
+              'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border',
               activeCentury === century
-                ? theme === 'dark'
-                  ? 'bg-amber-500/50 text-amber-200'
-                  : 'bg-amber-200 text-amber-800'
-                : theme === 'dark'
-                  ? 'bg-slate-700 text-gray-500'
-                  : 'bg-gray-100 text-gray-500'
+                ? 'bg-white/20 text-white border-white/20'
+                : 'bg-clay-ink/5 text-clay-ink border-clay-ink/10 group-hover:bg-white/20 group-hover:text-white group-hover:border-white/20'
             )}>
               {centuryCounts[century]}
             </span>
 
             {/* Tooltip with year range */}
             <div className={cn(
-              'absolute right-full mr-2 px-2 py-1 rounded text-xs whitespace-nowrap',
-              'opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none',
-              theme === 'dark'
-                ? 'bg-slate-900 text-gray-300'
-                : 'bg-gray-900 text-white'
+              'absolute right-[calc(100%+0.5rem)] px-3 py-1.5 rounded-lg text-xs whitespace-nowrap font-mono',
+              'opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm',
+              'bg-clay-ink text-white'
             )}>
               {getYearRange(century)}
             </div>
@@ -183,20 +168,19 @@ export function CenturyNavigator({
       {/* Progress indicator line */}
       <div className={cn(
         isInline ? 'block' : 'hidden md:block',
-        'absolute left-0 top-0 bottom-0 w-0.5 rounded-full -translate-x-3',
-        theme === 'dark'
-          ? 'bg-gradient-to-b from-amber-500/30 via-gray-500/30 to-cyan-500/30'
-          : 'bg-gradient-to-b from-amber-300 via-gray-300 to-cyan-300'
+        'absolute right-3 top-2 bottom-2 w-[2px] rounded-full z-0',
+        'bg-[#e5e5e5]'
       )}>
         {/* Active indicator */}
         {activeCentury && (
           <div
             className={cn(
-              'absolute w-2 h-2 rounded-full -translate-x-[3px] transition-all duration-300',
-              theme === 'dark' ? 'bg-amber-400' : 'bg-amber-500'
+              'absolute w-[6px] h-4 rounded-full -translate-x-[2px] transition-all duration-500 ease-out',
+              'bg-[#ff4d8b]'
             )}
             style={{
               top: `${(centuries.indexOf(activeCentury) / Math.max(centuries.length - 1, 1)) * 100}%`,
+              transform: 'translateY(-50%)'
             }}
           />
         )}

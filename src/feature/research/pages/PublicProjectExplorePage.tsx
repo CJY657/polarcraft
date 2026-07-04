@@ -182,57 +182,43 @@ export function PublicProjectExplorePage() {
       />
 
       <main className="research-shell py-6 md:py-8">
-        <section className="mb-8 grid gap-4 md:grid-cols-3">
-          <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[2.15rem] p-6 sm:p-8 md:col-span-2">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
-            <div className="relative">
-              <div className="mb-2 flex items-center gap-3">
-                <div className="research-chip flex h-12 w-12 items-center justify-center rounded-2xl">
-                  <Search className="h-6 w-6 text-[var(--paper-link)]" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
-                    公开课题
-                  </h1>
-                  <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
-                    Explore Public Projects
-                  </p>
-                </div>
+        <section className="research-panel relative mb-6 flex flex-col gap-4 overflow-hidden rounded-[1.75rem] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+          
+          <div className="relative flex items-center gap-4">
+            <div className="research-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <Search className="h-5 w-5 text-[var(--paper-link)]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
+                公开课题
+              </h1>
+              <div className="mt-1 flex items-center gap-2.5 text-xs font-medium text-[var(--glass-text-muted)]">
+                <span className="uppercase tracking-[0.1em]">Explore Public Projects</span>
+                <span className="hidden h-3 w-px bg-[var(--glass-stroke)] sm:block"></span>
+                <span className="hidden sm:inline">共 {projects.length} 课题</span>
+                <span className="hidden h-3 w-px bg-[var(--glass-stroke)] sm:block"></span>
+                <span className="hidden text-[var(--paper-accent-strong)] sm:inline">{recruitingCount} 招募中</span>
               </div>
             </div>
-            
-            <div className="relative mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/lab/projects"
-                className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
-              >
-                <Users className="h-4 w-4 text-[var(--paper-link)]" />
-                我的课题
-              </Link>
-              <button
-                onClick={handleCreateProject}
-                disabled={!isSystemHealthy}
-                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              >
-                <Plus className="h-4 w-4" />
-                新建课题
-              </button>
-            </div>
           </div>
-
-          <div className="grid grid-rows-2 gap-4">
-            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
-              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
-                当前结果
-              </p>
-              <p className="mt-2 text-4xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
-            </div>
-            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
-              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
-                招募中
-              </p>
-              <p className="mt-2 text-4xl font-semibold text-[var(--paper-accent-strong)]">{recruitingCount}</p>
-            </div>
+          
+          <div className="relative flex shrink-0 items-center gap-2.5">
+            <Link
+              to="/lab/projects"
+              className="glass-button inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all hover:-translate-y-0.5"
+            >
+              <Users className="h-4 w-4 text-[var(--paper-link)]" />
+              我的课题
+            </Link>
+            <button
+              onClick={handleCreateProject}
+              disabled={!isSystemHealthy}
+              className="glass-button glass-button-primary inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+              <Plus className="h-4 w-4" />
+              新建课题
+            </button>
           </div>
         </section>
 

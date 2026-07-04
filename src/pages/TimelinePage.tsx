@@ -5,9 +5,9 @@
 import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock, Sparkles, Sun, type LucideIcon } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { LearningSectionNav, PersistentHeader } from "@/components/shared";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { TIMELINE_EVENTS } from "@/data/timeline-events";
 import { CATEGORY_LABELS } from "@/data/chronicles-constants";
@@ -20,32 +20,34 @@ import {
 } from "@/feature/course/chronicles";
 import { cn } from "@/utils/classNames";
 
+const CLAY_CARD_COLORS = [
+  "clay-card-pink",
+  "clay-card-teal",
+  "clay-card-lavender",
+  "clay-card-peach",
+  "clay-card-ochre",
+  "clay-card-cream",
+];
+
 function EmptyWorkspace({
-  theme,
   icon: Icon,
   title,
   description,
 }: {
-  theme: "dark" | "light";
   icon: LucideIcon;
   title: string;
   description: string;
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-      <Icon
-        className={cn("mb-4 h-12 w-12", theme === "dark" ? "text-slate-600" : "text-slate-400")}
-      />
-      <p className="text-lg font-semibold">{title}</p>
-      <p className={cn("mt-2 max-w-md text-sm", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
-        {description}
-      </p>
+      <Icon className="mb-4 h-12 w-12 text-slate-400" />
+      <p className="text-lg font-semibold text-clay-ink">{title}</p>
+      <p className="mt-2 max-w-md text-sm text-clay-muted">{description}</p>
     </div>
   );
 }
 
 export function TimelinePage() {
-  const { theme } = useTheme();
   const { i18n } = useTranslation();
   const { isMobile, isTablet } = useIsMobile();
 
@@ -157,138 +159,76 @@ export function TimelinePage() {
     }
   }, []);
 
-  const surfaceClass = theme === "dark"
-    ? "border-slate-800 bg-slate-950/80"
-    : "border-slate-200 bg-white";
-  const filterSurfaceClass = theme === "dark"
-    ? "border-slate-800/60 bg-slate-900/40"
-    : "border-slate-200/80 bg-slate-50/60";
-  const mutedTextClass = theme === "dark" ? "text-slate-400" : "text-slate-600";
-  const subtleTextClass = theme === "dark" ? "text-slate-500" : "text-slate-500";
-  const pillClass = cn(
-    "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold",
-    theme === "dark"
-      ? "border-slate-700 bg-slate-900 text-slate-300"
-      : "border-slate-200 bg-slate-50 text-slate-600",
-  );
+  const filterSurfaceClass = "border-[#e5e5e5] bg-[#faf5e8]";
+  const mutedTextClass = "text-[#6a6a6a]";
+  const subtleTextClass = "text-[#9a9a9a]";
+  const pillClass = "inline-flex items-center rounded-full border border-[#e5e5e5] bg-[#f5f0e0] px-3 py-1 text-xs font-semibold text-[#0a0a0a]";
 
   const renderMobileTimeline = () => (
     <div className="relative pl-8">
-      <div
-        className={cn(
-          "absolute left-3 top-0 bottom-0 w-0.5",
-          theme === "dark"
-            ? "bg-gradient-to-b from-amber-500/50 via-gray-500/50 to-cyan-500/50"
-            : "bg-gradient-to-b from-amber-300 via-gray-300 to-cyan-300",
-        )}
-      />
+      <div className="absolute left-3 top-0 bottom-0 w-[3px] bg-clay-ink/10 rounded-full" />
 
-      {filteredEvents.map((event, index) => (
-        <div
-          key={`${event.year}-${event.titleEn}`}
-          id={`timeline-year-${event.year}`}
-          className="relative mb-4 last:mb-0 scroll-mt-32"
-        >
+      {filteredEvents.map((event, index) => {
+        const cardVariant = CLAY_CARD_COLORS[index % CLAY_CARD_COLORS.length];
+        
+        return (
           <div
-            className={cn(
-              "absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-xs font-bold",
-              event.track === "optics"
-                ? theme === "dark"
-                  ? "border-amber-500 bg-amber-500/20 text-amber-400"
-                  : "border-amber-500 bg-amber-100 text-amber-700"
-                : theme === "dark"
-                  ? "border-cyan-500 bg-cyan-500/20 text-cyan-400"
-                  : "border-cyan-500 bg-cyan-100 text-cyan-700",
-            )}
+            key={`${event.year}-${event.titleEn}`}
+            id={`timeline-year-${event.year}`}
+            className="relative mb-8 last:mb-0 scroll-mt-32"
           >
-            {String(event.year).slice(-2)}
-          </div>
+            <div className="absolute -left-[28px] flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-clay-canvas bg-clay-ink text-white font-mono text-xs font-bold shadow-sm">
+              {String(event.year).slice(-2)}
+            </div>
 
-          <div className="mb-1">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                event.track === "optics"
-                  ? theme === "dark"
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "bg-amber-100 text-amber-700"
-                  : theme === "dark"
-                    ? "bg-cyan-500/20 text-cyan-400"
-                    : "bg-cyan-100 text-cyan-700",
-              )}
-            >
-              {event.track === "optics" ? (
-                <>
-                  <Sun className="w-3 h-3" /> {event.year}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3" /> {event.year}
-                </>
-              )}
-            </span>
-          </div>
+            <div className="mb-2 pl-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-clay-ink text-white shadow-sm">
+                {event.track === "optics" ? (
+                  <><Sun className="w-3.5 h-3.5" /> {event.year}</>
+                ) : (
+                  <><Sparkles className="w-3.5 h-3.5" /> {event.year}</>
+                )}
+              </span>
+            </div>
 
-          <DualTrackCard
-            event={event}
-            eventIndex={index}
-            isExpanded={expandedEvent === index}
-            onToggle={() => setExpandedEvent(expandedEvent === index ? null : index)}
-            onReadStory={() => handleOpenStory(index)}
-            onLinkTo={handleLinkTo}
-            side={event.track === "optics" ? "left" : "right"}
-          />
-        </div>
-      ))}
+            <DualTrackCard
+              event={event}
+              eventIndex={index}
+              isExpanded={expandedEvent === index}
+              onToggle={() => setExpandedEvent(expandedEvent === index ? null : index)}
+              onReadStory={() => handleOpenStory(index)}
+              onLinkTo={handleLinkTo}
+              side={event.track === "optics" ? "left" : "right"}
+              cardVariant={cardVariant}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 
   const renderDesktopTimeline = () => (
     <div className="relative">
-      <div className="mb-6 flex items-center justify-between">
-        <div
-          className={cn(
-            "flex-1 rounded-l-2xl border-r py-3 text-center",
-            theme === "dark"
-              ? "border-amber-500/30 bg-amber-500/10"
-              : "border-amber-200 bg-amber-50",
-          )}
-        >
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex-1 rounded-l-2xl border border-r-0 border-[#e5e5e5] py-4 text-center bg-[#faf5e8]">
           <div className="flex items-center justify-center gap-2">
-            <Sun className={cn("w-5 h-5", theme === "dark" ? "text-amber-400" : "text-amber-600")} />
-            <span
-              className={cn(
-                "font-semibold",
-                theme === "dark" ? "text-amber-400" : "text-amber-700",
-              )}
-            >
+            <Sun className="w-5 h-5 text-clay-ink" />
+            <span className="font-semibold text-clay-ink text-sm tracking-wide">
               {isZh ? "广义光学" : "General Optics"}
             </span>
           </div>
         </div>
 
-        <div className={cn("w-24 py-3 text-center", theme === "dark" ? "bg-slate-800" : "bg-slate-100")}>
-          <span className={cn("text-sm font-mono", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
+        <div className="w-28 py-4 text-center border-y border-[#e5e5e5] bg-white relative z-10 shadow-sm rounded-full mx-[-16px]">
+          <span className="text-sm font-semibold tracking-widest text-clay-muted uppercase">
             {isZh ? "年份" : "Year"}
           </span>
         </div>
 
-        <div
-          className={cn(
-            "flex-1 rounded-r-2xl border-l py-3 text-center",
-            theme === "dark"
-              ? "border-cyan-500/30 bg-cyan-500/10"
-              : "border-cyan-200 bg-cyan-50",
-          )}
-        >
+        <div className="flex-1 rounded-r-2xl border border-l-0 border-[#e5e5e5] py-4 text-center bg-[#faf5e8]">
           <div className="flex items-center justify-center gap-2">
-            <Sparkles className={cn("w-5 h-5", theme === "dark" ? "text-cyan-400" : "text-cyan-600")} />
-            <span
-              className={cn(
-                "font-semibold",
-                theme === "dark" ? "text-cyan-400" : "text-cyan-700",
-              )}
-            >
+            <Sparkles className="w-5 h-5 text-clay-ink" />
+            <span className="font-semibold text-clay-ink text-sm tracking-wide">
               {isZh ? "偏振光" : "Polarization"}
             </span>
           </div>
@@ -296,14 +236,8 @@ export function TimelinePage() {
       </div>
 
       <div className="relative">
-        <div
-          className={cn(
-            "absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2",
-            theme === "dark"
-              ? "bg-gradient-to-b from-amber-500/50 via-gray-500/50 to-cyan-500/50"
-              : "bg-gradient-to-b from-amber-300 via-gray-300 to-cyan-300",
-          )}
-        />
+        {/* Central dashed line */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-0 border-l-[3px] border-dashed border-clay-ink/15 -translate-x-1/2" />
 
         {[...new Set(filteredEvents.map((event) => event.year))]
           .sort((a, b) => a - b)
@@ -321,13 +255,14 @@ export function TimelinePage() {
               <div
                 key={year}
                 id={`timeline-year-${year}`}
-                className="relative mb-6 flex items-stretch last:mb-0 scroll-mt-28"
+                className="relative mb-12 flex items-stretch last:mb-0 scroll-mt-32"
               >
-                <div className="flex flex-1 justify-end pr-4">
+                <div className="flex flex-1 justify-end pr-8">
                   {hasOptics && (
-                    <div className="w-full max-w-md space-y-3">
+                    <div className="w-full max-w-md space-y-4">
                       {opticsEvents.map((event) => {
                         const eventIndex = filteredEvents.findIndex((item) => item === event);
+                        const cardVariant = CLAY_CARD_COLORS[eventIndex % CLAY_CARD_COLORS.length];
 
                         return (
                           <DualTrackCard
@@ -341,6 +276,7 @@ export function TimelinePage() {
                             onReadStory={() => handleOpenStory(eventIndex)}
                             onLinkTo={handleLinkTo}
                             side="left"
+                            cardVariant={cardVariant}
                           />
                         );
                       })}
@@ -349,48 +285,25 @@ export function TimelinePage() {
                 </div>
 
                 <div className="relative z-10 flex w-24 flex-shrink-0 flex-col items-center justify-start">
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full border-2 font-mono text-sm font-bold",
-                      hasOptics && hasPolarization
-                        ? theme === "dark"
-                          ? "border-slate-500 bg-gradient-to-br from-amber-500/20 to-cyan-500/20 text-white"
-                          : "border-slate-400 bg-gradient-to-br from-amber-100 to-cyan-100 text-slate-800"
-                        : hasOptics
-                          ? theme === "dark"
-                            ? "border-amber-500 bg-amber-500/20 text-amber-400"
-                            : "border-amber-500 bg-amber-100 text-amber-700"
-                          : theme === "dark"
-                            ? "border-cyan-500 bg-cyan-500/20 text-cyan-400"
-                            : "border-cyan-500 bg-cyan-100 text-cyan-700",
-                    )}
-                  >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-clay-canvas bg-clay-ink text-white shadow-md font-mono text-sm font-bold z-20">
                     {year}
                   </div>
-
+                  
+                  {/* Connecting lines from year to cards */}
                   {hasOptics && (
-                    <div
-                      className={cn(
-                        "absolute top-6 right-full h-0.5 w-4",
-                        theme === "dark" ? "bg-amber-500/50" : "bg-amber-400",
-                      )}
-                    />
+                    <div className="absolute top-7 right-[50%] h-[3px] w-12 bg-clay-ink/20 -z-10" />
                   )}
                   {hasPolarization && (
-                    <div
-                      className={cn(
-                        "absolute top-6 left-full h-0.5 w-4",
-                        theme === "dark" ? "bg-cyan-500/50" : "bg-cyan-400",
-                      )}
-                    />
+                    <div className="absolute top-7 left-[50%] h-[3px] w-12 bg-clay-ink/20 -z-10" />
                   )}
                 </div>
 
-                <div className="flex flex-1 justify-start pl-4">
+                <div className="flex flex-1 justify-start pl-8">
                   {hasPolarization && (
-                    <div className="w-full max-w-md space-y-3">
+                    <div className="w-full max-w-md space-y-4">
                       {polarizationEvents.map((event) => {
                         const eventIndex = filteredEvents.findIndex((item) => item === event);
+                        const cardVariant = CLAY_CARD_COLORS[eventIndex % CLAY_CARD_COLORS.length];
 
                         return (
                           <DualTrackCard
@@ -404,6 +317,7 @@ export function TimelinePage() {
                             onReadStory={() => handleOpenStory(eventIndex)}
                             onLinkTo={handleLinkTo}
                             side="right"
+                            cardVariant={cardVariant}
                           />
                         );
                       })}
@@ -418,70 +332,76 @@ export function TimelinePage() {
   );
 
   return (
-    <div
-      className={cn(
-        "min-h-screen",
-        theme === "dark" ? "text-slate-100" : "text-slate-900",
-      )}
-      style={{
-        background:
-          theme === "dark"
-            ? "linear-gradient(180deg, rgba(7,20,34,0.98) 0%, rgba(9,24,40,0.98) 100%)"
-            : "linear-gradient(180deg, #f6f8fc 0%, #ffffff 28%, #f8fafc 100%)",
-      }}
-    >
+    <div className="min-h-screen clay-canvas selection:bg-[#ff4d8b] selection:text-white pb-20">
       <PersistentHeader
         moduleKey="courses"
         moduleName={isZh ? "历史时间线" : "Historical timeline"}
         variant="solid"
-        className="sticky top-0 z-40"
+        className="sticky top-0 z-40 bg-[#fffaf0]/90 backdrop-blur-md border-b border-[#e5e5e5]"
       />
 
-      <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
         {/* ── Page header ── */}
-        <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#1d4ed8]">
+        <section className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+            className="max-w-3xl"
+          >
+            <p className="clay-caption mb-3">
               Timeline
             </p>
-            <h1
-              className="mt-3 text-3xl font-semibold tracking-tight sm:text-[2.35rem]"
-              style={{ fontFamily: "var(--font-ui-display)" }}
-            >
+            <h1 className="clay-display-xl mb-4">
               {isZh ? "历史时间线" : "Historical timeline"}
             </h1>
-            <p className={cn("mt-3 max-w-xl text-sm leading-7 sm:text-[15px]", mutedTextClass)}>
+            <p className="clay-display-sm text-[#3a3a3a] max-w-2xl leading-tight opacity-90">
               {isZh
                 ? "沿着光学史筛选关键实验、理论与偏振发现。"
                 : "Browse key experiments, theories, and polarization discoveries across optics history."}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex flex-wrap items-center gap-2 lg:gap-3"
+          >
             <span className={pillClass}>{filteredEvents.length} {isZh ? "个事件" : "events"}</span>
             <span className={pillClass}>{majorMilestoneCount} {isZh ? "个里程碑" : "milestones"}</span>
             <span className={pillClass}>{totalCenturyCount || 0} {isZh ? "个世纪" : "centuries"}</span>
-          </div>
+          </motion.div>
         </section>
 
-        <div className="mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-10"
+        >
           <LearningSectionNav />
-        </div>
+        </motion.div>
 
-        {/* ── Filter controls panel — lighter weight than the main timeline ── */}
-        <section className={cn("mb-4 rounded-2xl border px-5 py-5 sm:px-6", filterSurfaceClass)}>
-          <div className="flex items-center gap-2">
-            <h2 className={cn("text-sm font-semibold", theme === "dark" ? "text-slate-200" : "text-slate-800")}>
+        {/* ── Filter controls panel ── */}
+        <motion.section 
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className={cn("mb-12 rounded-[24px] border border-[#e5e5e5] px-6 py-6 sm:px-8 sm:py-8 shadow-sm", filterSurfaceClass)}
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="clay-display-sm text-2xl m-0 p-0">
               {isZh ? "筛选" : "Filters"}
             </h2>
-            <span className={cn("text-xs", mutedTextClass)}>
+            <span className={cn("text-sm font-medium mt-1", mutedTextClass)}>
               {isZh
                 ? "按章节、轨道和类型聚焦历史片段"
                 : "Focus by chapter, track, and event type"}
             </span>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <ChapterSelector
               className="rounded-[1.5rem]"
               selectedSections={selectedSections}
@@ -490,9 +410,9 @@ export function TimelinePage() {
             />
           </div>
 
-          <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:gap-8">
+          <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:gap-10">
             <div className="min-w-0 flex-1">
-              <p className={cn("mb-2.5 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+              <p className="clay-caption mb-3">
                 {isZh ? "轨道" : "Track"}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -500,12 +420,10 @@ export function TimelinePage() {
                   type="button"
                   onClick={() => setTrackFilter("all")}
                   className={cn(
-                    "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                    "rounded-full px-4 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95",
                     trackFilter === "all"
-                      ? "bg-[#1d4ed8] text-white"
-                      : theme === "dark"
-                        ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-clay-ink text-white"
+                      : "bg-white text-clay-ink hover:bg-gray-50 border border-[#e5e5e5]",
                   )}
                 >
                   {isZh ? "全部" : "All"}
@@ -514,42 +432,35 @@ export function TimelinePage() {
                   type="button"
                   onClick={() => setTrackFilter("optics")}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95",
                     trackFilter === "optics"
-                      ? "bg-amber-500 text-white"
-                      : theme === "dark"
-                        ? "bg-amber-500/12 text-amber-300 hover:bg-amber-500/20"
-                        : "bg-amber-50 text-amber-700 hover:bg-amber-100",
+                      ? "bg-clay-ink text-white"
+                      : "bg-white text-clay-ink hover:bg-gray-50 border border-[#e5e5e5]",
                   )}
                 >
-                  <Sun className="h-3.5 w-3.5" />
+                  <Sun className="h-4 w-4" />
                   {isZh ? "广义光学" : "General optics"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTrackFilter("polarization")}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95",
                     trackFilter === "polarization"
-                      ? "bg-cyan-500 text-white"
-                      : theme === "dark"
-                        ? "bg-cyan-500/12 text-cyan-300 hover:bg-cyan-500/20"
-                        : "bg-cyan-50 text-cyan-700 hover:bg-cyan-100",
+                      ? "bg-clay-ink text-white"
+                      : "bg-white text-clay-ink hover:bg-gray-50 border border-[#e5e5e5]",
                   )}
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Sparkles className="h-4 w-4" />
                   {isZh ? "偏振光" : "Polarization"}
                 </button>
               </div>
             </div>
 
-            <div className={cn(
-              "hidden sm:block sm:w-px sm:self-stretch",
-              theme === "dark" ? "bg-slate-700/40" : "bg-slate-200",
-            )} />
+            <div className="hidden sm:block sm:w-[1px] sm:self-stretch bg-[#d4d4d4]" />
 
             <div className="min-w-0 flex-1">
-              <p className={cn("mb-2.5 text-xs font-semibold uppercase tracking-[0.16em]", subtleTextClass)}>
+              <p className="clay-caption mb-3">
                 {isZh ? "类型" : "Category"}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -557,12 +468,10 @@ export function TimelinePage() {
                   type="button"
                   onClick={() => setFilter("")}
                   className={cn(
-                    "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                    "rounded-full px-4 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95",
                     !filter
-                      ? "bg-[#1d4ed8] text-white"
-                      : theme === "dark"
-                        ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                      ? "bg-clay-ink text-white"
+                      : "bg-white text-clay-ink hover:bg-gray-50 border border-[#e5e5e5]",
                   )}
                 >
                   {isZh ? "全部" : "All"}
@@ -573,12 +482,10 @@ export function TimelinePage() {
                     type="button"
                     onClick={() => setFilter(key)}
                     className={cn(
-                      "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                      "rounded-full px-4 py-2.5 text-sm font-semibold transition-all shadow-sm active:scale-95",
                       filter === key
-                        ? "bg-[#1d4ed8] text-white"
-                        : theme === "dark"
-                          ? "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                        ? "bg-clay-ink text-white"
+                        : "bg-white text-clay-ink hover:bg-gray-50 border border-[#e5e5e5]",
                     )}
                   >
                     {isZh ? value.zh : value.en}
@@ -587,13 +494,12 @@ export function TimelinePage() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* ── Main timeline panel ── */}
-        <section className={cn("mt-6 rounded-[2rem] border px-5 py-6 sm:px-6 sm:py-8", surfaceClass)}>
+        <section className="mt-8 px-2 sm:px-4">
           {filteredEvents.length === 0 ? (
             <EmptyWorkspace
-              theme={theme}
               icon={Clock}
               title={isZh ? "没有匹配的历史事件" : "No matching events"}
               description={
@@ -603,14 +509,16 @@ export function TimelinePage() {
               }
             />
           ) : (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_140px]">
+            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_140px]">
               <div>
                 {useSingleTrack ? renderMobileTimeline() : renderDesktopTimeline()}
               </div>
 
               {!useSingleTrack && (
                 <div className="hidden xl:block">
-                  <CenturyNavigator events={filteredEvents} isZh={isZh} variant="inline" />
+                  <div className="sticky top-32">
+                    <CenturyNavigator events={filteredEvents} isZh={isZh} variant="inline" />
+                  </div>
                 </div>
               )}
             </div>
