@@ -74,7 +74,7 @@ const challengeFieldRows: Array<{
   {
     key: 'challenge_missing_roles_zh',
     label: '当前缺口',
-    placeholder: '每行一个当前最需要补位的角色或能力。',
+    placeholder: '建议一行一个缺口，例如：缺数据整理 1 人。',
     rows: 3,
   },
   {

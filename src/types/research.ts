@@ -184,6 +184,7 @@ export interface ResearchCanvas {
 export interface ProjectMember {
   userId: string;
   role: MemberRole;
+  memberRoleLabel?: string | null;
   joinedAt: string;
 }
 

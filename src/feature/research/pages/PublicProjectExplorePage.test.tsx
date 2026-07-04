@@ -108,7 +108,7 @@ describe("PublicProjectExplorePage", () => {
         name_zh: "推荐更新课题",
         is_recruiting: true,
         challenge_roles_zh: "观察记录员\n数据整理员",
-        challenge_missing_roles_zh: "需要数据整理员",
+        challenge_missing_roles_zh: "缺数据整理 1 人",
         challenge_beginner_steps_zh: "先记录第一轮变量",
         member_count: 2,
         updated_at: "2026-06-20T00:00:00.000Z",
@@ -146,7 +146,8 @@ describe("PublicProjectExplorePage", () => {
 
     await screen.findByText("推荐更新课题", {}, { timeout: 2000 });
     expect(screen.getByText("观察记录员")).toBeTruthy();
-    expect(screen.getByText("需要数据整理员")).toBeTruthy();
+    expect(screen.getAllByText("当前缺口").length).toBeGreaterThan(0);
+    expect(screen.getByText("缺数据整理 1 人")).toBeTruthy();
     expect(screen.getByText("先记录第一轮变量")).toBeTruthy();
     expect(getCardTitles(container)).toEqual([
       "推荐更新课题",

@@ -257,6 +257,7 @@ describe('ResearchController member management', () => {
     mockProfileModel.getPendingApplication.mockResolvedValue({
       id: 'application-1',
       status: 'pending',
+      desired_role: '观察记录员',
     });
     mockProfileModel.updateApplicationStatus.mockResolvedValue(true);
     mockResearchModel.addProjectMember.mockResolvedValue(true);
@@ -270,7 +271,12 @@ describe('ResearchController member management', () => {
 
     await invokeHandler(ResearchController.addProjectMember, req, res);
 
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'former-1', 'member');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'former-1',
+      'member',
+      '观察记录员'
+    );
     expect(mockProfileModel.updateApplicationStatus).toHaveBeenCalledWith(
       'application-1',
       'approved',
@@ -309,7 +315,12 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.addProjectMember, req, res);
 
     expect(mockResearchModel.getFormerProjectMembers).toHaveBeenCalledWith('project-1');
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'legacy-user', 'member');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'legacy-user',
+      'member',
+      undefined
+    );
     expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
   });
 
@@ -683,6 +694,7 @@ describe('ResearchController member management', () => {
       project_id: 'project-1',
       user_id: 'candidate-1',
       status: 'pending',
+      desired_role: '数据整理',
     });
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -712,7 +724,12 @@ describe('ResearchController member management', () => {
 
     await invokeHandler(ResearchController.updateApplicationStatus, req, res);
 
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'member');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'candidate-1',
+      'member',
+      '数据整理'
+    );
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
   });
 
@@ -722,6 +739,7 @@ describe('ResearchController member management', () => {
       project_id: 'project-1',
       user_id: 'candidate-1',
       status: 'pending',
+      desired_role: '记录表达',
     });
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -766,6 +784,7 @@ describe('ResearchController member management', () => {
       project_id: 'project-1',
       user_id: 'candidate-1',
       status: 'pending',
+      desired_role: '记录表达',
     });
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -798,7 +817,12 @@ describe('ResearchController member management', () => {
       'admin-1',
       undefined
     );
-    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith('project-1', 'candidate-1', 'member');
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'candidate-1',
+      'member',
+      '记录表达'
+    );
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
   });
 
@@ -834,6 +858,57 @@ describe('ResearchController member management', () => {
     expect(res.error).toHaveBeenCalledWith('无权处理该申请', 'FORBIDDEN', 403);
     expect(mockProfileModel.updateApplicationStatus).not.toHaveBeenCalled();
     expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
+  });
+
+  it('auto-approves open applications with the selected task role when approval is disabled', async () => {
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({
+      visibility: 'public',
+      require_approval: false,
+      is_recruiting: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+    ]);
+    mockProfileModel.createApplication.mockResolvedValue('application-1');
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+      desired_role: '数据整理',
+    });
+    mockProfileModel.updateApplicationStatus.mockResolvedValue(true);
+    mockResearchModel.addProjectMember.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'project-1' },
+      body: {
+        desired_role: '数据整理',
+        proposed_contribution: '整理观察记录',
+        weekly_time_commitment: '每周 2 小时',
+      },
+      user: { sub: 'candidate-1', username: 'candidate' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createApplication, req, res);
+
+    expect(mockProfileModel.updateApplicationStatus).toHaveBeenCalledWith(
+      'application-1',
+      'approved',
+      'candidate-1'
+    );
+    expect(mockResearchModel.addProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'candidate-1',
+      'member',
+      '数据整理'
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'application-1', desired_role: '数据整理' }),
+      '申请提交成功',
+      201
+    );
   });
 
   it('rejects join applications when the project member limit is reached', async () => {

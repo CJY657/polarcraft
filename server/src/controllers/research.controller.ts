@@ -462,7 +462,7 @@ export class ResearchController {
    */
   static addProjectMember = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { userId } = req.body;
+    const { userId, memberRoleLabel } = req.body;
     const currentUserId = req.user!.sub;
 
     const access = await ensureProjectAccess(
@@ -494,8 +494,9 @@ export class ResearchController {
       return;
     }
 
-    await ResearchModel.addProjectMember(id, userId, 'member');
     const pendingApplication = await ProfileModel.getPendingApplication(id, userId);
+    const resolvedMemberRoleLabel = pendingApplication?.desired_role ?? memberRoleLabel;
+    await ResearchModel.addProjectMember(id, userId, 'member', resolvedMemberRoleLabel);
     if (pendingApplication) {
       await ProfileModel.updateApplicationStatus(
         pendingApplication.id,
@@ -1557,7 +1558,7 @@ export class ResearchController {
       // If no approval required, auto-approve
       if (!settings.require_approval) {
         await ProfileModel.updateApplicationStatus(applicationId, 'approved', userId);
-        await ResearchModel.addProjectMember(id, userId, 'member');
+        await ResearchModel.addProjectMember(id, userId, 'member', application?.desired_role);
         logger.info(`Application auto-approved: ${applicationId}`);
       }
 
@@ -1623,7 +1624,12 @@ export class ResearchController {
 
     // If approved, add to project members
     if (status === 'approved') {
-      await ResearchModel.addProjectMember(application.project_id, application.user_id, 'member');
+      await ResearchModel.addProjectMember(
+        application.project_id,
+        application.user_id,
+        'member',
+        application.desired_role
+      );
       logger.info(`User ${application.user_id} added to project ${application.project_id}`);
     }
 

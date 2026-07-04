@@ -3,7 +3,7 @@
  * 课题申请表单组件
  */
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Send, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -12,6 +12,8 @@ import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, PublicProject } from '@/lib/profile.service';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { getChallengeRoleOptions } from './projectChallengeCard';
+import { getProjectRoleBadgeStyle } from './ProjectRoleBadge';
 
 interface ProjectApplicationFormProps {
   isOpen: boolean;
@@ -38,6 +40,8 @@ export function ProjectApplicationForm({
   const { theme } = useTheme();
   const { user } = useAuth();
   const isRecruitmentClosed = project?.is_recruiting === false;
+  const roleOptions = useMemo(() => project ? getChallengeRoleOptions(project) : [], [project]);
+  const defaultRole = roleOptions[0]?.value || '';
 
   const [educations, setEducations] = useState<UserEducation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +79,17 @@ export function ProjectApplicationForm({
       profileApi.getUserEducations().then(setEducations).catch(console.error);
     }
   }, [isOpen, isRecruitmentClosed, user?.username]);
+
+  useEffect(() => {
+    if (!isOpen || !project || isRecruitmentClosed) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      desired_role: defaultRole,
+    }));
+  }, [defaultRole, isOpen, isRecruitmentClosed, project?.id]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -289,11 +304,41 @@ export function ProjectApplicationForm({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className={cn(
+              <p className={cn(
                 "block text-base font-medium mb-1.5",
                 theme === "dark" ? "text-gray-300" : "text-gray-700"
               )}>
                 想承担的角色 *
+              </p>
+              {roleOptions.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2" aria-label="可申请角色">
+                  {roleOptions.map((option, index) => {
+                    const isSelected = formData.desired_role === option.value;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setFormData({ ...formData, desired_role: option.value })}
+                        className={cn(
+                          "min-h-10 rounded-full border px-3 py-1.5 text-sm font-semibold transition-all",
+                          isSelected && "shadow-[0_8px_18px_rgba(15,23,42,0.12)]"
+                        )}
+                        style={getProjectRoleBadgeStyle(index, { selected: isSelected })}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <label className={cn(
+                "mb-1.5 block text-sm font-medium",
+                roleOptions.length === 0 && "sr-only",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}>
+                {roleOptions.length > 0 ? "其他角色" : "想承担的角色"}
               </label>
               <input
                 type="text"

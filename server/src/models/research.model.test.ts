@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const membersFind = vi.fn();
 const membersFindOne = vi.fn();
+const membersInsertOne = vi.fn();
+const membersUpdateOne = vi.fn();
 const membersCountDocuments = vi.fn();
 const projectsFindOne = vi.fn();
 const canvasesCountDocuments = vi.fn();
@@ -19,6 +21,8 @@ vi.mock('../database/connection.js', () => ({
         return {
           find: (...args: unknown[]) => membersFind(...args),
           findOne: (...args: unknown[]) => membersFindOne(...args),
+          insertOne: (...args: unknown[]) => membersInsertOne(...args),
+          updateOne: (...args: unknown[]) => membersUpdateOne(...args),
           countDocuments: (...args: unknown[]) => membersCountDocuments(...args),
         };
       case 'research_projects':
@@ -71,6 +75,70 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 import { ResearchModel } from './research.model.js';
+
+describe('ResearchModel.addProjectMember', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    membersInsertOne.mockResolvedValue({});
+    membersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('stores the selected application role label when inserting a new member', async () => {
+    membersFindOne.mockResolvedValue(null);
+
+    await ResearchModel.addProjectMember('project-1', 'user-1', 'member', '数据整理');
+
+    expect(membersInsertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: 'project-1',
+        user_id: 'user-1',
+        role: 'member',
+        member_role_label: '数据整理',
+        active: true,
+        removed_at: null,
+      })
+    );
+  });
+
+  it('keeps the task role label nullable for permission-only members', async () => {
+    membersFindOne.mockResolvedValue(null);
+
+    await ResearchModel.addProjectMember('project-1', 'owner-1', 'owner');
+
+    expect(membersInsertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: 'project-1',
+        user_id: 'owner-1',
+        role: 'owner',
+        member_role_label: null,
+      })
+    );
+  });
+
+  it('updates the task role label when reactivating a former member from an application', async () => {
+    membersFindOne.mockResolvedValue({
+      project_id: 'project-1',
+      user_id: 'user-1',
+      role: 'member',
+      active: false,
+      member_role_label: null,
+    });
+
+    await ResearchModel.addProjectMember('project-1', 'user-1', 'member', '记录表达');
+
+    expect(membersUpdateOne).toHaveBeenCalledWith(
+      { project_id: 'project-1', user_id: 'user-1' },
+      {
+        $set: expect.objectContaining({
+          role: 'member',
+          active: true,
+          removed_at: null,
+          member_role_label: '记录表达',
+        }),
+      }
+    );
+  });
+});
 
 describe('ResearchModel.getFormerProjectMembers', () => {
   beforeEach(() => {

@@ -96,7 +96,7 @@ describe("PublicProjectsSection", () => {
         require_approval: true,
         is_recruiting: true,
         challenge_roles_zh: "观察记录员",
-        challenge_missing_roles_zh: "需要实验复核员",
+        challenge_missing_roles_zh: "缺实验复核 1 人",
         challenge_beginner_steps_zh: "先完成一次明暗记录",
         member_count: 3,
         has_pending_application: true,
@@ -117,7 +117,8 @@ describe("PublicProjectsSection", () => {
 
     expect((await screen.findByRole("button", { name: "待审核" })).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("观察记录员")).toBeTruthy();
-    expect(screen.getByText("需要实验复核员")).toBeTruthy();
+    expect(screen.getByText("当前缺口")).toBeTruthy();
+    expect(screen.getByText("缺实验复核 1 人")).toBeTruthy();
     expect(screen.getByText("先完成一次明暗记录")).toBeTruthy();
   });
 

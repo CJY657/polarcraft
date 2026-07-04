@@ -90,6 +90,11 @@ function normalizeProjectRole(role: unknown): ResearchProjectRole {
   return role === 'owner' ? 'owner' : 'member';
 }
 
+function normalizeMemberRoleLabel(value?: string | null): string | null {
+  const label = typeof value === 'string' ? value.trim() : '';
+  return label || null;
+}
+
 function normalizeMembershipRecord<T extends { role?: unknown }>(member: T): T & { role: ResearchProjectRole } {
   return {
     ...member,
@@ -404,10 +409,12 @@ export class ResearchModel {
   static async addProjectMember(
     projectId: string,
     userId: string,
-    role: string = 'member'
+    role: string = 'member',
+    memberRoleLabel?: string | null
   ): Promise<boolean> {
     const now = new Date();
     const normalizedRole = normalizeProjectRole(role);
+    const normalizedMemberRoleLabel = normalizeMemberRoleLabel(memberRoleLabel);
     const existing = normalizeDocument<any>(
       await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
     );
@@ -423,6 +430,10 @@ export class ResearchModel {
         updateDoc.joined_at = now;
       }
 
+      if (memberRoleLabel !== undefined) {
+        updateDoc.member_role_label = normalizedMemberRoleLabel;
+      }
+
       await projectMembersCollection().updateOne(
         { project_id: projectId, user_id: userId },
         { $set: updateDoc }
@@ -433,6 +444,7 @@ export class ResearchModel {
         project_id: projectId,
         user_id: userId,
         role: normalizedRole,
+        member_role_label: normalizedMemberRoleLabel,
         active: true,
         removed_at: null,
         joined_at: now,
@@ -473,6 +485,7 @@ export class ResearchModel {
 
     return members.map((member) => ({
       ...member,
+      member_role_label: member.member_role_label ?? null,
       username: userMap.get(member.user_id)?.username || '',
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
@@ -566,6 +579,7 @@ export class ResearchModel {
       id: (member as { id?: string }).id || `legacy-former-${projectId}-${member.user_id}`,
       project_id: projectId,
       role: normalizeProjectRole(member.role),
+      member_role_label: (member as { member_role_label?: string | null }).member_role_label ?? null,
       active: false,
       joined_at: member.joined_at || member.removed_at || new Date(0).toISOString(),
       removed_at: member.removed_at || member.joined_at || new Date(0).toISOString(),

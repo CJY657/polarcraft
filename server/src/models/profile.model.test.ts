@@ -153,6 +153,7 @@ describe('ProfileModel.getPublicProjectById', () => {
           project_id: 'project-1',
           user_id: 'member-1',
           role: 'member',
+          member_role_label: '数据整理',
           joined_at: new Date('2026-01-03T00:00:00Z'),
         },
         {
@@ -216,8 +217,8 @@ describe('ProfileModel.getPublicProjectById', () => {
         has_pending_application: true,
         owner_username: '组长',
         members: [
-          { username: '组长', avatar_url: null, role: 'owner' },
-          { username: '成员', avatar_url: null, role: 'member' },
+          { username: '组长', avatar_url: null, role: 'owner', member_role_label: null },
+          { username: '成员', avatar_url: null, role: 'member', member_role_label: '数据整理' },
         ],
       })
     );

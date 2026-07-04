@@ -153,6 +153,7 @@ async function enrichPublicProjects(
         username: userMap.get(member.user_id)?.username || '',
         avatar_url: userMap.get(member.user_id)?.avatar_url || null,
         role: normalizeProjectRole(member.role) ?? 'member',
+        member_role_label: member.member_role_label ?? null,
       })),
     };
   });

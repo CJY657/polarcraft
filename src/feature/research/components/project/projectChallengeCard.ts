@@ -40,8 +40,17 @@ export interface ProjectChallengeCard {
   recruitmentState: string;
   roleItems: string[];
   missingRoleItems: string[];
+  roleOptions: ChallengeRoleOption[];
+  missingRoleOptions: ChallengeRoleOption[];
   beginnerStepItems: string[];
   objectiveItems: string[];
+}
+
+export interface ChallengeRoleOption {
+  id: string;
+  label: string;
+  value: string;
+  source: 'missing' | 'role' | 'requirements';
 }
 
 export const CHALLENGE_DIFFICULTY_OPTIONS: Array<{ value: ChallengeDifficulty; label: string }> = [
@@ -74,6 +83,70 @@ export function splitChallengeLines(value?: string | null): string[] {
     .filter(Boolean);
 }
 
+function splitRoleFragments(value?: string | null): string[] {
+  return splitChallengeLines(value)
+    .flatMap((line) => line.split(/[；;、，,/]/))
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function cleanChallengeRoleName(value?: string | null): string {
+  return cleanText(value)
+    .replace(/^(?:当前|目前)?(?:急需|需要|需|缺少|缺|招募|寻找|补充|希望|适合|角色)\s*/u, '')
+    .replace(/^[：:\-—\s]+/u, '')
+    .replace(/[（(]\s*(?:缺|还差|需要|招募)?\s*\d+\s*(?:人|位|名)?\s*[）)]/gu, '')
+    .replace(/[：:]\s*(?:缺|还差|需要|招募)?\s*\d+\s*(?:人|位|名)?\s*$/u, '')
+    .replace(/\s*(?:缺|还差|需要|招募)?\s*\d+\s*(?:人|位|名)\s*$/u, '')
+    .replace(/[。；;，,、\s]+$/u, '')
+    .trim();
+}
+
+function getRoleDedupeKey(value: string): string {
+  return value
+    .replace(/\s+/gu, '')
+    .replace(/[。；;，,、:：()（）]/gu, '')
+    .replace(/(?:成员|同学|员)$/u, '')
+    .toLowerCase();
+}
+
+function appendRoleOptions(
+  options: ChallengeRoleOption[],
+  seen: Set<string>,
+  value: string | null | undefined,
+  source: ChallengeRoleOption['source']
+) {
+  for (const label of splitRoleFragments(value)) {
+    const roleName = cleanChallengeRoleName(label);
+    if (!roleName) {
+      continue;
+    }
+
+    const key = getRoleDedupeKey(roleName);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    options.push({
+      id: `${source}-${key}`,
+      label,
+      value: roleName,
+      source,
+    });
+  }
+}
+
+export function getChallengeRoleOptions(project: ProjectChallengeSource): ChallengeRoleOption[] {
+  const options: ChallengeRoleOption[] = [];
+  const seen = new Set<string>();
+
+  appendRoleOptions(options, seen, project.challenge_missing_roles_zh, 'missing');
+  appendRoleOptions(options, seen, project.challenge_roles_zh, 'role');
+  appendRoleOptions(options, seen, project.recruitment_requirements, 'requirements');
+
+  return options;
+}
+
 function firstFallbackLine(value?: string | null): string {
   return splitChallengeLines(value)[0] ?? '';
 }
@@ -103,6 +176,7 @@ export function buildProjectChallengeCard(project: ProjectChallengeSource): Proj
     || cleanText(project.research_questions_zh)
     || cleanText(project.description_zh)
     || '围绕课题现象提出问题，并把观察过程转化为可讨论的证据。';
+  const roleOptions = getChallengeRoleOptions(project);
 
   return {
     value: cleanText(project.challenge_value_zh)
@@ -126,6 +200,8 @@ export function buildProjectChallengeCard(project: ProjectChallengeSource): Proj
     recruitmentState: project.is_recruiting === false ? '招募已停止' : '开放申请',
     roleItems: splitChallengeLines(roles),
     missingRoleItems: splitChallengeLines(missingRoles),
+    roleOptions,
+    missingRoleOptions: roleOptions.filter((option) => option.source === 'missing'),
     beginnerStepItems: splitChallengeLines(beginnerSteps),
     objectiveItems: splitChallengeLines(objectives),
   };

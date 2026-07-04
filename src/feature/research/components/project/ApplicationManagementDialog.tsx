@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, ProjectApplication } from '@/lib/profile.service';
+import { ProjectRoleBadge } from './ProjectRoleBadge';
 
 interface ApplicationManagementDialogProps {
   isOpen: boolean;
@@ -348,12 +349,9 @@ function ApplicationCard({
               {application.organization}
               {application.major && ` · ${application.major}`}
             </div>
-            <div className={cn(
-              "text-base",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
-              意向角色：{desiredRole}
-            </div>
+            <ProjectRoleBadge seed={desiredRole} className="mt-2">
+              申请角色：{desiredRole}
+            </ProjectRoleBadge>
           </div>
         </div>
 
@@ -386,18 +384,9 @@ function ApplicationCard({
         )}>
           <div className="pt-4 space-y-3">
             <div>
-              <span className={cn(
-                "text-base font-medium block mb-1",
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              )}>
-                想承担的角色:
-              </span>
-              <p className={cn(
-                "text-base whitespace-pre-wrap",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
-                {desiredRole}
-              </p>
+              <ProjectRoleBadge seed={desiredRole}>
+                申请角色：{desiredRole}
+              </ProjectRoleBadge>
             </div>
 
             <div>
@@ -533,7 +522,7 @@ function ApplicationCard({
                   )}
                 >
                   <Check className="w-4 h-4" />
-                  {t('profile.application.approved')}
+                  通过为 {desiredRole} 成员
                 </button>
                 <button
                   onClick={(e) => {

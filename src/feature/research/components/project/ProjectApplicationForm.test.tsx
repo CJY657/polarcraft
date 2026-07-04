@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicProject } from "@/lib/profile.service";
 import { ProjectApplicationForm } from "./ProjectApplicationForm";
@@ -112,6 +112,78 @@ describe("ProjectApplicationForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "project.application.submit" }));
 
     expect(await screen.findByText("请填写想承担的角色")).toBeTruthy();
+    expect(createApplication).not.toHaveBeenCalled();
+  });
+
+  it("defaults to the first missing-role option and submits the cleaned role name", async () => {
+    createApplication.mockResolvedValue({});
+
+    render(
+      <ProjectApplicationForm
+        isOpen
+        onClose={vi.fn()}
+        project={createPublicProject({
+          is_recruiting: true,
+          challenge_missing_roles_zh: "缺数据整理 1 人\n缺记录表达 1 人",
+          challenge_roles_zh: "观察记录员",
+        })}
+      />
+    );
+
+    const defaultRoleButton = await screen.findByRole("button", { name: "缺数据整理 1 人" });
+    expect(defaultRoleButton.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "缺记录表达 1 人" }));
+    fireEvent.change(screen.getByPlaceholderText("说明你能承担的任务、已有经验或想练习的能力。"), {
+      target: { value: "我可以整理记录表达模板" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("例如：每周 2-3 小时，周末可集中整理"), {
+      target: { value: "每周 3 小时" },
+    });
+    const organizationInput = screen.getAllByRole("textbox").find((element) => (
+      (element as HTMLInputElement).value === "" && !(element as HTMLInputElement).placeholder
+    ));
+    expect(organizationInput).toBeTruthy();
+    fireEvent.change(organizationInput!, { target: { value: "某某学校" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "project.application.submit" }));
+
+    await waitFor(() => {
+      expect(createApplication).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          desired_role: "记录表达",
+          proposed_contribution: "我可以整理记录表达模板",
+          weekly_time_commitment: "每周 3 小时",
+          organization: "某某学校",
+        })
+      );
+    });
+  });
+
+  it("still requires contribution and weekly time after a role option is selected", async () => {
+    render(
+      <ProjectApplicationForm
+        isOpen
+        onClose={vi.fn()}
+        project={createPublicProject({
+          is_recruiting: true,
+          challenge_missing_roles_zh: "缺数据整理 1 人",
+        })}
+      />
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "project.application.submit" }));
+
+    expect(await screen.findByText("请填写你可以贡献的内容")).toBeTruthy();
+    expect(createApplication).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByPlaceholderText("说明你能承担的任务、已有经验或想练习的能力。"), {
+      target: { value: "我可以整理数据" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "project.application.submit" }));
+
+    expect(await screen.findByText("请填写每周可投入时间")).toBeTruthy();
     expect(createApplication).not.toHaveBeenCalled();
   });
 });

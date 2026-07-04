@@ -48,6 +48,7 @@ import {
 } from "@/lib/profile.service";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
+import { ProjectRoleBadge } from "../components/project/ProjectRoleBadge";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
   ProjectDiscussionSection,
@@ -593,6 +594,7 @@ export function ResearchProjectPage() {
       username: member.username,
       avatar_url: member.avatar_url,
       role: member.role,
+      member_role_label: member.member_role_label ?? null,
     })),
     created_at: project.created_at,
     updated_at: project.updated_at,
@@ -902,6 +904,7 @@ export function ResearchProjectPage() {
                   ((isOwner || isAdmin) && member.role !== 'owner' && !isSelf) // 组长或管理员可以移除其他成员
                 );
                 const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
+                const memberRoleLabel = member.member_role_label?.trim();
 
                 return (
                   <div
@@ -925,7 +928,14 @@ export function ResearchProjectPage() {
                         <span className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</span>
                         {getRoleIcon(member.role)}
                       </div>
-                      <span className="text-sm text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
+                        {memberRoleLabel && (
+                          <ProjectRoleBadge seed={memberRoleLabel} className="px-2.5 py-0.5 text-xs">
+                            {memberRoleLabel}
+                          </ProjectRoleBadge>
+                        )}
+                      </div>
                     </div>
                     {canRemove && (
                       <button

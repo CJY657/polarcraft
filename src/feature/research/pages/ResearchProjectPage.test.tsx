@@ -444,7 +444,7 @@ describe("ResearchProjectPage", () => {
         challenge_timeline_zh: "1 周完成入门观察",
         challenge_difficulty: "intermediate",
         challenge_roles_zh: "观察记录员\n数据整理员",
-        challenge_missing_roles_zh: "需要数据整理员",
+        challenge_missing_roles_zh: "缺数据整理 1 人",
         challenge_progress_zh: "已完成选题",
       })
     );
@@ -454,8 +454,43 @@ describe("ResearchProjectPage", () => {
     expect(await screen.findByText("挑战卡")).toBeTruthy();
     expect(screen.getByText("进阶")).toBeTruthy();
     expect(screen.getByText("把偏振观察转化为可复核的变量记录。")).toBeTruthy();
-    expect(screen.getByText("需要数据整理员")).toBeTruthy();
+    expect(screen.getByText("缺数据整理 1 人")).toBeTruthy();
     expect(screen.getByText("一份观察记录")).toBeTruthy();
+  });
+
+  it("shows persisted task role labels on member cards", async () => {
+    mockGetProject.mockResolvedValue(
+      createProject({
+        member_count: 2,
+        members: [
+          {
+            id: "member-owner",
+            project_id: "project-1",
+            user_id: "owner-1",
+            role: "owner",
+            joined_at: new Date().toISOString(),
+            username: "组长",
+            avatar_url: null,
+          },
+          {
+            id: "member-candidate",
+            project_id: "project-1",
+            user_id: "candidate-1",
+            role: "member",
+            member_role_label: "记录表达",
+            joined_at: new Date().toISOString(),
+            username: "小林",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("研究团队")).toBeTruthy();
+    expect(screen.getByText("小林")).toBeTruthy();
+    expect(screen.getByText("记录表达")).toBeTruthy();
   });
 
   it("does not render the AI advisor panel for authenticated public non-members", async () => {

@@ -4,8 +4,10 @@ import { cn } from '@/utils/classNames';
 import {
   buildProjectChallengeCard,
   getProjectFirstStep,
+  type ChallengeRoleOption,
   type ProjectChallengeSource,
 } from './projectChallengeCard';
+import { ProjectRoleBadge } from './ProjectRoleBadge';
 
 interface ProjectChallengePreviewProps {
   project: ProjectChallengeSource;
@@ -51,6 +53,34 @@ function ChallengeList({
   );
 }
 
+function ChallengeRoleList({
+  options,
+  fallbackItems,
+  fallback,
+  maxItems,
+}: {
+  options: ChallengeRoleOption[];
+  fallbackItems: string[];
+  fallback: string;
+  maxItems?: number;
+}) {
+  const visibleOptions = typeof maxItems === 'number' ? options.slice(0, maxItems) : options;
+
+  if (visibleOptions.length > 0) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {visibleOptions.map((option, index) => (
+          <ProjectRoleBadge key={option.id} seed={index} className="text-sm">
+            {option.label}
+          </ProjectRoleBadge>
+        ))}
+      </div>
+    );
+  }
+
+  return <ChallengeList items={fallbackItems} fallback={fallback} maxItems={maxItems} />;
+}
+
 function ChallengeSection({
   title,
   icon,
@@ -94,14 +124,25 @@ export function ProjectChallengePreview({ project, className }: ProjectChallenge
       </div>
 
       <div className="space-y-3">
-        <div>
-          <p className="text-sm font-medium text-[var(--glass-text-muted)]">适合角色</p>
-          <ChallengeList items={challenge.roleItems} fallback={challenge.roles} maxItems={4} />
+        <div
+          className="rounded-[1rem] border px-3 py-3"
+          style={{
+            borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
+            background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
+          }}
+        >
+          <p className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">当前缺口</p>
+          <ChallengeRoleList
+            options={challenge.missingRoleOptions}
+            fallbackItems={challenge.missingRoleItems}
+            fallback={challenge.missingRoles}
+            maxItems={4}
+          />
         </div>
 
         <div>
-          <p className="text-sm font-medium text-[var(--glass-text-muted)]">当前需要</p>
-          <ChallengeList items={challenge.missingRoleItems} fallback={challenge.missingRoles} maxItems={4} />
+          <p className="mb-2 text-sm font-medium text-[var(--glass-text-muted)]">适合角色</p>
+          <ChallengeList items={challenge.roleItems} fallback={challenge.roles} maxItems={4} />
         </div>
 
         <div
@@ -186,9 +227,11 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
         </ChallengeSection>
 
         <ChallengeSection title="当前缺口" icon={<Gauge className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.missingRoles}
-          </p>
+          <ChallengeRoleList
+            options={challenge.missingRoleOptions}
+            fallbackItems={challenge.missingRoleItems}
+            fallback={challenge.missingRoles}
+          />
         </ChallengeSection>
       </div>
     </section>

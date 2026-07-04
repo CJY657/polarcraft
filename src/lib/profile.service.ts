@@ -161,6 +161,7 @@ export interface PublicProjectMember {
   username: string;
   avatar_url: string | null;
   role: string;
+  member_role_label?: string | null;
 }
 
 export interface PublicProject {
