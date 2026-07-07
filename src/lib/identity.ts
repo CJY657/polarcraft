@@ -10,15 +10,16 @@ function clean(value?: string | null): string {
 }
 
 export function formatUserIdentity(identity: IdentityLike | null | undefined, fallback = '用户'): string {
-  const nickname = clean(identity?.nickname);
   const realName = clean(identity?.real_name ?? identity?.realName);
   const username = clean(identity?.username);
+  const nickname = clean(identity?.nickname);
+  const publicName = username || nickname;
 
-  if (nickname && realName && nickname !== realName) {
-    return `${nickname}（${realName}）`;
+  if (publicName && realName && publicName !== realName) {
+    return `${publicName}（${realName}）`;
   }
 
-  return nickname || username || fallback;
+  return publicName || fallback;
 }
 
 export function getUserIdentityInitial(identity: IdentityLike | null | undefined, fallback = 'U'): string {

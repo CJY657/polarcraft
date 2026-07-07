@@ -65,7 +65,7 @@ export function ProfileCompletionModal() {
           <div>
             <h2 className="text-xl font-semibold text-clay-ink">完善身份信息</h2>
             <p className="mt-1 text-sm leading-6 text-clay-body">
-              继续使用 PolariScope 前，请补充真实姓名。昵称可稍后在个人中心修改。
+              继续使用 PolariScope 前，请补充真实姓名。用户名将作为对外昵称显示。
             </p>
           </div>
         </div>

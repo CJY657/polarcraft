@@ -62,7 +62,6 @@ export interface LoginInput {
 
 export interface RegisterInput {
   username: string;
-  nickname: string;
   real_name: string;
   password: string;
   email?: string;
@@ -70,7 +69,6 @@ export interface RegisterInput {
 
 export interface UpdateProfileInput {
   username?: string;
-  nickname?: string;
   real_name?: string;
   email?: string;
   avatar_url?: string;
@@ -123,7 +121,6 @@ export const authApi = {
 
     const response = await api.post<AuthResponse>('/api/auth/register', {
       username: input.username,
-      nickname: input.nickname,
       real_name: input.real_name,
       password: hashedPassword,
       email: input.email,

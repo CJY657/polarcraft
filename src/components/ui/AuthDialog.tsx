@@ -113,7 +113,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
 
         <div>
           <label htmlFor="login-username" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.username', '用户名')}
+            {t('auth.username', '用户名/对外昵称')}
           </label>
           <input
             id="login-username"
@@ -123,7 +123,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             required
             autoFocus
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-            placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
+            placeholder={t('auth.usernamePlaceholder', '请输入用户名/对外昵称')}
           />
         </div>
 
@@ -197,7 +197,6 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
-  const [nickname, setNickname] = useState('');
   const [realName, setRealName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -216,11 +215,6 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
       return;
     }
 
-    if (!nickname.trim()) {
-      setError('请输入昵称');
-      return;
-    }
-
     if (!realName.trim()) {
       setError('请输入真实姓名');
       return;
@@ -236,7 +230,6 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     try {
       await register(
         username.trim(),
-        nickname.trim(),
         realName.trim(),
         password,
         email || undefined
@@ -285,7 +278,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
         <div>
           <label htmlFor="register-username" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.username', '用户名')} *
+            {t('auth.username', '用户名/对外昵称')} *
           </label>
           <input
             id="register-username"
@@ -296,22 +289,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             minLength={3}
             autoFocus
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-            placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="register-nickname" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.nickname', '昵称')} *
-          </label>
-          <input
-            id="register-nickname"
-            type="text"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            required
-            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-            placeholder={t('auth.nicknamePlaceholder', '请输入对外显示的昵称')}
+            placeholder={t('auth.usernamePlaceholder', '请输入用户名/对外昵称')}
           />
         </div>
 

@@ -19,6 +19,7 @@ const projectMembersCollection = {
 };
 const usersCollection = {
   find: vi.fn(),
+  findOne: vi.fn(),
 };
 const canvasesCollection = {
   find: vi.fn(),
@@ -98,9 +99,16 @@ describe('ProfileModel.createApplication', () => {
         user_id: 'user-1',
         status: 'rejected',
       });
+    usersCollection.findOne.mockResolvedValue({
+      id: 'user-1',
+      username: 'candidate',
+      nickname: '旧昵称',
+      real_name: '候选人',
+      avatar_url: null,
+    });
 
     const applicationId = await ProfileModel.createApplication('project-1', 'user-1', {
-      display_name: '用户',
+      display_name: '客户端传入名称',
       organization: '组织',
       desired_role: '观察记录员',
       proposed_contribution: '整理第一轮观察记录',
@@ -114,6 +122,7 @@ describe('ProfileModel.createApplication', () => {
         $set: expect.objectContaining({
           status: 'pending',
           review_notes: null,
+          display_name: 'candidate（候选人）',
           desired_role: '观察记录员',
           proposed_contribution: '整理第一轮观察记录',
           weekly_time_commitment: '每周 2 小时',

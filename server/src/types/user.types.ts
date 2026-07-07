@@ -12,7 +12,6 @@ import { UserRole } from './auth.types.js';
 /** Update profile input / 更新个人信息输入 */
 export interface UpdateProfileInput {
   username?: string;
-  nickname?: string;
   real_name?: string;
   email?: string;
   avatar_url?: string;

@@ -140,6 +140,7 @@ describe("ProjectApplicationForm", () => {
     fireEvent.change(screen.getByPlaceholderText("例如：每周 2-3 小时，周末可集中整理"), {
       target: { value: "每周 3 小时" },
     });
+    expect(screen.queryByText("project.application.form.displayName")).toBeNull();
     const organizationInput = screen.getAllByRole("textbox").find((element) => (
       (element as HTMLInputElement).value === "" && !(element as HTMLInputElement).placeholder
     ));
@@ -156,6 +157,7 @@ describe("ProjectApplicationForm", () => {
           proposed_contribution: "我可以整理记录表达模板",
           weekly_time_commitment: "每周 3 小时",
           organization: "某某学校",
+          display_name: "candidate",
         })
       );
     });

@@ -52,7 +52,6 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
   });
 
   const [creatorData, setCreatorData] = useState({
-    display_name: '',
     organization: '',
     education_id: '',
     major: '',
@@ -72,13 +71,8 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
   useEffect(() => {
     if (isOpen) {
       profileApi.getUserEducations().then(setEducations).catch(console.error);
-      // Pre-fill display name
-      const displayName = formatUserIdentity(user, '');
-      if (displayName) {
-        setCreatorData((prev) => ({ ...prev, display_name: displayName }));
-      }
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -97,7 +91,6 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         is_public: false,
       });
       setCreatorData({
-        display_name: formatUserIdentity(user, ''),
         organization: '',
         education_id: '',
         major: '',
@@ -113,7 +106,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
       });
       setError('');
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
 
   // Update creator data when education is selected
   useEffect(() => {
@@ -158,7 +151,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
       const result = await profileApi.createProjectWithProfile({
         project: projectData,
         creatorProfile: {
-          display_name: creatorData.display_name || formatUserIdentity(user, ''),
+          display_name: formatUserIdentity(user, '') || undefined,
           organization: creatorData.organization,
           education_id: creatorData.education_id || undefined,
           major: creatorData.major || undefined,
@@ -408,26 +401,6 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
           {/* Step 2: Creator Info */}
           {currentStep === 2 && (
             <div className="space-y-4">
-              <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
-                  {t('project.application.form.displayName')}
-                </label>
-                <input
-                  type="text"
-                  value={creatorData.display_name}
-                  onChange={(e) => setCreatorData({ ...creatorData, display_name: e.target.value })}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                  )}
-                />
-              </div>
-
               {/* Organization selector */}
               {educations.length > 0 && (
                 <div className="flex items-center gap-4 mb-2">

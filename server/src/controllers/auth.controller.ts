@@ -21,10 +21,9 @@ export class AuthController {
  * 注册新用户
    */
   static register = asyncHandler(async (req: Request, res: Response) => {
-    const { username, nickname, real_name, password, email, clientSalt } = req.body;
+    const { username, real_name, password, email, clientSalt } = req.body;
     const result = await AuthService.register({
       username,
-      nickname,
       real_name,
       password,
       email,

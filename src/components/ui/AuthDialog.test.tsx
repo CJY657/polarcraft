@@ -51,21 +51,19 @@ describe('AuthDialog registration', () => {
     openRegisterDialog();
   });
 
-  it('renders required nickname and real-name fields', () => {
+  it('renders username as the public nickname and real-name fields', () => {
     renderDialog();
 
-    expect(screen.getByLabelText('昵称 *')).toHaveProperty('required', true);
+    expect(screen.getByLabelText('用户名/对外昵称 *')).toHaveProperty('required', true);
     expect(screen.getByLabelText('真实姓名 *')).toHaveProperty('required', true);
+    expect(screen.queryByLabelText('昵称 *')).toBeNull();
   });
 
-  it('submits nickname and real name during registration', async () => {
+  it('submits username and real name during registration', async () => {
     renderDialog();
 
-    fireEvent.change(screen.getByLabelText('用户名 *'), {
+    fireEvent.change(screen.getByLabelText('用户名/对外昵称 *'), {
       target: { value: ' student-1 ' },
-    });
-    fireEvent.change(screen.getByLabelText('昵称 *'), {
-      target: { value: ' 小林 ' },
     });
     fireEvent.change(screen.getByLabelText('真实姓名 *'), {
       target: { value: ' Lin Chen ' },
@@ -81,7 +79,6 @@ describe('AuthDialog registration', () => {
     await waitFor(() => {
       expect(mocks.register).toHaveBeenCalledWith(
         'student-1',
-        '小林',
         'Lin Chen',
         'Password1!',
         undefined

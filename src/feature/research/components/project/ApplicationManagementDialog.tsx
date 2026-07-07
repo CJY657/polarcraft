@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, ProjectApplication } from '@/lib/profile.service';
+import { formatUserIdentity } from '@/lib/identity';
 import { ProjectRoleBadge } from './ProjectRoleBadge';
 
 interface ApplicationManagementDialogProps {
@@ -293,6 +294,7 @@ function ApplicationCard({
   const desiredRole = application.desired_role || application.expertise || '未填写';
   const proposedContribution = application.proposed_contribution || application.motivation || '未填写';
   const weeklyTimeCommitment = application.weekly_time_commitment || '未填写';
+  const displayName = formatUserIdentity(application, application.display_name);
 
   return (
     <div className={cn(
@@ -317,7 +319,7 @@ function ApplicationCard({
             {application.avatar_url ? (
               <img
                 src={application.avatar_url}
-                alt={application.display_name}
+                alt={displayName}
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
@@ -332,15 +334,7 @@ function ApplicationCard({
               "font-medium",
               theme === "dark" ? "text-white" : "text-gray-900"
             )}>
-              {application.display_name}
-              {application.username && application.username !== application.display_name && (
-                <span className={cn(
-                  "text-base ml-2",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
-                  (@{application.username})
-                </span>
-              )}
+              {displayName}
             </div>
             <div className={cn(
               "text-base",

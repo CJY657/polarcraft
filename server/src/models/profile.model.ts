@@ -44,6 +44,8 @@ type UserIdentity = {
   avatar_url: string | null;
 };
 
+const clean = (value?: string | null): string => (typeof value === 'string' ? value.trim() : '');
+
 async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
   if (userIds.length === 0) {
     return new Map();
@@ -67,6 +69,21 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
       },
     ])
   );
+}
+
+async function resolveUserDisplayName(userId: string, fallback?: string): Promise<string> {
+  const user = normalizeDocument<Pick<UserIdentity, 'username' | 'nickname' | 'real_name'>>(
+    await usersCollection().findOne(
+      { id: userId },
+      { projection: { _id: 0, username: 1, nickname: 1, real_name: 1 } }
+    )
+  );
+  const publicName = clean(user?.username) || clean(user?.nickname);
+  const realName = clean(user?.real_name);
+
+  return publicName && realName && publicName !== realName
+    ? `${publicName}（${realName}）`
+    : publicName || clean(fallback) || '用户';
 }
 
 async function getProjectNameMap(projectIds: string[]): Promise<Map<string, string | undefined>> {
@@ -402,11 +419,12 @@ export class ProfileModel {
     data: CreateCreatorProfileInput
   ): Promise<string> {
     const now = new Date();
+    const displayName = await resolveUserDisplayName(userId, data.display_name);
     const profile: ProjectCreatorProfile = {
       id: generateId(),
       project_id: projectId,
       user_id: userId,
-      display_name: data.display_name,
+      display_name: displayName,
       organization: data.organization,
       education_id: data.education_id || null,
       major: data.major || null,
@@ -539,6 +557,7 @@ export class ProfileModel {
     }
 
     const now = new Date();
+    const displayName = await resolveUserDisplayName(userId, data.display_name);
     const existingApplication = normalizeDocument<ProjectApplication>(
       await applicationsCollection().findOne({ project_id: projectId, user_id: userId })
     );
@@ -546,7 +565,7 @@ export class ProfileModel {
       id: existingApplication?.id || generateId(),
       project_id: projectId,
       user_id: userId,
-      display_name: data.display_name,
+      display_name: displayName,
       organization: data.organization,
       education_id: data.education_id || null,
       major: data.major || null,

@@ -29,7 +29,6 @@ interface AuthContextType {
   login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (
     username: string,
-    nickname: string,
     realName: string,
     password: string,
     email?: string
@@ -149,14 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (
     username: string,
-    nickname: string,
     realName: string,
     password: string,
     email?: string
   ) => {
     const response = await authApi.register({
       username,
-      nickname,
       real_name: realName,
       password,
       email,

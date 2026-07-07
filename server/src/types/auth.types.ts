@@ -47,7 +47,6 @@ export interface UserProfile {
 /** Update profile input / 更新资料输入 */
 export interface UpdateProfileInput {
   username?: string;
-  nickname?: string;
   real_name?: string;
   email?: string;
   avatar_url?: string;
@@ -62,7 +61,6 @@ export interface SessionsResponse {
 /** User registration input / 用户注册输入 */
 export interface RegisterInput {
   username: string;
-  nickname: string;
   real_name: string;
   password: string;
   clientSalt: string;

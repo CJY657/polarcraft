@@ -54,7 +54,6 @@ export function ProjectApplicationForm({
   const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    display_name: '',
     organization: '',
     education_id: '',
     major: '',
@@ -71,11 +70,6 @@ export function ProjectApplicationForm({
   // Load user educations on mount
   useEffect(() => {
     if (isOpen) {
-      // Pre-fill display name
-      if (userDisplayName) {
-        setFormData((prev) => ({ ...prev, display_name: userDisplayName }));
-      }
-
       if (isRecruitmentClosed) {
         setEducations([]);
         return;
@@ -83,7 +77,7 @@ export function ProjectApplicationForm({
 
       profileApi.getUserEducations().then(setEducations).catch(console.error);
     }
-  }, [isOpen, isRecruitmentClosed, userDisplayName]);
+  }, [isOpen, isRecruitmentClosed]);
 
   useEffect(() => {
     if (!isOpen || !project || isRecruitmentClosed) {
@@ -100,7 +94,6 @@ export function ProjectApplicationForm({
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        display_name: userDisplayName,
         organization: '',
         education_id: '',
         major: '',
@@ -116,7 +109,7 @@ export function ProjectApplicationForm({
       setError('');
       setSuccess(false);
     }
-  }, [isOpen, userDisplayName]);
+  }, [isOpen]);
 
   // Update form data when education is selected
   useEffect(() => {
@@ -170,7 +163,7 @@ export function ProjectApplicationForm({
 
     try {
       await profileApi.createApplication(project.id, {
-        display_name: formData.display_name || userDisplayName,
+        display_name: userDisplayName || undefined,
         organization: formData.organization,
         desired_role: formData.desired_role.trim(),
         proposed_contribution: formData.proposed_contribution.trim(),
@@ -392,28 +385,6 @@ export function ProjectApplicationForm({
                 value={formData.weekly_time_commitment}
                 onChange={(e) => setFormData({ ...formData, weekly_time_commitment: e.target.value })}
                 placeholder="例如：每周 2-3 小时，周末可集中整理"
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                )}
-              />
-            </div>
-
-            {/* Display Name */}
-            <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
-                {t('project.application.form.displayName')}
-              </label>
-              <input
-                type="text"
-                value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                placeholder={t('project.application.form.displayNamePlaceholder')}
                 className={cn(
                   "w-full px-3 py-2 rounded-lg border transition-colors",
                   theme === "dark"

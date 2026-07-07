@@ -192,7 +192,7 @@ export class UserModel {
     const user: User = {
       id: generateId(),
       username: input.username,
-      nickname: input.nickname,
+      nickname: null,
       real_name: input.real_name,
       password_hash: passwordHash,
       client_salt: input.clientSalt,
@@ -219,7 +219,7 @@ export class UserModel {
    */
   static async updateProfile(
     id: string,
-    updates: Partial<Pick<User, 'username' | 'nickname' | 'real_name' | 'email' | 'avatar_url'>>
+    updates: Partial<Pick<User, 'username' | 'real_name' | 'email' | 'avatar_url'>>
   ): Promise<UserProfile | null> {
     if (updates.username) {
       const existing = await this.findByUsername(updates.username);
@@ -230,7 +230,6 @@ export class UserModel {
 
     const updateDoc = pickDefined({
       username: updates.username,
-      nickname: updates.nickname,
       real_name: updates.real_name,
       email: updates.email,
       avatar_url: updates.avatar_url,

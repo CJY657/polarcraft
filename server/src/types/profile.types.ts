@@ -102,7 +102,7 @@ export interface ProjectCreatorProfile {
 }
 
 export interface CreateCreatorProfileInput {
-  display_name: string;
+  display_name?: string;
   organization: string;
   education_id?: string;
   major?: string;
@@ -144,7 +144,7 @@ export interface ProjectApplication {
 }
 
 export interface CreateApplicationInput {
-  display_name: string;
+  display_name?: string;
   organization: string;
   desired_role: string;
   proposed_contribution: string;

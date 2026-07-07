@@ -202,13 +202,12 @@ describe('UserModel admin queries', () => {
     expect(usersFindOne).toHaveBeenCalledWith({ id: 'inactive-user' });
   });
 
-  it('creates users with required nickname and real name fields', async () => {
+  it('creates users with username as public nickname and legacy nickname unset', async () => {
     usersFindOne.mockResolvedValueOnce(null);
     usersInsertOne.mockResolvedValueOnce({ acknowledged: true });
 
     const result = await UserModel.create({
       username: 'new-user',
-      nickname: '小新',
       real_name: 'New User',
       password: 'client-hash',
       clientSalt: 'client-salt',
@@ -218,21 +217,21 @@ describe('UserModel admin queries', () => {
     expect(result).toMatchObject({
       id: 'generated-user-id',
       username: 'new-user',
-      nickname: '小新',
+      nickname: null,
       real_name: 'New User',
       email: 'new@example.com',
     });
     expect(usersInsertOne).toHaveBeenCalledWith(
       expect.objectContaining({
         username: 'new-user',
-        nickname: '小新',
+        nickname: null,
         real_name: 'New User',
         password_hash: 'hashed-client-hash',
       })
     );
   });
 
-  it('updates nickname and real name through the profile update path', async () => {
+  it('updates real name while ignoring legacy nickname through the profile update path', async () => {
     usersUpdateOne.mockResolvedValueOnce({ matchedCount: 1 });
     usersFindOne.mockResolvedValueOnce({
       id: 'user-1',
@@ -254,7 +253,6 @@ describe('UserModel admin queries', () => {
 
     await expect(
       UserModel.updateProfile('user-1', {
-        nickname: '新昵称',
         real_name: 'Alice Wang',
       })
     ).resolves.toMatchObject({
@@ -267,10 +265,11 @@ describe('UserModel admin queries', () => {
       { id: 'user-1' },
       {
         $set: expect.objectContaining({
-          nickname: '新昵称',
           real_name: 'Alice Wang',
         }),
       }
     );
+    const update = usersUpdateOne.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
+    expect(update.$set).not.toHaveProperty('nickname');
   });
 });

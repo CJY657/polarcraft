@@ -26,7 +26,7 @@ async function runValidationStack(stack: Middleware[], body: Record<string, unkn
 }
 
 describe('auth/profile validation', () => {
-  it('requires nickname and real name when registering', async () => {
+  it('requires real name when registering', async () => {
     const { res } = await runValidationStack(validateRegister as Middleware[], {
       username: 'student-1',
       password: 'a'.repeat(64),
@@ -40,7 +40,6 @@ describe('auth/profile validation', () => {
         error: expect.objectContaining({
           code: 'VALIDATION_ERROR',
           details: expect.arrayContaining([
-            expect.objectContaining({ field: 'nickname' }),
             expect.objectContaining({ field: 'real_name' }),
           ]),
         }),
@@ -48,10 +47,9 @@ describe('auth/profile validation', () => {
     );
   });
 
-  it('accepts trimmed nickname and real name when registering', async () => {
+  it('accepts trimmed username and real name when registering without nickname', async () => {
     const { req, res, next } = await runValidationStack(validateRegister as Middleware[], {
       username: ' student-1 ',
-      nickname: ' 小林 ',
       real_name: ' Lin Chen ',
       password: 'a'.repeat(64),
       clientSalt: 'client-salt',
@@ -61,7 +59,6 @@ describe('auth/profile validation', () => {
     expect(next).toHaveBeenCalled();
     expect(req.body).toMatchObject({
       username: 'student-1',
-      nickname: '小林',
       real_name: 'Lin Chen',
     });
   });
