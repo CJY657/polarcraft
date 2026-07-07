@@ -197,6 +197,8 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [realName, setRealName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -214,6 +216,16 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
       return;
     }
 
+    if (!nickname.trim()) {
+      setError('请输入昵称');
+      return;
+    }
+
+    if (!realName.trim()) {
+      setError('请输入真实姓名');
+      return;
+    }
+
     if (password.length < 8) {
       setError('密码长度至少需要 8 个字符');
       return;
@@ -222,7 +234,13 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     setIsLoading(true);
 
     try {
-      await register(username, password, email || undefined);
+      await register(
+        username.trim(),
+        nickname.trim(),
+        realName.trim(),
+        password,
+        email || undefined
+      );
       const returnTo = consumeReturnTo();
       closeDialog();
       if (returnTo) {
@@ -279,6 +297,36 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             autoFocus
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="register-nickname" className="mb-2 block text-sm font-semibold text-clay-ink">
+            {t('auth.nickname', '昵称')} *
+          </label>
+          <input
+            id="register-nickname"
+            type="text"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            required
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
+            placeholder={t('auth.nicknamePlaceholder', '请输入对外显示的昵称')}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="register-real-name" className="mb-2 block text-sm font-semibold text-clay-ink">
+            {t('auth.realName', '真实姓名')} *
+          </label>
+          <input
+            id="register-real-name"
+            type="text"
+            value={realName}
+            onChange={(e) => setRealName(e.target.value)}
+            required
+            className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
+            placeholder={t('auth.realNamePlaceholder', '请输入真实姓名')}
           />
         </div>
 

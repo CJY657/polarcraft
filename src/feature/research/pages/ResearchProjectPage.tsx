@@ -46,6 +46,7 @@ import {
   type PublicProjectDetail,
   type PublicProjectMember,
 } from "@/lib/profile.service";
+import { formatUserIdentity, getUserIdentityInitial } from "@/lib/identity";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
@@ -590,9 +591,13 @@ export function ResearchProjectPage() {
     is_member: false,
     has_pending_application: project.has_pending_application,
     owner_username: projectOwner?.username ?? null,
+    owner_nickname: projectOwner?.nickname ?? null,
+    owner_real_name: projectOwner?.real_name ?? null,
     owner_avatar_url: projectOwner?.avatar_url ?? null,
     members: project.members.map((member) => ({
       username: member.username,
+      nickname: member.nickname ?? null,
+      real_name: member.real_name ?? null,
       avatar_url: member.avatar_url,
       role: member.role,
       member_role_label: member.member_role_label ?? null,
@@ -917,6 +922,7 @@ export function ResearchProjectPage() {
                 );
                 const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
                 const memberRoleLabel = member.member_role_label?.trim();
+                const memberDisplayName = formatUserIdentity(member);
 
                 return (
                   <div
@@ -933,11 +939,11 @@ export function ResearchProjectPage() {
                           : "bg-gray-100 text-gray-600"
                       )}
                     >
-                      {member.username?.charAt(0).toUpperCase() || "U"}
+                      {getUserIdentityInitial(member)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</span>
+                        <span className="truncate font-medium text-[var(--paper-foreground)]">{memberDisplayName}</span>
                         {getRoleIcon(member.role)}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -983,7 +989,9 @@ export function ResearchProjectPage() {
                 )}
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {formerMembers.map((member) => (
+                  {formerMembers.map((member) => {
+                    const memberDisplayName = formatUserIdentity(member);
+                    return (
                     <div
                       key={member.id}
                       className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
@@ -994,10 +1002,10 @@ export function ResearchProjectPage() {
                           theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
                         )}
                       >
-                        {member.username?.charAt(0).toUpperCase() || "U"}
+                        {getUserIdentityInitial(member)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-[var(--paper-foreground)]">{member.username}</div>
+                        <div className="truncate font-medium text-[var(--paper-foreground)]">{memberDisplayName}</div>
                         <div className="text-sm text-[var(--glass-text-muted)]">
                           上次身份：{getRoleLabel(member.role)}
                         </div>
@@ -1018,7 +1026,8 @@ export function ResearchProjectPage() {
                         )}
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1128,7 +1137,7 @@ export function ResearchProjectPage() {
                 )}>
                   {user?.id === memberToRemove.user_id
                     ? "确定要退出该课题组吗？"
-                    : `确定要将 ${memberToRemove.username} 从课题组移除吗？`
+                    : `确定要将 ${formatUserIdentity(memberToRemove)} 从课题组移除吗？`
                   }
                 </p>
               </div>

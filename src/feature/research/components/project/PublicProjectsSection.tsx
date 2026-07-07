@@ -12,6 +12,7 @@ import { ArrowRight, Clock, FlaskConical, Loader2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
+import { formatUserIdentity } from "@/lib/identity";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { cn } from "@/utils/classNames";
 import { ProjectCoverImage } from "../shared/ProjectCoverImage";
@@ -217,7 +218,14 @@ export function PublicProjectsSection() {
 
               {project.owner_username && (
                 <p className="mt-4 text-sm text-[var(--glass-text-muted)]">
-                  组长 <span className="font-semibold text-[var(--paper-foreground)]">{project.owner_username}</span>
+                  组长{" "}
+                  <span className="font-semibold text-[var(--paper-foreground)]">
+                    {formatUserIdentity({
+                      username: project.owner_username,
+                      nickname: project.owner_nickname,
+                      real_name: project.owner_real_name,
+                    })}
+                  </span>
                 </p>
               )}
 

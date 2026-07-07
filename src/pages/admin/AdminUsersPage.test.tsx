@@ -55,6 +55,8 @@ describe('AdminUsersPage', () => {
         {
           id: 'user-1',
           username: 'alice',
+          nickname: null,
+          real_name: null,
           email: 'alice@example.com',
           role: 'admin',
           avatar_url: null,
@@ -66,6 +68,8 @@ describe('AdminUsersPage', () => {
         {
           id: 'user-2',
           username: 'bob',
+          nickname: null,
+          real_name: null,
           email: 'bob@example.com',
           role: 'user',
           avatar_url: null,
@@ -81,6 +85,8 @@ describe('AdminUsersPage', () => {
       user: {
         id: 'user-1',
         username: 'alice',
+        nickname: null,
+        real_name: null,
         email: 'alice@example.com',
         role: 'admin',
         avatar_url: null,
@@ -182,6 +188,8 @@ describe('AdminUsersPage', () => {
       user: {
         id: 'user-1',
         username: 'alice',
+        nickname: null,
+        real_name: null,
         email: 'alice@example.com',
         role: 'admin',
         avatar_url: null,
@@ -533,11 +541,7 @@ describe('AdminUsersPage', () => {
     expect(await screen.findByText('Bob Event')).toBeDefined();
   });
 
-  it('exports the filtered list as CSV', async () => {
-    const createObjectURL = vi.fn(() => 'blob:mock');
-    const revokeObjectURL = vi.fn();
-    Object.assign(URL, { createObjectURL, revokeObjectURL });
-
+  it('does not offer CSV export from the user list', async () => {
     render(
       <MemoryRouter>
         <AdminUsersPage />
@@ -546,19 +550,6 @@ describe('AdminUsersPage', () => {
 
     await screen.findByText('alice');
 
-    fireEvent.click(screen.getByRole('button', { name: /导出 CSV/ }));
-
-    await waitFor(() => {
-      expect(list).toHaveBeenLastCalledWith({
-        ...DEFAULT_LIST_PARAMS,
-        limit: 100,
-        offset: 0,
-      });
-    });
-
-    await waitFor(() => {
-      expect(createObjectURL).toHaveBeenCalled();
-      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock');
-    });
+    expect(screen.queryByRole('button', { name: /导出 CSV/ })).toBeNull();
   });
 });

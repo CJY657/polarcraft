@@ -13,6 +13,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import { cn } from '@/utils/classNames';
+import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
 
 export interface ProjectDiscussionOutline {
@@ -821,7 +822,7 @@ export function ProjectDiscussionSection({
     const hasReplies = comment.replies.length > 0;
     const totalReplyCount = countReplies(comment);
     const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
-    const displayUsername = comment.username || '未命名用户';
+    const displayUsername = formatUserIdentity(comment, '未命名用户');
 
     return (
       <div
@@ -836,7 +837,7 @@ export function ProjectDiscussionSection({
       >
         <div className="flex items-start gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
-            {(comment.username || 'U').charAt(0).toUpperCase()}
+            {getUserIdentityInitial(comment)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -1192,7 +1193,7 @@ export function ProjectDiscussionSection({
                         key={comment.id}
                         className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-[var(--paper-accent)]/16 text-sm font-semibold text-[var(--paper-link)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
                       >
-                        {(comment.username || 'U').charAt(0).toUpperCase()}
+                        {getUserIdentityInitial(comment)}
                       </div>
                     ))}
                   </div>
@@ -1214,7 +1215,7 @@ export function ProjectDiscussionSection({
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="truncate text-base font-semibold text-[var(--paper-foreground)]">
-                        {comment.username || '未命名用户'}
+                        {formatUserIdentity(comment, '未命名用户')}
                       </span>
                       <span className="text-[11px] text-[var(--glass-text-muted)]">
                         {formatCommentTime(comment.created_at)}
@@ -1224,7 +1225,7 @@ export function ProjectDiscussionSection({
                       <div className="mt-2 overflow-hidden rounded-[0.9rem] border border-white/70 bg-white">
                         <img
                           src={comment.image_urls[0]}
-                          alt={`${comment.username || '用户'} 上传的图片预览`}
+                          alt={`${formatUserIdentity(comment, '用户')} 上传的图片预览`}
                           loading="lazy"
                           className="h-24 w-full object-cover"
                         />
@@ -1238,7 +1239,7 @@ export function ProjectDiscussionSection({
                           playsInline
                           preload="metadata"
                           className="h-24 w-full object-cover"
-                          aria-label={`${comment.username || '用户'} 上传的视频预览`}
+                          aria-label={`${formatUserIdentity(comment, '用户')} 上传的视频预览`}
                         />
                       </div>
                     )}

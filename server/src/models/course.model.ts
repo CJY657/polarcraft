@@ -32,19 +32,36 @@ const usersCollection = () => getCollection('users');
 
 const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = 'foundation';
 
-async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
+type UserIdentity = {
+  username: string;
+  nickname: string | null;
+  real_name: string | null;
+  avatar_url: string | null;
+};
+
+async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
   if (userIds.length === 0) {
     return new Map();
   }
 
-  const users = normalizeDocuments<{ id: string; username: string; avatar_url: string | null }>(
+  const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
       .toArray()
   );
 
-  return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
+  return new Map(
+    users.map((user) => [
+      user.id,
+      {
+        username: user.username,
+        nickname: user.nickname ?? null,
+        real_name: user.real_name ?? null,
+        avatar_url: user.avatar_url,
+      },
+    ])
+  );
 }
 
 type CourseDiscussionCommentDocument = {
@@ -235,6 +252,8 @@ export class CourseModel {
    */
   static async getDiscussionComments(courseId: string): Promise<Array<CourseDiscussionCommentRow & {
     username: string;
+    nickname: string | null;
+    real_name: string | null;
     avatar_url: string | null;
     resource_title_zh: string | null;
     resource_title_en: string | null;
@@ -280,6 +299,8 @@ export class CourseModel {
       created_at: comment.created_at,
       updated_at: comment.updated_at,
       username: userMap.get(comment.user_id)?.username || '',
+      nickname: userMap.get(comment.user_id)?.nickname ?? null,
+      real_name: userMap.get(comment.user_id)?.real_name ?? null,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
       resource_title_zh: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_zh ?? null : null,
       resource_title_en: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_en ?? null : null,

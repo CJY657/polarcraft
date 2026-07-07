@@ -118,9 +118,11 @@ export class UserController {
  * 更新用户资料
    */
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const { username, email, avatar_url } = req.body;
+    const { username, nickname, real_name, email, avatar_url } = req.body;
     const profile = await UserService.updateProfile(req.user!.sub, {
       username,
+      nickname,
+      real_name,
       email,
       avatar_url,
     });

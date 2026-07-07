@@ -213,6 +213,8 @@ export interface CourseDiscussionCommentRow {
   id: string;
   course_id: string;
   user_id: string;
+  nickname?: string | null;
+  real_name?: string | null;
   parent_comment_id: string | null;
   content: string;
   image_urls: string[];

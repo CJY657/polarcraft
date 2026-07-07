@@ -8,6 +8,8 @@ export type AdminUserSortOrder = 'asc' | 'desc';
 export interface AdminUserListItem {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   role: 'user' | 'admin';
   avatar_url: string | null;
   email: string | null;

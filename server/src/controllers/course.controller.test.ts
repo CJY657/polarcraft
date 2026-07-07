@@ -1,6 +1,7 @@
+import type { Stats } from 'fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCourseModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
+const { mockCourseModel, mockManagedUploadCleanupService, mockFsStatSync } = vi.hoisted(() => ({
   mockCourseModel: {
     getCourseById: vi.fn(),
     getMainSlide: vi.fn(),
@@ -15,7 +16,24 @@ const { mockCourseModel, mockManagedUploadCleanupService } = vi.hoisted(() => ({
   mockManagedUploadCleanupService: {
     cleanupUrls: vi.fn(),
   },
+  mockFsStatSync: vi.fn(),
 }));
+
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  mockFsStatSync.mockImplementation((...args: Parameters<typeof actual.statSync>) =>
+    actual.statSync(...args)
+  );
+
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      statSync: mockFsStatSync,
+    },
+    statSync: mockFsStatSync,
+  };
+});
 
 vi.mock('../models/course.model.js', () => ({
   CourseModel: mockCourseModel,
@@ -270,6 +288,9 @@ describe('CourseController resource downloads', () => {
   });
 
   it('downloads an existing main slide with an attachment filename', async () => {
+    mockFsStatSync.mockReturnValueOnce({
+      isFile: () => true,
+    } as Stats);
     mockCourseModel.getMainSlide.mockResolvedValue({
       id: 'slide-1',
       course_id: 'course1',

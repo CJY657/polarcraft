@@ -29,19 +29,36 @@ const creatorProfilesCollection = () => getCollection('research_project_creator_
 const applicationsCollection = () => getCollection('research_project_applications');
 const evidenceCollection = () => getCollection('research_project_evidence');
 
-async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
+type UserIdentity = {
+  username: string;
+  nickname: string | null;
+  real_name: string | null;
+  avatar_url: string | null;
+};
+
+async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
   if (userIds.length === 0) {
     return new Map();
   }
 
-  const users = normalizeDocuments<{ id: string; username: string; avatar_url: string | null }>(
+  const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
       .toArray()
   );
 
-  return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
+  return new Map(
+    users.map((user) => [
+      user.id,
+      {
+        username: user.username,
+        nickname: user.nickname ?? null,
+        real_name: user.real_name ?? null,
+        avatar_url: user.avatar_url ?? null,
+      },
+    ])
+  );
 }
 
 function sortMembers(a: any, b: any): number {
@@ -510,6 +527,8 @@ export class ResearchModel {
       ...member,
       member_role_label: member.member_role_label ?? null,
       username: userMap.get(member.user_id)?.username || '',
+      nickname: userMap.get(member.user_id)?.nickname ?? null,
+      real_name: userMap.get(member.user_id)?.real_name ?? null,
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
   }
@@ -607,6 +626,8 @@ export class ResearchModel {
       joined_at: member.joined_at || member.removed_at || new Date(0).toISOString(),
       removed_at: member.removed_at || member.joined_at || new Date(0).toISOString(),
       username: userMap.get(member.user_id)?.username || '',
+      nickname: userMap.get(member.user_id)?.nickname ?? null,
+      real_name: userMap.get(member.user_id)?.real_name ?? null,
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
   }
@@ -656,6 +677,8 @@ export class ResearchModel {
     return evidenceItems.map((item) => ({
       ...item,
       creator_username: userMap.get(item.created_by)?.username || '',
+      creator_nickname: userMap.get(item.created_by)?.nickname ?? null,
+      creator_real_name: userMap.get(item.created_by)?.real_name ?? null,
       creator_avatar_url: userMap.get(item.created_by)?.avatar_url || null,
     }));
   }
@@ -1134,6 +1157,8 @@ export class ResearchModel {
     return comments.map((comment) => ({
       ...comment,
       username: userMap.get(comment.user_id)?.username || '',
+      nickname: userMap.get(comment.user_id)?.nickname ?? null,
+      real_name: userMap.get(comment.user_id)?.real_name ?? null,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
   }
@@ -1203,6 +1228,8 @@ export class ResearchModel {
       image_urls: normalizeImageUrls(comment.image_urls),
       video_urls: normalizeVideoUrls(comment.video_urls),
       username: userMap.get(comment.user_id)?.username || '',
+      nickname: userMap.get(comment.user_id)?.nickname ?? null,
+      real_name: userMap.get(comment.user_id)?.real_name ?? null,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
   }
@@ -1381,6 +1408,8 @@ export class ResearchModel {
     return activities.map((activity) => ({
       ...activity,
       username: userMap.get(activity.user_id)?.username || '',
+      nickname: userMap.get(activity.user_id)?.nickname ?? null,
+      real_name: userMap.get(activity.user_id)?.real_name ?? null,
       avatar_url: userMap.get(activity.user_id)?.avatar_url || null,
     }));
   }

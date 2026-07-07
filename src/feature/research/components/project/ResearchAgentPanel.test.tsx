@@ -84,7 +84,7 @@ describe("ResearchAgentPanel", () => {
     openAdvisor();
     expect(await screen.findByRole("heading", { name: "AI 研究顾问" })).toBeTruthy();
     expect(screen.getByText("当前标签页即时对话")).toBeTruthy();
-    expect(screen.getByText("还没有顾问消息。")).toBeTruthy();
+    expect(await screen.findByText("还没有顾问消息。")).toBeTruthy();
     expect(screen.queryByTestId("assistant-markdown")).toBeNull();
     expect(mockGetProjectAgentMessages).toHaveBeenCalledWith("project-1", 30);
   });

@@ -16,6 +16,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { courseApi, type CourseDiscussionComment } from "@/lib/course.service";
+import { formatUserIdentity, getUserIdentityInitial } from "@/lib/identity";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { cn } from "@/utils/classNames";
 
@@ -55,10 +56,6 @@ function formatCommentTime(value: string, locale: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function getUserInitial(username: string): string {
-  return (username || "U").trim().charAt(0).toUpperCase();
 }
 
 function buildCommentTree(comments: CourseDiscussionComment[]): DiscussionTreeComment[] {
@@ -748,7 +745,7 @@ export function ExperimentDiscussionSection({
     const hasReplies = comment.replies.length > 0;
     const totalReplyCount = countReplies(comment);
     const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
-    const displayUsername = comment.username || (isZh ? "未命名用户" : "Unknown user");
+    const displayUsername = formatUserIdentity(comment, isZh ? "未命名用户" : "Unknown user");
     const resourceLabel = getResourceLabel(comment);
 
     return (
@@ -773,7 +770,7 @@ export function ExperimentDiscussionSection({
             )}
             style={theme === "light" ? { border: `1px solid ${accentColor}` } : undefined}
           >
-            {getUserInitial(comment.username)}
+            {getUserIdentityInitial(comment)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

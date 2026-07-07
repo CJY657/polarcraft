@@ -14,6 +14,8 @@ export type UserRole = 'user' | 'admin';
 export interface User {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   password_hash: string;
   client_salt: string;
   client_hash_algorithm: string;
@@ -31,6 +33,8 @@ export interface User {
 export interface UserProfile {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   role: UserRole;
   avatar_url: string | null;
   email: string | null;
@@ -43,6 +47,8 @@ export interface UserProfile {
 /** Update profile input / 更新资料输入 */
 export interface UpdateProfileInput {
   username?: string;
+  nickname?: string;
+  real_name?: string;
   email?: string;
   avatar_url?: string;
 }
@@ -56,6 +62,8 @@ export interface SessionsResponse {
 /** User registration input / 用户注册输入 */
 export interface RegisterInput {
   username: string;
+  nickname: string;
+  real_name: string;
   password: string;
   clientSalt: string;
   email?: string;

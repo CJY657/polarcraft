@@ -7,7 +7,6 @@ import {
   Check,
   ChevronLeft,
   Copy,
-  Download,
   FlaskConical,
   GraduationCap,
   LogIn,
@@ -36,10 +35,10 @@ import {
   type AdminUserStats,
   type AdminUserStatusFilter,
 } from '@/lib/admin-user.service';
+import { formatUserIdentity } from '@/lib/identity';
 import { cn } from '@/utils/classNames';
 
 const PAGE_SIZE = 20;
-const EXPORT_PAGE_SIZE = 100;
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString('zh-CN', {
@@ -104,13 +103,6 @@ function formatOptionalDateTime(value: string | null | undefined): string {
   return value ? formatDateTime(value) : '暂无记录';
 }
 
-function csvEscape(value: string): string {
-  if (/[",\r\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
 const ANALYTICS_EVENT_LABELS: Record<string, string> = {
   $pageview: '查看页面',
   $identify: '识别用户',
@@ -169,7 +161,6 @@ export default function AdminUsersPage() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(null);
   const [detailResult, setDetailResult] = useState<AdminUserDetail | null>(null);
@@ -319,65 +310,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleExportCsv = async () => {
-    setIsExporting(true);
-    setError(null);
-    try {
-      const allItems: AdminUserListItem[] = [];
-      let offset = 0;
-      let expectedTotal = Number.POSITIVE_INFINITY;
-
-      while (offset < expectedTotal) {
-        const result = await adminUserApi.list({
-          search,
-          role,
-          status,
-          sortBy,
-          sortOrder,
-          limit: EXPORT_PAGE_SIZE,
-          offset,
-        });
-        allItems.push(...result.items);
-        expectedTotal = result.total;
-        offset += EXPORT_PAGE_SIZE;
-        if (result.items.length === 0) {
-          break;
-        }
-      }
-
-      const header = ['用户名', '邮箱', '角色', '邮箱验证', '账号状态', '注册时间', '最后登录', '用户ID'];
-      const rows = allItems.map((item) => [
-        item.username,
-        item.email || '',
-        roleLabel(item.role),
-        item.email_verified ? '已验证' : '未验证',
-        item.is_active ? '有效' : '停用',
-        formatDateTime(item.created_at),
-        item.last_login_at ? formatDateTime(item.last_login_at) : '从未登录',
-        item.id,
-      ]);
-      // BOM keeps Chinese readable when the file is opened in Excel
-      const csv =
-        '\uFEFF' +
-        [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\r\n');
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      const dateStamp = new Date().toISOString().slice(0, 10);
-      anchor.href = url;
-      anchor.download = `用户列表-${dateStamp}.csv`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    } catch (exportError) {
-      setError(exportError instanceof Error ? exportError.message : '导出用户列表失败');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   return (
     <div className={cn('min-h-screen', theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50')}>
       <PersistentHeader
@@ -435,21 +367,6 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void handleExportCsv()}
-              disabled={isLoadingUsers || isExporting}
-              className={cn(
-                'inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-opacity disabled:cursor-not-allowed disabled:opacity-60',
-                theme === 'dark'
-                  ? 'bg-slate-800 text-slate-100 hover:bg-slate-700'
-                  : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
-              )}
-            >
-              <Download className={cn('h-4 w-4', isExporting && 'animate-bounce')} />
-              {isExporting ? '正在导出...' : '导出 CSV'}
-            </button>
-
             <button
               type="button"
               onClick={() => void handleRefresh()}
@@ -708,14 +625,17 @@ export default function AdminUsersPage() {
                             {item.avatar_url ? (
                               <img
                                 src={item.avatar_url}
-                                alt={item.username}
+                                alt={formatUserIdentity(item)}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
                               <UserRound className="h-5 w-5 text-slate-400" />
                             )}
                           </div>
-                          <div className="font-medium">{item.username}</div>
+                          <div>
+                            <div className="font-medium">{formatUserIdentity(item)}</div>
+                            <div className="text-xs text-slate-500">@{item.username}</div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">{item.email || '未填写'}</td>
@@ -749,7 +669,7 @@ export default function AdminUsersPage() {
                       <td className="px-5 py-4">
                         <button
                           type="button"
-                          aria-label={`查看 ${item.username} 的详情`}
+                          aria-label={`查看 ${formatUserIdentity(item)} 的详情`}
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedUser(item);
@@ -1017,14 +937,16 @@ function UserDetailDialog({
               )}
             >
               {user?.avatar_url ? (
-                <img src={user.avatar_url} alt={user.username} className="h-full w-full object-cover" />
+                <img src={user.avatar_url} alt={formatUserIdentity(user)} className="h-full w-full object-cover" />
               ) : (
                 <UserRound className="h-7 w-7 text-slate-400" />
               )}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className={cn('text-xl font-semibold', strongText)}>{user?.username}</h2>
+                <h2 className={cn('text-xl font-semibold', strongText)}>
+                  {formatUserIdentity(user)}
+                </h2>
                 {user ? (
                   <ToneBadge tone={user.role === 'admin' ? 'cyan' : 'slate'} theme={theme}>
                     {roleLabel(user.role)}

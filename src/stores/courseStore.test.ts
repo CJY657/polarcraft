@@ -16,6 +16,8 @@ const { mockCourseApi } = vi.hoisted(() => ({
 
 vi.mock("@/lib/course.service", () => ({
   courseApi: mockCourseApi,
+  normalizeKnowledgeTag: (tag?: string | null) =>
+    tag === "optical_device" ? "optical_device" : "foundation",
 }));
 
 describe("useCourseDetailStore", () => {
@@ -76,9 +78,16 @@ describe("useCourseDetailStore", () => {
     expect(mockCourseApi.getPublicMainSlide).not.toHaveBeenCalled();
     expect(mockCourseApi.getPublicMediaList).not.toHaveBeenCalled();
     expect(mockCourseApi.getPublicHyperlinks).not.toHaveBeenCalled();
-    expect(state.course).toEqual(course);
-    expect(state.mainSlide).toEqual(course.mainSlide);
-    expect(state.media).toEqual(course.media);
+    expect(state.course).toEqual({
+      ...course,
+      knowledgeTag: "foundation",
+      mainSlide: { ...course.mainSlide, knowledgeTag: "foundation" },
+      media: course.media?.map((item) => ({ ...item, knowledgeTag: "foundation" })),
+    });
+    expect(state.mainSlide).toEqual({ ...course.mainSlide, knowledgeTag: "foundation" });
+    expect(state.media).toEqual(
+      course.media?.map((item) => ({ ...item, knowledgeTag: "foundation" }))
+    );
     expect(state.hyperlinks).toEqual(course.hyperlinks);
     expect(state.isLoading).toBe(false);
     expect(state.error).toBeNull();

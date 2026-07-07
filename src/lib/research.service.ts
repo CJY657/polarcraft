@@ -55,6 +55,8 @@ export interface ProjectMember {
   removed_at?: string | null;
   joined_at: string;
   username: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url: string | null;
 }
 
@@ -81,6 +83,8 @@ export interface ProjectDiscussionComment {
   created_at: string;
   updated_at: string;
   username: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url: string | null;
 }
 
@@ -110,6 +114,8 @@ export interface ProjectEvidence {
   attachment_note: string | null;
   created_by: string;
   creator_username: string;
+  creator_nickname?: string | null;
+  creator_real_name?: string | null;
   creator_avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -138,6 +144,8 @@ export interface ResearchAgentMessage {
   usage?: Record<string, unknown> | null;
   created_at: string;
   username?: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url?: string | null;
 }
 

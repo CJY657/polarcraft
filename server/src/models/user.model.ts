@@ -110,7 +110,12 @@ export class UserModel {
 
     if (options.search) {
       const pattern = new RegExp(escapeRegExp(options.search), 'i');
-      filter.$or = [{ username: pattern }, { email: pattern }];
+      filter.$or = [
+        { username: pattern },
+        { nickname: pattern },
+        { real_name: pattern },
+        { email: pattern },
+      ];
     }
 
     const sortBy = options.sortBy ?? 'created_at';
@@ -123,6 +128,8 @@ export class UserModel {
           _id: 0,
           id: 1,
           username: 1,
+          nickname: 1,
+          real_name: 1,
           email: 1,
           role: 1,
           avatar_url: 1,
@@ -185,6 +192,8 @@ export class UserModel {
     const user: User = {
       id: generateId(),
       username: input.username,
+      nickname: input.nickname,
+      real_name: input.real_name,
       password_hash: passwordHash,
       client_salt: input.clientSalt,
       client_hash_algorithm: 'SHA-256',
@@ -210,7 +219,7 @@ export class UserModel {
    */
   static async updateProfile(
     id: string,
-    updates: Partial<Pick<User, 'username' | 'email' | 'avatar_url'>>
+    updates: Partial<Pick<User, 'username' | 'nickname' | 'real_name' | 'email' | 'avatar_url'>>
   ): Promise<UserProfile | null> {
     if (updates.username) {
       const existing = await this.findByUsername(updates.username);
@@ -221,6 +230,8 @@ export class UserModel {
 
     const updateDoc = pickDefined({
       username: updates.username,
+      nickname: updates.nickname,
+      real_name: updates.real_name,
       email: updates.email,
       avatar_url: updates.avatar_url,
     });
@@ -328,6 +339,8 @@ export class UserModel {
     return {
       id: user.id,
       username: user.username,
+      nickname: user.nickname ?? null,
+      real_name: user.real_name ?? null,
       role: user.role,
       avatar_url: user.avatar_url,
       email: user.email,
@@ -346,6 +359,8 @@ export class UserModel {
     return {
       id: user.id,
       username: user.username,
+      nickname: user.nickname ?? null,
+      real_name: user.real_name ?? null,
       role: user.role,
       avatar_url: user.avatar_url,
       email: user.email,

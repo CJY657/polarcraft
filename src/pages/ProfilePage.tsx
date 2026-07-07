@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { User, Mail, Calendar, FileText, Edit, KeyRound } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatUserIdentity } from '@/lib/identity';
 import { cn } from '@/utils/classNames';
 import { PersistentHeader } from '@/components/shared/PersistentHeader';
 import { EducationTimeline } from '@/feature/profile/components/EducationTimeline';
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const displayName = formatUserIdentity(user);
 
   useEffect(() => {
     fetchEducations();
@@ -121,7 +123,7 @@ export default function ProfilePage() {
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url}
-                  alt={user.username}
+                  alt={displayName}
                   className="w-full h-full rounded-full object-cover"
                 />
               ) : (
@@ -138,7 +140,7 @@ export default function ProfilePage() {
                 "text-2xl font-bold mb-2",
                 theme === "dark" ? "text-white" : "text-gray-900"
               )}>
-                {user?.username}
+                {displayName}
               </h1>
 
               <div className="space-y-1.5">
@@ -211,8 +213,12 @@ export default function ProfilePage() {
         )}>
           <EducationTimeline
             educations={educations}
-            onAdd={addEducation}
-            onUpdate={updateEducation}
+            onAdd={async (data) => {
+              await addEducation(data);
+            }}
+            onUpdate={async (id, data) => {
+              await updateEducation(id, data);
+            }}
             onDelete={deleteEducation}
             isLoading={isLoading}
           />

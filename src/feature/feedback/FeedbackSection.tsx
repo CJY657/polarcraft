@@ -1,12 +1,13 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { FlaskConical, Lightbulb, Send, Sparkles } from "lucide-react";
+import { FlaskConical, Lightbulb, Send } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import {
   feedbackApi,
   type FeedbackCategory,
 } from "@/lib/feedback.service";
+import { formatUserIdentity } from "@/lib/identity";
 
 interface FeedbackFormState {
   category: FeedbackCategory;
@@ -85,10 +86,10 @@ export function FeedbackSection() {
   useEffect(() => {
     setForm((current) => ({
       ...current,
-      contactName: current.contactName || user?.username || "",
+      contactName: current.contactName || formatUserIdentity(user, ""),
       contactEmail: current.contactEmail || user?.email || "",
     }));
-  }, [user?.email, user?.username]);
+  }, [user]);
 
   useEffect(() => {
     if (!sectionRef.current) {
@@ -101,9 +102,6 @@ export function FeedbackSection() {
       });
     }
   }, [location.hash, location.search]);
-
-  const activeOption =
-    CATEGORY_OPTIONS.find((option) => option.value === form.category) || CATEGORY_OPTIONS[0];
 
   const handleFieldChange = <K extends keyof FeedbackFormState>(
     key: K,

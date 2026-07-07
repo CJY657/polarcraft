@@ -93,6 +93,8 @@ export interface CourseDiscussionComment {
   userId: string;
   parentCommentId: string | null;
   username: string;
+  nickname?: string | null;
+  realName?: string | null;
   avatarUrl: string | null;
   content: string;
   imageUrls: string[];

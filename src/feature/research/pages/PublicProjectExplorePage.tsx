@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
 import { PersistentHeader } from "@/components/shared";
 import { profileApi, type PublicProject } from "@/lib/profile.service";
+import { formatUserIdentity } from "@/lib/identity";
 import { cn } from "@/utils/classNames";
 import {
   PROJECT_DISPLAY_MODE_OPTIONS,
@@ -158,7 +159,7 @@ export function PublicProjectExplorePage() {
   const getMemberSummary = (project: PublicProject) => {
     const members = project.members
       .filter((member) => member.role !== "owner")
-      .map((member) => member.username)
+      .map((member) => formatUserIdentity(member, ""))
       .filter(Boolean);
 
     if (members.length > 0) {
@@ -376,7 +377,11 @@ export function PublicProjectExplorePage() {
                       </span>
                     </div>
                     <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
-                      {project.owner_username || "暂未署名"}
+                      {formatUserIdentity({
+                        username: project.owner_username,
+                        nickname: project.owner_nickname,
+                        real_name: project.owner_real_name,
+                      }, "暂未署名")}
                     </p>
                     <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                       {getMemberSummary(project)}

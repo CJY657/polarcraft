@@ -56,6 +56,16 @@ export const usernameValidation = body('username')
   .matches(/^[\p{L}\p{N}_-]+$/u)
   .withMessage('用户名只能包含字母（含中文）、数字、下划线和连字符');
 
+export const nicknameValidation = body('nickname')
+  .trim()
+  .isLength({ min: 1, max: 50 })
+  .withMessage('昵称长度必须在 1-50 个字符之间');
+
+export const realNameValidation = body('real_name')
+  .trim()
+  .isLength({ min: 1, max: 50 })
+  .withMessage('真实姓名长度必须在 1-50 个字符之间');
+
 export const emailValidation = body('email')
   .optional()
   .trim()
@@ -119,6 +129,8 @@ export const rememberMeValidation = body('rememberMe')
 
 export const validateRegister = validate(
   usernameValidation,
+  nicknameValidation,
+  realNameValidation,
   body('password')
     .trim()
     .isLength({ min: 8 })
@@ -170,6 +182,16 @@ export const validateUpdateProfile = validate(
     .trim()
     .isLength({ min: 3, max: 50 })
     .withMessage('用户名长度必须在 3-50 个字符之间'),
+  body('nickname')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('昵称长度必须在 1-50 个字符之间'),
+  body('real_name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('真实姓名长度必须在 1-50 个字符之间'),
   body('email')
     .optional()
     .trim()

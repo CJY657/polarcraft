@@ -16,6 +16,7 @@ import { AuthProvider } from "@/contexts/AuthContext"; // 认证上下文
 import { useAuth } from "@/contexts/AuthContext";
 import { SystemProvider } from "@/contexts/SystemContext"; // 系统上下文
 import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组件
+import { ProfileCompletionModal } from "@/components/auth/ProfileCompletionModal";
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
 import { capturePostHogPageview, syncPostHogUser } from "@/lib/posthog";
 // Shared Components - 共享组件
@@ -501,6 +502,7 @@ export function App() {
           <BrowserRouter>
             <AppRouterContent />
             <AuthDialog />
+            <ProfileCompletionModal />
           </BrowserRouter>
         </AuthProvider>
       </SystemProvider>

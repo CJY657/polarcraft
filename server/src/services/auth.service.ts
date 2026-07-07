@@ -57,6 +57,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        nickname: user.nickname ?? null,
+        real_name: user.real_name ?? null,
         role: user.role,
         avatar_url: user.avatar_url,
         email: user.email,
@@ -117,6 +119,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        nickname: user.nickname ?? null,
+        real_name: user.real_name ?? null,
         role: user.role,
         avatar_url: user.avatar_url,
         email: user.email,
@@ -307,6 +311,8 @@ export class AuthService {
     return {
       id: user.id,
       username: user.username,
+      nickname: user.nickname ?? null,
+      real_name: user.real_name ?? null,
       role: user.role,
       avatar_url: user.avatar_url,
       email: user.email,

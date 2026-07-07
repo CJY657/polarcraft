@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatUserIdentity } from '@/lib/identity';
 import { cn } from '@/utils/classNames';
 import {
   User,
@@ -98,6 +99,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
   const { theme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const displayName = formatUserIdentity(user, 'User');
 
   const [isOpen, setIsOpen] = useState(false);
   const [showAdminSubmenu, setShowAdminSubmenu] = useState(false);
@@ -277,7 +279,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
         <User className="w-4 h-4" />
         {!compact && (
           <>
-            <span className="text-sm">{user?.username || 'User'}</span>
+            <span className="max-w-[12rem] truncate text-sm">{displayName}</span>
             <ChevronDown
               className={cn(
                 'w-4 h-4 transition-transform duration-200',
@@ -314,7 +316,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                   {user?.avatar_url ? (
                     <img
                       src={user.avatar_url}
-                      alt={user.username}
+                      alt={displayName}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -330,7 +332,7 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                      {user?.username}
+                      {displayName}
                     </p>
                     {user?.role === 'admin' && (
                       <span

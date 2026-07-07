@@ -142,6 +142,8 @@ function transformHyperlinkRow(row: HyperlinkRow) {
 function transformDiscussionCommentRow(
   row: CourseDiscussionCommentRow & {
     username: string;
+    nickname: string | null;
+    real_name: string | null;
     avatar_url: string | null;
     resource_title_zh: string | null;
     resource_title_en: string | null;
@@ -153,6 +155,8 @@ function transformDiscussionCommentRow(
     userId: row.user_id,
     parentCommentId: row.parent_comment_id,
     username: row.username,
+    nickname: row.nickname,
+    realName: row.real_name,
     avatarUrl: row.avatar_url,
     content: row.content,
     imageUrls: row.image_urls,

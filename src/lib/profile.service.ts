@@ -94,6 +94,8 @@ export interface ProjectApplication {
   updated_at: string;
   // Joined fields
   username?: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url?: string | null;
   project_name?: string;
 }
@@ -124,6 +126,8 @@ export interface ProjectCreatorProfile {
   created_at: string;
   updated_at: string;
   username?: string;
+  nickname?: string | null;
+  real_name?: string | null;
 }
 
 export interface CreateProjectWithProfileInput {
@@ -160,6 +164,8 @@ export interface CreateProjectWithProfileInput {
 
 export interface PublicProjectMember {
   username: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url: string | null;
   role: string;
   member_role_label?: string | null;
@@ -197,6 +203,8 @@ export interface PublicProject {
   is_member: boolean;
   has_pending_application?: boolean;
   owner_username: string | null;
+  owner_nickname?: string | null;
+  owner_real_name?: string | null;
   owner_avatar_url: string | null;
   members: PublicProjectMember[];
   created_at: string;

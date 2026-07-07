@@ -24,6 +24,7 @@ import {
   type UpsertProjectEvidenceInput,
 } from '@/lib/research.service';
 import { profileApi } from '@/lib/profile.service';
+import { formatUserIdentity } from '@/lib/identity';
 
 interface ProjectEvidenceSectionProps {
   projectId: string;
@@ -610,7 +611,13 @@ export function ProjectEvidenceSection({
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--glass-text-muted)]">
-                  <span>{evidence.creator_username || '成员'}</span>
+                  <span>
+                    {formatUserIdentity({
+                      username: evidence.creator_username,
+                      nickname: evidence.creator_nickname,
+                      real_name: evidence.creator_real_name,
+                    }, '成员')}
+                  </span>
                   <span>{formatEvidenceTime(evidence.created_at)}</span>
                 </div>
 

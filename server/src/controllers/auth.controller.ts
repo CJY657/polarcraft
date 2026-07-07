@@ -21,8 +21,15 @@ export class AuthController {
  * 注册新用户
    */
   static register = asyncHandler(async (req: Request, res: Response) => {
-    const { username, password, email, clientSalt } = req.body;
-    const result = await AuthService.register({ username, password, email, clientSalt });
+    const { username, nickname, real_name, password, email, clientSalt } = req.body;
+    const result = await AuthService.register({
+      username,
+      nickname,
+      real_name,
+      password,
+      email,
+      clientSalt,
+    });
 
     // Set tokens in HTTP-only cookies (session cookie by default)
     // 在 HTTP-only cookie 中设置令牌（默认为 session cookie）

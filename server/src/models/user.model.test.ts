@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const usersFind = vi.fn();
 const usersCountDocuments = vi.fn();
 const usersFindOne = vi.fn();
+const usersInsertOne = vi.fn();
+const usersUpdateOne = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
   getCollection: (name: string) => {
@@ -10,6 +12,8 @@ vi.mock('../database/connection.js', () => ({
       return {
         find: (...args: unknown[]) => usersFind(...args),
         findOne: (...args: unknown[]) => usersFindOne(...args),
+        insertOne: (...args: unknown[]) => usersInsertOne(...args),
+        updateOne: (...args: unknown[]) => usersUpdateOne(...args),
         countDocuments: (...args: unknown[]) => usersCountDocuments(...args),
       };
     }
@@ -22,6 +26,15 @@ vi.mock('../utils/logger.js', () => ({
   logger: {
     info: vi.fn(),
   },
+}));
+
+vi.mock('../utils/password.util.js', () => ({
+  hashPassword: vi.fn(async (password: string) => `hashed-${password}`),
+  comparePassword: vi.fn(),
+}));
+
+vi.mock('../utils/crypto.util.js', () => ({
+  generateId: vi.fn(() => 'generated-user-id'),
 }));
 
 import { UserModel } from './user.model.js';
@@ -49,11 +62,19 @@ describe('UserModel admin queries', () => {
   });
 
   it('counts all registered users separately from active users', async () => {
-    usersCountDocuments.mockResolvedValueOnce(7).mockResolvedValueOnce(5);
+    usersCountDocuments
+      .mockResolvedValueOnce(7)
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
 
     await expect(UserModel.getAdminStats()).resolves.toEqual({
       total_registered: 7,
       active_users: 5,
+      new_users_7d: 3,
+      recent_logins_7d: 2,
+      unverified_emails: 1,
     });
 
     expect(usersCountDocuments).toHaveBeenNthCalledWith(1, {});
@@ -66,6 +87,8 @@ describe('UserModel admin queries', () => {
         _id: 'mongo-id',
         id: 'user-1',
         username: 'alice',
+        nickname: 'Alice Nick',
+        real_name: 'Alice Wang',
         email: 'alice@example.com',
         role: 'admin',
         avatar_url: null,
@@ -83,7 +106,7 @@ describe('UserModel admin queries', () => {
     usersCountDocuments.mockResolvedValueOnce(1);
 
     const result = await UserModel.listForAdmin({
-      search: 'alice@example.com',
+      search: 'alice',
       role: 'admin',
       status: 'inactive',
       limit: 20,
@@ -99,12 +122,16 @@ describe('UserModel admin queries', () => {
     expect(filter.role).toBe('admin');
     expect(filter.is_active).toBe(false);
     expect(filter.$or[0]?.username).toBeInstanceOf(RegExp);
-    expect(filter.$or[0]?.username.test('ALICE@EXAMPLE.COM')).toBe(true);
-    expect(filter.$or[1]?.email.test('alice@example.com')).toBe(true);
+    expect(filter.$or[0]?.username.test('ALICE')).toBe(true);
+    expect(filter.$or[1]?.nickname.test('Alice Nick')).toBe(true);
+    expect(filter.$or[2]?.real_name.test('Alice Wang')).toBe(true);
+    expect(filter.$or[3]?.email.test('alice@example.com')).toBe(true);
     expect(cursor.project).toHaveBeenCalledWith({
       _id: 0,
       id: 1,
       username: 1,
+      nickname: 1,
+      real_name: 1,
       email: 1,
       role: 1,
       avatar_url: 1,
@@ -122,6 +149,8 @@ describe('UserModel admin queries', () => {
         {
           id: 'user-1',
           username: 'alice',
+          nickname: 'Alice Nick',
+          real_name: 'Alice Wang',
           email: 'alice@example.com',
           role: 'admin',
           avatar_url: null,
@@ -141,6 +170,8 @@ describe('UserModel admin queries', () => {
     usersFindOne.mockResolvedValueOnce({
       id: 'inactive-user',
       username: 'bob',
+      nickname: undefined,
+      real_name: undefined,
       email: 'bob@example.com',
       role: 'user',
       avatar_url: null,
@@ -157,6 +188,8 @@ describe('UserModel admin queries', () => {
     await expect(UserModel.findByIdForAdmin('inactive-user')).resolves.toEqual({
       id: 'inactive-user',
       username: 'bob',
+      nickname: null,
+      real_name: null,
       email: 'bob@example.com',
       role: 'user',
       avatar_url: null,
@@ -167,5 +200,77 @@ describe('UserModel admin queries', () => {
     });
 
     expect(usersFindOne).toHaveBeenCalledWith({ id: 'inactive-user' });
+  });
+
+  it('creates users with required nickname and real name fields', async () => {
+    usersFindOne.mockResolvedValueOnce(null);
+    usersInsertOne.mockResolvedValueOnce({ acknowledged: true });
+
+    const result = await UserModel.create({
+      username: 'new-user',
+      nickname: '小新',
+      real_name: 'New User',
+      password: 'client-hash',
+      clientSalt: 'client-salt',
+      email: 'new@example.com',
+    });
+
+    expect(result).toMatchObject({
+      id: 'generated-user-id',
+      username: 'new-user',
+      nickname: '小新',
+      real_name: 'New User',
+      email: 'new@example.com',
+    });
+    expect(usersInsertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: 'new-user',
+        nickname: '小新',
+        real_name: 'New User',
+        password_hash: 'hashed-client-hash',
+      })
+    );
+  });
+
+  it('updates nickname and real name through the profile update path', async () => {
+    usersUpdateOne.mockResolvedValueOnce({ matchedCount: 1 });
+    usersFindOne.mockResolvedValueOnce({
+      id: 'user-1',
+      username: 'alice',
+      nickname: '新昵称',
+      real_name: 'Alice Wang',
+      email: null,
+      role: 'user',
+      avatar_url: null,
+      email_verified: false,
+      is_active: true,
+      created_at: new Date('2026-05-01T00:00:00.000Z'),
+      updated_at: new Date('2026-05-02T00:00:00.000Z'),
+      last_login_at: null,
+      password_hash: 'secret',
+      client_salt: 'salt',
+      client_hash_algorithm: 'SHA-256',
+    });
+
+    await expect(
+      UserModel.updateProfile('user-1', {
+        nickname: '新昵称',
+        real_name: 'Alice Wang',
+      })
+    ).resolves.toMatchObject({
+      username: 'alice',
+      nickname: '新昵称',
+      real_name: 'Alice Wang',
+    });
+
+    expect(usersUpdateOne).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      {
+        $set: expect.objectContaining({
+          nickname: '新昵称',
+          real_name: 'Alice Wang',
+        }),
+      }
+    );
   });
 });

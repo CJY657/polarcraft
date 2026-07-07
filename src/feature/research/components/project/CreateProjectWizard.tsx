@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
+import { formatUserIdentity } from '@/lib/identity';
 import {
   ProjectChallengeFieldsEditor,
   emptyProjectChallengeFields,
@@ -72,11 +73,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
     if (isOpen) {
       profileApi.getUserEducations().then(setEducations).catch(console.error);
       // Pre-fill display name
-      if (user?.username) {
-        setCreatorData((prev) => ({ ...prev, display_name: user.username }));
+      const displayName = formatUserIdentity(user, '');
+      if (displayName) {
+        setCreatorData((prev) => ({ ...prev, display_name: displayName }));
       }
     }
-  }, [isOpen, user?.username]);
+  }, [isOpen, user]);
 
   // Reset form when dialog closes
   useEffect(() => {
@@ -95,7 +97,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         is_public: false,
       });
       setCreatorData({
-        display_name: user?.username || '',
+        display_name: formatUserIdentity(user, ''),
         organization: '',
         education_id: '',
         major: '',
@@ -111,7 +113,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
       });
       setError('');
     }
-  }, [isOpen, user?.username]);
+  }, [isOpen, user]);
 
   // Update creator data when education is selected
   useEffect(() => {
@@ -156,7 +158,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
       const result = await profileApi.createProjectWithProfile({
         project: projectData,
         creatorProfile: {
-          display_name: creatorData.display_name || user?.username,
+          display_name: creatorData.display_name || formatUserIdentity(user, ''),
           organization: creatorData.organization,
           education_id: creatorData.education_id || undefined,
           major: creatorData.major || undefined,

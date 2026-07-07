@@ -29,6 +29,8 @@ export function ProfileEditDialog({
 
   const [formData, setFormData] = useState({
     username: '',
+    nickname: '',
+    realName: '',
     email: '',
   });
   const [error, setError] = useState('');
@@ -39,6 +41,8 @@ export function ProfileEditDialog({
     if (isOpen && user) {
       setFormData({
         username: user.username || '',
+        nickname: user.nickname || '',
+        realName: user.real_name || '',
         email: user.email || '',
       });
       setError('');
@@ -63,6 +67,14 @@ export function ProfileEditDialog({
       setError(t('profile.editProfile.usernameLength'));
       return;
     }
+    if (!formData.nickname.trim()) {
+      setError(t('profile.editProfile.nicknameRequired', '请输入昵称'));
+      return;
+    }
+    if (!formData.realName.trim()) {
+      setError(t('profile.editProfile.realNameRequired', '请输入真实姓名'));
+      return;
+    }
 
     // Email validation (if provided)
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -74,6 +86,8 @@ export function ProfileEditDialog({
     try {
       await authApi.updateProfile({
         username: formData.username.trim(),
+        nickname: formData.nickname.trim(),
+        real_name: formData.realName.trim(),
         email: formData.email.trim() || undefined,
       });
       onSuccess();
@@ -133,6 +147,54 @@ export function ProfileEditDialog({
               value={formData.username}
               onChange={(e) => handleChange('username', e.target.value)}
               placeholder={t('profile.editProfile.usernamePlaceholder')}
+              className={cn(
+                'w-full px-3 py-2 rounded-lg border transition-colors',
+                theme === 'dark'
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
+              )}
+            />
+          </div>
+
+          {/* Nickname */}
+          <div>
+            <label
+              className={cn(
+                'block text-sm font-medium mb-1.5',
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              )}
+            >
+              {t('profile.editProfile.nickname', '昵称')} *
+            </label>
+            <input
+              type="text"
+              value={formData.nickname}
+              onChange={(e) => handleChange('nickname', e.target.value)}
+              placeholder={t('profile.editProfile.nicknamePlaceholder', '请输入对外显示的昵称')}
+              className={cn(
+                'w-full px-3 py-2 rounded-lg border transition-colors',
+                theme === 'dark'
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
+              )}
+            />
+          </div>
+
+          {/* Real name */}
+          <div>
+            <label
+              className={cn(
+                'block text-sm font-medium mb-1.5',
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              )}
+            >
+              {t('profile.editProfile.realName', '真实姓名')} *
+            </label>
+            <input
+              type="text"
+              value={formData.realName}
+              onChange={(e) => handleChange('realName', e.target.value)}
+              placeholder={t('profile.editProfile.realNamePlaceholder', '请输入真实姓名')}
               className={cn(
                 'w-full px-3 py-2 rounded-lg border transition-colors',
                 theme === 'dark'

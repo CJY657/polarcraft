@@ -12,6 +12,8 @@ import { UserRole } from './auth.types.js';
 /** Update profile input / 更新个人信息输入 */
 export interface UpdateProfileInput {
   username?: string;
+  nickname?: string;
+  real_name?: string;
   email?: string;
   avatar_url?: string;
 }
@@ -20,6 +22,8 @@ export interface UpdateProfileInput {
 export interface UserProfileResponse {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   role: UserRole;
   avatar_url: string | null;
   email: string | null;
@@ -46,6 +50,8 @@ export type AdminUserSortOrder = 'asc' | 'desc';
 export interface AdminUserListItem {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   role: UserRole;
   avatar_url: string | null;
   email: string | null;

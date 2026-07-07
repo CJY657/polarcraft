@@ -44,16 +44,13 @@ describe("FeedbackSection", () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText("例如：希望增加实验反馈入口"), {
+    fireEvent.change(screen.getByPlaceholderText("一句话概括"), {
       target: { value: "希望增加访客反馈入口" },
     });
-    fireEvent.change(
-      screen.getByPlaceholderText("请描述你对导航、交互、功能、性能或整体流程的改进建议。"),
-      {
-        target: { value: "希望访客也可以提交反馈，方便先体验再注册。" },
-      }
-    );
-    fireEvent.change(screen.getByPlaceholderText("你的名字或称呼"), {
+    fireEvent.change(screen.getByPlaceholderText("详细描述..."), {
+      target: { value: "希望访客也可以提交反馈，方便先体验再注册。" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("如何称呼"), {
       target: { value: "Guest" },
     });
     fireEvent.change(screen.getByPlaceholderText("name@example.com"), {

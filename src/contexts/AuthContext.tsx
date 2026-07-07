@@ -27,7 +27,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
-  register: (username: string, password: string, email?: string) => Promise<void>;
+  register: (
+    username: string,
+    nickname: string,
+    realName: string,
+    password: string,
+    email?: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -141,8 +147,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
-  const register = async (username: string, password: string, email?: string) => {
-    const response = await authApi.register({ username, password, email });
+  const register = async (
+    username: string,
+    nickname: string,
+    realName: string,
+    password: string,
+    email?: string
+  ) => {
+    const response = await authApi.register({
+      username,
+      nickname,
+      real_name: realName,
+      password,
+      email,
+    });
     capturePostHogEvent('auth_register_success', {
       user_id: response.user.id,
       username: response.user.username,

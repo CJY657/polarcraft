@@ -97,6 +97,8 @@ export interface ProjectCreatorProfile {
   created_at: Date;
   updated_at: Date;
   username?: string;
+  nickname?: string | null;
+  real_name?: string | null;
 }
 
 export interface CreateCreatorProfileInput {
@@ -135,6 +137,8 @@ export interface ProjectApplication {
   created_at: Date;
   updated_at: Date;
   username?: string;
+  nickname?: string | null;
+  real_name?: string | null;
   avatar_url?: string | null;
   project_name?: string;
 }

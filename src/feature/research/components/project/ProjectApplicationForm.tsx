@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, PublicProject } from '@/lib/profile.service';
+import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { getChallengeRoleOptions } from './projectChallengeCard';
 import { getProjectRoleBadgeStyle } from './ProjectRoleBadge';
@@ -42,6 +43,10 @@ export function ProjectApplicationForm({
   const isRecruitmentClosed = project?.is_recruiting === false;
   const roleOptions = useMemo(() => project ? getChallengeRoleOptions(project) : [], [project]);
   const defaultRole = roleOptions[0]?.value || '';
+  const userDisplayName = useMemo(
+    () => formatUserIdentity(user, ''),
+    [user?.nickname, user?.real_name, user?.username]
+  );
 
   const [educations, setEducations] = useState<UserEducation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,8 +72,8 @@ export function ProjectApplicationForm({
   useEffect(() => {
     if (isOpen) {
       // Pre-fill display name
-      if (user?.username) {
-        setFormData((prev) => ({ ...prev, display_name: user.username }));
+      if (userDisplayName) {
+        setFormData((prev) => ({ ...prev, display_name: userDisplayName }));
       }
 
       if (isRecruitmentClosed) {
@@ -78,7 +83,7 @@ export function ProjectApplicationForm({
 
       profileApi.getUserEducations().then(setEducations).catch(console.error);
     }
-  }, [isOpen, isRecruitmentClosed, user?.username]);
+  }, [isOpen, isRecruitmentClosed, userDisplayName]);
 
   useEffect(() => {
     if (!isOpen || !project || isRecruitmentClosed) {
@@ -95,7 +100,7 @@ export function ProjectApplicationForm({
   useEffect(() => {
     if (!isOpen) {
       setFormData({
-        display_name: user?.username || '',
+        display_name: userDisplayName,
         organization: '',
         education_id: '',
         major: '',
@@ -111,7 +116,7 @@ export function ProjectApplicationForm({
       setError('');
       setSuccess(false);
     }
-  }, [isOpen, user?.username]);
+  }, [isOpen, userDisplayName]);
 
   // Update form data when education is selected
   useEffect(() => {
@@ -165,7 +170,7 @@ export function ProjectApplicationForm({
 
     try {
       await profileApi.createApplication(project.id, {
-        display_name: formData.display_name || user?.username || '',
+        display_name: formData.display_name || userDisplayName,
         organization: formData.organization,
         desired_role: formData.desired_role.trim(),
         proposed_contribution: formData.proposed_contribution.trim(),

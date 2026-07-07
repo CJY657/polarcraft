@@ -37,19 +37,36 @@ const usersCollection = () => getCollection('users');
 const projectMembersCollection = () => getCollection('research_project_members');
 const researchProjectsCollection = () => getCollection('research_projects');
 
-async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
+type UserIdentity = {
+  username: string;
+  nickname: string | null;
+  real_name: string | null;
+  avatar_url: string | null;
+};
+
+async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
   if (userIds.length === 0) {
     return new Map();
   }
 
-  const users = normalizeDocuments<{ id: string; username: string; avatar_url: string | null }>(
+  const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
       .toArray()
   );
 
-  return new Map(users.map((user) => [user.id, { username: user.username, avatar_url: user.avatar_url }]));
+  return new Map(
+    users.map((user) => [
+      user.id,
+      {
+        username: user.username,
+        nickname: user.nickname ?? null,
+        real_name: user.real_name ?? null,
+        avatar_url: user.avatar_url ?? null,
+      },
+    ])
+  );
 }
 
 async function getProjectNameMap(projectIds: string[]): Promise<Map<string, string | undefined>> {
@@ -82,6 +99,8 @@ async function enrichApplications(applications: ProjectApplication[]): Promise<P
     return {
       ...application,
       username: user?.username,
+      nickname: user?.nickname ?? null,
+      real_name: user?.real_name ?? null,
       avatar_url: user?.avatar_url,
       project_name: projectNameMap.get(application.project_id),
     };
@@ -148,9 +167,13 @@ async function enrichPublicProjects(
       is_member: userId ? projectMembers.some((member) => member.user_id === userId) : false,
       has_pending_application: userId ? pendingProjectIds.has(project.id) : false,
       owner_username: ownerUser?.username || null,
+      owner_nickname: ownerUser?.nickname ?? null,
+      owner_real_name: ownerUser?.real_name ?? null,
       owner_avatar_url: ownerUser?.avatar_url || null,
       members: projectMembers.map((member) => ({
         username: userMap.get(member.user_id)?.username || '',
+        nickname: userMap.get(member.user_id)?.nickname ?? null,
+        real_name: userMap.get(member.user_id)?.real_name ?? null,
         avatar_url: userMap.get(member.user_id)?.avatar_url || null,
         role: normalizeProjectRole(member.role) ?? 'member',
         member_role_label: member.member_role_label ?? null,
@@ -364,6 +387,8 @@ export class ProfileModel {
     return profiles.map((profile) => ({
       ...profile,
       username: userMap.get(profile.user_id)?.username,
+      nickname: userMap.get(profile.user_id)?.nickname ?? null,
+      real_name: userMap.get(profile.user_id)?.real_name ?? null,
     }));
   }
 

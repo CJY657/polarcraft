@@ -216,9 +216,11 @@ describe('ProfileModel.getPublicProjectById', () => {
         is_member: false,
         has_pending_application: true,
         owner_username: '组长',
+        owner_nickname: null,
+        owner_real_name: null,
         members: [
-          { username: '组长', avatar_url: null, role: 'owner', member_role_label: null },
-          { username: '成员', avatar_url: null, role: 'member', member_role_label: '数据整理' },
+          { username: '组长', nickname: null, real_name: null, avatar_url: null, role: 'owner', member_role_label: null },
+          { username: '成员', nickname: null, real_name: null, avatar_url: null, role: 'member', member_role_label: '数据整理' },
         ],
       })
     );

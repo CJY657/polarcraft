@@ -27,6 +27,8 @@ import {
 export interface UserProfile {
   id: string;
   username: string;
+  nickname: string | null;
+  real_name: string | null;
   role: 'user' | 'admin';
   avatar_url: string | null;
   email: string | null;
@@ -60,8 +62,18 @@ export interface LoginInput {
 
 export interface RegisterInput {
   username: string;
+  nickname: string;
+  real_name: string;
   password: string;
   email?: string;
+}
+
+export interface UpdateProfileInput {
+  username?: string;
+  nickname?: string;
+  real_name?: string;
+  email?: string;
+  avatar_url?: string;
 }
 
 export interface ChangePasswordInput {
@@ -111,6 +123,8 @@ export const authApi = {
 
     const response = await api.post<AuthResponse>('/api/auth/register', {
       username: input.username,
+      nickname: input.nickname,
+      real_name: input.real_name,
       password: hashedPassword,
       email: input.email,
       clientSalt: salt,
@@ -201,7 +215,7 @@ export const authApi = {
    * Update profile
    * 更新资料
    */
-  updateProfile: async (input: Partial<RegisterInput>): Promise<UserProfile> => {
+  updateProfile: async (input: UpdateProfileInput): Promise<UserProfile> => {
     const response = await api.put<UserProfile>('/api/users/profile', input);
     if (response.success && response.data) {
       return response.data;
