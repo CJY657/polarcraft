@@ -5,6 +5,7 @@
 
 import { Request, Response } from "express";
 import { ProfileModel } from "../models/profile.model.js";
+import { ResearchModel } from "../models/research.model.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -256,6 +257,37 @@ export class ProfileController {
       res.status(500).json({
         success: false,
         error: { code: "SERVER_ERROR", message: "获取公开项目详情失败" },
+      });
+    }
+  }
+
+  /**
+   * Get public project evidence
+   * 获取公开课题证据库
+   * GET /api/profile/public-projects/:projectId/evidence
+   */
+  static async getPublicProjectEvidence(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user?.sub;
+
+      const project = await ProfileModel.getPublicProjectById(projectId, userId);
+
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          error: { code: "PROJECT_NOT_FOUND", message: "公开课题不存在或暂未开放" },
+        });
+        return;
+      }
+
+      const evidenceItems = await ResearchModel.getProjectEvidence(projectId);
+      res.json({ success: true, data: evidenceItems });
+    } catch (error) {
+      logger.error("Get public project evidence error:", error);
+      res.status(500).json({
+        success: false,
+        error: { code: "SERVER_ERROR", message: "获取公开课题证据失败" },
       });
     }
   }

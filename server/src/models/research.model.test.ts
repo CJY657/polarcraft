@@ -4,14 +4,34 @@ const membersFind = vi.fn();
 const membersFindOne = vi.fn();
 const membersInsertOne = vi.fn();
 const membersUpdateOne = vi.fn();
+const membersDeleteMany = vi.fn();
 const membersCountDocuments = vi.fn();
 const projectsFindOne = vi.fn();
+const projectsDeleteOne = vi.fn();
+const canvasesFind = vi.fn();
+const canvasesDeleteMany = vi.fn();
 const canvasesCountDocuments = vi.fn();
+const nodesFind = vi.fn();
+const nodesDeleteMany = vi.fn();
+const edgesDeleteMany = vi.fn();
+const commentsDeleteMany = vi.fn();
+const projectCommentsDeleteMany = vi.fn();
+const agentMessagesDeleteMany = vi.fn();
+const activityDeleteMany = vi.fn();
+const projectSettingsDeleteMany = vi.fn();
 const projectSettingsFindOne = vi.fn();
 const applicationsFind = vi.fn();
+const applicationsDeleteMany = vi.fn();
 const projectCommentsFind = vi.fn();
 const activityFind = vi.fn();
 const creatorProfilesFind = vi.fn();
+const creatorProfilesDeleteMany = vi.fn();
+const evidenceFind = vi.fn();
+const evidenceFindOne = vi.fn();
+const evidenceInsertOne = vi.fn();
+const evidenceUpdateOne = vi.fn();
+const evidenceDeleteOne = vi.fn();
+const evidenceDeleteMany = vi.fn();
 const usersFind = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
@@ -23,36 +43,71 @@ vi.mock('../database/connection.js', () => ({
           findOne: (...args: unknown[]) => membersFindOne(...args),
           insertOne: (...args: unknown[]) => membersInsertOne(...args),
           updateOne: (...args: unknown[]) => membersUpdateOne(...args),
+          deleteMany: (...args: unknown[]) => membersDeleteMany(...args),
           countDocuments: (...args: unknown[]) => membersCountDocuments(...args),
         };
       case 'research_projects':
         return {
           findOne: (...args: unknown[]) => projectsFindOne(...args),
+          deleteOne: (...args: unknown[]) => projectsDeleteOne(...args),
           find: () => ({ sort: () => ({ toArray: async () => [] }) }),
         };
       case 'research_canvases':
         return {
+          find: (...args: unknown[]) => canvasesFind(...args),
+          deleteMany: (...args: unknown[]) => canvasesDeleteMany(...args),
           countDocuments: (...args: unknown[]) => canvasesCountDocuments(...args),
+        };
+      case 'research_nodes':
+        return {
+          find: (...args: unknown[]) => nodesFind(...args),
+          deleteMany: (...args: unknown[]) => nodesDeleteMany(...args),
+        };
+      case 'research_edges':
+        return {
+          deleteMany: (...args: unknown[]) => edgesDeleteMany(...args),
+        };
+      case 'research_node_comments':
+        return {
+          deleteMany: (...args: unknown[]) => commentsDeleteMany(...args),
         };
       case 'research_project_settings':
         return {
           findOne: (...args: unknown[]) => projectSettingsFindOne(...args),
+          deleteMany: (...args: unknown[]) => projectSettingsDeleteMany(...args),
         };
       case 'research_project_applications':
         return {
           find: (...args: unknown[]) => applicationsFind(...args),
+          deleteMany: (...args: unknown[]) => applicationsDeleteMany(...args),
         };
       case 'research_project_comments':
         return {
           find: (...args: unknown[]) => projectCommentsFind(...args),
+          deleteMany: (...args: unknown[]) => projectCommentsDeleteMany(...args),
         };
       case 'research_activity_log':
         return {
           find: (...args: unknown[]) => activityFind(...args),
+          deleteMany: (...args: unknown[]) => activityDeleteMany(...args),
         };
       case 'research_project_creator_profiles':
         return {
           find: (...args: unknown[]) => creatorProfilesFind(...args),
+          deleteMany: (...args: unknown[]) => creatorProfilesDeleteMany(...args),
+        };
+      case 'research_ai_messages':
+        return {
+          deleteMany: (...args: unknown[]) => agentMessagesDeleteMany(...args),
+        };
+      case 'research_project_evidence':
+        return {
+          find: (...args: unknown[]) => evidenceFind(...args),
+          findOne: (...args: unknown[]) => evidenceFindOne(...args),
+          insertOne: (...args: unknown[]) => evidenceInsertOne(...args),
+          updateOne: (...args: unknown[]) => evidenceUpdateOne(...args),
+          deleteOne: (...args: unknown[]) => evidenceDeleteOne(...args),
+          deleteMany: (...args: unknown[]) => evidenceDeleteMany(...args),
         };
       case 'users':
         return {
@@ -283,5 +338,145 @@ describe('ResearchModel.getProjectMemberCapacity', () => {
       memberCount: 4,
       isFull: true,
     });
+  });
+});
+
+describe('ResearchModel project evidence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    evidenceInsertOne.mockResolvedValue({});
+    evidenceUpdateOne.mockResolvedValue({ matchedCount: 1 });
+    evidenceDeleteOne.mockResolvedValue({ deletedCount: 1 });
+  });
+
+  it('lists project evidence with creator profile data', async () => {
+    evidenceFind.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          {
+            id: 'evidence-1',
+            project_id: 'project-1',
+            title: '偏振图样观察',
+            evidence_type: 'image_observation',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-02T00:00:00Z'),
+          },
+        ],
+      }),
+    });
+    usersFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [{ id: 'user-1', username: '小林', avatar_url: '/avatar.png' }],
+      }),
+    });
+
+    const evidence = await ResearchModel.getProjectEvidence('project-1');
+
+    expect(evidenceFind).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(evidence).toEqual([
+      expect.objectContaining({
+        id: 'evidence-1',
+        creator_username: '小林',
+        creator_avatar_url: '/avatar.png',
+      }),
+    ]);
+  });
+
+  it('creates evidence with nullable optional attachment fields', async () => {
+    await ResearchModel.createProjectEvidence('project-1', 'user-1', {
+      title: '变量表记录',
+      evidence_type: 'data_table',
+      description: '记录角度与亮度',
+      external_url: null,
+      attachment_url: null,
+      attachment_original_name: null,
+      attachment_size: null,
+      attachment_mime_type: null,
+      attachment_category: null,
+      attachment_note: '表格暂存在外部链接',
+    });
+
+    expect(evidenceInsertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: 'project-1',
+        title: '变量表记录',
+        evidence_type: 'data_table',
+        description: '记录角度与亮度',
+        external_url: null,
+        attachment_url: null,
+        attachment_note: '表格暂存在外部链接',
+        created_by: 'user-1',
+      })
+    );
+  });
+
+  it('updates evidence attachment metadata', async () => {
+    await ResearchModel.updateProjectEvidence('evidence-1', {
+      title: '更新后的证据',
+      evidence_type: 'experiment_log',
+      attachment_url: '/uploads/courses/project-evidence-project-1/pdf/file.pdf',
+      attachment_original_name: 'record.pdf',
+      attachment_size: 128,
+      attachment_mime_type: 'application/pdf',
+      attachment_category: 'pdf',
+    });
+
+    expect(evidenceUpdateOne).toHaveBeenCalledWith(
+      { id: 'evidence-1' },
+      {
+        $set: expect.objectContaining({
+          title: '更新后的证据',
+          evidence_type: 'experiment_log',
+          attachment_url: '/uploads/courses/project-evidence-project-1/pdf/file.pdf',
+          attachment_original_name: 'record.pdf',
+          attachment_size: 128,
+          attachment_mime_type: 'application/pdf',
+          attachment_category: 'pdf',
+          updated_at: expect.any(Date),
+        }),
+      }
+    );
+  });
+
+  it('returns project evidence attachment URLs for lifecycle cleanup', async () => {
+    evidenceFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [
+          { attachment_url: '/uploads/courses/project-evidence-project-1/image/a.png' },
+          { attachment_url: null },
+          { attachment_url: '   ' },
+        ],
+      }),
+    });
+
+    const urls = await ResearchModel.getProjectEvidenceAttachmentUrls('project-1');
+
+    expect(urls).toEqual(['/uploads/courses/project-evidence-project-1/image/a.png']);
+  });
+
+  it('deletes evidence rows when deleting a project', async () => {
+    canvasesFind.mockReturnValue({
+      project: () => ({ toArray: async () => [] }),
+    });
+    projectsDeleteOne.mockResolvedValue({ deletedCount: 1 });
+    membersFind.mockReturnValue({ toArray: async () => [] });
+    membersCountDocuments.mockResolvedValue(0);
+    membersDeleteMany.mockResolvedValue({});
+    canvasesDeleteMany.mockResolvedValue({});
+    edgesDeleteMany.mockResolvedValue({});
+    nodesDeleteMany.mockResolvedValue({});
+    commentsDeleteMany.mockResolvedValue({});
+    projectCommentsDeleteMany.mockResolvedValue({});
+    evidenceDeleteMany.mockResolvedValue({});
+    agentMessagesDeleteMany.mockResolvedValue({});
+    activityDeleteMany.mockResolvedValue({});
+    projectSettingsDeleteMany.mockResolvedValue({});
+    creatorProfilesDeleteMany.mockResolvedValue({});
+    applicationsDeleteMany.mockResolvedValue({});
+
+    const deleted = await ResearchModel.deleteProject('project-1');
+
+    expect(deleted).toBe(true);
+    expect(evidenceDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
   });
 });

@@ -27,6 +27,7 @@ const usersCollection = () => getCollection('users');
 const projectSettingsCollection = () => getCollection('research_project_settings');
 const creatorProfilesCollection = () => getCollection('research_project_creator_profiles');
 const applicationsCollection = () => getCollection('research_project_applications');
+const evidenceCollection = () => getCollection('research_project_evidence');
 
 async function getUserMap(userIds: string[]): Promise<Map<string, { username: string; avatar_url: string | null }>> {
   if (userIds.length === 0) {
@@ -64,6 +65,27 @@ type LegacyFormerMemberSource = {
 };
 
 export type ResearchProjectRole = 'owner' | 'member';
+export type ResearchProjectEvidenceType =
+  | 'image_observation'
+  | 'data_table'
+  | 'source_literature'
+  | 'experiment_log'
+  | 'code_prototype'
+  | 'failure_record'
+  | 'other';
+
+export interface ResearchProjectEvidenceInput {
+  title: string;
+  evidence_type: ResearchProjectEvidenceType;
+  description?: string | null;
+  external_url?: string | null;
+  attachment_url?: string | null;
+  attachment_original_name?: string | null;
+  attachment_size?: number | null;
+  attachment_mime_type?: string | null;
+  attachment_category?: string | null;
+  attachment_note?: string | null;
+}
 
 export interface ResearchProjectAccess {
   project: any | null;
@@ -391,6 +413,7 @@ export class ResearchModel {
       nodesCollection().deleteMany(canvasIds.length > 0 ? { canvas_id: { $in: canvasIds } } : { canvas_id: '__none__' }),
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
       projectCommentsCollection().deleteMany({ project_id: projectId }),
+      evidenceCollection().deleteMany({ project_id: projectId }),
       agentMessagesCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),
@@ -621,6 +644,136 @@ export class ResearchModel {
       memberCount,
       isFull: maxMembers !== null && memberCount >= maxMembers,
     };
+  }
+
+  private static async enrichProjectEvidence(evidenceItems: any[]): Promise<any[]> {
+    if (evidenceItems.length === 0) {
+      return [];
+    }
+
+    const userMap = await getUserMap(evidenceItems.map((item) => item.created_by));
+
+    return evidenceItems.map((item) => ({
+      ...item,
+      creator_username: userMap.get(item.created_by)?.username || '',
+      creator_avatar_url: userMap.get(item.created_by)?.avatar_url || null,
+    }));
+  }
+
+  /**
+   * Get project evidence
+   * 获取课题证据库记录
+   */
+  static async getProjectEvidence(projectId: string): Promise<any[]> {
+    const evidenceItems = normalizeDocuments<any>(
+      await evidenceCollection()
+        .find({ project_id: projectId })
+        .sort({ created_at: -1 })
+        .toArray()
+    );
+
+    return this.enrichProjectEvidence(evidenceItems);
+  }
+
+  static async getProjectEvidenceById(evidenceId: string): Promise<any | null> {
+    const evidence = normalizeDocument<any>(await evidenceCollection().findOne({ id: evidenceId }));
+    if (!evidence) {
+      return null;
+    }
+
+    const [enriched] = await this.enrichProjectEvidence([evidence]);
+    return enriched ?? null;
+  }
+
+  static async getProjectEvidenceAttachmentUrls(projectId: string): Promise<string[]> {
+    const evidenceItems = normalizeDocuments<{ attachment_url?: string | null }>(
+      await evidenceCollection()
+        .find({ project_id: projectId })
+        .project({ _id: 0, attachment_url: 1 })
+        .toArray()
+    );
+
+    return evidenceItems
+      .map((item) => (typeof item.attachment_url === 'string' ? item.attachment_url.trim() : ''))
+      .filter(Boolean);
+  }
+
+  /**
+   * Create project evidence
+   * 创建课题证据记录
+   */
+  static async createProjectEvidence(
+    projectId: string,
+    createdBy: string,
+    data: ResearchProjectEvidenceInput
+  ): Promise<string> {
+    const now = new Date();
+    const evidenceId = generateId();
+
+    await evidenceCollection().insertOne({
+      id: evidenceId,
+      project_id: projectId,
+      title: data.title,
+      evidence_type: data.evidence_type,
+      description: data.description ?? null,
+      external_url: data.external_url ?? null,
+      attachment_url: data.attachment_url ?? null,
+      attachment_original_name: data.attachment_original_name ?? null,
+      attachment_size: data.attachment_size ?? null,
+      attachment_mime_type: data.attachment_mime_type ?? null,
+      attachment_category: data.attachment_category ?? null,
+      attachment_note: data.attachment_note ?? null,
+      created_by: createdBy,
+      created_at: now,
+      updated_at: now,
+    });
+
+    logger.info(`Project evidence created: ${evidenceId} in project ${projectId}`);
+    return evidenceId;
+  }
+
+  /**
+   * Update project evidence
+   * 更新课题证据记录
+   */
+  static async updateProjectEvidence(
+    evidenceId: string,
+    data: Partial<ResearchProjectEvidenceInput>
+  ): Promise<boolean> {
+    const updateDoc = pickDefined({
+      title: data.title,
+      evidence_type: data.evidence_type,
+      description: data.description,
+      external_url: data.external_url,
+      attachment_url: data.attachment_url,
+      attachment_original_name: data.attachment_original_name,
+      attachment_size: data.attachment_size,
+      attachment_mime_type: data.attachment_mime_type,
+      attachment_category: data.attachment_category,
+      attachment_note: data.attachment_note,
+    });
+
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
+    }
+
+    const result = await evidenceCollection().updateOne(
+      { id: evidenceId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
+
+    logger.info(`Project evidence updated: ${evidenceId}`);
+    return result.matchedCount > 0;
+  }
+
+  /**
+   * Delete project evidence
+   * 删除课题证据记录
+   */
+  static async deleteProjectEvidence(evidenceId: string): Promise<boolean> {
+    const result = await evidenceCollection().deleteOne({ id: evidenceId });
+    logger.info(`Project evidence deleted: ${evidenceId}`);
+    return result.deletedCount > 0;
   }
 
   /**

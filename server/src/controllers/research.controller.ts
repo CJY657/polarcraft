@@ -8,7 +8,11 @@
 
 import { Request, Response } from 'express';
 import { uploadConfig } from '../config/upload.config.js';
-import { ResearchModel } from '../models/research.model.js';
+import {
+  ResearchModel,
+  type ResearchProjectEvidenceInput,
+  type ResearchProjectEvidenceType,
+} from '../models/research.model.js';
 import { NotificationModel } from '../models/notification.model.js';
 import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
@@ -29,6 +33,16 @@ const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
 const MAX_RESEARCH_AGENT_HISTORY_MESSAGES = 12;
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
+const RESEARCH_PROJECT_EVIDENCE_TYPES: ResearchProjectEvidenceType[] = [
+  'image_observation',
+  'data_table',
+  'source_literature',
+  'experiment_log',
+  'code_prototype',
+  'failure_record',
+  'other',
+];
+const researchProjectEvidenceTypeSet = new Set<string>(RESEARCH_PROJECT_EVIDENCE_TYPES);
 
 function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null {
   if (value === undefined || value === null) {
@@ -59,6 +73,139 @@ function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null 
   }
 
   return [...uniqueUrls];
+}
+
+function normalizeManagedUploadUrl(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed !== managedUploadUrlPrefix && !trimmed.startsWith(`${managedUploadUrlPrefix}/`)) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+function normalizeOptionalString(
+  value: unknown,
+  maxLength: number
+): { ok: true; value: string | null | undefined } | { ok: false } {
+  if (value === undefined) {
+    return { ok: true, value: undefined };
+  }
+
+  if (value === null) {
+    return { ok: true, value: null };
+  }
+
+  if (typeof value !== 'string') {
+    return { ok: false };
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length > maxLength) {
+    return { ok: false };
+  }
+
+  return { ok: true, value: trimmed || null };
+}
+
+function normalizeAttachmentSize(value: unknown): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return undefined;
+  }
+
+  return Math.floor(value);
+}
+
+function normalizeProjectEvidencePayload(
+  body: Record<string, unknown>,
+  options: { partial?: boolean } = {}
+): { data: Partial<ResearchProjectEvidenceInput>; error?: string } {
+  const partial = options.partial === true;
+  const data: Partial<ResearchProjectEvidenceInput> = {};
+
+  if (body.title !== undefined || !partial) {
+    if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 120) {
+      return { data, error: '证据标题为必填项，且不能超过 120 字' };
+    }
+    data.title = body.title.trim();
+  }
+
+  if (body.evidence_type !== undefined || !partial) {
+    if (typeof body.evidence_type !== 'string' || !researchProjectEvidenceTypeSet.has(body.evidence_type)) {
+      return { data, error: '证据类型无效' };
+    }
+    data.evidence_type = body.evidence_type as ResearchProjectEvidenceType;
+  }
+
+  const stringFields: Array<[keyof ResearchProjectEvidenceInput, number, string]> = [
+    ['description', 4000, '过程说明不能超过 4000 字'],
+    ['external_url', 1000, '外部链接格式无效或过长'],
+    ['attachment_original_name', 300, '附件文件名过长'],
+    ['attachment_mime_type', 160, '附件类型过长'],
+    ['attachment_category', 30, '附件类别过长'],
+    ['attachment_note', 1000, '附件说明不能超过 1000 字'],
+  ];
+
+  for (const [field, maxLength, error] of stringFields) {
+    if (body[field] === undefined) {
+      continue;
+    }
+
+    const normalized = normalizeOptionalString(body[field], maxLength);
+    if (!normalized.ok) {
+      return { data, error };
+    }
+    (data as Record<string, unknown>)[field] = normalized.value;
+  }
+
+  if (body.attachment_url !== undefined) {
+    const attachmentUrl = normalizeManagedUploadUrl(body.attachment_url);
+    if (attachmentUrl === undefined) {
+      return { data, error: '附件地址格式无效' };
+    }
+    data.attachment_url = attachmentUrl;
+  }
+
+  if (body.attachment_size !== undefined) {
+    const attachmentSize = normalizeAttachmentSize(body.attachment_size);
+    if (attachmentSize === undefined) {
+      return { data, error: '附件大小格式无效' };
+    }
+    data.attachment_size = attachmentSize;
+  }
+
+  if (data.attachment_url === null) {
+    data.attachment_original_name = null;
+    data.attachment_size = null;
+    data.attachment_mime_type = null;
+    data.attachment_category = null;
+  }
+
+  return { data };
 }
 
 function normalizeResearchAgentLiveHistory(value: unknown): ResearchAgentChatMessage[] | null {
@@ -448,12 +595,151 @@ export class ResearchController {
     }
 
     const coverUrl = access.project.thumbnail;
+    const evidenceAttachmentUrls = await ResearchModel.getProjectEvidenceAttachmentUrls(id);
     await ResearchModel.deleteProject(id);
-    await ManagedUploadCleanupService.cleanupUrls([coverUrl], {
+    await ManagedUploadCleanupService.cleanupUrls([coverUrl, ...evidenceAttachmentUrls], {
       reason: `research.project.delete:${id}`,
     });
     logger.info(`Project deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '项目删除成功');
+  });
+
+  /**
+   * Get project evidence
+   * 获取课题证据库
+   */
+  static getProjectEvidence = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能查看公开课题或已加入的课题证据'
+    );
+    if (!access) {
+      return;
+    }
+
+    const evidenceItems = await ResearchModel.getProjectEvidence(projectId);
+    res.success(evidenceItems);
+  });
+
+  /**
+   * Create project evidence
+   * 创建课题证据
+   */
+  static createProjectEvidence = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以新增证据'
+    );
+    if (!access) {
+      return;
+    }
+
+    const { data, error } = normalizeProjectEvidencePayload(req.body ?? {});
+    if (error) {
+      return res.error(error, 'INVALID_PROJECT_EVIDENCE', 400);
+    }
+
+    const evidenceId = await ResearchModel.createProjectEvidence(
+      projectId,
+      req.user!.sub,
+      data as ResearchProjectEvidenceInput
+    );
+    const evidence = await ResearchModel.getProjectEvidenceById(evidenceId);
+    logger.info(`Project evidence created by user ${req.user!.username}: ${evidenceId}`);
+    res.success(evidence, '证据已新增', 201);
+  });
+
+  /**
+   * Update project evidence
+   * 更新课题证据
+   */
+  static updateProjectEvidence = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId, evidenceId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以编辑证据'
+    );
+    if (!access) {
+      return;
+    }
+
+    const existing = await ResearchModel.getProjectEvidenceById(evidenceId);
+    if (!existing || existing.project_id !== projectId) {
+      return res.error('证据未找到', 'EVIDENCE_NOT_FOUND', 404);
+    }
+
+    const { data, error } = normalizeProjectEvidencePayload(req.body ?? {}, { partial: true });
+    if (error) {
+      return res.error(error, 'INVALID_PROJECT_EVIDENCE', 400);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.error('没有可更新的证据字段', 'INVALID_PROJECT_EVIDENCE', 400);
+    }
+
+    const updated = await ResearchModel.updateProjectEvidence(evidenceId, data);
+    if (!updated) {
+      return res.error('证据未找到', 'EVIDENCE_NOT_FOUND', 404);
+    }
+
+    const evidence = await ResearchModel.getProjectEvidenceById(evidenceId);
+    if (
+      data.attachment_url !== undefined
+      && existing.attachment_url
+      && existing.attachment_url !== data.attachment_url
+    ) {
+      await ManagedUploadCleanupService.cleanupUrls([existing.attachment_url], {
+        reason: `research.project-evidence.attachment-change:${evidenceId}`,
+      });
+    }
+
+    logger.info(`Project evidence updated by user ${req.user!.username}: ${evidenceId}`);
+    res.success(evidence, '证据已更新');
+  });
+
+  /**
+   * Delete project evidence
+   * 删除课题证据
+   */
+  static deleteProjectEvidence = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId, evidenceId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除证据'
+    );
+    if (!access) {
+      return;
+    }
+
+    const existing = await ResearchModel.getProjectEvidenceById(evidenceId);
+    if (!existing || existing.project_id !== projectId) {
+      return res.error('证据未找到', 'EVIDENCE_NOT_FOUND', 404);
+    }
+
+    await ResearchModel.deleteProjectEvidence(evidenceId);
+    await ManagedUploadCleanupService.cleanupUrls([existing.attachment_url], {
+      reason: `research.project-evidence.delete:${evidenceId}`,
+    });
+    logger.info(`Project evidence deleted by user ${req.user!.username}: ${evidenceId}`);
+    res.success(null, '证据已删除');
   });
 
   /**

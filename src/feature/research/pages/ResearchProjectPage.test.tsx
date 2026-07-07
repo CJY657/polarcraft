@@ -17,6 +17,7 @@ const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
+const mockProjectEvidenceSection = vi.fn();
 const openDialog = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -83,6 +84,13 @@ vi.mock("../components/project/ResearchAgentPanel", () => ({
   ResearchAgentPanel: (props: Record<string, unknown>) => {
     mockResearchAgentPanel(props);
     return <div data-testid="research-agent-panel" />;
+  },
+}));
+
+vi.mock("../components/project/ProjectEvidenceSection", () => ({
+  ProjectEvidenceSection: (props: Record<string, unknown>) => {
+    mockProjectEvidenceSection(props);
+    return <div data-testid="project-evidence-section" />;
   },
 }));
 
@@ -254,6 +262,7 @@ describe("ResearchProjectPage", () => {
     mockRemoveProjectMember.mockReset();
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
+    mockProjectEvidenceSection.mockReset();
     openDialog.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
@@ -431,6 +440,46 @@ describe("ResearchProjectPage", () => {
     expect(await screen.findByTestId("research-agent-panel")).toBeTruthy();
     expect(screen.queryByText("课题消息")).toBeNull();
     expect(mockResearchAgentPanel).toHaveBeenCalledWith({ projectId: "project-1", canClearHistory: true });
+  });
+
+  it("passes evidence management rights for project members", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("project-evidence-section")).toBeTruthy();
+    expect(mockProjectEvidenceSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        canManage: true,
+        usePublicEndpoint: false,
+        theme: "light",
+      })
+    );
+  });
+
+  it("passes public read-only evidence mode for guest project details", async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    mockGetPublicProjectById.mockResolvedValue(
+      createPublicProjectDetail({
+        name_zh: "公开课题",
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("project-evidence-section")).toBeTruthy();
+    expect(mockProjectEvidenceSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        canManage: false,
+        usePublicEndpoint: true,
+      })
+    );
   });
 
   it("renders the full challenge card on the project detail page", async () => {

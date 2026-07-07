@@ -21,6 +21,12 @@ const {
     getRecentProjectDiscussionDigest: vi.fn(),
     getActiveProjectMemberUserIds: vi.fn(),
     addProjectAgentMessage: vi.fn(),
+    getProjectEvidence: vi.fn(),
+    getProjectEvidenceById: vi.fn(),
+    getProjectEvidenceAttachmentUrls: vi.fn(),
+    createProjectEvidence: vi.fn(),
+    updateProjectEvidence: vi.fn(),
+    deleteProjectEvidence: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
     addProjectDiscussionComment: vi.fn(),
     logActivity: vi.fn(),
@@ -107,6 +113,7 @@ describe('ResearchController member management', () => {
       memberCount: 1,
       isFull: false,
     });
+    mockResearchModel.getProjectEvidenceAttachmentUrls.mockResolvedValue([]);
     mockResearchAgentService.isEnabled.mockReturnValue(false);
   });
 
@@ -462,6 +469,238 @@ describe('ResearchController member management', () => {
       { reason: 'research.project.delete:project-1' }
     );
     expect(res.success).toHaveBeenCalledWith(null, '项目删除成功');
+  });
+
+  it('cleans up evidence attachments when deleting a project', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/cover.png' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectEvidenceAttachmentUrls.mockResolvedValue([
+      '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+    ]);
+    mockResearchModel.deleteProject.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'project-1' },
+      body: { confirmationText: 'DELETE' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProject, req, res);
+
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      [
+        '/uploads/courses/project-cover-project-1/image/cover.png',
+        '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+      ],
+      { reason: 'research.project.delete:project-1' }
+    );
+  });
+
+  it('lists project evidence for users with read access', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectEvidence.mockResolvedValue([
+      { id: 'evidence-1', title: '图像观察', evidence_type: 'image_observation' },
+    ]);
+
+    const req = {
+      params: { projectId: 'project-1' },
+      user: { sub: 'candidate-1', username: 'candidate', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProjectEvidence, req, res);
+
+    expect(mockResearchModel.getProjectEvidence).toHaveBeenCalledWith('project-1');
+    expect(res.success).toHaveBeenCalledWith([
+      { id: 'evidence-1', title: '图像观察', evidence_type: 'image_observation' },
+    ]);
+  });
+
+  it('rejects evidence creation for users without write access', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: { title: '图像观察', evidence_type: 'image_observation' },
+      user: { sub: 'candidate-1', username: 'candidate', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createProjectEvidence, req, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有课题成员可以新增证据', 'FORBIDDEN', 403);
+    expect(mockResearchModel.createProjectEvidence).not.toHaveBeenCalled();
+  });
+
+  it('creates project evidence for members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.createProjectEvidence.mockResolvedValue('evidence-1');
+    mockResearchModel.getProjectEvidenceById.mockResolvedValue({
+      id: 'evidence-1',
+      project_id: 'project-1',
+      title: '图像观察',
+      evidence_type: 'image_observation',
+    });
+
+    const req = {
+      params: { projectId: 'project-1' },
+      body: {
+        title: '图像观察',
+        evidence_type: 'image_observation',
+        description: '观察记录',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/a.png',
+        attachment_original_name: 'a.png',
+        attachment_size: 128,
+        attachment_mime_type: 'image/png',
+        attachment_category: 'image',
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createProjectEvidence, req, res);
+
+    expect(mockResearchModel.createProjectEvidence).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      expect.objectContaining({
+        title: '图像观察',
+        evidence_type: 'image_observation',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/a.png',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'evidence-1' }),
+      '证据已新增',
+      201
+    );
+  });
+
+  it('cleans up the previous attachment when replacing project evidence attachment', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectEvidenceById
+      .mockResolvedValueOnce({
+        id: 'evidence-1',
+        project_id: 'project-1',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/old.png',
+      })
+      .mockResolvedValueOnce({
+        id: 'evidence-1',
+        project_id: 'project-1',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/new.png',
+      });
+    mockResearchModel.updateProjectEvidence.mockResolvedValue(true);
+
+    const req = {
+      params: { projectId: 'project-1', evidenceId: 'evidence-1' },
+      body: {
+        title: '更新证据',
+        evidence_type: 'image_observation',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/new.png',
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectEvidence, req, res);
+
+    expect(mockResearchModel.updateProjectEvidence).toHaveBeenCalledWith(
+      'evidence-1',
+      expect.objectContaining({
+        title: '更新证据',
+        attachment_url: '/uploads/courses/project-evidence-project-1/image/new.png',
+      })
+    );
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/project-evidence-project-1/image/old.png'],
+      { reason: 'research.project-evidence.attachment-change:evidence-1' }
+    );
+  });
+
+  it('deletes project evidence and cleans up its attachment', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectEvidenceById.mockResolvedValue({
+      id: 'evidence-1',
+      project_id: 'project-1',
+      attachment_url: '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+    });
+    mockResearchModel.deleteProjectEvidence.mockResolvedValue(true);
+
+    const req = {
+      params: { projectId: 'project-1', evidenceId: 'evidence-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.deleteProjectEvidence, req, res);
+
+    expect(mockResearchModel.deleteProjectEvidence).toHaveBeenCalledWith('evidence-1');
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/project-evidence-project-1/pdf/record.pdf'],
+      { reason: 'research.project-evidence.delete:evidence-1' }
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '证据已删除');
   });
 
   it('cleans up the previous project thumbnail after changing the cover', async () => {

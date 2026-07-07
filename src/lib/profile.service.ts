@@ -4,6 +4,7 @@
  */
 
 import { api } from './api';
+import type { ProjectEvidence } from './research.service';
 
 // =====================================================
 // Types / 类型定义
@@ -448,5 +449,17 @@ export const profileApi = {
       return response.data;
     }
     throw new Error(response.error?.message || '获取公开课题详情失败');
+  },
+
+  /**
+   * Get public project evidence
+   * 获取公开课题证据库
+   */
+  getPublicProjectEvidence: async (projectId: string): Promise<ProjectEvidence[]> => {
+    const response = await api.get<ProjectEvidence[]>(`/api/profile/public-projects/${projectId}/evidence`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '获取公开课题证据失败');
   },
 };

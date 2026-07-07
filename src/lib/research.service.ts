@@ -84,6 +84,50 @@ export interface ProjectDiscussionComment {
   avatar_url: string | null;
 }
 
+export type ProjectEvidenceType =
+  | 'image_observation'
+  | 'data_table'
+  | 'source_literature'
+  | 'experiment_log'
+  | 'code_prototype'
+  | 'failure_record'
+  | 'other';
+
+export type ProjectEvidenceAttachmentCategory = 'image' | 'video' | 'pdf' | 'pptx';
+
+export interface ProjectEvidence {
+  id: string;
+  project_id: string;
+  title: string;
+  evidence_type: ProjectEvidenceType;
+  description: string | null;
+  external_url: string | null;
+  attachment_url: string | null;
+  attachment_original_name: string | null;
+  attachment_size: number | null;
+  attachment_mime_type: string | null;
+  attachment_category: ProjectEvidenceAttachmentCategory | string | null;
+  attachment_note: string | null;
+  created_by: string;
+  creator_username: string;
+  creator_avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpsertProjectEvidenceInput {
+  title: string;
+  evidence_type: ProjectEvidenceType;
+  description?: string | null;
+  external_url?: string | null;
+  attachment_url?: string | null;
+  attachment_original_name?: string | null;
+  attachment_size?: number | null;
+  attachment_mime_type?: string | null;
+  attachment_category?: ProjectEvidenceAttachmentCategory | null;
+  attachment_note?: string | null;
+}
+
 export interface ResearchAgentMessage {
   id: string;
   project_id: string;
@@ -128,6 +172,16 @@ export interface ProjectDiscussionVideoUploadResult {
   size: number;
   mimeType: string;
   category: 'video';
+  unitId: string;
+}
+
+export interface ProjectEvidenceAttachmentUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: ProjectEvidenceAttachmentCategory;
   unitId: string;
 }
 
@@ -366,6 +420,82 @@ export const researchApi = {
     if (!response.success) {
       throw new Error(response.error?.message || '删除讨论留言失败');
     }
+  },
+
+  /**
+   * Get project evidence
+   * 获取课题证据库
+   */
+  getProjectEvidence: async (projectId: string): Promise<ProjectEvidence[]> => {
+    const response = await api.get<ProjectEvidence[]>(`/api/research/projects/${projectId}/evidence`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '获取证据库失败');
+  },
+
+  /**
+   * Create project evidence
+   * 新增课题证据
+   */
+  createProjectEvidence: async (
+    projectId: string,
+    input: UpsertProjectEvidenceInput
+  ): Promise<ProjectEvidence> => {
+    const response = await api.post<ProjectEvidence>(`/api/research/projects/${projectId}/evidence`, input);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '新增证据失败');
+  },
+
+  /**
+   * Update project evidence
+   * 更新课题证据
+   */
+  updateProjectEvidence: async (
+    projectId: string,
+    evidenceId: string,
+    input: UpsertProjectEvidenceInput
+  ): Promise<ProjectEvidence> => {
+    const response = await api.put<ProjectEvidence>(
+      `/api/research/projects/${projectId}/evidence/${evidenceId}`,
+      input
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '更新证据失败');
+  },
+
+  /**
+   * Delete project evidence
+   * 删除课题证据
+   */
+  deleteProjectEvidence: async (projectId: string, evidenceId: string): Promise<void> => {
+    const response = await api.delete(`/api/research/projects/${projectId}/evidence/${evidenceId}`);
+    if (!response.success) {
+      throw new Error(response.error?.message || '删除证据失败');
+    }
+  },
+
+  /**
+   * Upload project evidence attachment
+   * 上传课题证据附件
+   */
+  uploadProjectEvidenceAttachment: async (
+    projectId: string,
+    category: ProjectEvidenceAttachmentCategory,
+    file: File
+  ): Promise<ProjectEvidenceAttachmentUploadResult> => {
+    const response = await api.upload<ProjectEvidenceAttachmentUploadResult>(
+      `/api/research/projects/${projectId}/evidence-attachments/${category}`,
+      file
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error?.message || '上传证据附件失败');
   },
 
   /**

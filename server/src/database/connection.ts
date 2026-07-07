@@ -166,6 +166,14 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
+    name: 'research_project_evidence',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
+      { key: { project_id: 1, evidence_type: 1 }, name: 'idx_project_type' },
+    ],
+  },
+  {
     name: 'research_activity_log',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

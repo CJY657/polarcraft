@@ -48,6 +48,7 @@ import {
 } from "@/lib/profile.service";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
+import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
 import { ProjectRoleBadge } from "../components/project/ProjectRoleBadge";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
@@ -625,6 +626,8 @@ export function ResearchProjectPage() {
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
   const canShowDiscussionSection = !isExampleProject && Boolean(projectId && project && isAuthenticated && canParticipateInDiscussion);
   const canShowAgentPanel = canShowDiscussionSection;
+  const canManageEvidence = !isExampleProject && Boolean(projectId && project && !isReadOnlyMode && (isMember || isAdmin));
+  const canShowEvidenceSection = !isExampleProject && Boolean(projectId && (project || publicProject));
   const researchOutline: ProjectDiscussionOutline = {
     topicSummary: displayProject.description_zh || "",
     questions: splitResearchItems(displayProject.research_questions_zh),
@@ -849,6 +852,15 @@ export function ResearchProjectPage() {
           canJumpToDiscussion={canShowDiscussionSection}
           onJumpToDiscussion={handleJumpToDiscussion}
         />
+
+        {canShowEvidenceSection && projectId && (
+          <ProjectEvidenceSection
+            projectId={projectId}
+            canManage={canManageEvidence}
+            usePublicEndpoint={Boolean(publicProject && !project)}
+            theme={theme === "dark" ? "dark" : "light"}
+          />
+        )}
 
         {canShowAgentPanel && projectId && (
           <ResearchAgentPanel projectId={projectId} canClearHistory={canManageProject} />

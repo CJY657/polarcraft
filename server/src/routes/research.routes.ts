@@ -6,6 +6,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { ResearchController } from '../controllers/research.controller.js';
 import { UploadController } from '../controllers/upload.controller.js';
+import type { FileCategory } from '../config/upload.config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { researchAgentRateLimiter } from '../middleware/rate-limit.middleware.js';
 import { createUploadMiddleware, handleUploadError } from '../middleware/upload.middleware.js';
@@ -22,6 +23,15 @@ function buildProjectDiscussionUploadScope(projectId: string): string {
 function buildProjectCoverUploadScope(projectId: string): string {
   const sanitizedProjectId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
   return `project-cover-${sanitizedProjectId}`;
+}
+
+function buildProjectEvidenceUploadScope(projectId: string): string {
+  const sanitizedProjectId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `project-evidence-${sanitizedProjectId}`;
+}
+
+function isEvidenceUploadCategory(value: string): value is FileCategory {
+  return value === 'image' || value === 'video' || value === 'pdf' || value === 'pptx';
 }
 
 async function authorizeProjectDiscussionUpload(
@@ -96,6 +106,47 @@ async function authorizeProjectCoverUpload(
   }
 }
 
+async function authorizeProjectEvidenceUpload(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { projectId, category } = req.params;
+    const uploadScope = buildProjectEvidenceUploadScope(projectId);
+
+    if (!uploadScope || uploadScope === 'project-evidence-') {
+      res.error('课题标识无效', 'INVALID_PROJECT_ID', 400);
+      return;
+    }
+
+    if (!isEvidenceUploadCategory(category)) {
+      res.error('证据附件类别无效', 'INVALID_CATEGORY', 400);
+      return;
+    }
+
+    const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub, req.user!.role);
+
+    if (!access.project) {
+      res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+      return;
+    }
+
+    if (!access.canWrite) {
+      res.error('只有课题成员可以上传证据附件', 'FORBIDDEN', 403);
+      return;
+    }
+
+    req.body = {
+      ...(typeof req.body === 'object' && req.body !== null ? req.body : {}),
+      unitId: uploadScope,
+    };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 // All research routes require authentication
 router.use(authenticate);
 
@@ -139,6 +190,66 @@ router.put('/projects/:id', ResearchController.updateProject);
  * @access  Private
  */
 router.delete('/projects/:id', ResearchController.deleteProject);
+
+/**
+ * @route   GET /api/research/projects/:projectId/evidence
+ * @desc    List project evidence
+ * @access  Private
+ */
+router.get('/projects/:projectId/evidence', ResearchController.getProjectEvidence);
+
+/**
+ * @route   POST /api/research/projects/:projectId/evidence
+ * @desc    Create project evidence
+ * @access  Private
+ */
+router.post('/projects/:projectId/evidence', ResearchController.createProjectEvidence);
+
+/**
+ * @route   PUT /api/research/projects/:projectId/evidence/:evidenceId
+ * @desc    Update project evidence
+ * @access  Private
+ */
+router.put('/projects/:projectId/evidence/:evidenceId', ResearchController.updateProjectEvidence);
+
+/**
+ * @route   DELETE /api/research/projects/:projectId/evidence/:evidenceId
+ * @desc    Delete project evidence
+ * @access  Private
+ */
+router.delete('/projects/:projectId/evidence/:evidenceId', ResearchController.deleteProjectEvidence);
+
+/**
+ * @route   POST /api/research/projects/:projectId/evidence-attachments/:category
+ * @desc    Upload project evidence attachment
+ * @access  Private
+ */
+router.post(
+  '/projects/:projectId/evidence-attachments/:category',
+  authorizeProjectEvidenceUpload,
+  (req, res, next): void => {
+    const category = req.params.category as FileCategory;
+    res.locals.uploadStartedAt = Date.now();
+    logger.info('Project evidence attachment upload started', {
+      projectId: req.params.projectId,
+      category,
+      user: req.user?.username,
+      ip: req.ip,
+      cfRay: req.headers['cf-ray'],
+      contentLength: req.headers['content-length'],
+    });
+
+    const upload = createUploadMiddleware(category);
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        handleUploadError(err, req, res, next);
+        return;
+      }
+      next();
+    });
+  },
+  UploadController.uploadFile
+);
 
 /**
  * @route   POST /api/research/projects/:id/members
