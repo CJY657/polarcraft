@@ -216,6 +216,26 @@ export function HomePage() {
     <div className="clay-canvas min-h-screen">
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
+      {/* ============ NOTIFICATION BANNER ============ */}
+      <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-fit items-center justify-center rounded-full border border-clay-surface-strong bg-clay-surface-card px-4 py-2 text-sm shadow-sm transition-transform hover:-translate-y-0.5">
+          <span className="mr-3 flex items-center justify-center rounded-full bg-clay-pink px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white uppercase">
+            New
+          </span>
+          <span className="text-clay-body">
+            计算模拟现已上线<strong className="mx-1.5 font-semibold text-clay-ink">交互式偏振态模拟</strong>
+          </span>
+          <button 
+            type="button"
+            onClick={() => navigate('/demos')}
+            className="group ml-3 flex items-center gap-1 font-semibold text-clay-ink hover:underline"
+          >
+            去体验
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </div>
+
       <main className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:gap-14 lg:px-8 lg:pb-20 lg:pt-8">
         {/* ============ MODULES & IMAGES ============ */}
         <section
