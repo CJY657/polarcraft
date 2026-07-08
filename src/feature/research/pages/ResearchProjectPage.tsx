@@ -152,17 +152,17 @@ function ResearchInfoSection({
   };
 
   return (
-    <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: "var(--font-ui-display)" }}
           >
             研究信息
           </h2>
         </div>
-        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium sm:self-auto">
+        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-xs font-medium sm:self-auto">
           <ListChecks className="h-3.5 w-3.5" />
           问题与假设索引
         </span>
@@ -827,18 +827,18 @@ export function ResearchProjectPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:w-[26rem]">
-              <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">成员</p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--paper-foreground)]">{displayProject.member_count}</p>
+            <div className="flex flex-col gap-3 xl:w-[22rem]">
+              <div className="research-metric flex items-center justify-between rounded-[1.2rem] px-5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">成员</p>
+                <p className="text-2xl font-bold text-[var(--paper-foreground)]">{displayProject.member_count}</p>
               </div>
-              <div className="research-metric rounded-[1.45rem] p-4">
-                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">创建时间</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
+              <div className="research-metric flex items-center justify-between rounded-[1.2rem] px-5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">创建时间</p>
+                <p className="text-base font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</p>
               </div>
-              <div className="research-metric rounded-[1.45rem] p-4 sm:col-span-2">
-                <p className="text-sm uppercase tracking-[0.16em] text-[var(--glass-text-muted)]">协作方式</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
+              <div className="research-metric flex items-center justify-between rounded-[1.2rem] px-5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">协作方式</p>
+                <p className="text-base font-semibold text-[var(--paper-foreground)]">
                   {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
                 </p>
               </div>
@@ -875,16 +875,16 @@ export function ResearchProjectPage() {
 
         {/* Members Section */}
         {!isExampleProject && displayMembers.length > 0 && (
-          <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2
-                  className="text-2xl font-semibold text-[var(--paper-foreground)]"
+                  className="text-xl font-semibold text-[var(--paper-foreground)]"
                   style={{ fontFamily: "var(--font-ui-display)" }}
                 >
                   研究团队
                 </h2>
-                <p className="mt-2 text-base leading-6 text-[var(--glass-text-muted)]">
+                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
                   角色与权限说明白，协作会更顺。
                 </p>
               </div>
@@ -893,7 +893,7 @@ export function ResearchProjectPage() {
                 <button
                   onClick={() => setIsApplicationDialogOpen(true)}
                   className={cn(
-                    "relative inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium transition-all sm:self-auto",
+                    "relative inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium transition-all sm:self-auto",
                     pendingApplicationCount > 0
                       ? "glass-button glass-button-primary text-white"
                       : "glass-button"
@@ -929,7 +929,7 @@ export function ResearchProjectPage() {
                 return (
                   <div
                     key={memberKey}
-                    className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
+                    className="research-panel-soft flex items-center gap-3 rounded-[1.25rem] p-3"
                   >
                     <div
                       className={cn(

@@ -163,16 +163,16 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
   const challenge = buildProjectChallengeCard(project);
 
   return (
-    <section className={cn('research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6', className)}>
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className={cn('research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5', className)}>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: 'var(--font-ui-display)' }}
           >
             挑战卡
           </h2>
-          <p className="mt-2 max-w-2xl text-base leading-6 text-[var(--glass-text-muted)]">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
             把课题拆成学生可以直接理解的目标、角色和交付物。
           </p>
         </div>
