@@ -45,7 +45,7 @@ export function ProjectApplicationForm({
   const defaultRole = roleOptions[0]?.value || '';
   const userDisplayName = useMemo(
     () => formatUserIdentity(user, ''),
-    [user?.nickname, user?.real_name, user?.username]
+    [user?.nickname, user?.real_name, user?.show_real_name_publicly, user?.username]
   );
 
   const [educations, setEducations] = useState<UserEducation[]>([]);

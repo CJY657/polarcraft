@@ -616,6 +616,7 @@ export function ProjectEvidenceSection({
                       username: evidence.creator_username,
                       nickname: evidence.creator_nickname,
                       real_name: evidence.creator_real_name,
+                      show_real_name_publicly: evidence.creator_show_real_name_publicly,
                     }, '成员')}
                   </span>
                   <span>{formatEvidenceTime(evidence.created_at)}</span>

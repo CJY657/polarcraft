@@ -51,10 +51,10 @@ describe('AuthDialog registration', () => {
     openRegisterDialog();
   });
 
-  it('renders username as the public nickname and real-name fields', () => {
+  it('renders username and real-name fields', () => {
     renderDialog();
 
-    expect(screen.getByLabelText('用户名/对外昵称 *')).toHaveProperty('required', true);
+    expect(screen.getByLabelText('用户名 *')).toHaveProperty('required', true);
     expect(screen.getByLabelText('真实姓名 *')).toHaveProperty('required', true);
     expect(screen.queryByLabelText('昵称 *')).toBeNull();
   });
@@ -62,7 +62,7 @@ describe('AuthDialog registration', () => {
   it('submits username and real name during registration', async () => {
     renderDialog();
 
-    fireEvent.change(screen.getByLabelText('用户名/对外昵称 *'), {
+    fireEvent.change(screen.getByLabelText('用户名 *'), {
       target: { value: ' student-1 ' },
     });
     fireEvent.change(screen.getByLabelText('真实姓名 *'), {

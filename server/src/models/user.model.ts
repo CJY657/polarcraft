@@ -29,6 +29,28 @@ import { logger } from '../utils/logger.js';
 
 const usersCollection = () => getCollection('users');
 
+function normalizeOptionalText(value: string | null | undefined): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function normalizeNullableText(value: string | null | undefined): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
 export class UserModel {
   /**
    * Find user by ID
@@ -130,6 +152,7 @@ export class UserModel {
           username: 1,
           nickname: 1,
           real_name: 1,
+          show_real_name_publicly: 1,
           email: 1,
           role: 1,
           avatar_url: 1,
@@ -194,6 +217,7 @@ export class UserModel {
       username: input.username,
       nickname: null,
       real_name: input.real_name,
+      show_real_name_publicly: false,
       password_hash: passwordHash,
       client_salt: input.clientSalt,
       client_hash_algorithm: 'SHA-256',
@@ -219,20 +243,28 @@ export class UserModel {
    */
   static async updateProfile(
     id: string,
-    updates: Partial<Pick<User, 'username' | 'real_name' | 'email' | 'avatar_url'>>
+    updates: Partial<
+      Pick<
+        User,
+        'username' | 'real_name' | 'email' | 'avatar_url' | 'show_real_name_publicly'
+      >
+    >
   ): Promise<UserProfile | null> {
-    if (updates.username) {
-      const existing = await this.findByUsername(updates.username);
+    const username = normalizeOptionalText(updates.username);
+
+    if (username) {
+      const existing = await this.findByUsername(username);
       if (existing && existing.id !== id) {
         throw new AuthError('USER_ALREADY_EXISTS', '用户名已被使用', 409);
       }
     }
 
     const updateDoc = pickDefined({
-      username: updates.username,
-      real_name: updates.real_name,
+      username,
+      real_name: normalizeOptionalText(updates.real_name),
       email: updates.email,
       avatar_url: updates.avatar_url,
+      show_real_name_publicly: updates.show_real_name_publicly,
     });
 
     if (Object.keys(updateDoc).length === 0) {
@@ -340,6 +372,7 @@ export class UserModel {
       username: user.username,
       nickname: user.nickname ?? null,
       real_name: user.real_name ?? null,
+      show_real_name_publicly: user.show_real_name_publicly === true,
       role: user.role,
       avatar_url: user.avatar_url,
       email: user.email,
@@ -360,6 +393,7 @@ export class UserModel {
       username: user.username,
       nickname: user.nickname ?? null,
       real_name: user.real_name ?? null,
+      show_real_name_publicly: user.show_real_name_publicly === true,
       role: user.role,
       avatar_url: user.avatar_url,
       email: user.email,

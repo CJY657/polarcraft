@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
-import { getKnowledgeTagLabel, type CourseMedia, type MediaType } from '@/lib/course.service';
+import { getKnowledgeTagLabel, type CourseMedia, type KnowledgeTag, type MediaType } from '@/lib/course.service';
 import { Plus, Pencil, Trash2, FileText, Image, Video, GripVertical, Upload } from 'lucide-react';
 import { MediaFormDialog } from './MediaFormDialog';
 import { BatchMediaUploadDialog } from './BatchMediaUploadDialog';
@@ -16,9 +16,10 @@ import { BatchMediaUploadDialog } from './BatchMediaUploadDialog';
 interface MediaManagerProps {
   courseId: string;
   unitId?: string;
+  isGalleryResults?: boolean;
 }
 
-export function MediaManager({ courseId, unitId }: MediaManagerProps) {
+export function MediaManager({ courseId, unitId, isGalleryResults = false }: MediaManagerProps) {
   const { currentCourse, deleteMedia, deleteMediaBatch, reorderMedia, isLoading, error } =
     useCourseAdminStore();
 
@@ -31,10 +32,14 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
 
   const media = currentCourse?.media || [];
   const courseKnowledgeTag = currentCourse?.knowledgeTag || 'foundation';
+  const mediaNoun = isGalleryResults ? '成果文件' : '媒体资源';
+  const knowledgeTagOptions = isGalleryResults
+    ? [{ value: courseKnowledgeTag as KnowledgeTag, label: getKnowledgeTagLabel(courseKnowledgeTag, true) }]
+    : undefined;
   const selectedIdSet = useMemo(() => new Set(selectedMediaIds), [selectedMediaIds]);
   const allSelected = media.length > 0 && selectedMediaIds.length === media.length;
   const deleteTargetCount = deleteConfirmIds.length;
-  const deleteTargetLabel = deleteTargetCount > 1 ? `${deleteTargetCount} 个媒体资源` : '此媒体资源';
+  const deleteTargetLabel = deleteTargetCount > 1 ? `${deleteTargetCount} 个${mediaNoun}` : `此${mediaNoun}`;
 
   useEffect(() => {
     const validIds = new Set(media.map((item) => item.id));
@@ -119,6 +124,8 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
     switch (type) {
       case 'pptx':
         return <FileText className="w-5 h-5" />;
+      case 'pdf':
+        return <FileText className="w-5 h-5" />;
       case 'image':
         return <Image className="w-5 h-5" />;
       case 'video':
@@ -130,6 +137,8 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
     switch (type) {
       case 'pptx':
         return 'text-orange-400';
+      case 'pdf':
+        return 'text-red-400';
       case 'image':
         return 'text-green-400';
       case 'video':
@@ -142,7 +151,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-gray-400">
-          管理此实验的媒体资源。拖拽可重新排序。
+          管理此{isGalleryResults ? '成果' : '实验'}的{mediaNoun}。拖拽可重新排序。
         </p>
         <div className="flex items-center gap-2">
           {media.length > 0 && (
@@ -165,7 +174,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
             className="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
-            添加媒体
+            添加{isGalleryResults ? '文件' : '媒体'}
           </button>
         </div>
       </div>
@@ -173,7 +182,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
       {selectedMediaIds.length > 0 && (
         <div className="flex items-center justify-between gap-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-3">
           <p className="text-sm text-cyan-100">
-            已选中 {selectedMediaIds.length} 个媒体资源
+            已选中 {selectedMediaIds.length} 个{mediaNoun}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -275,12 +284,12 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
 
         {media.length === 0 && (
           <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700">
-            <p className="text-gray-400 mb-2">暂无媒体资源</p>
+            <p className="text-gray-400 mb-2">暂无{mediaNoun}</p>
             <button
               onClick={() => setIsCreateDialogOpen(true)}
               className="text-cyan-400 hover:text-cyan-300 text-sm"
             >
-              添加您的第一个媒体资源
+              添加您的第一个{mediaNoun}
             </button>
           </div>
         )}
@@ -293,6 +302,8 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
         courseId={courseId}
         unitId={unitId}
         courseKnowledgeTag={courseKnowledgeTag}
+        knowledgeTagOptions={knowledgeTagOptions}
+        isGalleryResults={isGalleryResults}
         mode="create"
       />
 
@@ -303,6 +314,7 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
         courseId={courseId}
         unitId={unitId}
         courseKnowledgeTag={courseKnowledgeTag}
+        isGalleryResults={isGalleryResults}
       />
 
       {/* Edit Dialog */}
@@ -313,6 +325,8 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
           media={editingMedia}
           unitId={unitId}
           courseKnowledgeTag={courseKnowledgeTag}
+          knowledgeTagOptions={knowledgeTagOptions}
+          isGalleryResults={isGalleryResults}
           mode="edit"
         />
       )}
@@ -321,9 +335,9 @@ export function MediaManager({ courseId, unitId }: MediaManagerProps) {
       {deleteConfirmIds.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-700">
-            <h3 className="text-xl font-semibold text-white mb-2">删除媒体？</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">删除{isGalleryResults ? '文件' : '媒体'}？</h3>
             <p className="text-gray-400 mb-6">
-              这将删除 {deleteTargetLabel}，并同时删除所有指向这些媒体的超链接。此操作无法撤销。
+              这将删除 {deleteTargetLabel}，并同时删除所有指向这些{mediaNoun}的超链接。此操作无法撤销。
             </p>
             <div className="flex justify-end gap-3">
               <button

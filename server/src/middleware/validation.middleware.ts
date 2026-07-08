@@ -181,6 +181,11 @@ export const validateUpdateProfile = validate(
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('真实姓名长度必须在 1-50 个字符之间'),
+  body('show_real_name_publicly')
+    .optional()
+    .isBoolean()
+    .withMessage('真实姓名展示设置必须是布尔值')
+    .toBoolean(),
   body('email')
     .optional()
     .trim()

@@ -41,6 +41,7 @@ type UserIdentity = {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   avatar_url: string | null;
 };
 
@@ -54,7 +55,7 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
   const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, show_real_name_publicly: 1, avatar_url: 1 })
       .toArray()
   );
 
@@ -64,7 +65,8 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
       {
         username: user.username,
         nickname: user.nickname ?? null,
-        real_name: user.real_name ?? null,
+        real_name: user.show_real_name_publicly === true ? user.real_name ?? null : null,
+        show_real_name_publicly: user.show_real_name_publicly === true,
         avatar_url: user.avatar_url ?? null,
       },
     ])
@@ -72,14 +74,14 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
 }
 
 async function resolveUserDisplayName(userId: string, fallback?: string): Promise<string> {
-  const user = normalizeDocument<Pick<UserIdentity, 'username' | 'nickname' | 'real_name'>>(
+  const user = normalizeDocument<Pick<UserIdentity, 'username' | 'real_name' | 'show_real_name_publicly'>>(
     await usersCollection().findOne(
       { id: userId },
-      { projection: { _id: 0, username: 1, nickname: 1, real_name: 1 } }
+      { projection: { _id: 0, username: 1, real_name: 1, show_real_name_publicly: 1 } }
     )
   );
-  const publicName = clean(user?.username) || clean(user?.nickname);
-  const realName = clean(user?.real_name);
+  const publicName = clean(user?.username);
+  const realName = user?.show_real_name_publicly === true ? clean(user?.real_name) : '';
 
   return publicName && realName && publicName !== realName
     ? `${publicName}（${realName}）`
@@ -118,6 +120,7 @@ async function enrichApplications(applications: ProjectApplication[]): Promise<P
       username: user?.username,
       nickname: user?.nickname ?? null,
       real_name: user?.real_name ?? null,
+      show_real_name_publicly: user?.show_real_name_publicly ?? false,
       avatar_url: user?.avatar_url,
       project_name: projectNameMap.get(application.project_id),
     };
@@ -186,11 +189,13 @@ async function enrichPublicProjects(
       owner_username: ownerUser?.username || null,
       owner_nickname: ownerUser?.nickname ?? null,
       owner_real_name: ownerUser?.real_name ?? null,
+      owner_show_real_name_publicly: ownerUser?.show_real_name_publicly ?? false,
       owner_avatar_url: ownerUser?.avatar_url || null,
       members: projectMembers.map((member) => ({
         username: userMap.get(member.user_id)?.username || '',
         nickname: userMap.get(member.user_id)?.nickname ?? null,
         real_name: userMap.get(member.user_id)?.real_name ?? null,
+        show_real_name_publicly: userMap.get(member.user_id)?.show_real_name_publicly ?? false,
         avatar_url: userMap.get(member.user_id)?.avatar_url || null,
         role: normalizeProjectRole(member.role) ?? 'member',
         member_role_label: member.member_role_label ?? null,
@@ -406,6 +411,7 @@ export class ProfileModel {
       username: userMap.get(profile.user_id)?.username,
       nickname: userMap.get(profile.user_id)?.nickname ?? null,
       real_name: userMap.get(profile.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(profile.user_id)?.show_real_name_publicly ?? false,
     }));
   }
 

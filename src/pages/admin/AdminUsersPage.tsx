@@ -99,6 +99,10 @@ function roleLabel(role: AdminUserListItem['role']): string {
   return role === 'admin' ? '管理员' : '普通用户';
 }
 
+function formatAdminUserIdentity(user: AdminUserListItem | null | undefined): string {
+  return formatUserIdentity(user, '用户', { includePrivateRealName: true });
+}
+
 function formatOptionalDateTime(value: string | null | undefined): string {
   return value ? formatDateTime(value) : '暂无记录';
 }
@@ -625,7 +629,7 @@ export default function AdminUsersPage() {
                             {item.avatar_url ? (
                               <img
                                 src={item.avatar_url}
-                                alt={formatUserIdentity(item)}
+                                alt={formatAdminUserIdentity(item)}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
@@ -633,7 +637,7 @@ export default function AdminUsersPage() {
                             )}
                           </div>
                           <div>
-                            <div className="font-medium">{formatUserIdentity(item)}</div>
+                            <div className="font-medium">{formatAdminUserIdentity(item)}</div>
                             <div className="text-xs text-slate-500">@{item.username}</div>
                           </div>
                         </div>
@@ -669,7 +673,7 @@ export default function AdminUsersPage() {
                       <td className="px-5 py-4">
                         <button
                           type="button"
-                          aria-label={`查看 ${formatUserIdentity(item)} 的详情`}
+                          aria-label={`查看 ${formatAdminUserIdentity(item)} 的详情`}
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedUser(item);
@@ -937,7 +941,7 @@ function UserDetailDialog({
               )}
             >
               {user?.avatar_url ? (
-                <img src={user.avatar_url} alt={formatUserIdentity(user)} className="h-full w-full object-cover" />
+                <img src={user.avatar_url} alt={formatAdminUserIdentity(user)} className="h-full w-full object-cover" />
               ) : (
                 <UserRound className="h-7 w-7 text-slate-400" />
               )}
@@ -945,7 +949,7 @@ function UserDetailDialog({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className={cn('text-xl font-semibold', strongText)}>
-                  {formatUserIdentity(user)}
+                  {formatAdminUserIdentity(user)}
                 </h2>
                 {user ? (
                   <ToneBadge tone={user.role === 'admin' ? 'cyan' : 'slate'} theme={theme}>

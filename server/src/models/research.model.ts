@@ -33,6 +33,7 @@ type UserIdentity = {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   avatar_url: string | null;
 };
 
@@ -44,7 +45,7 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
   const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, show_real_name_publicly: 1, avatar_url: 1 })
       .toArray()
   );
 
@@ -54,7 +55,8 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
       {
         username: user.username,
         nickname: user.nickname ?? null,
-        real_name: user.real_name ?? null,
+        real_name: user.show_real_name_publicly === true ? user.real_name ?? null : null,
+        show_real_name_publicly: user.show_real_name_publicly === true,
         avatar_url: user.avatar_url ?? null,
       },
     ])
@@ -529,6 +531,7 @@ export class ResearchModel {
       username: userMap.get(member.user_id)?.username || '',
       nickname: userMap.get(member.user_id)?.nickname ?? null,
       real_name: userMap.get(member.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(member.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
   }
@@ -628,6 +631,7 @@ export class ResearchModel {
       username: userMap.get(member.user_id)?.username || '',
       nickname: userMap.get(member.user_id)?.nickname ?? null,
       real_name: userMap.get(member.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(member.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(member.user_id)?.avatar_url || null,
     }));
   }
@@ -679,6 +683,7 @@ export class ResearchModel {
       creator_username: userMap.get(item.created_by)?.username || '',
       creator_nickname: userMap.get(item.created_by)?.nickname ?? null,
       creator_real_name: userMap.get(item.created_by)?.real_name ?? null,
+      creator_show_real_name_publicly: userMap.get(item.created_by)?.show_real_name_publicly ?? false,
       creator_avatar_url: userMap.get(item.created_by)?.avatar_url || null,
     }));
   }
@@ -1159,6 +1164,7 @@ export class ResearchModel {
       username: userMap.get(comment.user_id)?.username || '',
       nickname: userMap.get(comment.user_id)?.nickname ?? null,
       real_name: userMap.get(comment.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(comment.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
   }
@@ -1230,6 +1236,7 @@ export class ResearchModel {
       username: userMap.get(comment.user_id)?.username || '',
       nickname: userMap.get(comment.user_id)?.nickname ?? null,
       real_name: userMap.get(comment.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(comment.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
     }));
   }
@@ -1410,6 +1417,7 @@ export class ResearchModel {
       username: userMap.get(activity.user_id)?.username || '',
       nickname: userMap.get(activity.user_id)?.nickname ?? null,
       real_name: userMap.get(activity.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(activity.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(activity.user_id)?.avatar_url || null,
     }));
   }

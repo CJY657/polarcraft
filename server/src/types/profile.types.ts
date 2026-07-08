@@ -99,6 +99,7 @@ export interface ProjectCreatorProfile {
   username?: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
 }
 
 export interface CreateCreatorProfileInput {
@@ -139,6 +140,7 @@ export interface ProjectApplication {
   username?: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
   avatar_url?: string | null;
   project_name?: string;
 }

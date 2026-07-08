@@ -17,6 +17,7 @@ interface CourseFormDialogProps {
   onClose: () => void;
   mode: 'create' | 'edit';
   course?: Course;
+  knowledgeTagOptions?: { value: KnowledgeTag; label: string }[];
 }
 
 const DEFAULT_COLOR = '#C9A227';
@@ -25,7 +26,13 @@ const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
   { value: 'optical_device', label: '光学设备' },
 ];
 
-export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDialogProps) {
+export function CourseFormDialog({
+  isOpen,
+  onClose,
+  mode,
+  course,
+  knowledgeTagOptions = KNOWLEDGE_TAG_OPTIONS,
+}: CourseFormDialogProps) {
   const { createCourse, updateCourse, isLoading, error } = useCourseAdminStore();
 
   const [formData, setFormData] = useState({
@@ -213,7 +220,7 @@ export function CourseFormDialog({ isOpen, onClose, mode, course }: CourseFormDi
               }
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
-              {KNOWLEDGE_TAG_OPTIONS.map((option) => (
+              {knowledgeTagOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

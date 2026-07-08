@@ -29,6 +29,7 @@ import type {
   CreateHyperlinkInput,
   UpdateHyperlinkInput,
   KnowledgeTag,
+  MediaType,
 } from "../types/course.types.js";
 
 // ============================================================
@@ -36,7 +37,14 @@ import type {
 // ============================================================
 
 const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = "foundation";
-const KNOWLEDGE_TAGS = new Set<KnowledgeTag>(["foundation", "optical_device"]);
+const KNOWLEDGE_TAGS = new Set<KnowledgeTag>([
+  "foundation",
+  "optical_device",
+  "student_ppt",
+  "student_poster",
+  "student_project",
+]);
+const MEDIA_TYPES = new Set<MediaType>(["pptx", "pdf", "image", "video"]);
 
 function normalizeKnowledgeTag(
   value: unknown,
@@ -64,6 +72,23 @@ function parseKnowledgeTagInput(value: unknown): KnowledgeTag | undefined | null
   return trimmed as KnowledgeTag;
 }
 
+function parseMediaTypeInput(value: unknown): MediaType | undefined | null {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!MEDIA_TYPES.has(trimmed as MediaType)) {
+    return null;
+  }
+
+  return trimmed as MediaType;
+}
+
 /**
  * Transform course row to API response format
  */
@@ -84,6 +109,7 @@ function transformCourseRow(row: CourseRow) {
     coverImage: row.cover_image || undefined,
     color: row.color,
     knowledgeTag,
+    sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -144,6 +170,7 @@ function transformDiscussionCommentRow(
     username: string;
     nickname: string | null;
     real_name: string | null;
+    show_real_name_publicly: boolean;
     avatar_url: string | null;
     resource_title_zh: string | null;
     resource_title_en: string | null;
@@ -157,6 +184,7 @@ function transformDiscussionCommentRow(
     username: row.username,
     nickname: row.nickname,
     realName: row.real_name,
+    showRealNamePublicly: row.show_real_name_publicly,
     avatarUrl: row.avatar_url,
     content: row.content,
     imageUrls: row.image_urls,
@@ -770,11 +798,16 @@ export class CourseController {
   static createMedia = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    const parsedMediaType = parseMediaTypeInput(req.body.type);
     if (parsedKnowledgeTag === null) {
       return res.error("知识分类无效", "VALIDATION_ERROR", 400);
     }
 
-    if (!req.body.type || !req.body.url || !req.body.title_zh) {
+    if (parsedMediaType === null) {
+      return res.error("媒体类型无效", "VALIDATION_ERROR", 400);
+    }
+
+    if (!parsedMediaType || !req.body.url || !req.body.title_zh) {
       return res.error("缺少必要字段", "VALIDATION_ERROR", 400);
     }
 
@@ -786,6 +819,7 @@ export class CourseController {
     const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
     const data: CreateMediaInput = {
       ...req.body,
+      type: parsedMediaType,
       knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
     };
 
@@ -803,8 +837,13 @@ export class CourseController {
   static updateMedia = asyncHandler(async (req: Request, res: Response) => {
     const { mediaId } = req.params;
     const parsedKnowledgeTag = parseKnowledgeTagInput(req.body.knowledgeTag);
+    const parsedMediaType = parseMediaTypeInput(req.body.type);
     if (parsedKnowledgeTag === null) {
       return res.error("知识分类无效", "VALIDATION_ERROR", 400);
+    }
+
+    if (parsedMediaType === null) {
+      return res.error("媒体类型无效", "VALIDATION_ERROR", 400);
     }
 
     const media = await CourseModel.getMediaById(mediaId);
@@ -816,6 +855,7 @@ export class CourseController {
     const courseKnowledgeTag = normalizeKnowledgeTag(course?.knowledge_tag);
     const data: UpdateMediaInput = {
       ...req.body,
+      ...(parsedMediaType ? { type: parsedMediaType } : {}),
       knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
     };
 

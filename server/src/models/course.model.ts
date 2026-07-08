@@ -36,6 +36,7 @@ type UserIdentity = {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   avatar_url: string | null;
 };
 
@@ -47,7 +48,7 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
   const users = normalizeDocuments<UserIdentity & { id: string }>(
     await usersCollection()
       .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, avatar_url: 1 })
+      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, show_real_name_publicly: 1, avatar_url: 1 })
       .toArray()
   );
 
@@ -57,7 +58,8 @@ async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>>
       {
         username: user.username,
         nickname: user.nickname ?? null,
-        real_name: user.real_name ?? null,
+        real_name: user.show_real_name_publicly === true ? user.real_name ?? null : null,
+        show_real_name_publicly: user.show_real_name_publicly === true,
         avatar_url: user.avatar_url,
       },
     ])
@@ -254,6 +256,7 @@ export class CourseModel {
     username: string;
     nickname: string | null;
     real_name: string | null;
+    show_real_name_publicly: boolean;
     avatar_url: string | null;
     resource_title_zh: string | null;
     resource_title_en: string | null;
@@ -301,6 +304,7 @@ export class CourseModel {
       username: userMap.get(comment.user_id)?.username || '',
       nickname: userMap.get(comment.user_id)?.nickname ?? null,
       real_name: userMap.get(comment.user_id)?.real_name ?? null,
+      show_real_name_publicly: userMap.get(comment.user_id)?.show_real_name_publicly ?? false,
       avatar_url: userMap.get(comment.user_id)?.avatar_url || null,
       resource_title_zh: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_zh ?? null : null,
       resource_title_en: comment.resource_id ? resourceMap.get(comment.resource_id)?.title_en ?? null : null,

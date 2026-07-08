@@ -16,6 +16,7 @@ interface WorksGridProps {
   emptyHint?: string;
   showCta?: boolean;
   from?: "gallery" | "lab";
+  onWorkClick?: (work: GalleryWork) => void;
   cta?: {
     title: string;
     description: string;
@@ -30,12 +31,19 @@ export function WorksGrid({
   emptyHint,
   showCta = false,
   from = "gallery",
+  onWorkClick,
   cta,
 }: WorksGridProps) {
   const { theme } = useTheme();
   const navigate = useNavigate();
 
-  const handleCardClick = (workId: string) => {
+  const handleCardClick = (work: GalleryWork) => {
+    if (onWorkClick) {
+      onWorkClick(work);
+      return;
+    }
+
+    const workId = work.id;
     navigate(`/gallery/work/${workId}`, { state: { from } });
   };
 
@@ -73,7 +81,7 @@ export function WorksGrid({
             <WorkCard
               key={work.id}
               work={work}
-              onClick={() => handleCardClick(work.id)}
+              onClick={() => handleCardClick(work)}
             />
           ))}
         </div>

@@ -32,13 +32,15 @@ interface BatchMediaUploadDialogProps {
   courseId: string;
   unitId?: string;
   courseKnowledgeTag?: KnowledgeTag;
+  isGalleryResults?: boolean;
 }
 
-const ACCEPT_ALL_MEDIA = '.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.pptx,.ppt';
+const ACCEPT_ALL_MEDIA = '.jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.pptx,.ppt,.pdf';
 
 const TYPE_ICONS: Record<MediaType, typeof File> = {
   image: Image,
   video: Video,
+  pdf: FileText,
   pptx: FileText,
 };
 
@@ -47,6 +49,7 @@ const getMediaTypeFromFile = (file: File): MediaType | null => {
   if (category === 'image') return 'image';
   if (category === 'video') return 'video';
   if (category === 'pptx') return 'pptx';
+  if (category === 'pdf') return 'pdf';
   return null;
 };
 
@@ -73,6 +76,7 @@ export function BatchMediaUploadDialog({
   courseId,
   unitId,
   courseKnowledgeTag = 'foundation',
+  isGalleryResults = false,
 }: BatchMediaUploadDialogProps) {
   const { createMedia } = useCourseAdminStore();
   const [files, setFiles] = useState<FileUploadItem[]>([]);
@@ -197,13 +201,14 @@ export function BatchMediaUploadDialog({
   const errorCount = files.filter((f) => f.status === 'error').length;
 
   if (!isOpen) return null;
+  const entityName = isGalleryResults ? '成果文件' : '媒体';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-xl p-6 max-w-2xl w-full mx-4 border border-slate-700 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-white">批量上传媒体</h3>
+          <h3 className="text-xl font-semibold text-white">批量上传{entityName}</h3>
           <button
             onClick={handleClose}
             disabled={isUploading}
@@ -240,7 +245,7 @@ export function BatchMediaUploadDialog({
             拖放文件到此处或点击选择
           </p>
           <p className="text-xs text-gray-500">
-            支持: 图片、视频、PowerPoint
+            支持: 图片、视频、PowerPoint、PDF
           </p>
         </div>
 

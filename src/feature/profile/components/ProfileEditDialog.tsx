@@ -30,6 +30,7 @@ export function ProfileEditDialog({
   const [formData, setFormData] = useState({
     username: '',
     realName: '',
+    showRealNamePublicly: false,
     email: '',
   });
   const [error, setError] = useState('');
@@ -41,6 +42,7 @@ export function ProfileEditDialog({
       setFormData({
         username: user.username || '',
         realName: user.real_name || '',
+        showRealNamePublicly: user.show_real_name_publicly === true,
         email: user.email || '',
       });
       setError('');
@@ -81,6 +83,7 @@ export function ProfileEditDialog({
       await authApi.updateProfile({
         username: formData.username.trim(),
         real_name: formData.realName.trim(),
+        show_real_name_publicly: formData.showRealNamePublicly,
         email: formData.email.trim() || undefined,
       });
       onSuccess();
@@ -133,7 +136,7 @@ export function ProfileEditDialog({
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
               )}
             >
-              {t('profile.editProfile.username', '用户名/对外昵称')} *
+              {t('profile.editProfile.username', '用户名')} *
             </label>
             <input
               type="text"
@@ -172,6 +175,26 @@ export function ProfileEditDialog({
               )}
             />
           </div>
+
+          <label
+            className={cn(
+              'flex items-center gap-2 text-sm',
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={formData.showRealNamePublicly}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  showRealNamePublicly: e.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>{t('profile.editProfile.showRealNamePublicly', '公开显示真实姓名')}</span>
+          </label>
 
           {/* Email */}
           <div>

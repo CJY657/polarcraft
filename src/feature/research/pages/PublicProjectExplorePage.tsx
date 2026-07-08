@@ -381,6 +381,7 @@ export function PublicProjectExplorePage() {
                         username: project.owner_username,
                         nickname: project.owner_nickname,
                         real_name: project.owner_real_name,
+                        show_real_name_publicly: project.owner_show_real_name_publicly,
                       }, "暂未署名")}
                     </p>
                     <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">

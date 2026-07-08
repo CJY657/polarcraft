@@ -116,6 +116,7 @@ const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 // Admin Pages - 管理员页面
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
 const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
+const AdminGalleryPage = lazy(() => import("@/pages/admin/AdminGalleryPage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin/AdminFeedbackPage"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
@@ -419,6 +420,22 @@ function AppRouterContent() {
             element={
               <AdminRoute>
                 <AdminUsersPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/gallery"
+            element={
+              <AdminRoute>
+                <AdminGalleryPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/gallery/:courseId"
+            element={
+              <AdminRoute>
+                <CourseEditorPage />
               </AdminRoute>
             }
           />

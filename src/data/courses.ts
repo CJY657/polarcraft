@@ -12,8 +12,8 @@ import type { KnowledgeTag } from "@/lib/course.service";
 // Types - 类型定义
 // ============================================================
 
-/** 媒体类型（不包含 PDF，PDF 作为主课件单独处理） */
-export type MediaType = "pptx" | "image" | "video";
+/** 媒体类型 */
+export type MediaType = "pptx" | "pdf" | "image" | "video";
 
 /** 主课件（PDF） */
 export interface MainSlide {
@@ -79,7 +79,7 @@ export interface CourseData {
   mainSlide?: MainSlide;
   /** PPT/PDF 预览上的超链接区域 */
   hyperlinks?: PdfHyperlink[];
-  /** 媒体资源列表（不包含 PDF） */
+  /** 媒体资源列表 */
   media: MediaResource[];
   /** 最后更新时间 */
   lastUpdated: string;

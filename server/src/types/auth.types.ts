@@ -16,6 +16,7 @@ export interface User {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly?: boolean;
   password_hash: string;
   client_salt: string;
   client_hash_algorithm: string;
@@ -35,6 +36,7 @@ export interface UserProfile {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   role: UserRole;
   avatar_url: string | null;
   email: string | null;
@@ -48,6 +50,7 @@ export interface UserProfile {
 export interface UpdateProfileInput {
   username?: string;
   real_name?: string;
+  show_real_name_publicly?: boolean;
   email?: string;
   avatar_url?: string;
 }

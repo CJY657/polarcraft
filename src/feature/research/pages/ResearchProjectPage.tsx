@@ -593,11 +593,13 @@ export function ResearchProjectPage() {
     owner_username: projectOwner?.username ?? null,
     owner_nickname: projectOwner?.nickname ?? null,
     owner_real_name: projectOwner?.real_name ?? null,
+    owner_show_real_name_publicly: projectOwner?.show_real_name_publicly ?? false,
     owner_avatar_url: projectOwner?.avatar_url ?? null,
     members: project.members.map((member) => ({
       username: member.username,
       nickname: member.nickname ?? null,
       real_name: member.real_name ?? null,
+      show_real_name_publicly: member.show_real_name_publicly ?? false,
       avatar_url: member.avatar_url,
       role: member.role,
       member_role_label: member.member_role_label ?? null,

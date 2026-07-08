@@ -4186,9 +4186,10 @@
     "editProfile": {
       "button": "编辑资料",
       "title": "编辑个人资料",
-      "username": "用户名/对外昵称",
+      "username": "用户名",
+      "showRealNamePublicly": "公开显示真实姓名",
       "email": "邮箱",
-      "usernamePlaceholder": "请输入用户名/对外昵称",
+      "usernamePlaceholder": "请输入用户名",
       "emailPlaceholder": "请输入邮箱",
       "usernameRequired": "用户名不能为空",
       "usernameLength": "用户名长度必须在 3-50 个字符之间",

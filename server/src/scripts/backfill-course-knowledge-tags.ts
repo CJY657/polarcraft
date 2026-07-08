@@ -35,7 +35,9 @@ type CourseKnowledgeTagDocument = CourseTagCandidate & {
   knowledge_tag?: KnowledgeTag | '' | null;
 };
 
-export function inferCourseKnowledgeTag(course: CourseTagCandidate): KnowledgeTag {
+type BackfillKnowledgeTag = Extract<KnowledgeTag, 'foundation' | 'optical_device'>;
+
+export function inferCourseKnowledgeTag(course: CourseTagCandidate): BackfillKnowledgeTag {
   const searchableText = [
     course.title_zh,
     course.title_en,
@@ -74,7 +76,7 @@ async function main(): Promise<void> {
     })
     .toArray();
 
-  const courseIdsByTag: Record<KnowledgeTag, string[]> = {
+  const courseIdsByTag: Record<BackfillKnowledgeTag, string[]> = {
     foundation: [],
     optical_device: [],
   };
@@ -84,7 +86,7 @@ async function main(): Promise<void> {
   }
 
   const courseUpdateResults = await Promise.all(
-    (Object.keys(courseIdsByTag) as KnowledgeTag[]).map((knowledgeTag) => {
+    (Object.keys(courseIdsByTag) as BackfillKnowledgeTag[]).map((knowledgeTag) => {
       const ids = courseIdsByTag[knowledgeTag];
       if (ids.length === 0) {
         return Promise.resolve({ knowledgeTag, modifiedCount: 0 });
@@ -112,7 +114,7 @@ async function main(): Promise<void> {
     )
     .toArray();
 
-  const taggedCourseIdsByTag: Record<KnowledgeTag, string[]> = {
+  const taggedCourseIdsByTag: Record<BackfillKnowledgeTag, string[]> = {
     foundation: [],
     optical_device: [],
   };
@@ -120,12 +122,13 @@ async function main(): Promise<void> {
 
   for (const course of taggedCourses) {
     taggedCourseIds.add(course.id);
-    const knowledgeTag = course.knowledge_tag === 'optical_device' ? 'optical_device' : 'foundation';
-    taggedCourseIdsByTag[knowledgeTag].push(course.id);
+    if (course.knowledge_tag === 'foundation' || course.knowledge_tag === 'optical_device') {
+      taggedCourseIdsByTag[course.knowledge_tag].push(course.id);
+    }
   }
 
   const resourceUpdateResults = await Promise.all(
-    (Object.keys(taggedCourseIdsByTag) as KnowledgeTag[]).flatMap((knowledgeTag) => {
+    (Object.keys(taggedCourseIdsByTag) as BackfillKnowledgeTag[]).flatMap((knowledgeTag) => {
       const ids = taggedCourseIdsByTag[knowledgeTag];
       if (ids.length === 0) {
         return [

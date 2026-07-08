@@ -122,7 +122,7 @@ describe('ProfileModel.createApplication', () => {
         $set: expect.objectContaining({
           status: 'pending',
           review_notes: null,
-          display_name: 'candidate（候选人）',
+          display_name: 'candidate',
           desired_role: '观察记录员',
           proposed_contribution: '整理第一轮观察记录',
           weekly_time_commitment: '每周 2 小时',
@@ -227,9 +227,10 @@ describe('ProfileModel.getPublicProjectById', () => {
         owner_username: '组长',
         owner_nickname: null,
         owner_real_name: null,
+        owner_show_real_name_publicly: false,
         members: [
-          { username: '组长', nickname: null, real_name: null, avatar_url: null, role: 'owner', member_role_label: null },
-          { username: '成员', nickname: null, real_name: null, avatar_url: null, role: 'member', member_role_label: '数据整理' },
+          { username: '组长', nickname: null, real_name: null, show_real_name_publicly: false, avatar_url: null, role: 'owner', member_role_label: null },
+          { username: '成员', nickname: null, real_name: null, show_real_name_publicly: false, avatar_url: null, role: 'member', member_role_label: '数据整理' },
         ],
       })
     );

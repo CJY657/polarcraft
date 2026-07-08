@@ -32,13 +32,20 @@ import type {
 // ============================================================
 
 const DEFAULT_KNOWLEDGE_TAG: KnowledgeTag = "foundation";
+const KNOWLEDGE_TAGS = new Set<KnowledgeTag>([
+  "foundation",
+  "optical_device",
+  "student_ppt",
+  "student_poster",
+  "student_project",
+]);
 
 function normalizeKnowledgeTag(
   value: unknown,
   fallback: KnowledgeTag = DEFAULT_KNOWLEDGE_TAG
 ): KnowledgeTag {
-  return value === "optical_device" || value === "foundation"
-    ? value
+  return typeof value === "string" && KNOWLEDGE_TAGS.has(value as KnowledgeTag)
+    ? (value as KnowledgeTag)
     : fallback;
 }
 
@@ -97,6 +104,7 @@ function transformCourseRowSimple(row: CourseRow) {
     coverImage: row.cover_image || undefined,
     color: row.color,
     knowledgeTag,
+    sortOrder: row.sort_order,
   };
 }
 

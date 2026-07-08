@@ -33,6 +33,7 @@ export const uploadConfig = {
     image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
     video: ['video/mp4', 'video/webm', 'video/quicktime'],
     pptx: [
+      'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
     ],
@@ -47,4 +48,3 @@ export const uploadConfig = {
     pptx: ['.pptx', '.ppt'],
   },
 };
-

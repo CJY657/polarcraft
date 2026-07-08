@@ -4,16 +4,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { mockCourseModel, mockManagedUploadCleanupService, mockFsStatSync } = vi.hoisted(() => ({
   mockCourseModel: {
     getCourseById: vi.fn(),
+    getAllCourses: vi.fn(),
     getMainSlide: vi.fn(),
     getMediaByCourse: vi.fn(),
     getHyperlinksByCourse: vi.fn(),
     getMediaById: vi.fn(),
     getMediaByIds: vi.fn(),
     createCourse: vi.fn(),
+    updateCourse: vi.fn(),
+    deleteCourse: vi.fn(),
     createMedia: vi.fn(),
     deleteMediaBatch: vi.fn(),
   },
   mockManagedUploadCleanupService: {
+    collectCourseResourceUrls: vi.fn(),
     cleanupUrls: vi.fn(),
   },
   mockFsStatSync: vi.fn(),
@@ -262,6 +266,249 @@ describe('CourseController knowledge tags', () => {
       '媒体资源创建成功',
       201
     );
+  });
+
+  it('round-trips gallery result categories and PDF media', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue({
+      id: 'result-poster',
+      unit_id: 'gallery-results',
+      title_zh: '偏振海报',
+      title_en: null,
+      description_zh: '学生海报成果',
+      description_en: null,
+      cover_image: '/uploads/courses/gallery-results/image/cover.png',
+      color: '#264653',
+      knowledge_tag: 'student_poster',
+      sort_order: 3,
+      created_at: now,
+      updated_at: now,
+    });
+    mockCourseModel.getMainSlide.mockResolvedValue(null);
+    mockCourseModel.getMediaByCourse.mockResolvedValue([
+      {
+        id: 'poster-pdf',
+        course_id: 'result-poster',
+        type: 'pdf',
+        url: '/uploads/courses/gallery-results/pdf/poster.pdf',
+        preview_pdf_url: null,
+        title_zh: '海报 PDF',
+        title_en: null,
+        knowledge_tag: 'student_poster',
+        duration: null,
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+    mockCourseModel.getHyperlinksByCourse.mockResolvedValue([]);
+
+    const req = {
+      params: { id: 'result-poster' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.getCourse, req, res);
+
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'result-poster',
+        unitId: 'gallery-results',
+        knowledgeTag: 'student_poster',
+        sortOrder: 3,
+        media: [expect.objectContaining({ type: 'pdf', knowledgeTag: 'student_poster' })],
+      })
+    );
+  });
+
+  it('lists gallery result categories with PDF media', async () => {
+    mockCourseModel.getAllCourses.mockResolvedValue([
+      {
+        id: 'result-project',
+        unit_id: 'gallery-results',
+        title_zh: '偏振项目',
+        title_en: null,
+        description_zh: '学生项目成果',
+        description_en: null,
+        cover_image: null,
+        color: '#264653',
+        knowledge_tag: 'student_project',
+        sort_order: 1,
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+    mockCourseModel.getMainSlide.mockResolvedValue(null);
+    mockCourseModel.getMediaByCourse.mockResolvedValue([
+      {
+        id: 'project-pdf',
+        course_id: 'result-project',
+        type: 'pdf',
+        url: '/uploads/courses/gallery-results/pdf/project.pdf',
+        preview_pdf_url: null,
+        title_zh: '项目 PDF',
+        title_en: null,
+        knowledge_tag: 'student_project',
+        duration: null,
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
+      },
+    ]);
+    mockCourseModel.getHyperlinksByCourse.mockResolvedValue([]);
+
+    const req = {};
+    const res = createResponse();
+
+    await invokeHandler(CourseController.getAllCourses, req, res);
+
+    expect(res.success).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: 'result-project',
+        unitId: 'gallery-results',
+        knowledgeTag: 'student_project',
+        media: [expect.objectContaining({ type: 'pdf', knowledgeTag: 'student_project' })],
+      }),
+    ]);
+  });
+
+  it('accepts result categories when creating a gallery result course', async () => {
+    mockCourseModel.createCourse.mockResolvedValue('result-ppt');
+    mockCourseModel.getCourseById.mockResolvedValue({
+      id: 'result-ppt',
+      unit_id: 'gallery-results',
+      title_zh: '偏振汇报',
+      title_en: null,
+      description_zh: null,
+      description_en: null,
+      cover_image: null,
+      color: '#264653',
+      knowledge_tag: 'student_ppt',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+
+    const req = {
+      body: {
+        unitId: 'gallery-results',
+        title_zh: '偏振汇报',
+        knowledgeTag: 'student_ppt',
+        color: '#264653',
+      },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.createCourse, req, res);
+
+    expect(mockCourseModel.createCourse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        unitId: 'gallery-results',
+        title_zh: '偏振汇报',
+        knowledgeTag: 'student_ppt',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'result-ppt', knowledgeTag: 'student_ppt' }),
+      '课程创建成功',
+      201
+    );
+  });
+
+  it('accepts result categories when updating a gallery result course', async () => {
+    mockCourseModel.getCourseById
+      .mockResolvedValueOnce({
+        id: 'result-poster',
+        unit_id: 'gallery-results',
+        title_zh: '旧海报',
+        title_en: null,
+        description_zh: null,
+        description_en: null,
+        cover_image: null,
+        color: '#264653',
+        knowledge_tag: 'student_poster',
+        sort_order: 0,
+        created_at: now,
+        updated_at: now,
+      })
+      .mockResolvedValueOnce({
+        id: 'result-poster',
+        unit_id: 'gallery-results',
+        title_zh: '新海报',
+        title_en: null,
+        description_zh: null,
+        description_en: null,
+        cover_image: null,
+        color: '#264653',
+        knowledge_tag: 'student_poster',
+        sort_order: 2,
+        created_at: now,
+        updated_at: now,
+      });
+    mockCourseModel.updateCourse.mockResolvedValue(true);
+
+    const req = {
+      params: { id: 'result-poster' },
+      body: {
+        title_zh: '新海报',
+        knowledgeTag: 'student_poster',
+        sortOrder: 2,
+      },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.updateCourse, req, res);
+
+    expect(mockCourseModel.updateCourse).toHaveBeenCalledWith(
+      'result-poster',
+      expect.objectContaining({
+        title_zh: '新海报',
+        knowledgeTag: 'student_poster',
+        sortOrder: 2,
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'result-poster', knowledgeTag: 'student_poster', sortOrder: 2 })
+    );
+  });
+
+  it('deletes gallery result courses and asks cleanup to prune managed files', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue({
+      id: 'result-project',
+      unit_id: 'gallery-results',
+      title_zh: '学生项目',
+      title_en: null,
+      description_zh: null,
+      description_en: null,
+      cover_image: null,
+      color: '#264653',
+      knowledge_tag: 'student_project',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    });
+    mockManagedUploadCleanupService.collectCourseResourceUrls.mockResolvedValue([
+      '/uploads/courses/gallery-results/pdf/project.pdf',
+    ]);
+    mockCourseModel.deleteCourse.mockResolvedValue(true);
+    mockManagedUploadCleanupService.cleanupUrls.mockResolvedValue(undefined);
+
+    const req = {
+      params: { id: 'result-project' },
+      user: { username: 'admin' },
+    };
+    const res = createResponse();
+
+    await invokeHandler(CourseController.deleteCourse, req, res);
+
+    expect(mockManagedUploadCleanupService.collectCourseResourceUrls).toHaveBeenCalledWith('result-project');
+    expect(mockCourseModel.deleteCourse).toHaveBeenCalledWith('result-project');
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/gallery-results/pdf/project.pdf'],
+      { reason: 'course.delete:result-project' }
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '课程删除成功');
   });
 
   it('rejects invalid knowledge tags when creating a course', async () => {

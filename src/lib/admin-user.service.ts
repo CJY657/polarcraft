@@ -10,6 +10,7 @@ export interface AdminUserListItem {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   role: 'user' | 'admin';
   avatar_url: string | null;
   email: string | null;

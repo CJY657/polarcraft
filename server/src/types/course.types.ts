@@ -16,9 +16,14 @@ export interface LabelI18n {
 // Media Types / 媒体类型
 // =====================================================
 
-export type MediaType = 'pptx' | 'image' | 'video';
+export type MediaType = 'pptx' | 'pdf' | 'image' | 'video';
 
-export type KnowledgeTag = 'foundation' | 'optical_device';
+export type KnowledgeTag =
+  | 'foundation'
+  | 'optical_device'
+  | 'student_ppt'
+  | 'student_poster'
+  | 'student_project';
 
 // =====================================================
 // Course Types / 课程类型
@@ -61,6 +66,7 @@ export interface Course {
   coverImage?: string;
   color: string;
   knowledgeTag: KnowledgeTag;
+  sortOrder: number;
   mainSlide?: CourseMainSlide;
   media: CourseMedia[];
   hyperlinks: CourseHyperlink[];
@@ -215,6 +221,7 @@ export interface CourseDiscussionCommentRow {
   user_id: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
   parent_comment_id: string | null;
   content: string;
   image_urls: string[];

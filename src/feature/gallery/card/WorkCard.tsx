@@ -12,6 +12,7 @@ interface WorkCardProps {
 export function WorkCard({ work, onClick }: WorkCardProps) {
   const { theme } = useTheme();
   const { i18n } = useTranslation();
+  const badgeLabel = work.subtitle?.[i18n.language] || work.subtitle?.["zh-CN"] || "Gallery Item";
 
   return (
     <div
@@ -40,7 +41,7 @@ export function WorkCard({ work, onClick }: WorkCardProps) {
       <div className="p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="glass-chip rounded-full border px-3 py-1 text-[11px] font-medium text-[var(--glass-text-muted)]">
-            Gallery Item
+            {badgeLabel}
           </span>
           <span className="text-xs font-medium text-[var(--paper-accent)]">
             {work.views} views

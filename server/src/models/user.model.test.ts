@@ -89,6 +89,7 @@ describe('UserModel admin queries', () => {
         username: 'alice',
         nickname: 'Alice Nick',
         real_name: 'Alice Wang',
+        show_real_name_publicly: false,
         email: 'alice@example.com',
         role: 'admin',
         avatar_url: null,
@@ -132,6 +133,7 @@ describe('UserModel admin queries', () => {
       username: 1,
       nickname: 1,
       real_name: 1,
+      show_real_name_publicly: 1,
       email: 1,
       role: 1,
       avatar_url: 1,
@@ -151,6 +153,7 @@ describe('UserModel admin queries', () => {
           username: 'alice',
           nickname: 'Alice Nick',
           real_name: 'Alice Wang',
+          show_real_name_publicly: false,
           email: 'alice@example.com',
           role: 'admin',
           avatar_url: null,
@@ -172,6 +175,7 @@ describe('UserModel admin queries', () => {
       username: 'bob',
       nickname: undefined,
       real_name: undefined,
+      show_real_name_publicly: undefined,
       email: 'bob@example.com',
       role: 'user',
       avatar_url: null,
@@ -190,6 +194,7 @@ describe('UserModel admin queries', () => {
       username: 'bob',
       nickname: null,
       real_name: null,
+      show_real_name_publicly: false,
       email: 'bob@example.com',
       role: 'user',
       avatar_url: null,
@@ -202,7 +207,7 @@ describe('UserModel admin queries', () => {
     expect(usersFindOne).toHaveBeenCalledWith({ id: 'inactive-user' });
   });
 
-  it('creates users with username as public nickname and legacy nickname unset', async () => {
+  it('creates users with legacy nickname unset', async () => {
     usersFindOne.mockResolvedValueOnce(null);
     usersInsertOne.mockResolvedValueOnce({ acknowledged: true });
 
@@ -219,6 +224,7 @@ describe('UserModel admin queries', () => {
       username: 'new-user',
       nickname: null,
       real_name: 'New User',
+      show_real_name_publicly: false,
       email: 'new@example.com',
     });
     expect(usersInsertOne).toHaveBeenCalledWith(
@@ -226,18 +232,20 @@ describe('UserModel admin queries', () => {
         username: 'new-user',
         nickname: null,
         real_name: 'New User',
+        show_real_name_publicly: false,
         password_hash: 'hashed-client-hash',
       })
     );
   });
 
-  it('updates real name while ignoring legacy nickname through the profile update path', async () => {
+  it('updates username and real-name visibility without touching legacy nickname', async () => {
     usersUpdateOne.mockResolvedValueOnce({ matchedCount: 1 });
-    usersFindOne.mockResolvedValueOnce({
+    const savedUser = {
       id: 'user-1',
       username: 'alice',
-      nickname: '新昵称',
+      nickname: '旧昵称',
       real_name: 'Alice Wang',
+      show_real_name_publicly: true,
       email: null,
       role: 'user',
       avatar_url: null,
@@ -249,27 +257,34 @@ describe('UserModel admin queries', () => {
       password_hash: 'secret',
       client_salt: 'salt',
       client_hash_algorithm: 'SHA-256',
-    });
+    };
+    usersFindOne
+      .mockResolvedValueOnce(savedUser)
+      .mockResolvedValueOnce(savedUser);
 
     await expect(
       UserModel.updateProfile('user-1', {
+        username: 'alice',
         real_name: 'Alice Wang',
+        show_real_name_publicly: true,
       })
     ).resolves.toMatchObject({
       username: 'alice',
-      nickname: '新昵称',
+      nickname: '旧昵称',
       real_name: 'Alice Wang',
+      show_real_name_publicly: true,
     });
 
     expect(usersUpdateOne).toHaveBeenCalledWith(
       { id: 'user-1' },
       {
         $set: expect.objectContaining({
+          username: 'alice',
           real_name: 'Alice Wang',
+          show_real_name_publicly: true,
         }),
       }
     );
-    const update = usersUpdateOne.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
-    expect(update.$set).not.toHaveProperty('nickname');
+    expect(usersUpdateOne.mock.calls[0]?.[1]?.$set).not.toHaveProperty('nickname');
   });
 });

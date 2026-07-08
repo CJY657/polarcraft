@@ -57,6 +57,7 @@ export interface ProjectMember {
   username: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
   avatar_url: string | null;
 }
 
@@ -85,6 +86,7 @@ export interface ProjectDiscussionComment {
   username: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
   avatar_url: string | null;
 }
 
@@ -116,6 +118,7 @@ export interface ProjectEvidence {
   creator_username: string;
   creator_nickname?: string | null;
   creator_real_name?: string | null;
+  creator_show_real_name_publicly?: boolean;
   creator_avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -146,6 +149,7 @@ export interface ResearchAgentMessage {
   username?: string;
   nickname?: string | null;
   real_name?: string | null;
+  show_real_name_publicly?: boolean;
   avatar_url?: string | null;
 }
 

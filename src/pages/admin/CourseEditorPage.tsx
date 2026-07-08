@@ -7,14 +7,19 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import { CourseFormDialog } from '@/feature/admin/components/CourseFormDialog';
 import { MediaManager } from '@/feature/admin/components/MediaManager';
 import { HyperlinkEditor } from '@/feature/admin/components/HyperlinkEditor';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { cn } from '@/utils/classNames';
-import type { Course, CourseMedia } from '@/lib/course.service';
+import { getKnowledgeTagLabel, type Course, type CourseMedia } from '@/lib/course.service';
+import {
+  GALLERY_RESULTS_UNIT_ID,
+  GALLERY_RESULT_LABELS,
+  GALLERY_RESULT_TAGS,
+} from '@/feature/gallery/courseResults';
 import { ArrowLeft, Settings, Image, Link2, ImagePlus, Loader2, Trash2 } from 'lucide-react';
 
 type TabId = 'settings' | 'media' | 'hyperlinks';
@@ -25,14 +30,29 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'hyperlinks', label: '超链接', icon: <Link2 className="w-4 h-4" /> },
 ];
 
+const galleryResultKnowledgeTagOptions = GALLERY_RESULT_TAGS.map((tag) => ({
+  value: tag,
+  label: GALLERY_RESULT_LABELS[tag]['zh-CN'] || tag,
+}));
+
 export default function CourseEditorPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { currentCourse, isLoading, error, fetchCourse, clearError } = useCourseAdminStore();
 
   const [activeTab, setActiveTab] = useState<TabId>('settings');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const isGalleryRoute = location.pathname.startsWith('/admin/gallery');
+  const isGalleryResults = currentCourse?.unitId === GALLERY_RESULTS_UNIT_ID || isGalleryRoute;
+  const visibleTabs = isGalleryResults ? tabs.filter((tab) => tab.id !== 'hyperlinks') : tabs;
+  const entityName = isGalleryResults ? '成果' : '实验';
+  const backPath = isGalleryResults
+    ? '/admin/gallery'
+    : currentCourse?.unitId
+      ? `/admin/units/${currentCourse.unitId}`
+      : '/admin/units';
 
   useEffect(() => {
     if (courseId) {
@@ -47,12 +67,18 @@ export default function CourseEditorPage() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (isGalleryResults && activeTab === 'hyperlinks') {
+      setActiveTab('media');
+    }
+  }, [activeTab, isGalleryResults]);
+
   if (isLoading && !currentCourse) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-cyan-400 text-sm">加载实验中...</span>
+          <span className="text-cyan-400 text-sm">加载{entityName}中...</span>
         </div>
       </div>
     );
@@ -62,10 +88,10 @@ export default function CourseEditorPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">实验未找到</h2>
-          <p className="text-gray-400 mb-4">您查找的实验不存在。</p>
+          <h2 className="text-xl font-semibold text-white mb-2">{entityName}未找到</h2>
+          <p className="text-gray-400 mb-4">您查找的{entityName}不存在。</p>
           <button
-            onClick={() => navigate('/admin/units')}
+            onClick={() => navigate(isGalleryResults ? '/admin/gallery' : '/admin/units')}
             className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm transition-colors"
           >
             返回单元列表
@@ -83,7 +109,7 @@ export default function CourseEditorPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate(currentCourse?.unitId ? `/admin/units/${currentCourse.unitId}` : '/admin/units')}
+                onClick={() => navigate(backPath)}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -105,7 +131,7 @@ export default function CourseEditorPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 -mb-px">
-            {tabs.map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -138,12 +164,13 @@ export default function CourseEditorPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'settings' && currentCourse && (
-          <SettingsTab course={currentCourse} />
+          <SettingsTab course={currentCourse} isGalleryResults={isGalleryResults} />
         )}
         {activeTab === 'media' && currentCourse && (
           <MediaManager
             courseId={currentCourse.id}
             unitId={currentCourse.unitId}
+            isGalleryResults={isGalleryResults}
           />
         )}
         {activeTab === 'hyperlinks' && currentCourse && (
@@ -162,6 +189,7 @@ export default function CourseEditorPage() {
           onClose={() => setIsEditDialogOpen(false)}
           mode="edit"
           course={currentCourse}
+          knowledgeTagOptions={isGalleryResults ? galleryResultKnowledgeTagOptions : undefined}
         />
       )}
     </div>
@@ -171,11 +199,11 @@ export default function CourseEditorPage() {
 // Settings Tab Component
 function getFirstImageMedia(media: CourseMedia[]) {
   return [...media]
-    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
     .find((item) => item.type === 'image');
 }
 
-function SettingsTab({ course }: { course: Course }) {
+function SettingsTab({ course, isGalleryResults }: { course: Course; isGalleryResults: boolean }) {
   const { updateCourse } = useCourseAdminStore();
   const [draftCoverImage, setDraftCoverImage] = useState(course.coverImage || '');
   const [isSavingCover, setIsSavingCover] = useState(false);
@@ -214,6 +242,8 @@ function SettingsTab({ course }: { course: Course }) {
     }
   };
 
+  const entityName = isGalleryResults ? '成果' : '实验';
+
   if (!course) return null;
 
   return (
@@ -225,11 +255,11 @@ function SettingsTab({ course }: { course: Course }) {
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-200">
                   <ImagePlus className="h-3.5 w-3.5" />
-                  单元实验缩略图
+                  {isGalleryResults ? '成果展示缩略图' : '单元实验缩略图'}
                 </div>
-                <h3 className="mt-3 text-lg font-semibold text-white">实验封面图</h3>
+                <h3 className="mt-3 text-lg font-semibold text-white">{entityName}封面图</h3>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
-                  这里上传的图片会优先显示在每个单元里的实验缩略图上；如果没有单独封面，系统会自动使用当前实验的第一张图片资源。
+                  这里上传的图片会优先显示在{isGalleryResults ? '成果展示卡片' : '每个单元里的实验缩略图'}上；如果没有单独封面，系统会自动使用当前{entityName}的第一张图片资源。
                 </p>
               </div>
               <div
@@ -263,7 +293,7 @@ function SettingsTab({ course }: { course: Course }) {
                           Thumbnail Preview
                         </p>
                         <p className="mt-1 text-sm text-white">
-                          {course.title['zh-CN'] || '未命名实验'}
+                          {course.title['zh-CN'] || `未命名${entityName}`}
                         </p>
                       </div>
                       <span className="rounded-full bg-slate-950/70 px-3 py-1 text-xs font-medium text-slate-200 ring-1 ring-white/10">
@@ -358,7 +388,7 @@ function SettingsTab({ course }: { course: Course }) {
 
       {/* Course Info */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-lg font-semibold text-white mb-4">实验信息</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">{entityName}信息</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-400">单元 ID:</span>
@@ -367,7 +397,7 @@ function SettingsTab({ course }: { course: Course }) {
           <div>
             <span className="text-gray-400">内容分类:</span>
             <p className="text-white">
-              {course.knowledgeTag === 'optical_device' ? '光学设备' : '基础知识'}
+              {getKnowledgeTagLabel(course.knowledgeTag, true)}
             </p>
           </div>
           <div>

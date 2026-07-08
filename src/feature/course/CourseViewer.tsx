@@ -44,6 +44,7 @@ interface CourseViewerProps {
 // 媒体类型图标映射
 const MEDIA_TYPE_ICONS: Record<MediaType, React.ReactNode> = {
   pptx: <FileText className="h-5 w-5" />,
+  pdf: <FileText className="h-5 w-5" />,
   image: <ImageIcon className="h-5 w-5" />,
   video: <Play className="h-5 w-5" />,
 };
@@ -51,6 +52,7 @@ const MEDIA_TYPE_ICONS: Record<MediaType, React.ReactNode> = {
 // 媒体类型颜色
 const MEDIA_TYPE_COLORS: Record<MediaType, string> = {
   pptx: "#F59E0B",
+  pdf: "#DC2626",
   image: "#8B5CF6",
   video: "#EF4444",
 };
@@ -1118,6 +1120,7 @@ export function CourseViewer({
   const previewMediaList = mediaList.filter((media) => media.type !== "pptx");
   const videoMediaList = previewMediaList.filter((media) => media.type === "video");
   const imageMediaList = previewMediaList.filter((media) => media.type === "image");
+  const pdfMediaList = previewMediaList.filter((media) => media.type === "pdf");
   const hasPptxLayout = pptMediaList.length > 0;
   const activePptMedia = selectedPptMedia ?? pptMediaList[0] ?? null;
   const defaultPreviewMedia =
@@ -1147,6 +1150,16 @@ export function CourseViewer({
           : "border-rose-200 bg-rose-50 text-rose-700",
     },
     {
+      key: "pdf",
+      count: pdfMediaList.length,
+      label: isZh ? "份PDF" : "PDFs",
+      icon: <FileText className="h-3 w-3" />,
+      className:
+        theme === "dark"
+          ? "border-red-400/20 bg-red-500/10 text-red-200"
+          : "border-red-200 bg-red-50 text-red-700",
+    },
+    {
       key: "image",
       count: imageMediaList.length,
       label: isZh ? "张图片" : "images",
@@ -1173,6 +1186,14 @@ export function CourseViewer({
       items: videoMediaList,
       accent: MEDIA_TYPE_COLORS.video,
       priority: "primary",
+    },
+    {
+      id: "pdf",
+      title: isZh ? "PDF 资料" : "PDF resources",
+      description: isZh ? "报告、海报或补充资料" : "Reports, posters, or supporting files",
+      items: pdfMediaList,
+      accent: MEDIA_TYPE_COLORS.pdf,
+      priority: "secondary",
     },
     {
       id: "image",
@@ -1228,11 +1249,13 @@ export function CourseViewer({
   const getMediaTypeLabel = (type: MediaType) => {
     if (isZh) {
       if (type === "pptx") return "PPT";
+      if (type === "pdf") return "PDF";
       if (type === "image") return "图片";
       return "视频";
     }
 
     if (type === "pptx") return "PPT";
+    if (type === "pdf") return "PDF";
     if (type === "image") return "Image";
     return "Video";
   };
@@ -1509,6 +1532,26 @@ export function CourseViewer({
                 }
               />
             </button>
+          );
+
+        case "pdf":
+          return (
+            <div className="h-full w-full overflow-hidden rounded-[28px]">
+              <Suspense
+                fallback={
+                  <ViewerModuleLoader
+                    theme={theme}
+                    message="Loading PDF viewer..."
+                  />
+                }
+              >
+                <PdfViewer
+                  url={media.url}
+                  theme={theme}
+                  onFullscreenClick={isFullscreen ? undefined : toggleFullscreen}
+                />
+              </Suspense>
+            </div>
           );
 
         case "video":

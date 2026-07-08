@@ -17,9 +17,17 @@ export interface LabelI18n {
   "en-US"?: string;
 }
 
-export type MediaType = "pptx" | "image" | "video";
+export type MediaType = "pptx" | "pdf" | "image" | "video";
 
-export type KnowledgeTag = "foundation" | "optical_device";
+export const KNOWLEDGE_TAGS = [
+  "foundation",
+  "optical_device",
+  "student_ppt",
+  "student_poster",
+  "student_project",
+] as const;
+
+export type KnowledgeTag = (typeof KNOWLEDGE_TAGS)[number];
 
 export const KNOWLEDGE_TAG_LABELS: Record<
   KnowledgeTag,
@@ -33,10 +41,26 @@ export const KNOWLEDGE_TAG_LABELS: Record<
     "zh-CN": "光学设备",
     "en-US": "Optical device",
   },
+  student_ppt: {
+    "zh-CN": "学生PPT",
+    "en-US": "Student PPT",
+  },
+  student_poster: {
+    "zh-CN": "学生海报",
+    "en-US": "Student poster",
+  },
+  student_project: {
+    "zh-CN": "学生项目",
+    "en-US": "Student project",
+  },
 };
 
-export function normalizeKnowledgeTag(tag?: KnowledgeTag | null): KnowledgeTag {
-  return tag === "optical_device" ? "optical_device" : "foundation";
+export function isKnowledgeTag(tag: unknown): tag is KnowledgeTag {
+  return typeof tag === "string" && (KNOWLEDGE_TAGS as readonly string[]).includes(tag);
+}
+
+export function normalizeKnowledgeTag(tag?: string | null): KnowledgeTag {
+  return isKnowledgeTag(tag) ? tag : "foundation";
 }
 
 export function getKnowledgeTagLabel(tag: KnowledgeTag | undefined | null, isZh: boolean): string {
@@ -58,7 +82,7 @@ export interface CourseMedia {
   title: LabelI18n;
   knowledgeTag: KnowledgeTag;
   duration?: number;
-  sortOrder: number;
+  sortOrder?: number;
 }
 
 export interface CourseHyperlink {
@@ -80,6 +104,7 @@ export interface Course {
   coverImage?: string;
   color: string;
   knowledgeTag: KnowledgeTag;
+  sortOrder: number;
   mainSlide?: MainSlide;
   media: CourseMedia[];
   hyperlinks: CourseHyperlink[];
@@ -95,6 +120,7 @@ export interface CourseDiscussionComment {
   username: string;
   nickname?: string | null;
   realName?: string | null;
+  showRealNamePublicly?: boolean;
   avatarUrl: string | null;
   content: string;
   imageUrls: string[];

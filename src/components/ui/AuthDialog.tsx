@@ -113,7 +113,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
 
         <div>
           <label htmlFor="login-username" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.username', '用户名/对外昵称')}
+            {t('auth.username', '用户名')}
           </label>
           <input
             id="login-username"
@@ -123,7 +123,7 @@ function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
             required
             autoFocus
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-            placeholder={t('auth.usernamePlaceholder', '请输入用户名/对外昵称')}
+            placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
 
@@ -278,7 +278,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
         <div>
           <label htmlFor="register-username" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.username', '用户名/对外昵称')} *
+            {t('auth.username', '用户名')} *
           </label>
           <input
             id="register-username"
@@ -289,7 +289,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             minLength={3}
             autoFocus
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-            placeholder={t('auth.usernamePlaceholder', '请输入用户名/对外昵称')}
+            placeholder={t('auth.usernamePlaceholder', '请输入用户名')}
           />
         </div>
 

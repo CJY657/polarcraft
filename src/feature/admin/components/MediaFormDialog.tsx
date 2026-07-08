@@ -25,12 +25,15 @@ interface MediaFormDialogProps {
   courseId?: string;
   unitId?: string;
   courseKnowledgeTag?: KnowledgeTag;
+  knowledgeTagOptions?: { value: KnowledgeTag; label: string }[];
+  isGalleryResults?: boolean;
   mode: 'create' | 'edit';
   media?: CourseMedia;
 }
 
 const MEDIA_TYPES: { value: MediaType; label: string }[] = [
   { value: 'pptx', label: 'PowerPoint' },
+  { value: 'pdf', label: 'PDF' },
   { value: 'image', label: '图片' },
   { value: 'video', label: '视频' },
 ];
@@ -44,6 +47,7 @@ const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
 // 将 MediaType 映射到 FileCategory 的辅助函数
 const getUploadCategory = (type: MediaType): FileCategory => {
   if (type === 'pptx') return 'pptx';
+  if (type === 'pdf') return 'pdf';
   if (type === 'image') return 'image';
   if (type === 'video') return 'video';
   return 'image';
@@ -55,6 +59,8 @@ export function MediaFormDialog({
   courseId,
   unitId,
   courseKnowledgeTag = 'foundation',
+  knowledgeTagOptions = KNOWLEDGE_TAG_OPTIONS,
+  isGalleryResults = false,
   mode,
   media,
 }: MediaFormDialogProps) {
@@ -129,13 +135,15 @@ export function MediaFormDialog({
 
   if (!isOpen) return null;
 
+  const entityName = isGalleryResults ? '成果文件' : '媒体';
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-xl p-6 max-w-lg w-full mx-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">
-            {mode === 'create' ? '添加媒体' : '编辑媒体'}
+            {mode === 'create' ? `添加${entityName}` : `编辑${entityName}`}
           </h3>
           <button
             onClick={onClose}
@@ -178,7 +186,7 @@ export function MediaFormDialog({
               }
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
-              {KNOWLEDGE_TAG_OPTIONS.map((option) => (
+              {knowledgeTagOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -188,7 +196,7 @@ export function MediaFormDialog({
 
           {/* Media File */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">媒体文件 *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">{entityName} *</label>
             <FileUpload
               category={getUploadCategory(formData.type)}
               unitId={unitId}

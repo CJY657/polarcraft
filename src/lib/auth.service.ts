@@ -29,6 +29,7 @@ export interface UserProfile {
   username: string;
   nickname: string | null;
   real_name: string | null;
+  show_real_name_publicly: boolean;
   role: 'user' | 'admin';
   avatar_url: string | null;
   email: string | null;
@@ -70,6 +71,7 @@ export interface RegisterInput {
 export interface UpdateProfileInput {
   username?: string;
   real_name?: string;
+  show_real_name_publicly?: boolean;
   email?: string;
   avatar_url?: string;
 }

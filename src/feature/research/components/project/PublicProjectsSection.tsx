@@ -224,6 +224,7 @@ export function PublicProjectsSection() {
                       username: project.owner_username,
                       nickname: project.owner_nickname,
                       real_name: project.owner_real_name,
+                      show_real_name_publicly: project.owner_show_real_name_publicly,
                     })}
                   </span>
                 </p>

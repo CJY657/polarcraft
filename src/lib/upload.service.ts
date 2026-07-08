@@ -88,10 +88,11 @@ export function getFileCategory(file: File): FileCategory | null {
     'video/mp4': 'video',
     'video/webm': 'video',
     'video/quicktime': 'video',
+    'application/vnd.ms-powerpoint': 'pptx',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
   };
 
-  return mimeToCategory[file.type] || null;
+  return mimeToCategory[file.type] || getFileCategoryFromExtension(file.name);
 }
 
 /**
@@ -112,6 +113,7 @@ export function getFileCategoryFromExtension(filename: string): FileCategory | n
     webm: 'video',
     mov: 'video',
     pptx: 'pptx',
+    ppt: 'pptx',
   };
 
   return ext ? extToCategory[ext] || null : null;
@@ -138,7 +140,7 @@ export function getAcceptString(category: FileCategory): string {
     pdf: '.pdf',
     image: '.jpg,.jpeg,.png,.gif,.webp',
     video: '.mp4,.webm,.mov',
-    pptx: '.pptx',
+    pptx: '.pptx,.ppt',
   };
   return acceptMap[category];
 }
