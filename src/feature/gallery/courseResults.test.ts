@@ -7,6 +7,7 @@ import {
   getGalleryWorkPrimaryUrl,
   isGalleryResultCourse,
   mapCourseToGalleryWork,
+  parseGalleryCourseWorkId,
 } from './courseResults';
 
 const resultCourse: Course = {
@@ -52,5 +53,15 @@ describe('gallery course results', () => {
       }),
     ]);
     expect(getGalleryWorkPrimaryUrl(work)).toBe('/uploads/courses/gallery-results/pdf/poster.pdf');
+  });
+
+  it('parses gallery course work IDs', () => {
+    expect(parseGalleryCourseWorkId('course:student_poster:result-1')).toEqual({
+      tag: 'student_poster',
+      courseId: 'result-1',
+    });
+    expect(parseGalleryCourseWorkId('bubble-polarization')).toBeNull();
+    expect(parseGalleryCourseWorkId('course:foundation:result-1')).toBeNull();
+    expect(parseGalleryCourseWorkId('course:student_poster:')).toBeNull();
   });
 });

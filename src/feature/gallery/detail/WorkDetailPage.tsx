@@ -1,15 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
 import { ChevronLeft, Eye, Heart, Share2, Calendar } from "lucide-react";
-import { getWorkById } from "@/data/gallery";
+import { getWorkById, type GalleryWork } from "@/data/gallery";
+import { courseApi } from "@/lib/course.service";
+import {
+  isGalleryResultCourse,
+  mapCourseToGalleryWork,
+  parseGalleryCourseWorkId,
+} from "@/feature/gallery/courseResults";
+import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
 import { RecordSection } from "../record/RecordSection";
 import { MediaGallery } from "../media/MediaGallery";
 import { PersistentHeader } from "@/components/shared";
 
 type DetailTab = "overview" | "record" | "media";
+type WorkDetailLocationState = {
+  from?: "gallery" | "lab";
+  work?: GalleryWork;
+};
 
 export function WorkDetailPage() {
   const { theme } = useTheme();
@@ -19,12 +30,71 @@ export function WorkDetailPage() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [liked, setLiked] = useState(false);
+  const [fetchedWork, setFetchedWork] = useState<GalleryWork | null>(null);
+  const [isWorkLoading, setIsWorkLoading] = useState(false);
+  const [workError, setWorkError] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
 
-  const work = workId ? getWorkById(workId) : null;
+  const routeState = location.state as WorkDetailLocationState | null;
+  const localWork = workId ? getWorkById(workId) : undefined;
+  const routeStateWork = routeState?.work;
+  const stateWork = routeStateWork?.id === workId ? routeStateWork : undefined;
+  const courseWorkId = workId ? parseGalleryCourseWorkId(workId) : null;
+  const work = localWork ?? stateWork ?? fetchedWork;
+  const isZh = i18n.language.startsWith("zh");
+
+  useEffect(() => {
+    if (localWork || stateWork || !courseWorkId || !workId) {
+      setFetchedWork(null);
+      setIsWorkLoading(false);
+      setWorkError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setFetchedWork(null);
+    setIsWorkLoading(true);
+    setWorkError(null);
+
+    courseApi
+      .getPublicCourse(courseWorkId.courseId)
+      .then((course) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const nextWork = mapCourseToGalleryWork(course);
+        if (!isGalleryResultCourse(course) || nextWork.id !== workId) {
+          setWorkError("成果不存在");
+          setFetchedWork(null);
+          return;
+        }
+
+        setFetchedWork(nextWork);
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setWorkError(error instanceof Error ? error.message : "成果加载失败");
+        setFetchedWork(null);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsWorkLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [courseWorkId?.courseId, localWork, stateWork, workId]);
 
   // Determine back route based on navigation state or work status
   const from =
-    (location.state as { from?: "gallery" | "lab" })?.from ??
+    routeState?.from ??
     (work?.status === "public" ? "gallery" : "lab");
   const backRoute = from === "lab" ? "/lab" : "/gallery";
 
@@ -37,15 +107,23 @@ export function WorkDetailPage() {
             theme === "dark" ? "bg-slate-800/50" : "bg-white",
           )}
         >
-          <p className={cn("text-lg mb-4", theme === "dark" ? "text-gray-300" : "text-gray-600")}>
-            {t("works.noWorks")}
-          </p>
-          <button
-            onClick={() => navigate(backRoute)}
-            className={cn("px-6 py-2 rounded-lg", "bg-purple-600 text-white hover:bg-purple-700")}
+          <p
+            className={cn(
+              "text-lg",
+              !isWorkLoading && "mb-4",
+              theme === "dark" ? "text-gray-300" : "text-gray-600",
+            )}
           >
-            {t("common.back")}
-          </button>
+            {isWorkLoading ? "成果加载中" : workError ?? t("works.noWorks")}
+          </p>
+          {!isWorkLoading && (
+            <button
+              onClick={() => navigate(backRoute)}
+              className={cn("px-6 py-2 rounded-lg", "bg-purple-600 text-white hover:bg-purple-700")}
+            >
+              {t("common.back")}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -292,9 +370,7 @@ export function WorkDetailPage() {
                       src={img}
                       alt={`Gallery ${idx + 1}`}
                       className="rounded-lg object-contain w-full aspect-auto hover:scale-105 transition-transform cursor-pointer"
-                      onClick={() => {
-                        /* TODO: 打开图片查看器 */
-                      }}
+                      onClick={() => setLightboxImage({ url: img, alt: `Gallery ${idx + 1}` })}
                     />
                   ))}
                 </div>
@@ -311,6 +387,20 @@ export function WorkDetailPage() {
           <MediaGallery media={work.mediaResources} />
         )}
       </main>
+
+      <DiscussionImageLightbox
+        image={lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        labels={{
+          close: isZh ? "关闭大图预览" : "Close image preview",
+          zoomIn: isZh ? "放大" : "Zoom",
+          zoomOut: isZh ? "还原" : "Reset",
+          zoomInAriaLabel: isZh ? "放大图片" : "Zoom in image",
+          zoomOutAriaLabel: isZh ? "还原图片" : "Reset image",
+          hint: isZh ? "点击图片可切换放大/还原" : "Click image to zoom in/out",
+          zoomedHint: isZh ? "拖动查看细节，点击图片可还原" : "Drag to pan and click image to reset",
+        }}
+      />
     </div>
   );
 }

@@ -16,7 +16,6 @@ import { courseApi, type Course } from "@/lib/course.service";
 import {
   GALLERY_RESULT_LABELS,
   GALLERY_RESULT_TAGS,
-  getGalleryWorkPrimaryUrl,
   isGalleryResultCourse,
   mapCourseToGalleryWork,
   type GalleryResultTag,
@@ -143,15 +142,7 @@ export function ExperimentsPage() {
   };
 
   const handleWorkClick = (work: GalleryWork) => {
-    if (work.id.startsWith("course:")) {
-      const url = getGalleryWorkPrimaryUrl(work);
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-      return;
-    }
-
-    navigate(`/gallery/work/${work.id}`, { state: { from: "gallery" } });
+    navigate(`/gallery/work/${work.id}`, { state: { from: "gallery", work } });
   };
 
   const visibleWorks = getVisibleWorks();

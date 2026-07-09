@@ -237,7 +237,7 @@ describe("CourseViewer media preview regressions", () => {
     });
 
     expect(document.querySelector("video")).toBeNull();
-    expect(screen.getByTitle("page.courses.fullscreen")).toBeTruthy();
+    expect(screen.getByTestId("preview-fullscreen-toggle")).toBeTruthy();
   });
 
   it("uses optimized unit 2 video sources even when course URLs are encoded", async () => {
@@ -456,7 +456,7 @@ describe("CourseViewer media preview regressions", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByTitle("page.courses.fullscreen")).toBeTruthy();
+        expect(screen.getByTestId("preview-fullscreen-toggle")).toBeTruthy();
         expect(container.querySelector("video")).toBeTruthy();
       },
       { timeout: 10000 }
@@ -493,24 +493,94 @@ describe("CourseViewer media preview regressions", () => {
     });
     fireEvent.timeUpdate(initialVideo);
 
-    fireEvent.click(screen.getByTitle("page.courses.fullscreen"));
+    fireEvent.click(screen.getByTestId("preview-fullscreen-toggle"));
 
     await waitFor(() => {
-      expect(screen.getByTitle("page.courses.exitfullscreen")).toBeTruthy();
+      expect(screen.getByTestId("preview-fullscreen-toggle").getAttribute("title")).toBe(
+        "page.courses.exitfullscreen"
+      );
     });
 
     const fullscreenVideo = container.querySelector("video") as HTMLVideoElement;
     expect(fullscreenVideo).toBe(initialVideo);
     expect(fullscreenVideo.currentTime).toBe(24);
 
-    fireEvent.click(screen.getByTitle("page.courses.exitfullscreen"));
+    fireEvent.click(screen.getByTestId("preview-fullscreen-toggle"));
 
     await waitFor(() => {
-      expect(screen.getByTitle("page.courses.fullscreen")).toBeTruthy();
+      expect(screen.getByTestId("preview-fullscreen-toggle").getAttribute("title")).toBe(
+        "page.courses.fullscreen"
+      );
     });
 
     const restoredVideo = container.querySelector("video") as HTMLVideoElement;
     expect(restoredVideo).toBe(initialVideo);
     expect(restoredVideo.currentTime).toBe(24);
+  });
+
+  it("enters and exits PPT deck fullscreen presentation mode", async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ppt-fullscreen-toggle")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTestId("ppt-fullscreen-toggle"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ppt-fullscreen-exit")).toBeTruthy();
+    });
+
+    const deckFrame = screen.getByTestId("ppt-fullscreen-exit").parentElement;
+    expect(deckFrame?.className).toContain("fixed");
+    expect(deckFrame?.className).toContain("inset-0");
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("ppt-fullscreen-exit")).toBeNull();
+    });
+
+    expect(document.body.style.overflow).not.toBe("hidden");
+    expect(container.querySelector(".pptx-linked-deck")).toBeTruthy();
+  });
+
+  it("keeps slide navigation available while the PPT deck is fullscreen", async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={courseFixture} theme="light" />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTestId("ppt-fullscreen-toggle"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ppt-fullscreen-exit")).toBeTruthy();
+      expect(screen.getByText("1 / 2")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTitle("下一页"));
+
+    await waitFor(() => {
+      expect(screen.getByText("2 / 2")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTestId("ppt-fullscreen-exit"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("ppt-fullscreen-exit")).toBeNull();
+      expect(screen.getByText("2 / 2")).toBeTruthy();
+    });
+
+    expect(container.querySelector(".pptx-linked-deck")).toBeTruthy();
   });
 });

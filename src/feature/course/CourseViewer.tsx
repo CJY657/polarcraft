@@ -262,6 +262,9 @@ interface PptxViewerProps {
   linkedMediaId?: string | null;
   linkedMediaNonce?: number;
   activeMediaId?: string | null;
+  /** Controlled presentation fullscreen (owned by CourseViewer deck frame). */
+  isFullscreen?: boolean;
+  onFullscreenClick?: () => void;
 }
 
 function PptxViewer({
@@ -277,7 +280,10 @@ function PptxViewer({
   linkedMediaId = null,
   linkedMediaNonce = 0,
   activeMediaId = null,
+  isFullscreen = false,
+  onFullscreenClick,
 }: PptxViewerProps) {
+  const { t } = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previewerRef = useRef<PptxPreviewerInstance | null>(null);
@@ -770,6 +776,9 @@ function PptxViewer({
           mediaList={mediaList}
           linkedMediaId={linkedMediaId}
           linkedMediaNonce={linkedMediaNonce}
+          onFullscreenClick={
+            onFullscreenClick && !isFullscreen ? onFullscreenClick : undefined
+          }
         />
       </Suspense>
     );
@@ -1005,6 +1014,25 @@ function PptxViewer({
             {currentPage} / {totalPages}
           </div>
 
+          {onFullscreenClick && !isFullscreen && (
+            <button
+              type="button"
+              data-testid="ppt-deck-fullscreen"
+              onClick={(event) => {
+                event.stopPropagation();
+                onFullscreenClick();
+              }}
+              className={`absolute top-2 right-2 p-2 rounded-full transition-all z-20 ${
+                theme === "dark"
+                  ? "bg-black/70 text-white hover:bg-black/90"
+                  : "bg-white/90 text-gray-900 shadow-lg hover:bg-white"
+              }`}
+              title={t("page.courses.fullscreen")}
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          )}
+
           <button
             onClick={prevPage}
             disabled={currentPage <= 1}
@@ -1098,6 +1126,8 @@ export function CourseViewer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   // 主 PDF 是否全屏
   const [isMainSlideFullscreen, setIsMainSlideFullscreen] = useState(false);
+  // PPT 课件演示是否全屏
+  const [isPptFullscreen, setIsPptFullscreen] = useState(false);
   const [previewPlaybackKey, setPreviewPlaybackKey] = useState(0);
   const [shouldAutoplayPreview, setShouldAutoplayPreview] = useState(false);
   const [linkedMediaId, setLinkedMediaId] = useState<string | null>(null);
@@ -1385,6 +1415,7 @@ export function CourseViewer({
       setSelectedPptMedia(null);
       setSelectedMedia(null);
       setIsFullscreen(false);
+      setIsPptFullscreen(false);
       setShouldAutoplayPreview(false);
       setLinkedMediaId(null);
       setLinkedMediaNonce(0);
@@ -1399,6 +1430,7 @@ export function CourseViewer({
     setSelectedPptMedia(pptMediaList[0] ?? null);
     setSelectedMedia(initialPreviewMedia);
     setIsMainSlideFullscreen(false);
+    setIsPptFullscreen(false);
     setPreviewPlaybackKey(0);
     setShouldAutoplayPreview(false);
     setLinkedMediaId(null);
@@ -1428,17 +1460,40 @@ export function CourseViewer({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [activePreviewMedia?.id, activePreviewMedia?.type]);
 
-  // ESC 键退出主 PDF 全屏
+  // ESC 键退出主 PDF / PPT 全屏
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isMainSlideFullscreen) {
+      if (e.key !== "Escape") {
+        return;
+      }
+
+      if (isPptFullscreen) {
+        setIsPptFullscreen(false);
+        return;
+      }
+
+      if (isMainSlideFullscreen) {
         setIsMainSlideFullscreen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMainSlideFullscreen]);
+  }, [isMainSlideFullscreen, isPptFullscreen]);
+
+  // 全屏演示时锁定页面滚动
+  useEffect(() => {
+    if (!isPptFullscreen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPptFullscreen]);
 
   useEffect(() => {
     if (activePreviewMedia?.type !== "video") {
@@ -1929,24 +1984,64 @@ export function CourseViewer({
                       ) : null}
                     </div>
 
-                    {activePptMedia && canDownloadResources && (
-                      <button
-                        onClick={() => openDownloadUrl(getMediaDownloadUrl(activePptMedia))}
-                        className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                          theme === "dark"
-                            ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
-                            : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
-                        }`}
-                        title={t("page.courses.download")}
-                      >
-                        <Download className="h-5 w-5" />
-                      </button>
+                    {activePptMedia && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          data-testid="ppt-fullscreen-toggle"
+                          onClick={() => setIsPptFullscreen((current) => !current)}
+                          className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                            theme === "dark"
+                              ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                              : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                          }`}
+                          title={
+                            isPptFullscreen
+                              ? t("page.courses.exitfullscreen")
+                              : t("page.courses.fullscreen")
+                          }
+                        >
+                          {isPptFullscreen ? (
+                            <Minimize2 className="h-5 w-5" />
+                          ) : (
+                            <Maximize2 className="h-5 w-5" />
+                          )}
+                        </button>
+                        {canDownloadResources && (
+                          <button
+                            onClick={() => openDownloadUrl(getMediaDownloadUrl(activePptMedia))}
+                            className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                              theme === "dark"
+                                ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                                : "text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm"
+                            }`}
+                            title={t("page.courses.download")}
+                          >
+                            <Download className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
                   <div
-                    className="flex h-[clamp(188px,58vw,276px)] max-h-[calc(100svh-12rem)] items-center justify-center overflow-visible transition-all duration-500 sm:h-[clamp(220px,54vw,340px)] md:h-[380px] lg:h-[460px] lg:max-h-none xl:h-[500px] 2xl:h-[560px]"
+                    className={
+                      isPptFullscreen
+                        ? "fixed inset-0 z-[9999] flex items-center justify-center bg-black"
+                        : "flex h-[clamp(188px,58vw,276px)] max-h-[calc(100svh-12rem)] items-center justify-center overflow-visible transition-all duration-500 sm:h-[clamp(220px,54vw,340px)] md:h-[380px] lg:h-[460px] lg:max-h-none xl:h-[500px] 2xl:h-[560px]"
+                    }
                   >
+                    {isPptFullscreen && (
+                      <button
+                        type="button"
+                        data-testid="ppt-fullscreen-exit"
+                        onClick={() => setIsPptFullscreen(false)}
+                        className="absolute top-4 right-4 z-20 rounded-lg bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                        title={t("page.courses.exitfullscreen")}
+                      >
+                        <Minimize2 className="h-5 w-5" />
+                      </button>
+                    )}
                     {activePptMedia ? (
                       <PptxViewer
                         key={activePptMedia.id}
@@ -1962,6 +2057,8 @@ export function CourseViewer({
                         linkedMediaId={linkedMediaId}
                         linkedMediaNonce={linkedMediaNonce}
                         activeMediaId={activeHighlightedMediaId}
+                        isFullscreen={isPptFullscreen}
+                        onFullscreenClick={() => setIsPptFullscreen((current) => !current)}
                       />
                     ) : (
                       <div
@@ -2008,6 +2105,7 @@ export function CourseViewer({
                         {(activePreviewMedia.type === "video" ||
                           activePreviewMedia.type === "image") && (
                           <button
+                            data-testid="preview-fullscreen-toggle"
                             onClick={toggleFullscreen}
                             className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                               theme === "dark"

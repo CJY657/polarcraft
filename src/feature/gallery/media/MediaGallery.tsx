@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/classNames";
 import { FileText, Image, Video, File, Download } from "lucide-react";
+import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
 import type { GalleryMedia, GalleryMediaType } from "@/data/gallery";
 
 interface MediaGalleryProps {
@@ -27,7 +29,9 @@ function getMediaTypeConfig(t: (key: string) => string): Record<
 export function MediaGallery({ media }: MediaGalleryProps) {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
   const mediaTypeConfig = getMediaTypeConfig(t);
+  const isZh = i18n.language.startsWith("zh");
 
   const handleDownload = async (mediaItem: GalleryMedia) => {
     try {
@@ -154,9 +158,7 @@ export function MediaGallery({ media }: MediaGalleryProps) {
                       "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors",
                       "bg-purple-600 text-white hover:bg-purple-700"
                     )}
-                    onClick={() => {
-                      /* TODO: 打开图片查看器 */
-                    }}
+                    onClick={() => setLightboxImage({ url: mediaItem.url, alt: title })}
                   >
                     {t("works.media.viewImage")}
                   </button>
@@ -201,6 +203,20 @@ export function MediaGallery({ media }: MediaGalleryProps) {
           );
         })}
       </div>
+
+      <DiscussionImageLightbox
+        image={lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        labels={{
+          close: isZh ? "关闭大图预览" : "Close image preview",
+          zoomIn: isZh ? "放大" : "Zoom",
+          zoomOut: isZh ? "还原" : "Reset",
+          zoomInAriaLabel: isZh ? "放大图片" : "Zoom in image",
+          zoomOutAriaLabel: isZh ? "还原图片" : "Reset image",
+          hint: isZh ? "点击图片可切换放大/还原" : "Click image to zoom in/out",
+          zoomedHint: isZh ? "拖动查看细节，点击图片可还原" : "Drag to pan and click image to reset",
+        }}
+      />
     </div>
   );
 }

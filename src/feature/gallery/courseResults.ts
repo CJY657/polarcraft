@@ -20,15 +20,31 @@ export const GALLERY_RESULT_LABELS: Record<GalleryResultTag, LabelI18n> = {
   student_project: { 'zh-CN': '学生项目', 'en-US': 'Student project' },
 };
 
+export interface GalleryCourseWorkId {
+  tag: GalleryResultTag;
+  courseId: string;
+}
+
 const PLACEHOLDER_COVER =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22480%22 viewBox=%220 0 800 480%22%3E%3Crect width=%22800%22 height=%22480%22 fill=%22%23ece3d3%22/%3E%3Cpath d=%22M96 352h608v32H96zM128 112h544v184H128z%22 fill=%22%23d0bfa3%22/%3E%3Ccircle cx=%22640%22 cy=%22160%22 r=%2238%22 fill=%22%23264653%22/%3E%3Ctext x=%22400%22 y=%22258%22 fill=%22%23264653%22 font-family=%22Arial,sans-serif%22 font-size=%2238%22 font-weight=%22700%22 text-anchor=%22middle%22%3EGallery Result%3C/text%3E%3C/svg%3E';
 
-export function isGalleryResultTag(tag?: KnowledgeTag | null): tag is GalleryResultTag {
+export function isGalleryResultTag(tag?: string | null): tag is GalleryResultTag {
   return Boolean(tag && GALLERY_RESULT_TAGS.includes(tag as GalleryResultTag));
 }
 
 export function isGalleryResultCourse(course: Pick<Course, 'unitId' | 'knowledgeTag'>): boolean {
   return course.unitId === GALLERY_RESULTS_UNIT_ID && isGalleryResultTag(course.knowledgeTag);
+}
+
+export function parseGalleryCourseWorkId(workId: string): GalleryCourseWorkId | null {
+  const [prefix, tag, ...courseIdParts] = workId.split(':');
+  const courseId = courseIdParts.join(':');
+
+  if (prefix !== 'course' || !isGalleryResultTag(tag) || !courseId) {
+    return null;
+  }
+
+  return { tag, courseId };
 }
 
 export function getGalleryResultTagLabel(tag: GalleryResultTag, isZh: boolean): string {
