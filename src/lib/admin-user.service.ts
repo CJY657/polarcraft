@@ -99,6 +99,44 @@ export interface AdminUserPostHogAnalyticsResponse {
   recent_events: AdminUserPostHogRecentEvent[];
 }
 
+export type AdminActivityDays = 7 | 30 | 90;
+
+export interface AdminActivityResponse {
+  status: 'ok' | 'disabled';
+  days: AdminActivityDays;
+  generated_at: string;
+  summary: {
+    active_learners: number;
+    meaningful_events: number;
+    pageviews: number;
+    learning_actions: number;
+  } | null;
+  daily: Array<{
+    date: string;
+    active_learners: number;
+    pageviews: number;
+    learning_actions: number;
+  }>;
+  top_pages: Array<{
+    path: string;
+    pageviews: number;
+    unique_learners: number;
+  }>;
+  activity_breakdown: Array<{
+    event: string;
+    count: number;
+    unique_learners: number;
+  }>;
+  top_learners: Array<{
+    user_id: string;
+    username: string;
+    events: number;
+    pageviews: number;
+    learning_actions: number;
+    last_activity: string | null;
+  }>;
+}
+
 export const adminUserApi = {
   async getStats(): Promise<AdminUserStats> {
     const response = await api.get<AdminUserStats>('/api/users/stats');
@@ -179,5 +217,14 @@ export const adminUserApi = {
     }
 
     throw new Error(response.error?.message || '获取行为数据失败');
+  },
+
+  async getActivity(days: AdminActivityDays): Promise<AdminActivityResponse> {
+    const response = await api.get<AdminActivityResponse>(`/api/users/activity?days=${days}`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || '获取用户活动失败');
   },
 };

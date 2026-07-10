@@ -180,4 +180,165 @@ describe('PostHogService', () => {
       expect(String(error)).not.toContain('phx_secret');
     }
   });
+
+  it('returns a disabled activity dashboard without querying when configuration is incomplete', async () => {
+    mockedConfig.posthog.environmentId = '';
+
+    await expect(PostHogService.getActivityDashboard(30)).resolves.toEqual({
+      status: 'disabled',
+      days: 30,
+      generated_at: expect.any(String),
+      summary: null,
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      top_learners: [],
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps bounded learner-only aggregate queries into the activity dashboard', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ results: [[3, 18, 8, 10]] }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['2026-07-08', 2, 5, 4],
+            ['2026-07-09', 3, 3, 6],
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['/courses', 5, 2],
+            ['/projects/1', 3, 2],
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['experiment_opened', 6, 3],
+            ['project_application_submitted', 4, 2],
+          ],
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['user-1', 'alice', 9, 4, 5, '2026-07-09T12:00:00.000Z'],
+            ['user-2', null, 6, 3, 3, null],
+          ],
+        })
+      );
+
+    await expect(PostHogService.getActivityDashboard(30)).resolves.toEqual({
+      status: 'ok',
+      days: 30,
+      generated_at: expect.any(String),
+      summary: {
+        active_learners: 3,
+        meaningful_events: 18,
+        pageviews: 8,
+        learning_actions: 10,
+      },
+      daily: [
+        { date: '2026-07-08', active_learners: 2, pageviews: 5, learning_actions: 4 },
+        { date: '2026-07-09', active_learners: 3, pageviews: 3, learning_actions: 6 },
+      ],
+      top_pages: [
+        { path: '/courses', pageviews: 5, unique_learners: 2 },
+        { path: '/projects/1', pageviews: 3, unique_learners: 2 },
+      ],
+      activity_breakdown: [
+        { event: 'experiment_opened', count: 6, unique_learners: 3 },
+        { event: 'project_application_submitted', count: 4, unique_learners: 2 },
+      ],
+      top_learners: [
+        {
+          user_id: 'user-1',
+          username: 'alice',
+          events: 9,
+          pageviews: 4,
+          learning_actions: 5,
+          last_activity: '2026-07-09T12:00:00.000Z',
+        },
+        {
+          user_id: 'user-2',
+          username: 'user-2',
+          events: 6,
+          pageviews: 3,
+          learning_actions: 3,
+          last_activity: null,
+        },
+      ],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    const queryBodies = fetchMock.mock.calls.map((call) =>
+      JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
+    );
+    for (const body of queryBodies) {
+      expect(body.query.query).toContain(
+        'timestamp >= today() - INTERVAL 29 DAY'
+      );
+      expect(body.query.query).toContain(
+        'timestamp < today() + INTERVAL 1 DAY'
+      );
+      expect(body.query.query).toContain("person.properties.role = 'user'");
+      expect(body.query.query).toContain('person_id IS NOT NULL');
+      expect(body.query.query).toContain('properties.$is_identified = true');
+      expect(body.query.query).toContain(
+        "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"
+      );
+    }
+    expect(queryBodies[0]?.query.query).toContain('count(DISTINCT person_id)');
+    expect(queryBodies[1]?.query.query).toContain('ORDER BY day WITH FILL');
+    expect(queryBodies[1]?.query.query).toContain(
+      'FROM today() - INTERVAL 29 DAY'
+    );
+    expect(queryBodies[1]?.query.query).toContain(
+      'TO today() + INTERVAL 1 DAY'
+    );
+    expect(queryBodies[1]?.query.query).toContain('LIMIT 30');
+    expect(queryBodies[2]?.query.query).toContain('LIMIT 10');
+    expect(queryBodies[3]?.query.query).toContain('LIMIT 10');
+    for (const index of [0, 1, 4]) {
+      expect(queryBodies[index]?.query.query).toContain(
+        "countIf(event IN ('experiment_opened', 'project_application_submitted'))"
+      );
+    }
+    expect(queryBodies[4]?.query.query).toContain('LIMIT 10');
+    expect(queryBodies[4]?.query.query).toContain('argMax(distinct_id, timestamp)');
+    expect(queryBodies[4]?.query.query).toContain('GROUP BY person_id');
+  });
+
+  it('sanitizes activity dashboard upstream failures', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}, false, 500));
+
+    await expect(PostHogService.getActivityDashboard(7)).rejects.toEqual(
+      expect.objectContaining({
+        name: 'PostHogAnalyticsError',
+        message: '行为数据查询失败，请稍后重试',
+      })
+    );
+  });
+
+  it('keeps activity query concurrency within the upstream limit', async () => {
+    let activeRequests = 0;
+    let maximumConcurrency = 0;
+    fetchMock.mockImplementation(async () => {
+      activeRequests += 1;
+      maximumConcurrency = Math.max(maximumConcurrency, activeRequests);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      activeRequests -= 1;
+      return jsonResponse({ results: [[]] });
+    });
+
+    await PostHogService.getActivityDashboard(7);
+
+    expect(maximumConcurrency).toBeLessThanOrEqual(3);
+  });
 });

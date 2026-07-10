@@ -23,6 +23,7 @@ import {
   Bell,
   MessageSquareText,
   Users,
+  ChartNoAxesCombined,
 } from 'lucide-react';
 
 interface UserDropdownProps {
@@ -157,6 +158,12 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       label: '用户管理',
       icon: Users,
       href: '/admin/users',
+    },
+    {
+      id: 'activity',
+      label: '用户活动',
+      icon: ChartNoAxesCombined,
+      href: '/admin/activity',
     },
     {
       id: 'feedback',

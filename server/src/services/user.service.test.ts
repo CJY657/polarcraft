@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   findByIdForAdmin,
   getUserAnalytics,
+  getActivityDashboard,
   getUserEducations,
   getUserMemberships,
   getUserApplications,
 } = vi.hoisted(() => ({
   findByIdForAdmin: vi.fn(),
   getUserAnalytics: vi.fn(),
+  getActivityDashboard: vi.fn(),
   getUserEducations: vi.fn(),
   getUserMemberships: vi.fn(),
   getUserApplications: vi.fn(),
@@ -31,6 +33,7 @@ vi.mock('../models/profile.model.js', () => ({
 vi.mock('./posthog.service.js', () => ({
   PostHogService: {
     getUserAnalytics,
+    getActivityDashboard,
   },
 }));
 
@@ -79,6 +82,34 @@ describe('UserService.getPostHogAnalyticsForAdmin', () => {
 
     expect(findByIdForAdmin).toHaveBeenCalledWith('inactive-user');
     expect(getUserAnalytics).toHaveBeenCalledWith('inactive-user');
+  });
+});
+
+describe('UserService.getActivityDashboardForAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delegates the selected range to PostHog aggregates', async () => {
+    const dashboard = {
+      status: 'ok',
+      days: 90,
+      generated_at: '2026-07-10T00:00:00.000Z',
+      summary: {
+        active_learners: 1,
+        meaningful_events: 2,
+        pageviews: 1,
+        learning_actions: 1,
+      },
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      top_learners: [],
+    };
+    getActivityDashboard.mockResolvedValue(dashboard);
+
+    await expect(UserService.getActivityDashboardForAdmin(90)).resolves.toBe(dashboard);
+    expect(getActivityDashboard).toHaveBeenCalledWith(90);
   });
 });
 

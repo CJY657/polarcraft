@@ -163,6 +163,46 @@ export interface AdminUserPostHogAnalyticsResponse {
   recent_events: AdminUserPostHogRecentEvent[];
 }
 
+/** Supported administrator activity windows / 管理员活动看板支持的时间范围 */
+export type AdminUserActivityRange = 7 | 30 | 90;
+
+/** Administrator learner activity dashboard / 管理员学生行为看板 */
+export interface AdminUserActivityDashboardResponse {
+  status: 'ok' | 'disabled';
+  days: AdminUserActivityRange;
+  generated_at: string;
+  summary: {
+    active_learners: number;
+    meaningful_events: number;
+    pageviews: number;
+    learning_actions: number;
+  } | null;
+  daily: Array<{
+    date: string;
+    active_learners: number;
+    pageviews: number;
+    learning_actions: number;
+  }>;
+  top_pages: Array<{
+    path: string;
+    pageviews: number;
+    unique_learners: number;
+  }>;
+  activity_breakdown: Array<{
+    event: string;
+    count: number;
+    unique_learners: number;
+  }>;
+  top_learners: Array<{
+    user_id: string;
+    username: string;
+    events: number;
+    pageviews: number;
+    learning_actions: number;
+    last_activity: string | null;
+  }>;
+}
+
 // =====================================================
 // Session Management Types / 会话管理类型
 // =====================================================

@@ -24,6 +24,9 @@ const doubles = vi.hoisted(() => {
     getPostHogAnalyticsForAdmin: vi.fn((_req, res) => {
       res.status(200).json({ route: 'posthog-analytics' });
     }),
+    getActivityDashboardForAdmin: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'activity' });
+    }),
     getUserDetailForAdmin: vi.fn((_req, res) => {
       res.status(200).json({ route: 'details' });
     }),
@@ -41,6 +44,7 @@ vi.mock('../controllers/user.controller.js', () => ({
     getUserStatsForAdmin: doubles.getUserStatsForAdmin,
     listUsersForAdmin: doubles.listUsersForAdmin,
     getPostHogAnalyticsForAdmin: doubles.getPostHogAnalyticsForAdmin,
+    getActivityDashboardForAdmin: doubles.getActivityDashboardForAdmin,
     getUserDetailForAdmin: doubles.getUserDetailForAdmin,
   },
 }));
@@ -72,6 +76,7 @@ describe('user.routes admin endpoints', () => {
     const statsRoute = getRoute('/stats');
     const listRoute = getRoute('/');
     const analyticsRoute = getRoute('/:userId/posthog-analytics');
+    const activityRoute = getRoute('/activity');
     const detailRoute = getRoute('/:userId/details');
 
     expect(statsRoute?.methods.get).toBe(true);
@@ -85,6 +90,10 @@ describe('user.routes admin endpoints', () => {
     expect(analyticsRoute?.methods.get).toBe(true);
     expect(analyticsRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
     expect(analyticsRoute?.stack.at(-1)?.handle).toBe(doubles.getPostHogAnalyticsForAdmin);
+
+    expect(activityRoute?.methods.get).toBe(true);
+    expect(activityRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
+    expect(activityRoute?.stack.at(-1)?.handle).toBe(doubles.getActivityDashboardForAdmin);
 
     expect(detailRoute?.methods.get).toBe(true);
     expect(detailRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);

@@ -16,6 +16,8 @@ import {
   AuthError,
 } from '../types/auth.types.js';
 import {
+  AdminUserActivityDashboardResponse,
+  AdminUserActivityRange,
   AdminUserDetailResponse,
   AdminUserListResponse,
   AdminUserPostHogAnalyticsResponse,
@@ -130,6 +132,13 @@ export class UserService {
     }
 
     return PostHogService.getUserAnalytics(user.id);
+  }
+
+  /** Get aggregate learner activity for the administrator dashboard. */
+  static async getActivityDashboardForAdmin(
+    days: AdminUserActivityRange
+  ): Promise<AdminUserActivityDashboardResponse> {
+    return PostHogService.getActivityDashboard(days);
   }
 
   /**

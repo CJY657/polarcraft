@@ -114,4 +114,27 @@ describe('adminUserApi', () => {
 
     expect(get).toHaveBeenCalledWith('/api/users/user-1/posthog-analytics');
   });
+
+  it('requests the selected admin activity range', async () => {
+    const activity = {
+      status: 'ok',
+      days: 30,
+      generated_at: '2026-07-10T08:00:00.000Z',
+      summary: {
+        active_learners: 18,
+        meaningful_events: 146,
+        pageviews: 62,
+        learning_actions: 84,
+      },
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      top_learners: [],
+    };
+    get.mockResolvedValue({ success: true, data: activity });
+
+    await expect(adminUserApi.getActivity(30)).resolves.toEqual(activity);
+
+    expect(get).toHaveBeenCalledWith('/api/users/activity?days=30');
+  });
 });

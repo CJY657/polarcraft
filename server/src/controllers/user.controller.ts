@@ -12,6 +12,7 @@ import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 import { PostHogAnalyticsError } from '../services/posthog.service.js';
+import { AdminUserActivityRange } from '../types/user.types.js';
 
 export class UserController {
   /**
@@ -87,6 +88,38 @@ export class UserController {
     async (req: Request, res: Response) => {
       try {
         const result = await UserService.getPostHogAnalyticsForAdmin(req.params.userId);
+        res.success(result);
+      } catch (error) {
+        if (error instanceof PostHogAnalyticsError) {
+          res.error(error.message, error.code, error.statusCode);
+          return;
+        }
+
+        throw error;
+      }
+    }
+  );
+
+  /** Get aggregate signed-in learner activity for administrators. */
+  static getActivityDashboardForAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+      let days: AdminUserActivityRange = 30;
+      if (req.query.days !== undefined) {
+        if (req.query.days === '7') days = 7;
+        else if (req.query.days === '30') days = 30;
+        else if (req.query.days === '90') days = 90;
+        else {
+          res.error(
+            '时间范围仅支持 7、30 或 90 天',
+            'INVALID_ACTIVITY_RANGE',
+            400
+          );
+          return;
+        }
+      }
+
+      try {
+        const result = await UserService.getActivityDashboardForAdmin(days);
         res.success(result);
       } catch (error) {
         if (error instanceof PostHogAnalyticsError) {
