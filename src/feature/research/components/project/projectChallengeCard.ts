@@ -25,7 +25,7 @@ export type ProjectChallengeSource = Pick<
   is_recruiting?: boolean;
 };
 
-export interface ProjectChallengeCard {
+interface ProjectChallengeCard {
   value: string;
   objectives: string;
   beginnerSteps: string;
@@ -76,7 +76,7 @@ function cleanText(value?: string | null): string {
   return value?.trim() ?? '';
 }
 
-export function splitChallengeLines(value?: string | null): string[] {
+function splitChallengeLines(value?: string | null): string[] {
   return cleanText(value)
     .split(/\r?\n/)
     .map((item) => item.trim())
@@ -90,7 +90,7 @@ function splitRoleFragments(value?: string | null): string[] {
     .filter(Boolean);
 }
 
-export function cleanChallengeRoleName(value?: string | null): string {
+function cleanChallengeRoleName(value?: string | null): string {
   return cleanText(value)
     .replace(/^(?:当前|目前)?(?:急需|需要|需|缺少|缺|招募|寻找|补充|希望|适合|角色)\s*/u, '')
     .replace(/^[：:\-—\s]+/u, '')
@@ -155,10 +155,6 @@ function normalizeDifficulty(value?: string | null): ChallengeDifficulty {
   return CHALLENGE_DIFFICULTY_OPTIONS.some((option) => option.value === value)
     ? value as ChallengeDifficulty
     : 'beginner';
-}
-
-export function getChallengeDifficultyLabel(value?: string | null): string {
-  return difficultyLabels[normalizeDifficulty(value)];
 }
 
 export function buildProjectChallengeCard(project: ProjectChallengeSource): ProjectChallengeCard {

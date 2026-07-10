@@ -4,7 +4,6 @@
  */
 
 import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/classNames'
 import {
   BookOpen, Target, ChevronRight, ChevronDown, Play,
@@ -44,7 +43,6 @@ function StorylineCard({
   onNavigateToEvent?: (year: number, track: 'optics' | 'polarization') => void
   onSelectScientist?: (scientistId: string) => void
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
   const [isExpanded, setIsExpanded] = useState(isActive)
 
@@ -310,7 +308,6 @@ function QuestCard({
   onRevealClue: () => void
   onSelectScientist?: (scientistId: string) => void
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
   const [isExpanded, setIsExpanded] = useState(false)
   const isCompleted = revealedClues >= quest.clues.length
@@ -516,7 +513,6 @@ function QuestCard({
 }
 
 export function ExplorationMode({ theme, onNavigateToEvent, onSelectScientist }: ExplorationModeProps) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const [activeTab, setActiveTab] = useState<'storylines' | 'quests'>('storylines')

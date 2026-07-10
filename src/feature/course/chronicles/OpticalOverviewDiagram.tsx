@@ -4,7 +4,6 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
@@ -19,7 +18,6 @@ export interface OpticalOverviewDiagramProps {
 
 export function OpticalOverviewDiagram({ onFilterChange }: OpticalOverviewDiagramProps) {
   const { theme } = useTheme()
-  const { i18n } = useTranslation()
   const isZh = true
 
   // 折叠状态 - 默认收起

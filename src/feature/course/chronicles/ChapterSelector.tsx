@@ -9,7 +9,6 @@
  */
 
 import { useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -56,7 +55,6 @@ export function ChapterSelector({
   matchedEventCount = 0
 }: ChapterSelectorProps) {
   const { theme } = useTheme()
-  const { i18n } = useTranslation()
   const isZh = true
 
   const hasFilter = selectedSections.length > 0

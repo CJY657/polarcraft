@@ -70,7 +70,6 @@ function TimelineEventCard({
   connectionDescription: string
   onNavigate?: () => void
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const categoryColors: Record<string, string> = {
@@ -147,7 +146,6 @@ function DemoCard({
   demoId: string
   theme: 'dark' | 'light'
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const demo = COURSE_DEMOS.find(d => d.id === demoId)
@@ -212,7 +210,6 @@ function SectionContent({
   theme: 'dark' | 'light'
   onNavigateToEvent?: (year: number, track: 'optics' | 'polarization') => void
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   // 获取关联的历史事件（排除隐藏的事件）
@@ -430,7 +427,6 @@ function SectionCard({
   onToggle: () => void
   onNavigateToEvent?: (year: number, track: 'optics' | 'polarization') => void
 }) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   return (
@@ -523,7 +519,7 @@ function UnitCard({
   onSectionToggle: (sectionId: string) => void
   onNavigateToEvent?: (year: number, track: 'optics' | 'polarization') => void
 }) {
-  const { i18n, t } = useTranslation()
+  const { t } = useTranslation()
   const isZh = true
 
   const demos = getDemosForUnit(unit.id)
@@ -731,7 +727,6 @@ function UnitCard({
 
 // 主组件
 export function ChroniclesPSRTView({ theme, onNavigateToEvent }: ChroniclesPSRTViewProps) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>('unit1')

@@ -3,7 +3,6 @@
  * Design: Flask with polarized light experiment
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function LabModuleIcon({

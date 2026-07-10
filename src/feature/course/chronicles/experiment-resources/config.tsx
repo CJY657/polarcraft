@@ -1,5 +1,5 @@
 import {
-  Flame, Layers, Hexagon, Glasses, Beaker, Sun, RotateCcw, Camera, Compass, Sparkles
+  Flame, Layers, Hexagon, Glasses, Sun, RotateCcw, Camera, Compass, Sparkles
 } from 'lucide-react'
 import type { ResourceCategory } from '@/data/resource-gallery'
 
@@ -161,7 +161,7 @@ export interface ColorClasses {
   border: string
 }
 
-export function getColorClasses(color: string, theme: 'dark' | 'light', isActive: boolean): ColorClasses {
+export function getColorClasses(color: string, theme: 'dark' | 'light'): ColorClasses {
   const colorMap: Record<string, ColorClasses> = {
     orange: {
       active: theme === 'dark' ? 'bg-orange-500/20 text-orange-400 border-orange-500/50' : 'bg-orange-100 text-orange-700 border-orange-300',

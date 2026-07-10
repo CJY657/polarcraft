@@ -4,7 +4,6 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/classNames'
 import { User, X, ChevronRight, Network, List, Globe, Calendar } from 'lucide-react'
 import {
@@ -66,7 +65,6 @@ const NODE_POSITIONS: Record<string, { x: number; y: number }> = {
 }
 
 export function ScientistNetwork({ theme, onNavigateToEvent, externalSelectedScientist }: ScientistNetworkProps) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const [viewMode, setViewMode] = useState<ViewMode>('network')

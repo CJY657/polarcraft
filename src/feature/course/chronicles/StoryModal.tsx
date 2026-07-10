@@ -3,7 +3,6 @@
  * 展示时间线事件的详细故事和历史背景
  */
 
-import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
@@ -27,7 +26,6 @@ export interface StoryModalProps {
 
 export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }: StoryModalProps) {
   const { theme } = useTheme()
-  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const isZh = true
   const category = CATEGORY_LABELS[event.category]
@@ -340,4 +338,3 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
     </div>
   )
 }
-

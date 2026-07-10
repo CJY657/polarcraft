@@ -44,7 +44,7 @@ export function WorkDetailPage() {
   const isZh = i18n.language.startsWith("zh");
 
   useEffect(() => {
-    if (localWork || stateWork || !courseWorkId || !workId) {
+    if (localWork || stateWork || !courseWorkId) {
       setFetchedWork(null);
       setIsWorkLoading(false);
       setWorkError(null);
@@ -67,7 +67,6 @@ export function WorkDetailPage() {
         const nextWork = mapCourseToGalleryWork(course);
         if (!isGalleryResultCourse(course) || nextWork.id !== workId) {
           setWorkError("成果不存在");
-          setFetchedWork(null);
           return;
         }
 
@@ -79,7 +78,6 @@ export function WorkDetailPage() {
         }
 
         setWorkError(error instanceof Error ? error.message : "成果加载失败");
-        setFetchedWork(null);
       })
       .finally(() => {
         if (!isCancelled) {

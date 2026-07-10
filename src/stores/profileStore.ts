@@ -44,7 +44,7 @@ const initialState = {
   error: null,
 };
 
-export const useProfileStore = create<ProfileState>((set, get) => ({
+export const useProfileStore = create<ProfileState>((set) => ({
   ...initialState,
 
   // =====================================================

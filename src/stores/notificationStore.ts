@@ -42,7 +42,7 @@ const initialState = {
   error: null,
 };
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   ...initialState,
 
   // =====================================================

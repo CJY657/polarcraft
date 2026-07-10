@@ -19,7 +19,7 @@ export function ExplorationPathCard({
   resourceCount,
   onClick
 }: ExplorationPathCardProps) {
-  const colorClasses = getColorClasses(path.color, theme, false)
+  const colorClasses = getColorClasses(path.color, theme)
 
   return (
     <motion.button

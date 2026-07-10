@@ -3,7 +3,6 @@
  * Design: Game controller with polarization light effects
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function GamesModuleIcon({

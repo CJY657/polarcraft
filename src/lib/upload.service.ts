@@ -144,17 +144,3 @@ export function getAcceptString(category: FileCategory): string {
   };
   return acceptMap[category];
 }
-
-/**
- * Get human-readable category name
- * 获取类别的可读名称
- */
-export function getCategoryName(category: FileCategory): string {
-  const nameMap: Record<FileCategory, string> = {
-    pdf: 'PDF',
-    image: 'Image',
-    video: 'Video',
-    pptx: 'PowerPoint',
-  };
-  return nameMap[category];
-}

@@ -10,7 +10,6 @@
 
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -70,7 +69,6 @@ export function CourseNavigator({
   onEventClick
 }: CourseNavigatorProps) {
   const { theme } = useTheme()
-  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const isZh = true
 

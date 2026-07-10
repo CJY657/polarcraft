@@ -320,7 +320,7 @@ export function ExperimentResourcesTab({ theme, isZh }: ExperimentResourcesTabPr
               </button>
               {categoriesWithResources.map(category => {
                 const config = CATEGORY_CONFIG[category]
-                const colorClasses = getColorClasses(config.color, theme, selectedCategory === category)
+                const colorClasses = getColorClasses(config.color, theme)
                 return (
                   <button
                     key={category}

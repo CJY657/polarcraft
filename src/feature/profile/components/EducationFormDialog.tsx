@@ -5,7 +5,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Calendar } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';

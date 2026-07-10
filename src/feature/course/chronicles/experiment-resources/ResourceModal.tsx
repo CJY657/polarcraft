@@ -237,7 +237,7 @@ export function ResourceModal({
           {categoryConfig && (
             <div className={cn(
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium mb-3',
-              getColorClasses(categoryConfig.color, theme, true).active
+              getColorClasses(categoryConfig.color, theme).active
             )}
             >
               {categoryConfig.icon}

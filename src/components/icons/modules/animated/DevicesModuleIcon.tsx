@@ -3,7 +3,6 @@
  * Design: Crystal prism with refracted light beams
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function DevicesModuleIcon({

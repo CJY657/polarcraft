@@ -44,8 +44,6 @@ export function DualTrackCard({ event, eventIndex, isExpanded, onToggle, onReadS
     return getDemosByEvent(event.year, event.track)
   }, [event.year, event.track])
 
-  const isOpticsTrack = event.track === 'optics'
-  
   // Custom button styling inside the colored card
   // If the card is dark (pink/teal), buttons should be white with ink text.
   // If the card is light (lavender/peach/ochre/cream), buttons should be ink with white text.

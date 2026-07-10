@@ -161,7 +161,6 @@ export function TimelinePage() {
 
   const filterSurfaceClass = "border-[#e5e5e5] bg-[#faf5e8]";
   const mutedTextClass = "text-[#6a6a6a]";
-  const subtleTextClass = "text-[#9a9a9a]";
   const pillClass = "inline-flex items-center rounded-full border border-[#e5e5e5] bg-[#f5f0e0] px-3 py-1 text-xs font-semibold text-[#0a0a0a]";
 
   const renderMobileTimeline = () => (

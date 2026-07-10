@@ -74,7 +74,6 @@ export default function AdminActivityPage() {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    setResult(null);
 
     void adminUserApi
       .getActivity(days)

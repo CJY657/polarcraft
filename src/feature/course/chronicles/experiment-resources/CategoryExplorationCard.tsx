@@ -22,7 +22,7 @@ export function CategoryExplorationCard({
   isActive
 }: CategoryExplorationCardProps) {
   const config = CATEGORY_CONFIG[category]
-  const colorClasses = getColorClasses(config.color, theme, isActive)
+  const colorClasses = getColorClasses(config.color, theme)
 
   return (
     <motion.button

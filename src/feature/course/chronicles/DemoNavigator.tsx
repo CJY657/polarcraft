@@ -193,7 +193,7 @@ export function DemoNavigator({
   onEventClick
 }: DemoNavigatorProps) {
   const { theme } = useTheme()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const isZh = true
 

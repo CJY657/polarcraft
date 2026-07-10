@@ -3,7 +3,6 @@
  * Design: Hourglass with flowing light particles
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function CoursesModuleIcon({

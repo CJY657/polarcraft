@@ -7,7 +7,6 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/classNames'
 import { Lightbulb, X, ChevronRight, Network, List, Calendar } from 'lucide-react'
 import {
@@ -59,7 +58,6 @@ function diamondPath(cx: number, cy: number, r: number): string {
 }
 
 export function ConceptNetwork({ theme, onNavigateToEvent, onFilterByYears }: ConceptNetworkProps) {
-  const { i18n } = useTranslation()
   const isZh = true
 
   const [viewMode, setViewMode] = useState<ViewMode>('network')

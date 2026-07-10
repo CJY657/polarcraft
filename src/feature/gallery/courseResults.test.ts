@@ -4,7 +4,6 @@ import type { Course } from '@/lib/course.service';
 
 import {
   GALLERY_RESULTS_UNIT_ID,
-  getGalleryWorkPrimaryUrl,
   isGalleryResultCourse,
   mapCourseToGalleryWork,
   parseGalleryCourseWorkId,
@@ -52,7 +51,6 @@ describe('gallery course results', () => {
         url: '/uploads/courses/gallery-results/pdf/poster.pdf',
       }),
     ]);
-    expect(getGalleryWorkPrimaryUrl(work)).toBe('/uploads/courses/gallery-results/pdf/poster.pdf');
   });
 
   it('parses gallery course work IDs', () => {

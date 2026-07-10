@@ -3,7 +3,6 @@
  * Design: Mathematical formulas with light waves
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function DemosModuleIcon({

@@ -53,6 +53,7 @@ type PersistentHeaderModuleKey =
   | "course"
   | "units"
   | "unit"
+  | "devices"
   | "profile";
 
 interface PersistentHeaderProps {

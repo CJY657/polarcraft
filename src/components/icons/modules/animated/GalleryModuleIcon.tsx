@@ -3,7 +3,6 @@
  * Design: Star/award with radiating light
  */
 
-import React from "react";
 import { cn, AnimatedIconProps, POLAR_COLORS } from "../types";
 
 export function GalleryModuleIcon({
