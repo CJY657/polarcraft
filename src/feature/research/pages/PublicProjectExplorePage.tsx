@@ -7,6 +7,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  BookOpenText,
   FlaskConical,
   Loader2,
   LogIn,
@@ -27,6 +28,7 @@ import {
 } from "../components/project/projectDisplayModes";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
+import { ResearchGroupGuideDialog } from "../components/project/ResearchGroupGuideDialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
 const CreateProjectWizard = lazy(() =>
@@ -56,6 +58,7 @@ export function PublicProjectExplorePage() {
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   useEffect(() => {
     let shouldIgnoreResult = false;
@@ -191,9 +194,35 @@ export function PublicProjectExplorePage() {
               <Search className="h-5 w-5 text-[var(--paper-link)]" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
-                公开课题
-              </h1>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
+                  公开课题
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => setIsGuideOpen(true)}
+                  className={cn(
+                    "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-2 pr-2.5 text-xs font-semibold",
+                    "bg-clay-pink text-white",
+                    "transition-transform hover:-translate-y-0.5",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-pink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)]"
+                  )}
+                  aria-label="打开研究小组指南 Research Group Guide"
+                  title="研究小组指南"
+                >
+                  <span
+                    className="flex h-5 w-5 items-center justify-center rounded-xl bg-white/15 text-white"
+                    aria-hidden="true"
+                  >
+                    <BookOpenText className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </span>
+                  <span className="hidden sm:inline">研究小组指南</span>
+                  <span
+                    className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-clay-ochre ring-2 ring-[var(--paper-bg)]"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
               <div className="mt-1 flex items-center gap-2.5 text-xs font-medium text-[var(--glass-text-muted)]">
                 <span className="uppercase tracking-[0.1em]">Explore Public Projects</span>
                 <span className="hidden h-3 w-px bg-[var(--glass-stroke)] sm:block"></span>
@@ -472,6 +501,11 @@ export function PublicProjectExplorePage() {
           </section>
         )}
       </main>
+
+      <ResearchGroupGuideDialog
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
 
       <Suspense fallback={null}>
         {isCreateWizardOpen && (

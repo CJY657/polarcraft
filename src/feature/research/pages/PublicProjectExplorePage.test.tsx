@@ -182,6 +182,27 @@ describe("PublicProjectExplorePage", () => {
     });
   });
 
+  it("opens the research group guide from the page header", async () => {
+    getPublicProjects.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <PublicProjectExplorePage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "打开研究小组指南 Research Group Guide" })
+    );
+
+    expect(screen.getByRole("heading", { name: "研究小组指南" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "虚拟课题组是什么" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "访客（未登录）" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "课题成员" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "组长职责与权限" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "课题组如何运作" })).toBeTruthy();
+  });
+
   it("opens login for guest create and join actions", async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
