@@ -215,6 +215,9 @@ export function shouldHideGlobalFooter(pathname: string) {
 }
 
 export function shouldRequireStudentAuth(pathname: string) {
+  const isPublicResearchRoute =
+    pathname === "/lab/explore" || Boolean(matchPath({ path: "/lab/projects/:projectId", end: true }, pathname));
+
   return Boolean(
     pathname === "/experiments" ||
       matchPath("/experiments/:experimentId", pathname) ||
@@ -225,8 +228,7 @@ export function shouldRequireStudentAuth(pathname: string) {
       matchPath("/units/:unitId/courses/:courseId", pathname) ||
       pathname === "/profile" ||
       pathname === "/inbox" ||
-      pathname === "/lab" ||
-      pathname.startsWith("/lab/")
+      (!isPublicResearchRoute && (pathname === "/lab" || pathname.startsWith("/lab/")))
   );
 }
 
@@ -309,14 +311,6 @@ function AppRouterContent() {
               path="/lab/projects"
               element={<MyProjectsPage />}
             />
-            <Route
-              path="/lab/explore"
-              element={<PublicProjectExplorePage />}
-            />
-            <Route
-              path="/lab/projects/:projectId"
-              element={<ResearchProjectPage />}
-            />
 
             {/* Profile - 个人中心 */}
             <Route
@@ -330,6 +324,15 @@ function AppRouterContent() {
               element={<InboxPage />}
             />
           </Route>
+
+          <Route
+            path="/lab/explore"
+            element={<PublicProjectExplorePage />}
+          />
+          <Route
+            path="/lab/projects/:projectId"
+            element={<ResearchProjectPage />}
+          />
 
           <Route
             path="/chronicles"

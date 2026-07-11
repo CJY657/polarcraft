@@ -13,6 +13,10 @@ import {
   isMembershipActive,
 } from './research-membership.util.js';
 import { getProjectCoverImageMap } from './research-cover.util.js';
+import {
+  decorateResearchProject,
+  type ProjectStatus,
+} from './research-project.util.js';
 
 const researchProjectsCollection = () => getCollection('research_projects');
 const projectMembersCollection = () => getCollection('research_project_members');
@@ -28,6 +32,11 @@ const projectSettingsCollection = () => getCollection('research_project_settings
 const creatorProfilesCollection = () => getCollection('research_project_creator_profiles');
 const applicationsCollection = () => getCollection('research_project_applications');
 const evidenceCollection = () => getCollection('research_project_evidence');
+const projectCyclesCollection = () => getCollection('research_project_cycles');
+const projectChartersCollection = () => getCollection('research_project_charters');
+const projectTasksCollection = () => getCollection('research_project_tasks');
+const projectReviewsCollection = () => getCollection('research_project_reviews');
+const projectOutcomesCollection = () => getCollection('research_project_outcomes');
 
 type UserIdentity = {
   username: string;
@@ -216,7 +225,7 @@ export class ResearchModel {
       canvasCountMap.set(canvas.project_id, (canvasCountMap.get(canvas.project_id) ?? 0) + 1);
     }
 
-    return projects.map((project) => ({
+    return projects.map((project) => decorateResearchProject({
       ...project,
       cover_image: coverMap.get(project.id) ?? null,
       member_count: memberCountMap.get(project.id) ?? 0,
@@ -238,16 +247,18 @@ export class ResearchModel {
       return null;
     }
 
-    const [memberCount, canvasCount] = await Promise.all([
+    const [memberCount, canvasCount, settings] = await Promise.all([
       projectMembersCollection().countDocuments(buildActiveMembershipFilter({ project_id: projectId })),
       canvasesCollection().countDocuments({ project_id: projectId }),
+      projectSettingsCollection().findOne({ project_id: projectId }),
     ]);
 
-    return {
+    return decorateResearchProject({
       ...project,
+      visibility: settings?.visibility ?? 'private',
       member_count: memberCount,
       canvas_count: canvasCount,
-    };
+    });
   }
 
   static async getProjectDiscussionAccess(
@@ -300,7 +311,7 @@ export class ResearchModel {
       role,
       isAdmin,
       isMember,
-      canRead: isAdmin || isMember || Boolean(project.is_public),
+      canRead: isAdmin || isMember || project.visibility === 'public',
       canWrite: isAdmin || isMember,
       canManage: isAdmin || role === 'owner',
       canAccessDiscussion: isAdmin || isMember,
@@ -337,11 +348,20 @@ export class ResearchModel {
       challenge_missing_roles_zh: data.challenge_missing_roles_zh || null,
       challenge_progress_zh: data.challenge_progress_zh || null,
       thumbnail: data.thumbnail || null,
-      status: data.status || 'draft',
-      is_public: data.is_public || false,
+      status: 'draft',
+      is_public: data.is_public === true,
       allow_guest_comments: data.allow_guest_comments || false,
       enable_task_board: data.enable_task_board !== undefined ? data.enable_task_board : true,
       default_canvas_id: data.default_canvas_id || null,
+      created_at: now,
+      updated_at: now,
+      last_activity_at: now,
+    });
+
+    await projectCyclesCollection().insertOne({
+      id: generateId(),
+      project_id: projectId,
+      cycle_number: 1,
       created_at: now,
       updated_at: now,
     });
@@ -360,8 +380,12 @@ export class ResearchModel {
    * Update project
    * 更新项目
    */
-  static async updateProject(projectId: string, data: any): Promise<boolean> {
-    const updateDoc = pickDefined({
+  static async updateProject(
+    projectId: string,
+    data: any,
+    expectedStatus?: ProjectStatus
+  ): Promise<'updated' | 'not_found' | 'conflict'> {
+    const updateDoc: Record<string, unknown> = pickDefined({
       name_zh: data.name_zh,
       name_en: data.name_en,
       description_zh: data.description_zh,
@@ -381,24 +405,57 @@ export class ResearchModel {
       challenge_missing_roles_zh: data.challenge_missing_roles_zh,
       challenge_progress_zh: data.challenge_progress_zh,
       thumbnail: data.thumbnail,
-      status: data.status,
       is_public: data.is_public,
       allow_guest_comments: data.allow_guest_comments,
       enable_task_board: data.enable_task_board,
       default_canvas_id: data.default_canvas_id,
     });
 
+    if (data.status !== undefined) {
+      updateDoc.status = data.status;
+    }
     if (Object.keys(updateDoc).length === 0) {
-      return false;
+      return 'not_found';
     }
 
+    const now = new Date();
     const result = await researchProjectsCollection().updateOne(
-      { id: projectId },
-      { $set: { ...updateDoc, updated_at: new Date() } }
+      expectedStatus === undefined ? { id: projectId } : { id: projectId, status: expectedStatus },
+      { $set: { ...updateDoc, updated_at: now, last_activity_at: now } }
     );
 
     logger.info(`Project updated: ${projectId}`);
+    if (result.matchedCount > 0) {
+      return 'updated';
+    }
+
+    return await researchProjectsCollection().findOne({ id: projectId }) ? 'conflict' : 'not_found';
+  }
+
+  static async touchProjectActivity(projectId: string, at: Date = new Date()): Promise<void> {
+    await researchProjectsCollection().updateOne(
+      { id: projectId },
+      { $set: { last_activity_at: at } }
+    );
+  }
+
+  static async setLegacyProjectVisibility(projectId: string, isPublic: boolean): Promise<boolean> {
+    const now = new Date();
+    const result = await researchProjectsCollection().updateOne(
+      { id: projectId },
+      { $set: { is_public: isPublic, updated_at: now, last_activity_at: now } }
+    );
     return result.matchedCount > 0;
+  }
+
+  static async getCurrentProjectCycle(projectId: string): Promise<any | null> {
+    return normalizeDocument<any>(
+      await projectCyclesCollection().findOne({ project_id: projectId }, { sort: { cycle_number: -1 } })
+    );
+  }
+
+  static async cycleBelongsToProject(projectId: string, cycleId: string): Promise<boolean> {
+    return Boolean(await projectCyclesCollection().findOne({ id: cycleId, project_id: projectId }));
   }
 
   /**
@@ -433,6 +490,11 @@ export class ResearchModel {
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
       projectCommentsCollection().deleteMany({ project_id: projectId }),
       evidenceCollection().deleteMany({ project_id: projectId }),
+      projectCyclesCollection().deleteMany({ project_id: projectId }),
+      projectChartersCollection().deleteMany({ project_id: projectId }),
+      projectTasksCollection().deleteMany({ project_id: projectId }),
+      projectReviewsCollection().deleteMany({ project_id: projectId }),
+      projectOutcomesCollection().deleteMany({ project_id: projectId }),
       agentMessagesCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),
@@ -493,6 +555,8 @@ export class ResearchModel {
       });
     }
 
+    await this.touchProjectActivity(projectId, now);
+
     logger.info(`Member added to project: ${projectId} - ${userId} as ${normalizedRole}`);
     return true;
   }
@@ -511,6 +575,9 @@ export class ResearchModel {
         },
       }
     );
+    if (result.matchedCount > 0) {
+      await this.touchProjectActivity(projectId);
+    }
     logger.info(`Member removed from project: ${projectId} - ${userId}`);
     return result.matchedCount > 0;
   }
@@ -755,6 +822,7 @@ export class ResearchModel {
       created_at: now,
       updated_at: now,
     });
+    await this.touchProjectActivity(projectId, now);
 
     logger.info(`Project evidence created: ${evidenceId} in project ${projectId}`);
     return evidenceId;
@@ -785,10 +853,15 @@ export class ResearchModel {
       return false;
     }
 
+    const evidence = await this.getProjectEvidenceById(evidenceId);
     const result = await evidenceCollection().updateOne(
       { id: evidenceId },
       { $set: { ...updateDoc, updated_at: new Date() } }
     );
+
+    if (result.matchedCount > 0 && evidence?.project_id) {
+      await this.touchProjectActivity(evidence.project_id);
+    }
 
     logger.info(`Project evidence updated: ${evidenceId}`);
     return result.matchedCount > 0;
@@ -799,7 +872,11 @@ export class ResearchModel {
    * 删除课题证据记录
    */
   static async deleteProjectEvidence(evidenceId: string): Promise<boolean> {
+    const evidence = await this.getProjectEvidenceById(evidenceId);
     const result = await evidenceCollection().deleteOne({ id: evidenceId });
+    if (result.deletedCount > 0 && evidence?.project_id) {
+      await this.touchProjectActivity(evidence.project_id);
+    }
     logger.info(`Project evidence deleted: ${evidenceId}`);
     return result.deletedCount > 0;
   }
@@ -890,6 +967,7 @@ export class ResearchModel {
       updated_at: now,
       last_opened_at: now,
     });
+    await this.touchProjectActivity(projectId, now);
 
     logger.info(`Canvas created: ${canvasId} in project ${projectId}`);
     return canvasId;
@@ -912,11 +990,16 @@ export class ResearchModel {
       return false;
     }
 
+    const canvas = await this.getCanvasById(canvasId);
     const now = new Date();
     const result = await canvasesCollection().updateOne(
       { id: canvasId },
       { $set: { ...updateDoc, updated_at: now, last_opened_at: now } }
     );
+
+    if (result.matchedCount > 0 && canvas?.project_id) {
+      await this.touchProjectActivity(canvas.project_id, now);
+    }
 
     logger.info(`Canvas updated: ${canvasId}`);
     return result.matchedCount > 0;
@@ -927,6 +1010,7 @@ export class ResearchModel {
    * 删除画布
    */
   static async deleteCanvas(canvasId: string): Promise<boolean> {
+    const canvas = await this.getCanvasById(canvasId);
     const nodes = normalizeDocuments<{ id: string }>(
       await nodesCollection().find({ canvas_id: canvasId }).project({ _id: 0, id: 1 }).toArray()
     );
@@ -942,6 +1026,10 @@ export class ResearchModel {
       edgesCollection().deleteMany({ canvas_id: canvasId }),
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
     ]);
+
+    if (canvas?.project_id) {
+      await this.touchProjectActivity(canvas.project_id);
+    }
 
     logger.info(`Canvas deleted: ${canvasId}`);
     return true;
@@ -1004,6 +1092,11 @@ export class ResearchModel {
       pinned: data.pinned,
     });
 
+    const canvas = await this.getCanvasById(canvasId);
+    if (canvas?.project_id) {
+      await this.touchProjectActivity(canvas.project_id, now);
+    }
+
     logger.info(`Node created: ${nodeId} of type ${data.type}`);
     return nodeId;
   }
@@ -1013,6 +1106,7 @@ export class ResearchModel {
    * 更新节点
    */
   static async updateNode(nodeId: string, data: any): Promise<boolean> {
+    const node = await this.getNodeById(nodeId);
     const updateDoc = pickDefined({
       title_zh: data.title_zh,
       title_en: data.title_en,
@@ -1058,6 +1152,11 @@ export class ResearchModel {
       { $set: { ...updateDoc, updated_at: new Date() } }
     );
 
+    if (result.matchedCount > 0 && node?.canvas_id) {
+      const canvas = await this.getCanvasById(node.canvas_id);
+      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+    }
+
     logger.info(`Node updated: ${nodeId}`);
     return result.matchedCount > 0;
   }
@@ -1067,6 +1166,7 @@ export class ResearchModel {
    * 删除节点
    */
   static async deleteNode(nodeId: string): Promise<boolean> {
+    const node = await this.getNodeById(nodeId);
     const result = await nodesCollection().deleteOne({ id: nodeId });
     if (result.deletedCount === 0) {
       return false;
@@ -1076,6 +1176,11 @@ export class ResearchModel {
       edgesCollection().deleteMany({ $or: [{ source_node_id: nodeId }, { target_node_id: nodeId }] }),
       commentsCollection().deleteMany({ node_id: nodeId }),
     ]);
+
+    if (node?.canvas_id) {
+      const canvas = await this.getCanvasById(node.canvas_id);
+      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+    }
 
     logger.info(`Node deleted: ${nodeId}`);
     return true;
@@ -1095,6 +1200,7 @@ export class ResearchModel {
    */
   static async createEdge(canvasId: string, data: any, createdBy: string): Promise<string> {
     const edgeId = generateId();
+    const now = new Date();
 
     await edgesCollection().insertOne({
       id: edgeId,
@@ -1108,8 +1214,11 @@ export class ResearchModel {
       evidence_notes_zh: data.evidence_notes_zh || null,
       evidence_notes_en: data.evidence_notes_en || null,
       created_by: createdBy,
-      created_at: new Date(),
+      created_at: now,
     });
+
+    const canvas = await this.getCanvasById(canvasId);
+    if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id, now);
 
     logger.info(`Edge created: ${edgeId} of type ${data.type}`);
     return edgeId;
@@ -1120,6 +1229,7 @@ export class ResearchModel {
    * 更新边
    */
   static async updateEdge(edgeId: string, data: any): Promise<boolean> {
+    const edge = await this.getEdgeById(edgeId);
     const updateDoc = pickDefined({
       type: data.type,
       label_zh: data.label_zh,
@@ -1135,6 +1245,11 @@ export class ResearchModel {
 
     const result = await edgesCollection().updateOne({ id: edgeId }, { $set: updateDoc });
 
+    if (result.matchedCount > 0 && edge?.canvas_id) {
+      const canvas = await this.getCanvasById(edge.canvas_id);
+      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+    }
+
     logger.info(`Edge updated: ${edgeId}`);
     return result.matchedCount > 0;
   }
@@ -1144,7 +1259,12 @@ export class ResearchModel {
    * 删除边
    */
   static async deleteEdge(edgeId: string): Promise<boolean> {
+    const edge = await this.getEdgeById(edgeId);
     const result = await edgesCollection().deleteOne({ id: edgeId });
+    if (result.deletedCount > 0 && edge?.canvas_id) {
+      const canvas = await this.getCanvasById(edge.canvas_id);
+      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+    }
     logger.info(`Edge deleted: ${edgeId}`);
     return result.deletedCount > 0;
   }
@@ -1191,6 +1311,12 @@ export class ResearchModel {
       updated_at: now,
     });
 
+    const node = await this.getNodeById(nodeId);
+    if (node?.canvas_id) {
+      const canvas = await this.getCanvasById(node.canvas_id);
+      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id, now);
+    }
+
     logger.info(`Comment added to node: ${nodeId}`);
     return commentId;
   }
@@ -1200,10 +1326,19 @@ export class ResearchModel {
    * 更新评论
    */
   static async updateComment(commentId: string, userId: string, content: string): Promise<boolean> {
+    const comment = await this.getCommentById(commentId);
     const result = await commentsCollection().updateOne(
       { id: commentId, user_id: userId },
       { $set: { content, updated_at: new Date() } }
     );
+
+    if (result.matchedCount > 0 && comment?.node_id) {
+      const node = await this.getNodeById(comment.node_id);
+      if (node?.canvas_id) {
+        const canvas = await this.getCanvasById(node.canvas_id);
+        if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      }
+    }
 
     logger.info(`Comment updated: ${commentId}`);
     return result.matchedCount > 0;
@@ -1214,7 +1349,15 @@ export class ResearchModel {
    * 删除评论
    */
   static async deleteComment(commentId: string): Promise<boolean> {
+    const comment = await this.getCommentById(commentId);
     const result = await commentsCollection().deleteOne({ id: commentId });
+    if (result.deletedCount > 0 && comment?.node_id) {
+      const node = await this.getNodeById(comment.node_id);
+      if (node?.canvas_id) {
+        const canvas = await this.getCanvasById(node.canvas_id);
+        if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      }
+    }
     logger.info(`Comment deleted: ${commentId}`);
     return result.deletedCount > 0;
   }
@@ -1314,6 +1457,7 @@ export class ResearchModel {
       created_at: now,
       updated_at: now,
     });
+    await this.touchProjectActivity(projectId, now);
 
     logger.info(`Project discussion comment added: ${commentId} in project ${projectId}`);
     return commentId;
@@ -1355,6 +1499,7 @@ export class ResearchModel {
         { id: commentId },
         { $set: { is_deleted: true, content: '', image_urls: [], video_urls: [], updated_at: new Date() } }
       );
+      if (result.matchedCount > 0) await this.touchProjectActivity(comment.project_id);
       logger.info(`Project discussion comment soft deleted: ${commentId}`);
       return result.matchedCount > 0;
     }
@@ -1365,6 +1510,7 @@ export class ResearchModel {
     }
 
     await this.pruneDeletedProjectDiscussionAncestor(comment.parent_comment_id ?? null);
+    await this.touchProjectActivity(comment.project_id);
     logger.info(`Project discussion comment deleted: ${commentId}`);
     return true;
   }
@@ -1393,6 +1539,7 @@ export class ResearchModel {
       changes: changes || null,
       created_at: new Date(),
     });
+    await this.touchProjectActivity(projectId);
 
     return activityId;
   }

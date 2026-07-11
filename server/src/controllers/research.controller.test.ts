@@ -32,7 +32,10 @@ const {
     logActivity: vi.fn(),
     addProjectMember: vi.fn(),
     removeProjectMember: vi.fn(),
+    createProject: vi.fn(),
     updateProject: vi.fn(),
+    touchProjectActivity: vi.fn(),
+    setLegacyProjectVisibility: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
   },
@@ -46,6 +49,9 @@ const {
     createApplication: vi.fn(),
     getApplicationById: vi.fn(),
     updateApplicationStatus: vi.fn(),
+    createProjectSettings: vi.fn(),
+    getProjectSettings: vi.fn(),
+    updateProjectSettings: vi.fn(),
   },
   mockManagedUploadCleanupService: {
     cleanupUrls: vi.fn(),
@@ -114,6 +120,7 @@ describe('ResearchController member management', () => {
       isFull: false,
     });
     mockResearchModel.getProjectEvidenceAttachmentUrls.mockResolvedValue([]);
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'private' });
     mockResearchAgentService.isEnabled.mockReturnValue(false);
   });
 
@@ -731,7 +738,7 @@ describe('ResearchController member management', () => {
 
     await invokeHandler(ResearchController.updateProject, req, res);
 
-    expect(mockResearchModel.updateProject).toHaveBeenCalledWith('project-1', { thumbnail: null });
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith('project-1', { thumbnail: null }, undefined);
     expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
       ['/uploads/courses/project-cover-project-1/image/old-cover.png'],
       { reason: 'research.project.cover-change:project-1' }
@@ -1525,6 +1532,282 @@ describe('ResearchController member management', () => {
 
     expect(res.error).toHaveBeenCalledWith('AI 顾问尚未配置', 'AI_ADVISOR_DISABLED', 503);
     expect(mockResearchAgentService.createChatCompletion).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchController Phase 0 project policy', () => {
+  const completeProject = {
+    id: 'project-1',
+    status: 'active',
+    thumbnail: null,
+    description_zh: '背景',
+    challenge_value_zh: '价值',
+    challenge_beginner_steps_zh: '步骤',
+    challenge_roles_zh: '角色',
+    challenge_min_deliverables_zh: '成果',
+    challenge_timeline_zh: '周期',
+    challenge_review_criteria_zh: '标准',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'private' });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: completeProject,
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.updateProject.mockResolvedValue('updated');
+    mockResearchModel.getProjectById.mockResolvedValue({ ...completeProject, status: 'review_pending' });
+  });
+
+  it('allows an adjacent lifecycle transition with an atomic current-status filter', async () => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'review_pending' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { status: 'review_pending' },
+      'active'
+    );
+  });
+
+  it('allows an admin to roll the lifecycle back to any earlier state', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      ...(await mockResearchModel.getProjectAccess()),
+      isAdmin: true,
+    });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'draft' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { status: 'draft' },
+      'active'
+    );
+  });
+
+  it('allows an admin to advance directly to any later state', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      ...(await mockResearchModel.getProjectAccess()),
+      isAdmin: true,
+    });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'relay_open' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { status: 'relay_open' },
+      'active'
+    );
+  });
+
+  it('rejects lifecycle rollback by an ordinary project owner', async () => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'forming' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '只有管理员可以回退课题进度',
+      'PROJECT_STATUS_ROLLBACK_FORBIDDEN',
+      403
+    );
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('routes a legacy is_public-only update through project settings', async () => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { is_public: true },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
+    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
+    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+    expect(res.error).not.toHaveBeenCalled();
+  });
+
+  it('updates project fields and visibility for a mixed legacy update', async () => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { name_zh: '更新后的课题', is_public: true },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { name_zh: '更新后的课题' },
+      undefined
+    );
+    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
+    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+  });
+
+  it('allows clearing publication fields while making a project private', async () => {
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'public' });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { challenge_roles_zh: '  ', is_public: false },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { challenge_roles_zh: '  ' },
+      undefined
+    );
+    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'private' });
+    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', false);
+  });
+
+  it.each(['showcased', 'unknown'])('rejects invalid transition to %s', async (status) => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      expect.any(String),
+      'INVALID_PROJECT_STATUS_TRANSITION',
+      400
+    );
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('rejects lifecycle rollback after archival for ordinary users', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      ...(await mockResearchModel.getProjectAccess()),
+      project: { ...completeProject, status: 'archived' },
+    });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'relay_open' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '只有管理员可以回退课题进度',
+      'PROJECT_STATUS_ROLLBACK_FORBIDDEN',
+      403
+    );
+  });
+
+  it('returns a status conflict after a concurrent transition', async () => {
+    mockResearchModel.updateProject.mockResolvedValue('conflict');
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'review_pending' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(expect.any(String), 'PROJECT_STATUS_CONFLICT', 409);
+  });
+
+  it('rejects project updates without owner or admin access', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: completeProject,
+      canManage: false,
+    });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'review_pending' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有组长可以更新课题', 'FORBIDDEN', 403);
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('allows incomplete projects to be created as public', async () => {
+    mockResearchModel.createProject.mockResolvedValue('project-new');
+    mockResearchModel.getProjectById.mockResolvedValue({ id: 'project-new', status: 'draft', is_public: true });
+    const res = createResponse();
+    await invokeHandler(ResearchController.createProjectWithProfile, {
+      body: {
+        project: { name_zh: '公开课题', description_zh: '  ' },
+        settings: { visibility: 'public' },
+      },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.createProject).toHaveBeenCalledWith(
+      expect.objectContaining({ name_zh: '公开课题', is_public: true }),
+      'owner-1'
+    );
+    expect(mockProfileModel.createProjectSettings).toHaveBeenCalledWith(
+      'project-new',
+      expect.objectContaining({ visibility: 'public' })
+    );
+  });
+
+  it('allows clearing formerly-required fields on an already-public project', async () => {
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'public' });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { challenge_roles_zh: '  ' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { challenge_roles_zh: '  ' },
+      undefined
+    );
+  });
+
+  it('allows incomplete projects to transition to public and synchronizes legacy visibility', async () => {
+    mockProfileModel.getProjectSettings.mockResolvedValue({ visibility: 'public' });
+    const incompleteAccess = await mockResearchModel.getProjectAccess();
+    mockResearchModel.getProjectAccess.mockResolvedValueOnce({
+      ...incompleteAccess,
+      project: { ...completeProject, challenge_timeline_zh: '  ' },
+    });
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProjectSettings, {
+      params: { id: 'project-1' },
+      body: { visibility: 'public' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
+    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
   });
 });
 

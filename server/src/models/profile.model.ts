@@ -15,6 +15,7 @@ import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import { buildActiveMembershipFilter, normalizeProjectRole } from './research-membership.util.js';
 import { getProjectCoverImageMap } from './research-cover.util.js';
+import { decorateResearchProject } from './research-project.util.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -175,7 +176,7 @@ async function enrichPublicProjects(
     const owner = projectMembers.find((member) => member.role === 'owner');
     const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
 
-    return {
+    return decorateResearchProject({
       ...project,
       cover_image: coverMap.get(project.id) ?? null,
       visibility: setting?.visibility,
@@ -200,7 +201,7 @@ async function enrichPublicProjects(
         role: normalizeProjectRole(member.role) ?? 'member',
         member_role_label: member.member_role_label ?? null,
       })),
-    };
+    });
   });
 }
 
@@ -690,10 +691,7 @@ export class ProfileModel {
     }
 
     const projectIds = settings.map((item) => item.project_id);
-    const projectFilter: Record<string, unknown> = {
-      id: { $in: projectIds },
-      status: { $in: ['draft', 'active'] },
-    };
+    const projectFilter: Record<string, unknown> = { id: { $in: projectIds } };
 
     if (filters.search) {
       const regex = new RegExp(escapeRegExp(filters.search), 'i');
@@ -727,10 +725,7 @@ export class ProfileModel {
     }
 
     const project = normalizeDocument<any>(
-      await researchProjectsCollection().findOne({
-        id: projectId,
-        status: { $in: ['draft', 'active'] },
-      })
+      await researchProjectsCollection().findOne({ id: projectId })
     );
     if (!project) {
       return null;

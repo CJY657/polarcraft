@@ -7,10 +7,13 @@ const membersUpdateOne = vi.fn();
 const membersDeleteMany = vi.fn();
 const membersCountDocuments = vi.fn();
 const projectsFindOne = vi.fn();
+const projectsUpdateOne = vi.fn();
+const projectsInsertOne = vi.fn();
 const projectsDeleteOne = vi.fn();
 const canvasesFind = vi.fn();
 const canvasesDeleteMany = vi.fn();
 const canvasesCountDocuments = vi.fn();
+const canvasesInsertOne = vi.fn();
 const nodesFind = vi.fn();
 const nodesDeleteMany = vi.fn();
 const edgesDeleteMany = vi.fn();
@@ -33,6 +36,12 @@ const evidenceUpdateOne = vi.fn();
 const evidenceDeleteOne = vi.fn();
 const evidenceDeleteMany = vi.fn();
 const usersFind = vi.fn();
+const cycleDeleteMany = vi.fn();
+const charterDeleteMany = vi.fn();
+const taskDeleteMany = vi.fn();
+const reviewDeleteMany = vi.fn();
+const outcomeDeleteMany = vi.fn();
+const cycleInsertOne = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
   getCollection: (name: string) => {
@@ -49,6 +58,8 @@ vi.mock('../database/connection.js', () => ({
       case 'research_projects':
         return {
           findOne: (...args: unknown[]) => projectsFindOne(...args),
+          updateOne: (...args: unknown[]) => projectsUpdateOne(...args),
+          insertOne: (...args: unknown[]) => projectsInsertOne(...args),
           deleteOne: (...args: unknown[]) => projectsDeleteOne(...args),
           find: () => ({ sort: () => ({ toArray: async () => [] }) }),
         };
@@ -57,6 +68,7 @@ vi.mock('../database/connection.js', () => ({
           find: (...args: unknown[]) => canvasesFind(...args),
           deleteMany: (...args: unknown[]) => canvasesDeleteMany(...args),
           countDocuments: (...args: unknown[]) => canvasesCountDocuments(...args),
+          insertOne: (...args: unknown[]) => canvasesInsertOne(...args),
         };
       case 'research_nodes':
         return {
@@ -109,6 +121,19 @@ vi.mock('../database/connection.js', () => ({
           deleteOne: (...args: unknown[]) => evidenceDeleteOne(...args),
           deleteMany: (...args: unknown[]) => evidenceDeleteMany(...args),
         };
+      case 'research_project_cycles':
+        return {
+          insertOne: (...args: unknown[]) => cycleInsertOne(...args),
+          deleteMany: (...args: unknown[]) => cycleDeleteMany(...args),
+        };
+      case 'research_project_charters':
+        return { deleteMany: (...args: unknown[]) => charterDeleteMany(...args) };
+      case 'research_project_tasks':
+        return { deleteMany: (...args: unknown[]) => taskDeleteMany(...args) };
+      case 'research_project_reviews':
+        return { deleteMany: (...args: unknown[]) => reviewDeleteMany(...args) };
+      case 'research_project_outcomes':
+        return { deleteMany: (...args: unknown[]) => outcomeDeleteMany(...args) };
       case 'users':
         return {
           find: (...args: unknown[]) => usersFind(...args),
@@ -131,11 +156,68 @@ vi.mock('../utils/logger.js', () => ({
 
 import { ResearchModel } from './research.model.js';
 
+describe('ResearchModel.createProject', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectsInsertOne.mockResolvedValue({});
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+    cycleInsertOne.mockResolvedValue({});
+    membersFindOne.mockResolvedValue(null);
+    membersInsertOne.mockResolvedValue({});
+    canvasesInsertOne.mockResolvedValue({});
+  });
+
+  it('always starts at draft with activity time and cycle 1', async () => {
+    const projectId = await ResearchModel.createProject({
+      name_zh: '新课题',
+      status: 'active',
+      is_public: true,
+    }, 'owner-1');
+
+    expect(projectsInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      id: projectId,
+      name_zh: '新课题',
+      status: 'draft',
+      is_public: true,
+      last_activity_at: expect.any(Date),
+    }));
+    expect(cycleInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      project_id: projectId,
+      cycle_number: 1,
+    }));
+  });
+});
+
+describe('ResearchModel.updateProject', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('applies status-only transitions with the expected current status filter', async () => {
+    await expect(ResearchModel.updateProject(
+      'project-1',
+      { status: 'review_pending' },
+      'active'
+    )).resolves.toBe('updated');
+
+    expect(projectsUpdateOne).toHaveBeenCalledWith(
+      { id: 'project-1', status: 'active' },
+      { $set: expect.objectContaining({
+        status: 'review_pending',
+        updated_at: expect.any(Date),
+        last_activity_at: expect.any(Date),
+      }) }
+    );
+  });
+});
+
 describe('ResearchModel.addProjectMember', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     membersInsertOne.mockResolvedValue({});
     membersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
   });
 
   it('stores the selected application role label when inserting a new member', async () => {
@@ -286,6 +368,7 @@ describe('ResearchModel.getProjectAccess', () => {
       name_zh: '公开课题',
       is_public: true,
     });
+    projectSettingsFindOne.mockResolvedValue({ project_id: 'project-1', visibility: 'public' });
 
     const access = await ResearchModel.getProjectAccess('project-1', 'candidate-1', 'user');
 
@@ -383,6 +466,7 @@ describe('ResearchModel project evidence', () => {
   });
 
   it('creates evidence with nullable optional attachment fields', async () => {
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
     await ResearchModel.createProjectEvidence('project-1', 'user-1', {
       title: '变量表记录',
       evidence_type: 'data_table',
@@ -473,10 +557,20 @@ describe('ResearchModel project evidence', () => {
     projectSettingsDeleteMany.mockResolvedValue({});
     creatorProfilesDeleteMany.mockResolvedValue({});
     applicationsDeleteMany.mockResolvedValue({});
+    cycleDeleteMany.mockResolvedValue({});
+    charterDeleteMany.mockResolvedValue({});
+    taskDeleteMany.mockResolvedValue({});
+    reviewDeleteMany.mockResolvedValue({});
+    outcomeDeleteMany.mockResolvedValue({});
 
     const deleted = await ResearchModel.deleteProject('project-1');
 
     expect(deleted).toBe(true);
     expect(evidenceDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(cycleDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(charterDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(taskDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(reviewDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(outcomeDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
   });
 });

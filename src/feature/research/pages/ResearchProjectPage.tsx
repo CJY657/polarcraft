@@ -60,6 +60,7 @@ import {
 } from "../components/project/ProjectDiscussionSection";
 import { Dialog } from "@/components/ui/dialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
+import { ProjectLifecycleBadges } from "../projectLifecycle";
 
 const ApplicationManagementDialog = lazy(() =>
   import("../components/project/ApplicationManagementDialog").then((module) => ({
@@ -394,29 +395,6 @@ export function ResearchProjectPage() {
     });
   };
 
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; className: string }> = {
-      draft: {
-        label: "草稿",
-        className: theme === "dark" ? "bg-gray-500/20 text-gray-400" : "bg-gray-100 text-gray-600",
-      },
-      active: {
-        label: "进行中",
-        className: theme === "dark" ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-600",
-      },
-      completed: {
-        label: "已完成",
-        className: theme === "dark" ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-600",
-      },
-      archived: {
-        label: "已归档",
-        className: theme === "dark" ? "bg-amber-500/20 text-amber-400" : "bg-amber-100 text-amber-600",
-      },
-    };
-    return statusConfig[status] || statusConfig.draft;
-  };
-
   // Get role icon
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -608,18 +586,14 @@ export function ResearchProjectPage() {
     updated_at: project.updated_at,
   } : null);
   const applyButtonLabel = isPublicGuestMode
-    ? isRecruitmentClosed
-      ? "招募已停止"
-      : "登录后申请加入"
+    ? "登录后申请加入"
     : hasPendingApplication
       ? "申请已提交"
       : isRecruitmentClosed
         ? "招募已停止"
       : "申请加入课题";
   const applyBannerButtonLabel = isPublicGuestMode
-    ? isRecruitmentClosed
-      ? "招募已停止"
-      : "登录后加入"
+    ? "登录后加入"
     : hasPendingApplication
       ? "申请已提交"
       : isRecruitmentClosed
@@ -627,7 +601,6 @@ export function ResearchProjectPage() {
       : "申请加入";
   const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
 
-  const statusBadge = getStatusBadge(displayProject.status);
   const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
   const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
@@ -648,13 +621,13 @@ export function ResearchProjectPage() {
       return;
     }
 
-    if (isRecruitmentClosed) {
-      setIsApplicationFormOpen(true);
+    if (isPublicGuestMode) {
+      openDialog("login");
       return;
     }
 
-    if (isPublicGuestMode) {
-      openDialog("login");
+    if (isRecruitmentClosed) {
+      setIsApplicationFormOpen(true);
       return;
     }
 
@@ -748,9 +721,10 @@ export function ResearchProjectPage() {
             <div className="max-w-3xl">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="research-kicker">课题详情</span>
-                <span className={cn("rounded-full px-3 py-1 text-sm font-semibold", statusBadge.className)}>
-                  {statusBadge.label}
-                </span>
+                <ProjectLifecycleBadges
+                  status={displayProject.status}
+                  isDormant={displayProject.is_dormant}
+                />
                 {displayIsRecruiting && (
                   <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-sm font-semibold">
                     招募中

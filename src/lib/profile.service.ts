@@ -197,6 +197,8 @@ export interface PublicProject {
   thumbnail: string | null;
   cover_image?: string | null;
   status: string;
+  last_activity_at?: string | null;
+  is_dormant?: boolean;
   visibility: ProjectVisibility;
   require_approval: boolean;
   recruitment_requirements: string | null;

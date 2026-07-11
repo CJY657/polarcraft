@@ -26,6 +26,11 @@ import {
 } from '../services/research-agent.service.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
+import {
+  isProjectStatusRollback,
+  type ProjectStatus,
+  validateProjectStatusTransition,
+} from '../models/research-project.util.js';
 
 const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
@@ -508,6 +513,8 @@ export class ResearchController {
       challenge_progress_zh,
       is_public,
     } = req.body;
+    const visibility = is_public === true ? 'public' : 'private';
+
     const projectId = await ResearchModel.createProject(
       {
         name_zh,
@@ -532,6 +539,7 @@ export class ResearchController {
       },
       req.user!.sub
     );
+    await ProfileModel.createProjectSettings(projectId, { visibility });
 
     const project = await ResearchModel.getProjectById(projectId);
     logger.info(`Project created by user ${req.user!.username}: ${projectId}`);
@@ -549,11 +557,46 @@ export class ResearchController {
       return;
     }
     const previousThumbnail = access.project.thumbnail;
+    const currentStatus = access.project.status as ProjectStatus;
+    const nextStatus = req.body.status;
+    const isAdmin = req.user!.role === 'admin';
+    const settings = await ProfileModel.getOrCreateProjectSettings(id);
+    const requestedVisibility = req.body.is_public === undefined
+      ? settings.visibility
+      : req.body.is_public === true ? 'public' : 'private';
 
-    const updated = await ResearchModel.updateProject(id, req.body);
+    if (nextStatus !== undefined) {
+      if (isProjectStatusRollback(currentStatus, nextStatus) && !isAdmin) {
+        return res.error('只有管理员可以回退课题进度', 'PROJECT_STATUS_ROLLBACK_FORBIDDEN', 403);
+      }
 
-    if (!updated) {
+      const transition = validateProjectStatusTransition(currentStatus, nextStatus, isAdmin);
+      if (!transition.valid) {
+        return res.error('课题状态向前每次只能推进一步', 'INVALID_PROJECT_STATUS_TRANSITION', 400);
+      }
+    }
+
+    const { is_public: _ignoredLegacyVisibility, ...projectUpdate } = req.body;
+    const hasProjectUpdate = Object.keys(projectUpdate).length > 0;
+    const updated = hasProjectUpdate
+      ? await ResearchModel.updateProject(
+        id,
+        projectUpdate,
+        nextStatus === undefined ? undefined : currentStatus
+      )
+      : 'updated';
+
+    if (updated === 'conflict') {
+      return res.error('课题状态已被其他操作更新，请刷新后重试', 'PROJECT_STATUS_CONFLICT', 409);
+    }
+
+    if (updated === 'not_found') {
       return res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    if (req.body.is_public !== undefined) {
+      await ProfileModel.updateProjectSettings(id, { visibility: requestedVisibility });
+      await ResearchModel.setLegacyProjectVisibility(id, requestedVisibility === 'public');
     }
 
     const project = await ResearchModel.getProjectById(id);
@@ -1763,7 +1806,10 @@ export class ResearchController {
     if (!access) {
       return;
     }
+    const currentSettings = await ProfileModel.getOrCreateProjectSettings(id);
+    const nextVisibility = req.body.visibility ?? currentSettings.visibility;
     await ProfileModel.updateProjectSettings(id, req.body);
+    await ResearchModel.setLegacyProjectVisibility(id, nextVisibility === 'public');
     const settings = await ProfileModel.getProjectSettings(id);
     logger.info(`Project settings updated by user ${req.user!.username}: ${id}`);
     res.success(settings, '设置更新成功');
@@ -1917,6 +1963,8 @@ export class ResearchController {
         application.desired_role
       );
       logger.info(`User ${application.user_id} added to project ${application.project_id}`);
+    } else {
+      await ResearchModel.touchProjectActivity(application.project_id);
     }
 
     logger.info(`Application ${id} ${status} by user ${req.user!.username}`);
@@ -1981,6 +2029,7 @@ export class ResearchController {
   static createProjectWithProfile = asyncHandler(async (req: Request, res: Response) => {
     const { project, creatorProfile, settings } = req.body;
     const userId = req.user!.sub;
+    const visibility = settings?.visibility ?? (project.is_public === true ? 'public' : 'private');
 
     // Create project
     const projectId = await ResearchModel.createProject(
@@ -2003,7 +2052,7 @@ export class ResearchController {
         challenge_roles_zh: project.challenge_roles_zh,
         challenge_missing_roles_zh: project.challenge_missing_roles_zh,
         challenge_progress_zh: project.challenge_progress_zh,
-        is_public: project.is_public,
+        is_public: visibility === 'public',
       },
       userId
     );
@@ -2021,9 +2070,9 @@ export class ResearchController {
 
     // Create project settings
     if (settings) {
-      await ProfileModel.createProjectSettings(projectId, settings);
+      await ProfileModel.createProjectSettings(projectId, { ...settings, visibility });
     } else {
-      await ProfileModel.createProjectSettings(projectId, {});
+      await ProfileModel.createProjectSettings(projectId, { visibility });
     }
 
     const result = await ResearchModel.getProjectById(projectId);

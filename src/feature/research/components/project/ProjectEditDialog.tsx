@@ -7,9 +7,16 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { researchApi, type ResearchProject } from '@/lib/research.service';
+import {
+  getProjectStatusControlOptions,
+  PROJECT_LIFECYCLE_STATUSES,
+  type ProjectStatus,
+} from '../../projectLifecycle';
 import {
   ProjectChallengeFieldsEditor,
   emptyProjectChallengeFields,
@@ -25,6 +32,7 @@ interface ProjectEditDialogProps {
 export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: ProjectEditDialogProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     name_zh: '',
@@ -40,6 +48,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAdvanceConfirmationOpen, setIsAdvanceConfirmationOpen] = useState(false);
 
   // Initialize form data when project changes
   useEffect(() => {
@@ -67,16 +76,11 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
       });
     }
     setError('');
+    setIsAdvanceConfirmationOpen(false);
   }, [project, isOpen]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submitProjectUpdate = async () => {
     if (!project) return;
-
-    if (!formData.name_zh.trim()) {
-      setError(t('project.create.nameRequired') || '请输入课题名称');
-      return;
-    }
 
     setError('');
     setIsLoading(true);
@@ -113,11 +117,33 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     }
   };
 
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+
+    if (!formData.name_zh.trim()) {
+      setError(t('project.create.nameRequired') || '请输入课题名称');
+      return;
+    }
+
+    const currentStatusIndex = PROJECT_LIFECYCLE_STATUSES.indexOf(project.status);
+    const nextStatusIndex = PROJECT_LIFECYCLE_STATUSES.indexOf(formData.status);
+    const isOrdinaryUserAdvancing = user?.role !== 'admin' && nextStatusIndex > currentStatusIndex;
+
+    if (isOrdinaryUserAdvancing) {
+      setIsAdvanceConfirmationOpen(true);
+      return;
+    }
+
+    void submitProjectUpdate();
+  };
+
   if (!project) return null;
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
-      <div className={cn(
+    <>
+      <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+        <div className={cn(
         "w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"
       )}>
@@ -316,15 +342,16 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
 
           {/* Status */}
           <div>
-            <label className={cn(
+            <label htmlFor="project-status" className={cn(
               "block text-base font-medium mb-1.5",
               theme === "dark" ? "text-gray-300" : "text-gray-700"
             )}>
               {t('project.edit.status')}
             </label>
             <select
+              id="project-status"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
               className={cn(
                 "w-full px-3 py-2 rounded-lg border transition-colors",
                 theme === "dark"
@@ -332,10 +359,11 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
                   : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
               )}
             >
-              <option value="draft">{t('project.status.draft')}</option>
-              <option value="active">{t('project.status.active')}</option>
-              <option value="completed">{t('project.status.completed')}</option>
-              <option value="archived">{t('project.status.archived')}</option>
+              {getProjectStatusControlOptions(project.status, user?.role === 'admin').map((option) => (
+                <option key={option.value} value={option.value} disabled={option.disabled}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -391,7 +419,23 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
             </button>
           </div>
         </form>
-      </div>
-    </Dialog>
+        </div>
+      </Dialog>
+
+      <ConfirmDialog
+        open={isAdvanceConfirmationOpen}
+        title="确认推进课题阶段？"
+        description="推进后你将无法自行回退，只有管理员可以回退课题进度。请确认当前阶段工作已经完成。"
+        confirmLabel="仍然推进"
+        cancelLabel="再想想"
+        isPending={isLoading}
+        theme={theme}
+        onCancel={() => setIsAdvanceConfirmationOpen(false)}
+        onConfirm={() => {
+          setIsAdvanceConfirmationOpen(false);
+          void submitProjectUpdate();
+        }}
+      />
+    </>
   );
 }

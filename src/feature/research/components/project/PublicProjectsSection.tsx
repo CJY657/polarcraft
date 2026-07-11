@@ -69,13 +69,13 @@ export function PublicProjectsSection() {
     if (project.has_pending_application) {
       return;
     }
+    if (!isAuthenticated) {
+      openDialog("login");
+      return;
+    }
     if (project.is_recruiting === false) {
       setSelectedProject(project);
       setIsApplicationFormOpen(true);
-      return;
-    }
-    if (!isAuthenticated) {
-      openDialog("login");
       return;
     }
     setSelectedProject(project);

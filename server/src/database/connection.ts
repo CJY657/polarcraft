@@ -114,6 +114,7 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { is_public: 1, updated_at: -1 }, name: 'idx_public_updated' },
+      { key: { status: 1, last_activity_at: -1 }, name: 'idx_status_activity' },
       { key: { updated_at: -1 }, name: 'idx_updated_at' },
     ],
   },
@@ -171,6 +172,41 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
       { key: { project_id: 1, evidence_type: 1 }, name: 'idx_project_type' },
+    ],
+  },
+  {
+    name: 'research_project_cycles',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, cycle_number: 1 }, unique: true, name: 'unique_project_cycle' },
+    ],
+  },
+  {
+    name: 'research_project_charters',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, cycle_id: 1 }, unique: true, name: 'unique_project_cycle' },
+    ],
+  },
+  {
+    name: 'research_project_tasks',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, cycle_id: 1 }, name: 'idx_project_cycle' },
+    ],
+  },
+  {
+    name: 'research_project_reviews',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, cycle_id: 1 }, name: 'idx_project_cycle' },
+    ],
+  },
+  {
+    name: 'research_project_outcomes',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, cycle_id: 1 }, name: 'idx_project_cycle' },
     ],
   },
   {

@@ -571,7 +571,7 @@ describe("ResearchProjectPage", () => {
     expect(mockResearchAgentPanel).not.toHaveBeenCalled();
   });
 
-  it("shows stopped-recruitment warning for closed public project details without opening login", async () => {
+  it("opens login for guest join actions and hides management controls", async () => {
     mockUseAuth.mockReturnValue({
       user: null,
       isAuthenticated: false,
@@ -587,10 +587,12 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByText("关闭招募公开课题")).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "招募已停止" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "登录后加入" })[0]);
 
-    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
-    expect(openDialog).not.toHaveBeenCalled();
+    expect(openDialog).toHaveBeenCalledWith("login");
+    expect(screen.queryByRole("button", { name: "设置" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /申请管理/ })).toBeNull();
     expect(mockGetProject).not.toHaveBeenCalled();
   });
 

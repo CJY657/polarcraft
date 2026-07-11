@@ -37,10 +37,14 @@ export type NodeStatus =
 
 /** Project Status - 课题状态 */
 export type ProjectStatus =
-  | "draft"      // 草稿
-  | "active"     // 进行中
-  | "completed"  // 已完成
-  | "archived";  // 已归档
+  | "draft"
+  | "recruiting"
+  | "forming"
+  | "active"
+  | "review_pending"
+  | "showcased"
+  | "relay_open"
+  | "archived";
 
 /** Member Role - 成员角色 */
 export type MemberRole =

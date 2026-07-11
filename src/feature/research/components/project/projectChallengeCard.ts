@@ -10,6 +10,7 @@ export type ProjectChallengeSource = Pick<
   | 'research_questions_zh'
   | 'basic_plan_zh'
   | 'status'
+  | 'is_dormant'
   | 'challenge_value_zh'
   | 'challenge_objectives_zh'
   | 'challenge_beginner_steps_zh'
@@ -67,8 +68,12 @@ const difficultyLabels: Record<ChallengeDifficulty, string> = {
 
 const statusProgressLabels: Record<string, string> = {
   draft: '挑战准备中',
+  recruiting: '挑战招募中',
+  forming: '团队组建中',
   active: '挑战推进中',
-  completed: '挑战已完成',
+  review_pending: '成果待评审',
+  showcased: '成果已展示',
+  relay_open: '等待接力研究',
   archived: '挑战已归档',
 };
 

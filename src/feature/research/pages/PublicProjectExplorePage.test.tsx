@@ -182,7 +182,7 @@ describe("PublicProjectExplorePage", () => {
     });
   });
 
-  it("opens the stopped-recruitment warning for closed guest cards without login", async () => {
+  it("opens login for guest create and join actions", async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
       isLoading: false,
@@ -211,8 +211,10 @@ describe("PublicProjectExplorePage", () => {
     expect((screen.getByRole("button", { name: "待审核" }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "招募已停止" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "新建课题" })[0]);
 
-    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
-    expect(openDialog).not.toHaveBeenCalled();
+    expect(openDialog).toHaveBeenNthCalledWith(1, "login");
+    expect(openDialog).toHaveBeenNthCalledWith(2, "login");
+    expect(screen.queryByText("该课题组已停止招募，暂时不能申请加入。")).toBeNull();
   });
 });

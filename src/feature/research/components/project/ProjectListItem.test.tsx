@@ -78,4 +78,15 @@ describe("ProjectListItem", () => {
       expect(onDelete).not.toHaveBeenCalled();
     });
   });
+
+  it("shows lifecycle and dormancy as separate badges", () => {
+    render(
+      <MemoryRouter>
+        <ProjectListItem project={{ ...baseProject, status: "forming", is_dormant: true }} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("组队中")).toBeTruthy();
+    expect(screen.getByText("休眠")).toBeTruthy();
+  });
 });

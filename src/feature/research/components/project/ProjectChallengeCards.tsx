@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Award, ClipboardCheck, Compass, Flag, Footprints, Gauge, Target, Users } from 'lucide-react';
 import { cn } from '@/utils/classNames';
+import { ProjectLifecycleBadges } from '../../projectLifecycle';
 import {
   buildProjectChallengeCard,
   getProjectFirstStep,
@@ -118,6 +119,7 @@ export function ProjectChallengePreview({ project, className }: ProjectChallenge
   return (
     <div className={cn('research-panel-soft rounded-[1.25rem] p-4', className)}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
         <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
         <ChallengeChip>{challenge.progress}</ChallengeChip>
         <ChallengeChip>{challenge.recruitmentState}</ChallengeChip>
@@ -177,6 +179,7 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
           <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
           <ChallengeChip>{challenge.progress}</ChallengeChip>
           <ChallengeChip>{challenge.recruitmentState}</ChallengeChip>

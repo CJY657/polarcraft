@@ -31,7 +31,8 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/profile")).toBe(true);
     expect(shouldRequireStudentAuth("/inbox")).toBe(true);
     expect(shouldRequireStudentAuth("/lab")).toBe(true);
-    expect(shouldRequireStudentAuth("/lab/explore")).toBe(true);
+    expect(shouldRequireStudentAuth("/lab/projects")).toBe(true);
+    expect(shouldRequireStudentAuth("/lab/projects/project-1/settings")).toBe(true);
   });
 
   it("keeps public pages accessible without login", () => {
@@ -41,5 +42,7 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/demos")).toBe(false);
     expect(shouldRequireStudentAuth("/demos/em-wave")).toBe(false);
     expect(shouldRequireStudentAuth("/feedback")).toBe(false);
+    expect(shouldRequireStudentAuth("/lab/explore")).toBe(false);
+    expect(shouldRequireStudentAuth("/lab/projects/project-1")).toBe(false);
   });
 });

@@ -122,7 +122,7 @@ describe("PublicProjectsSection", () => {
     expect(screen.getByText("先完成一次明暗记录")).toBeTruthy();
   });
 
-  it("opens the stopped-recruitment warning for closed guest cards without login", async () => {
+  it("opens login for guest join actions", async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
     });
@@ -153,8 +153,8 @@ describe("PublicProjectsSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "招募已停止" }));
 
-    expect(await screen.findByText("该课题组已停止招募，暂时不能申请加入。")).toBeTruthy();
-    expect(openDialog).not.toHaveBeenCalled();
+    expect(openDialog).toHaveBeenCalledWith("login");
+    expect(screen.queryByText("该课题组已停止招募，暂时不能申请加入。")).toBeNull();
   });
 
   it("sorts all fetched projects before keeping the four-card preview", async () => {

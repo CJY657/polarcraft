@@ -7,6 +7,9 @@
  */
 
 import { api } from './api';
+import type { ProjectStatus } from '@/feature/research/projectLifecycle';
+
+export type { ProjectStatus } from '@/feature/research/projectLifecycle';
 
 // =====================================================
 // Types / 类型定义
@@ -34,7 +37,9 @@ export interface ResearchProject {
   challenge_progress_zh?: string | null;
   thumbnail: string | null;
   cover_image?: string | null;
-  status: 'draft' | 'active' | 'completed' | 'archived';
+  status: ProjectStatus;
+  last_activity_at?: string | null;
+  is_dormant?: boolean;
   is_public: boolean;
   allow_guest_comments: boolean;
   enable_task_board: boolean;
@@ -239,7 +244,7 @@ export interface UpdateProjectInput {
   challenge_missing_roles_zh?: string | null;
   challenge_progress_zh?: string | null;
   thumbnail?: string | null;
-  status?: 'draft' | 'active' | 'completed' | 'archived';
+  status?: ProjectStatus;
   is_public?: boolean;
 }
 

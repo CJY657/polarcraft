@@ -85,6 +85,46 @@ vi.mock('../utils/logger.js', () => ({
 
 import { ProfileModel } from './profile.model.js';
 
+describe('ProfileModel.getPublicProjects', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectSettingsCollection.find.mockReturnValue({
+      toArray: async () => [
+        { project_id: 'draft-1', visibility: 'public', is_recruiting: true },
+        { project_id: 'archived-1', visibility: 'public', is_recruiting: false },
+        { project_id: 'legacy-1', visibility: 'public', is_recruiting: false },
+      ],
+    });
+    researchProjectsCollection.find.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          { id: 'draft-1', name_zh: '草稿课题', status: 'draft' },
+          { id: 'archived-1', name_zh: '归档课题', status: 'archived' },
+          { id: 'legacy-1', name_zh: '旧状态课题', status: 'completed' },
+        ],
+      }),
+    });
+    projectMembersCollection.find.mockReturnValue({ toArray: async () => [] });
+    canvasesCollection.find.mockReturnValue({
+      project: () => ({ toArray: async () => [] }),
+    });
+    projectCommentsCollection.find.mockReturnValue({
+      project: () => ({
+        sort: () => ({ toArray: async () => [] }),
+      }),
+    });
+  });
+
+  it('returns public projects regardless of lifecycle or legacy status', async () => {
+    const projects = await ProfileModel.getPublicProjects();
+
+    expect(researchProjectsCollection.find).toHaveBeenCalledWith({
+      id: { $in: ['draft-1', 'archived-1', 'legacy-1'] },
+    });
+    expect(projects.map((project) => project.status)).toEqual(['draft', 'archived', 'completed']);
+  });
+});
+
 describe('ProfileModel.createApplication', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -151,6 +191,13 @@ describe('ProfileModel.getPublicProjectById', () => {
     researchProjectsCollection.findOne.mockResolvedValue({
       id: 'project-1',
       name_zh: '公开课题',
+      description_zh: '研究背景',
+      challenge_value_zh: '研究价值',
+      challenge_beginner_steps_zh: '先做观察',
+      challenge_roles_zh: '观察记录员',
+      challenge_min_deliverables_zh: '观察记录',
+      challenge_timeline_zh: '四周',
+      challenge_review_criteria_zh: '记录完整',
       status: 'active',
       is_public: true,
       created_at: new Date('2026-01-01T00:00:00Z'),
@@ -210,10 +257,7 @@ describe('ProfileModel.getPublicProjectById', () => {
       project_id: 'project-1',
       visibility: 'public',
     });
-    expect(researchProjectsCollection.findOne).toHaveBeenCalledWith({
-      id: 'project-1',
-      status: { $in: ['draft', 'active'] },
-    });
+    expect(researchProjectsCollection.findOne).toHaveBeenCalledWith({ id: 'project-1' });
     expect(researchProjectsCollection.find).not.toHaveBeenCalled();
     expect(project).toEqual(
       expect.objectContaining({
@@ -233,6 +277,51 @@ describe('ProfileModel.getPublicProjectById', () => {
           { username: '成员', nickname: null, real_name: null, show_real_name_publicly: false, avatar_url: null, role: 'member', member_role_label: '数据整理' },
         ],
       })
+    );
+  });
+
+  it('keeps incomplete and dormant public projects visible', async () => {
+    researchProjectsCollection.findOne.mockResolvedValue({
+      id: 'project-1',
+      name_zh: '不完整课题',
+      description_zh: '只有背景',
+      status: 'active',
+      is_public: true,
+      last_activity_at: new Date('2020-01-01T00:00:00Z'),
+    });
+
+    await expect(ProfileModel.getPublicProjectById('project-1')).resolves.toEqual(
+      expect.objectContaining({
+        id: 'project-1',
+        visibility: 'public',
+        is_dormant: true,
+      })
+    );
+  });
+
+  it('keeps archived public projects visible', async () => {
+    researchProjectsCollection.findOne.mockResolvedValue({
+      id: 'project-1',
+      name_zh: '已归档课题',
+      status: 'archived',
+      is_public: true,
+    });
+
+    await expect(ProfileModel.getPublicProjectById('project-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'project-1', status: 'archived' })
+    );
+  });
+
+  it('keeps projects with legacy statuses visible', async () => {
+    researchProjectsCollection.findOne.mockResolvedValue({
+      id: 'project-1',
+      name_zh: '旧状态课题',
+      status: 'completed',
+      is_public: true,
+    });
+
+    await expect(ProfileModel.getPublicProjectById('project-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'project-1', status: 'completed' })
     );
   });
 });
