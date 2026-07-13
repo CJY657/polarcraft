@@ -246,10 +246,10 @@ describe('PostHogService', () => {
       );
 
     await expect(
-      PostHogService.getActivityDashboard('2026-06-10', '2026-07-09', 10)
+      PostHogService.getActivityDashboard('2026-07-07', '2026-07-09', 10)
     ).resolves.toEqual({
       status: 'ok',
-      range: { start: '2026-06-10', end: '2026-07-09', days: 30 },
+      range: { start: '2026-07-07', end: '2026-07-09', days: 3 },
       generated_at: expect.any(String),
       summary: {
         active_learners: 3,
@@ -258,6 +258,7 @@ describe('PostHogService', () => {
         learning_actions: 10,
       },
       daily: [
+        { date: '2026-07-07', active_learners: 0, pageviews: 0, learning_actions: 0 },
         { date: '2026-07-08', active_learners: 2, pageviews: 5, learning_actions: 4 },
         { date: '2026-07-09', active_learners: 3, pageviews: 3, learning_actions: 6 },
       ],
@@ -311,7 +312,7 @@ describe('PostHogService', () => {
     );
     for (const body of queryBodies) {
       expect(body.query.query).toContain(
-        "timestamp >= toDate('2026-06-10')"
+        "timestamp >= toDate('2026-07-07')"
       );
       expect(body.query.query).toContain(
         "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
@@ -324,14 +325,9 @@ describe('PostHogService', () => {
       );
     }
     expect(queryBodies[0]?.query.query).toContain('count(DISTINCT person_id)');
-    expect(queryBodies[1]?.query.query).toContain('ORDER BY day WITH FILL');
-    expect(queryBodies[1]?.query.query).toContain(
-      "FROM toDate('2026-06-10')"
-    );
-    expect(queryBodies[1]?.query.query).toContain(
-      "TO toDate('2026-07-09') + INTERVAL 1 DAY"
-    );
-    expect(queryBodies[1]?.query.query).toContain('LIMIT 30');
+    expect(queryBodies[1]?.query.query).toContain('ORDER BY day');
+    expect(queryBodies[1]?.query.query).not.toContain('WITH FILL');
+    expect(queryBodies[1]?.query.query).toContain('LIMIT 3');
     expect(queryBodies[2]?.query.query).toContain('LIMIT 10');
     expect(queryBodies[3]?.query.query).toContain('LIMIT 10');
     for (const index of [0, 1, 4]) {

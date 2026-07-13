@@ -169,10 +169,7 @@ export class PostHogService {
             FROM events
             WHERE ${filter}
             GROUP BY day
-            ORDER BY day WITH FILL
-              FROM toDate('${start}')
-              TO toDate('${end}') + INTERVAL 1 DAY
-              STEP INTERVAL 1 DAY
+            ORDER BY day
             LIMIT ${rangeDays}
         `,
         'admin learner activity daily'
@@ -250,14 +247,7 @@ export class PostHogService {
         pageviews: this.numberOrZero(summaryRow[2]),
         learning_actions: this.numberOrZero(summaryRow[3]),
       },
-      daily: this.extractRows(dailyResponse)
-        .filter((row) => typeof row[0] === 'string')
-        .map((row) => ({
-          date: row[0] as string,
-          active_learners: this.numberOrZero(row[1]),
-          pageviews: this.numberOrZero(row[2]),
-          learning_actions: this.numberOrZero(row[3]),
-        })),
+      daily: this.buildDailySeries(start, end, this.extractRows(dailyResponse)),
       top_pages: this.extractRows(pagesResponse)
         .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
         .map((row) => ({
@@ -342,6 +332,44 @@ export class PostHogService {
           (a, b) => b.pageviews - a.pageviews
         ),
       }));
+  }
+
+  private static buildDailySeries(
+    start: string,
+    end: string,
+    rows: unknown[][]
+  ): AdminUserActivityDashboardResponse['daily'] {
+    const valuesByDate = new Map<string, AdminUserActivityDashboardResponse['daily'][number]>();
+
+    for (const row of rows) {
+      if (typeof row[0] !== 'string') continue;
+      valuesByDate.set(row[0], {
+        date: row[0],
+        active_learners: this.numberOrZero(row[1]),
+        pageviews: this.numberOrZero(row[2]),
+        learning_actions: this.numberOrZero(row[3]),
+      });
+    }
+
+    const daily: AdminUserActivityDashboardResponse['daily'] = [];
+    const endTimestamp = Date.parse(`${end}T00:00:00Z`);
+    for (
+      let timestamp = Date.parse(`${start}T00:00:00Z`);
+      timestamp <= endTimestamp;
+      timestamp += 86_400_000
+    ) {
+      const date = new Date(timestamp).toISOString().slice(0, 10);
+      daily.push(
+        valuesByDate.get(date) ?? {
+          date,
+          active_learners: 0,
+          pageviews: 0,
+          learning_actions: 0,
+        }
+      );
+    }
+
+    return daily;
   }
 
   private static isEnabled(): boolean {
