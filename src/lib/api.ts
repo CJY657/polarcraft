@@ -27,6 +27,28 @@ interface ApiResponse<T = any> {
   };
 }
 
+/**
+ * Return the payload of a successful response, or throw the server-provided
+ * error message (falling back to the given one). Mirrors the historical
+ * per-call `response.success && response.data` unwrap used by the services.
+ */
+export function unwrapApiData<T>(response: ApiResponse<T>, fallbackMessage: string): T {
+  if (response.success && response.data) {
+    return response.data;
+  }
+  throw new Error(response.error?.message || fallbackMessage);
+}
+
+/**
+ * Throw the server-provided error message (falling back to the given one)
+ * unless the response reports success. For endpoints without a payload.
+ */
+export function ensureApiSuccess(response: ApiResponse<unknown>, fallbackMessage: string): void {
+  if (!response.success) {
+    throw new Error(response.error?.message || fallbackMessage);
+  }
+}
+
 export class ApiRequestError extends Error {
   code?: string;
   details?: any;

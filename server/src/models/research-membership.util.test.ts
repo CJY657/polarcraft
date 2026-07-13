@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildActiveMembershipFilter,
   buildInactiveMembershipFilter,
+  compareMembersByRoleThenJoinedAt,
   isMembershipActive,
 } from './research-membership.util.js';
 
@@ -25,5 +26,15 @@ describe('research-membership.util', () => {
       project_id: 'project-1',
       active: false,
     });
+  });
+
+  it('orders members by role priority, then by earliest join time', () => {
+    const owner = { role: 'owner', joined_at: '2026-02-01T00:00:00.000Z' };
+    const earlyMember = { role: 'member', joined_at: '2026-01-01T00:00:00.000Z' };
+    const lateMember = { role: 'member', joined_at: '2026-03-01T00:00:00.000Z' };
+
+    const sorted = [lateMember, earlyMember, owner].sort(compareMembersByRoleThenJoinedAt);
+
+    expect(sorted).toEqual([owner, earlyMember, lateMember]);
   });
 });

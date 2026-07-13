@@ -3,7 +3,7 @@
  * 个人资料 API 服务
  */
 
-import { api } from './api';
+import { api, ensureApiSuccess, unwrapApiData } from './api';
 import type { ProjectEvidence } from './research.service';
 
 // =====================================================
@@ -238,10 +238,7 @@ export const profileApi = {
    */
   getUserEducations: async (): Promise<UserEducation[]> => {
     const response = await api.get<UserEducation[]>('/api/profile/educations');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取教育经历失败');
+    return unwrapApiData(response, '获取教育经历失败');
   },
 
   /**
@@ -250,10 +247,7 @@ export const profileApi = {
    */
   createEducation: async (data: CreateEducationInput): Promise<UserEducation> => {
     const response = await api.post<UserEducation>('/api/profile/educations', data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '创建教育经历失败');
+    return unwrapApiData(response, '创建教育经历失败');
   },
 
   /**
@@ -262,10 +256,7 @@ export const profileApi = {
    */
   updateEducation: async (id: string, data: UpdateEducationInput): Promise<UserEducation> => {
     const response = await api.put<UserEducation>(`/api/profile/educations/${id}`, data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新教育经历失败');
+    return unwrapApiData(response, '更新教育经历失败');
   },
 
   /**
@@ -274,9 +265,7 @@ export const profileApi = {
    */
   deleteEducation: async (id: string): Promise<void> => {
     const response = await api.delete(`/api/profile/educations/${id}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '删除教育经历失败');
-    }
+    ensureApiSuccess(response, '删除教育经历失败');
   },
 
   // =====================================================
@@ -289,10 +278,7 @@ export const profileApi = {
    */
   getUserApplications: async (): Promise<ProjectApplication[]> => {
     const response = await api.get<ProjectApplication[]>('/api/profile/applications');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取申请列表失败');
+    return unwrapApiData(response, '获取申请列表失败');
   },
 
   /**
@@ -303,10 +289,7 @@ export const profileApi = {
     const response = await api.get<ProjectApplication[]>(
       `/api/research/projects/${projectId}/applications`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取申请列表失败');
+    return unwrapApiData(response, '获取申请列表失败');
   },
 
   /**
@@ -321,10 +304,7 @@ export const profileApi = {
       `/api/research/projects/${projectId}/applications`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '提交申请失败');
+    return unwrapApiData(response, '提交申请失败');
   },
 
   /**
@@ -340,9 +320,7 @@ export const profileApi = {
       status,
       review_notes: reviewNotes,
     });
-    if (!response.success) {
-      throw new Error(response.error?.message || '处理申请失败');
-    }
+    ensureApiSuccess(response, '处理申请失败');
   },
 
   /**
@@ -351,9 +329,7 @@ export const profileApi = {
    */
   withdrawApplication: async (applicationId: string): Promise<void> => {
     const response = await api.delete(`/api/research/applications/${applicationId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '撤回申请失败');
-    }
+    ensureApiSuccess(response, '撤回申请失败');
   },
 
   // =====================================================
@@ -368,10 +344,7 @@ export const profileApi = {
     const response = await api.get<ProjectSettings>(
       `/api/research/projects/${projectId}/settings`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取课题设置失败');
+    return unwrapApiData(response, '获取课题设置失败');
   },
 
   /**
@@ -386,10 +359,7 @@ export const profileApi = {
       `/api/research/projects/${projectId}/settings`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新课题设置失败');
+    return unwrapApiData(response, '更新课题设置失败');
   },
 
   // =====================================================
@@ -404,10 +374,7 @@ export const profileApi = {
     const response = await api.get<ProjectCreatorProfile[]>(
       `/api/research/projects/${projectId}/creator-profiles`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取创建者资料失败');
+    return unwrapApiData(response, '获取创建者资料失败');
   },
 
   /**
@@ -416,10 +383,7 @@ export const profileApi = {
    */
   createProjectWithProfile: async (data: CreateProjectWithProfileInput): Promise<any> => {
     const response = await api.post<any>('/api/research/projects/with-profile', data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '创建课题失败');
+    return unwrapApiData(response, '创建课题失败');
   },
 
   // =====================================================
@@ -447,10 +411,7 @@ export const profileApi = {
       : '/api/profile/public-projects';
 
     const response = await api.get<PublicProject[]>(url);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取公开课题失败');
+    return unwrapApiData(response, '获取公开课题失败');
   },
 
   /**
@@ -459,10 +420,7 @@ export const profileApi = {
    */
   getPublicProjectById: async (projectId: string): Promise<PublicProjectDetail> => {
     const response = await api.get<PublicProjectDetail>(`/api/profile/public-projects/${projectId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取公开课题详情失败');
+    return unwrapApiData(response, '获取公开课题详情失败');
   },
 
   /**
@@ -471,9 +429,6 @@ export const profileApi = {
    */
   getPublicProjectEvidence: async (projectId: string): Promise<ProjectEvidence[]> => {
     const response = await api.get<ProjectEvidence[]>(`/api/profile/public-projects/${projectId}/evidence`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取公开课题证据失败');
+    return unwrapApiData(response, '获取公开课题证据失败');
   },
 };

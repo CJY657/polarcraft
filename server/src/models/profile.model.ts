@@ -5,7 +5,6 @@
 
 import { getCollection } from '../database/connection.js';
 import {
-  compareRole,
   escapeRegExp,
   normalizeDocument,
   normalizeDocuments,
@@ -13,9 +12,14 @@ import {
 } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
-import { buildActiveMembershipFilter, normalizeProjectRole } from './research-membership.util.js';
+import {
+  buildActiveMembershipFilter,
+  compareMembersByRoleThenJoinedAt,
+  normalizeProjectRole,
+} from './research-membership.util.js';
 import { getProjectCoverImageMap } from './research-cover.util.js';
 import { decorateResearchProject } from './research-project.util.js';
+import { getUserIdentityMap, type UserIdentity } from './user-identity.util.js';
 import {
   UserEducation,
   CreateEducationInput,
@@ -38,41 +42,7 @@ const usersCollection = () => getCollection('users');
 const projectMembersCollection = () => getCollection('research_project_members');
 const researchProjectsCollection = () => getCollection('research_projects');
 
-type UserIdentity = {
-  username: string;
-  nickname: string | null;
-  real_name: string | null;
-  show_real_name_publicly: boolean;
-  avatar_url: string | null;
-};
-
 const clean = (value?: string | null): string => (typeof value === 'string' ? value.trim() : '');
-
-async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
-  if (userIds.length === 0) {
-    return new Map();
-  }
-
-  const users = normalizeDocuments<UserIdentity & { id: string }>(
-    await usersCollection()
-      .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, show_real_name_publicly: 1, avatar_url: 1 })
-      .toArray()
-  );
-
-  return new Map(
-    users.map((user) => [
-      user.id,
-      {
-        username: user.username,
-        nickname: user.nickname ?? null,
-        real_name: user.show_real_name_publicly === true ? user.real_name ?? null : null,
-        show_real_name_publicly: user.show_real_name_publicly === true,
-        avatar_url: user.avatar_url ?? null,
-      },
-    ])
-  );
-}
 
 async function resolveUserDisplayName(userId: string, fallback?: string): Promise<string> {
   const user = normalizeDocument<Pick<UserIdentity, 'username' | 'real_name' | 'show_real_name_publicly'>>(
@@ -110,7 +80,7 @@ async function enrichApplications(applications: ProjectApplication[]): Promise<P
   }
 
   const [userMap, projectNameMap] = await Promise.all([
-    getUserMap(applications.map((application) => application.user_id)),
+    getUserIdentityMap(applications.map((application) => application.user_id)),
     getProjectNameMap(applications.map((application) => application.project_id)),
   ]);
 
@@ -152,7 +122,7 @@ async function enrichPublicProjects(
       : Promise.resolve([] as { project_id: string }[]),
     getProjectCoverImageMap(visibleProjectIds),
   ]);
-  const userMap = await getUserMap(members.map((member) => member.user_id));
+  const userMap = await getUserIdentityMap(members.map((member) => member.user_id));
 
   const settingsMap = new Map(settings.map((item) => [item.project_id, item]));
   const membersByProject = new Map<string, any[]>();
@@ -166,13 +136,7 @@ async function enrichPublicProjects(
 
   return projects.map((project) => {
     const setting = settingsMap.get(project.id);
-    const projectMembers = (membersByProject.get(project.id) || []).sort((a, b) => {
-      const roleCompare = compareRole(a.role, b.role);
-      if (roleCompare !== 0) {
-        return roleCompare;
-      }
-      return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
-    });
+    const projectMembers = (membersByProject.get(project.id) || []).sort(compareMembersByRoleThenJoinedAt);
     const owner = projectMembers.find((member) => member.role === 'owner');
     const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
 
@@ -405,7 +369,7 @@ export class ProfileModel {
         .toArray()
     );
 
-    const userMap = await getUserMap(profiles.map((profile) => profile.user_id));
+    const userMap = await getUserIdentityMap(profiles.map((profile) => profile.user_id));
 
     return profiles.map((profile) => ({
       ...profile,

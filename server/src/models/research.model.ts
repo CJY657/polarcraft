@@ -4,12 +4,13 @@
  */
 
 import { getCollection } from '../database/connection.js';
-import { compareRole, normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
+import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import {
   buildActiveMembershipFilter,
   buildInactiveMembershipFilter,
+  compareMembersByRoleThenJoinedAt,
   isMembershipActive,
 } from './research-membership.util.js';
 import { getProjectCoverImageMap } from './research-cover.util.js';
@@ -17,6 +18,7 @@ import {
   decorateResearchProject,
   type ProjectStatus,
 } from './research-project.util.js';
+import { getUserIdentityMap } from './user-identity.util.js';
 
 const researchProjectsCollection = () => getCollection('research_projects');
 const projectMembersCollection = () => getCollection('research_project_members');
@@ -27,7 +29,6 @@ const commentsCollection = () => getCollection('research_node_comments');
 const projectCommentsCollection = () => getCollection('research_project_comments');
 const agentMessagesCollection = () => getCollection('research_ai_messages');
 const activityLogCollection = () => getCollection('research_activity_log');
-const usersCollection = () => getCollection('users');
 const projectSettingsCollection = () => getCollection('research_project_settings');
 const creatorProfilesCollection = () => getCollection('research_project_creator_profiles');
 const applicationsCollection = () => getCollection('research_project_applications');
@@ -38,51 +39,17 @@ const projectTasksCollection = () => getCollection('research_project_tasks');
 const projectReviewsCollection = () => getCollection('research_project_reviews');
 const projectOutcomesCollection = () => getCollection('research_project_outcomes');
 
-type UserIdentity = {
-  username: string;
-  nickname: string | null;
-  real_name: string | null;
-  show_real_name_publicly: boolean;
-  avatar_url: string | null;
-};
-
-async function getUserMap(userIds: string[]): Promise<Map<string, UserIdentity>> {
-  if (userIds.length === 0) {
-    return new Map();
-  }
-
-  const users = normalizeDocuments<UserIdentity & { id: string }>(
-    await usersCollection()
-      .find({ id: { $in: [...new Set(userIds)] } })
-      .project({ _id: 0, id: 1, username: 1, nickname: 1, real_name: 1, show_real_name_publicly: 1, avatar_url: 1 })
-      .toArray()
-  );
-
-  return new Map(
-    users.map((user) => [
-      user.id,
-      {
-        username: user.username,
-        nickname: user.nickname ?? null,
-        real_name: user.show_real_name_publicly === true ? user.real_name ?? null : null,
-        show_real_name_publicly: user.show_real_name_publicly === true,
-        avatar_url: user.avatar_url ?? null,
-      },
-    ])
-  );
-}
-
-function sortMembers(a: any, b: any): number {
-  const roleCompare = compareRole(a.role, b.role);
-  if (roleCompare !== 0) {
-    return roleCompare;
-  }
-
-  return new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime();
-}
-
 function normalizeVideoUrls(value: unknown): string[] {
   return normalizeImageUrls(value);
+}
+
+function compareByRemovedAtDesc(
+  a: { removed_at?: Date | string | null },
+  b: { removed_at?: Date | string | null }
+): number {
+  const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
+  const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
+  return removedAtB - removedAtA;
 }
 
 type LegacyFormerMemberSource = {
@@ -136,7 +103,7 @@ export interface ResearchDiscussionDigestItem {
   created_at: Date;
 }
 
-function normalizeProjectRole(role: unknown): ResearchProjectRole {
+function coerceProjectRole(role: unknown): ResearchProjectRole {
   return role === 'owner' ? 'owner' : 'member';
 }
 
@@ -148,7 +115,7 @@ function normalizeMemberRoleLabel(value?: string | null): string | null {
 function normalizeMembershipRecord<T extends { role?: unknown }>(member: T): T & { role: ResearchProjectRole } {
   return {
     ...member,
-    role: normalizeProjectRole(member.role),
+    role: coerceProjectRole(member.role),
   };
 }
 
@@ -218,7 +185,7 @@ export class ResearchModel {
     }
 
     for (const membership of memberships) {
-      currentUserRoleMap.set(membership.project_id, normalizeProjectRole(membership.role));
+      currentUserRoleMap.set(membership.project_id, coerceProjectRole(membership.role));
     }
 
     for (const canvas of canvases) {
@@ -517,7 +484,7 @@ export class ResearchModel {
     memberRoleLabel?: string | null
   ): Promise<boolean> {
     const now = new Date();
-    const normalizedRole = normalizeProjectRole(role);
+    const normalizedRole = coerceProjectRole(role);
     const normalizedMemberRoleLabel = normalizeMemberRoleLabel(memberRoleLabel);
     const existing = normalizeDocument<any>(
       await projectMembersCollection().findOne({ project_id: projectId, user_id: userId })
@@ -589,8 +556,8 @@ export class ResearchModel {
   static async getProjectMembers(projectId: string): Promise<any[]> {
     const members = normalizeDocuments<any>(
       await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: projectId })).toArray()
-    ).map((member) => normalizeMembershipRecord(member)).sort(sortMembers);
-    const userMap = await getUserMap(members.map((member) => member.user_id));
+    ).map((member) => normalizeMembershipRecord(member)).sort(compareMembersByRoleThenJoinedAt);
+    const userMap = await getUserIdentityMap(members.map((member) => member.user_id));
 
     return members.map((member) => ({
       ...member,
@@ -621,11 +588,7 @@ export class ResearchModel {
   static async getFormerProjectMembers(projectId: string): Promise<any[]> {
     const inactiveMembers = normalizeDocuments<any>(
       await projectMembersCollection().find(buildInactiveMembershipFilter({ project_id: projectId })).toArray()
-    ).sort((a, b) => {
-      const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
-      const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
-      return removedAtB - removedAtA;
-    });
+    ).sort(compareByRemovedAtDesc);
     const activeMembers = normalizeDocuments<{ user_id: string }>(
       await projectMembersCollection()
         .find(buildActiveMembershipFilter({ project_id: projectId }))
@@ -679,18 +642,14 @@ export class ResearchModel {
       }
     }
 
-    const formerMembers = [...knownFormerMembers.values()].sort((a, b) => {
-      const removedAtA = a.removed_at ? new Date(a.removed_at).getTime() : 0;
-      const removedAtB = b.removed_at ? new Date(b.removed_at).getTime() : 0;
-      return removedAtB - removedAtA;
-    });
-    const userMap = await getUserMap(formerMembers.map((member) => member.user_id));
+    const formerMembers = [...knownFormerMembers.values()].sort(compareByRemovedAtDesc);
+    const userMap = await getUserIdentityMap(formerMembers.map((member) => member.user_id));
 
     return formerMembers.map((member) => ({
       ...member,
       id: (member as { id?: string }).id || `legacy-former-${projectId}-${member.user_id}`,
       project_id: projectId,
-      role: normalizeProjectRole(member.role),
+      role: coerceProjectRole(member.role),
       member_role_label: (member as { member_role_label?: string | null }).member_role_label ?? null,
       active: false,
       joined_at: member.joined_at || member.removed_at || new Date(0).toISOString(),
@@ -743,7 +702,7 @@ export class ResearchModel {
       return [];
     }
 
-    const userMap = await getUserMap(evidenceItems.map((item) => item.created_by));
+    const userMap = await getUserIdentityMap(evidenceItems.map((item) => item.created_by));
 
     return evidenceItems.map((item) => ({
       ...item,
@@ -778,6 +737,20 @@ export class ResearchModel {
 
     const [enriched] = await this.enrichProjectEvidence([evidence]);
     return enriched ?? null;
+  }
+
+  /**
+   * Resolve the owning project of an evidence record without enrichment.
+   * 仅查询证据所属课题，避免为记录活跃时间而加载用户信息
+   */
+  private static async getEvidenceProjectId(evidenceId: string): Promise<string | null> {
+    const evidence = normalizeDocument<{ project_id?: string | null }>(
+      await evidenceCollection().findOne(
+        { id: evidenceId },
+        { projection: { _id: 0, project_id: 1 } }
+      )
+    );
+    return evidence?.project_id ?? null;
   }
 
   static async getProjectEvidenceAttachmentUrls(projectId: string): Promise<string[]> {
@@ -853,14 +826,14 @@ export class ResearchModel {
       return false;
     }
 
-    const evidence = await this.getProjectEvidenceById(evidenceId);
+    const projectId = await this.getEvidenceProjectId(evidenceId);
     const result = await evidenceCollection().updateOne(
       { id: evidenceId },
       { $set: { ...updateDoc, updated_at: new Date() } }
     );
 
-    if (result.matchedCount > 0 && evidence?.project_id) {
-      await this.touchProjectActivity(evidence.project_id);
+    if (result.matchedCount > 0 && projectId) {
+      await this.touchProjectActivity(projectId);
     }
 
     logger.info(`Project evidence updated: ${evidenceId}`);
@@ -872,10 +845,10 @@ export class ResearchModel {
    * 删除课题证据记录
    */
   static async deleteProjectEvidence(evidenceId: string): Promise<boolean> {
-    const evidence = await this.getProjectEvidenceById(evidenceId);
+    const projectId = await this.getEvidenceProjectId(evidenceId);
     const result = await evidenceCollection().deleteOne({ id: evidenceId });
-    if (result.deletedCount > 0 && evidence?.project_id) {
-      await this.touchProjectActivity(evidence.project_id);
+    if (result.deletedCount > 0 && projectId) {
+      await this.touchProjectActivity(projectId);
     }
     logger.info(`Project evidence deleted: ${evidenceId}`);
     return result.deletedCount > 0;
@@ -948,6 +921,20 @@ export class ResearchModel {
   }
 
   /**
+   * Resolve the owning project of a canvas without loading its nodes/edges.
+   * 仅查询画布所属课题，避免为记录活跃时间而加载整张画布
+   */
+  private static async getCanvasProjectId(canvasId: string): Promise<string | null> {
+    const canvas = normalizeDocument<{ project_id?: string | null }>(
+      await canvasesCollection().findOne(
+        { id: canvasId },
+        { projection: { _id: 0, project_id: 1 } }
+      )
+    );
+    return canvas?.project_id ?? null;
+  }
+
+  /**
    * Create canvas
    * 创建画布
    */
@@ -990,15 +977,15 @@ export class ResearchModel {
       return false;
     }
 
-    const canvas = await this.getCanvasById(canvasId);
+    const projectId = await this.getCanvasProjectId(canvasId);
     const now = new Date();
     const result = await canvasesCollection().updateOne(
       { id: canvasId },
       { $set: { ...updateDoc, updated_at: now, last_opened_at: now } }
     );
 
-    if (result.matchedCount > 0 && canvas?.project_id) {
-      await this.touchProjectActivity(canvas.project_id, now);
+    if (result.matchedCount > 0 && projectId) {
+      await this.touchProjectActivity(projectId, now);
     }
 
     logger.info(`Canvas updated: ${canvasId}`);
@@ -1010,7 +997,7 @@ export class ResearchModel {
    * 删除画布
    */
   static async deleteCanvas(canvasId: string): Promise<boolean> {
-    const canvas = await this.getCanvasById(canvasId);
+    const projectId = await this.getCanvasProjectId(canvasId);
     const nodes = normalizeDocuments<{ id: string }>(
       await nodesCollection().find({ canvas_id: canvasId }).project({ _id: 0, id: 1 }).toArray()
     );
@@ -1027,8 +1014,8 @@ export class ResearchModel {
       commentsCollection().deleteMany(nodeIds.length > 0 ? { node_id: { $in: nodeIds } } : { node_id: '__none__' }),
     ]);
 
-    if (canvas?.project_id) {
-      await this.touchProjectActivity(canvas.project_id);
+    if (projectId) {
+      await this.touchProjectActivity(projectId);
     }
 
     logger.info(`Canvas deleted: ${canvasId}`);
@@ -1092,9 +1079,9 @@ export class ResearchModel {
       pinned: data.pinned,
     });
 
-    const canvas = await this.getCanvasById(canvasId);
-    if (canvas?.project_id) {
-      await this.touchProjectActivity(canvas.project_id, now);
+    const projectId = await this.getCanvasProjectId(canvasId);
+    if (projectId) {
+      await this.touchProjectActivity(projectId, now);
     }
 
     logger.info(`Node created: ${nodeId} of type ${data.type}`);
@@ -1153,8 +1140,8 @@ export class ResearchModel {
     );
 
     if (result.matchedCount > 0 && node?.canvas_id) {
-      const canvas = await this.getCanvasById(node.canvas_id);
-      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      const projectId = await this.getCanvasProjectId(node.canvas_id);
+      if (projectId) await this.touchProjectActivity(projectId);
     }
 
     logger.info(`Node updated: ${nodeId}`);
@@ -1178,8 +1165,8 @@ export class ResearchModel {
     ]);
 
     if (node?.canvas_id) {
-      const canvas = await this.getCanvasById(node.canvas_id);
-      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      const projectId = await this.getCanvasProjectId(node.canvas_id);
+      if (projectId) await this.touchProjectActivity(projectId);
     }
 
     logger.info(`Node deleted: ${nodeId}`);
@@ -1217,8 +1204,8 @@ export class ResearchModel {
       created_at: now,
     });
 
-    const canvas = await this.getCanvasById(canvasId);
-    if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id, now);
+    const projectId = await this.getCanvasProjectId(canvasId);
+    if (projectId) await this.touchProjectActivity(projectId, now);
 
     logger.info(`Edge created: ${edgeId} of type ${data.type}`);
     return edgeId;
@@ -1246,8 +1233,8 @@ export class ResearchModel {
     const result = await edgesCollection().updateOne({ id: edgeId }, { $set: updateDoc });
 
     if (result.matchedCount > 0 && edge?.canvas_id) {
-      const canvas = await this.getCanvasById(edge.canvas_id);
-      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      const projectId = await this.getCanvasProjectId(edge.canvas_id);
+      if (projectId) await this.touchProjectActivity(projectId);
     }
 
     logger.info(`Edge updated: ${edgeId}`);
@@ -1262,8 +1249,8 @@ export class ResearchModel {
     const edge = await this.getEdgeById(edgeId);
     const result = await edgesCollection().deleteOne({ id: edgeId });
     if (result.deletedCount > 0 && edge?.canvas_id) {
-      const canvas = await this.getCanvasById(edge.canvas_id);
-      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+      const projectId = await this.getCanvasProjectId(edge.canvas_id);
+      if (projectId) await this.touchProjectActivity(projectId);
     }
     logger.info(`Edge deleted: ${edgeId}`);
     return result.deletedCount > 0;
@@ -1277,7 +1264,7 @@ export class ResearchModel {
     const comments = normalizeDocuments<any>(
       await commentsCollection().find({ node_id: nodeId }).sort({ created_at: 1 }).toArray()
     );
-    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+    const userMap = await getUserIdentityMap(comments.map((comment) => comment.user_id));
 
     return comments.map((comment) => ({
       ...comment,
@@ -1313,8 +1300,8 @@ export class ResearchModel {
 
     const node = await this.getNodeById(nodeId);
     if (node?.canvas_id) {
-      const canvas = await this.getCanvasById(node.canvas_id);
-      if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id, now);
+      const projectId = await this.getCanvasProjectId(node.canvas_id);
+      if (projectId) await this.touchProjectActivity(projectId, now);
     }
 
     logger.info(`Comment added to node: ${nodeId}`);
@@ -1335,8 +1322,8 @@ export class ResearchModel {
     if (result.matchedCount > 0 && comment?.node_id) {
       const node = await this.getNodeById(comment.node_id);
       if (node?.canvas_id) {
-        const canvas = await this.getCanvasById(node.canvas_id);
-        if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+        const projectId = await this.getCanvasProjectId(node.canvas_id);
+        if (projectId) await this.touchProjectActivity(projectId);
       }
     }
 
@@ -1354,8 +1341,8 @@ export class ResearchModel {
     if (result.deletedCount > 0 && comment?.node_id) {
       const node = await this.getNodeById(comment.node_id);
       if (node?.canvas_id) {
-        const canvas = await this.getCanvasById(node.canvas_id);
-        if (canvas?.project_id) await this.touchProjectActivity(canvas.project_id);
+        const projectId = await this.getCanvasProjectId(node.canvas_id);
+        if (projectId) await this.touchProjectActivity(projectId);
       }
     }
     logger.info(`Comment deleted: ${commentId}`);
@@ -1370,7 +1357,7 @@ export class ResearchModel {
     const comments = normalizeDocuments<any>(
       await projectCommentsCollection().find({ project_id: projectId }).sort({ created_at: 1 }).toArray()
     );
-    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+    const userMap = await getUserIdentityMap(comments.map((comment) => comment.user_id));
 
     return comments.map((comment) => ({
       ...comment,
@@ -1397,7 +1384,7 @@ export class ResearchModel {
         .project({ _id: 0, user_id: 1, content: 1, image_urls: 1, video_urls: 1, created_at: 1 })
         .toArray()
     ).reverse();
-    const userMap = await getUserMap(comments.map((comment) => comment.user_id));
+    const userMap = await getUserIdentityMap(comments.map((comment) => comment.user_id));
 
     return comments.map((comment) => ({
       username: userMap.get(comment.user_id)?.username || '成员',
@@ -1557,7 +1544,7 @@ export class ResearchModel {
         .limit(safeLimit)
         .toArray()
     );
-    const userMap = await getUserMap(activities.map((activity) => activity.user_id));
+    const userMap = await getUserIdentityMap(activities.map((activity) => activity.user_id));
 
     return activities.map((activity) => ({
       ...activity,

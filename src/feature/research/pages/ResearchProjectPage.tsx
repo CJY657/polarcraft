@@ -7,29 +7,18 @@
  */
 
 import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from "react";
-import type { ReactNode } from "react";
 import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Settings,
   Edit3,
   Loader2,
-  Crown,
   Globe,
-  UserCheck,
   AlertCircle,
-  UserMinus,
-  UserPlus,
-  BookOpen,
-  FlaskConical,
-  HelpCircle,
-  Lightbulb,
-  ListChecks,
   ImagePlus,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/utils/classNames";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
 import {
@@ -46,21 +35,27 @@ import {
   type PublicProjectDetail,
   type PublicProjectMember,
 } from "@/lib/profile.service";
-import { formatUserIdentity, getUserIdentityInitial } from "@/lib/identity";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
-import { ProjectRoleBadge } from "../components/project/ProjectRoleBadge";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
+import { ResearchInfoSection } from "../components/project/ResearchInfoSection";
+import { ProjectMembersSection } from "../components/project/ProjectMembersSection";
+import { RemoveMemberDialog } from "../components/project/RemoveMemberDialog";
 import {
   ProjectDiscussionSection,
   type ProjectDiscussionJumpRequest,
   type ProjectDiscussionJumpTarget,
   type ProjectDiscussionOutline,
 } from "../components/project/ProjectDiscussionSection";
-import { Dialog } from "@/components/ui/dialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectLifecycleBadges } from "../projectLifecycle";
+import {
+  buildApplicationProjectFromProject,
+  formatProjectDate,
+  getApplyButtonState,
+  splitResearchItems,
+} from "./researchProjectViewModel";
 
 const ApplicationManagementDialog = lazy(() =>
   import("../components/project/ApplicationManagementDialog").then((module) => ({
@@ -79,162 +74,6 @@ const ProjectSettingsDialog = lazy(() =>
 const ProjectApplicationForm = lazy(() =>
   import("../components/project/ProjectApplicationForm").then((module) => ({ default: module.ProjectApplicationForm }))
 );
-
-function isProjectMember(member: ProjectMember | PublicProjectMember): member is ProjectMember {
-  return "user_id" in member && "id" in member;
-}
-
-function splitResearchItems(value?: string | null): string[] {
-  return (value ?? '')
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function hasResearchOutline(outline: ProjectDiscussionOutline): boolean {
-  return Boolean(
-    outline.topicSummary.trim()
-      || outline.basicPlan?.trim()
-      || outline.extendedPlan?.trim()
-      || outline.questions.length > 0
-      || outline.hypotheses.length > 0
-  );
-}
-
-function ResearchInfoSection({
-  outline,
-  canJumpToDiscussion,
-  onJumpToDiscussion,
-}: {
-  outline: ProjectDiscussionOutline;
-  canJumpToDiscussion: boolean;
-  onJumpToDiscussion: (target: ProjectDiscussionJumpTarget) => void;
-}) {
-  const hasQuestions = outline.questions.length > 0;
-  const hasHypotheses = outline.hypotheses.length > 0;
-  const hasPlans = Boolean(outline.basicPlan?.trim() || outline.extendedPlan?.trim());
-
-  if (!hasResearchOutline(outline)) {
-    return null;
-  }
-
-  const renderJumpItem = (
-    label: string,
-    target: ProjectDiscussionJumpTarget,
-    icon: ReactNode,
-    toneClass: string
-  ) => {
-    const className = cn(
-      "group flex min-h-[4rem] items-start gap-3 rounded-[1.1rem] border px-3.5 py-3 text-left transition",
-      toneClass,
-      canJumpToDiscussion && "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.07)]"
-    );
-
-    const content = (
-      <>
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
-          {icon}
-        </span>
-        <span className="min-w-0 flex-1 text-base font-medium leading-6 text-[var(--paper-foreground)]">
-          {label}
-        </span>
-      </>
-    );
-
-    if (!canJumpToDiscussion) {
-      return <div className={className}>{content}</div>;
-    }
-
-    return (
-      <button type="button" onClick={() => onJumpToDiscussion(target)} className={className}>
-        {content}
-      </button>
-    );
-  };
-
-  return (
-    <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: "var(--font-ui-display)" }}
-          >
-            研究信息
-          </h2>
-        </div>
-        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-xs font-medium sm:self-auto">
-          <ListChecks className="h-3.5 w-3.5" />
-          问题与假设索引
-        </span>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
-        <div className="research-panel-soft rounded-[1.35rem] p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-[var(--paper-link)]" />
-            <h3 className="text-base font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
-          </div>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {outline.topicSummary || "这个课题还没有补充详细摘要。"}
-          </p>
-        </div>
-
-        {hasPlans && (
-          <div className="grid gap-3">
-            {outline.basicPlan?.trim() && (
-              <div className="research-panel-soft rounded-[1.35rem] p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
-                </div>
-                <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-                  {outline.basicPlan}
-                </p>
-              </div>
-            )}
-            {outline.extendedPlan?.trim() && (
-              <div className="research-panel-soft rounded-[1.35rem] p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
-                </div>
-                <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-                  {outline.extendedPlan}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {(hasQuestions || hasHypotheses) && (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {outline.questions.map((question, index) => (
-            <div key={`question-${index}`}>
-              {renderJumpItem(
-                question,
-                { section: "basic", index },
-                <HelpCircle className="h-4 w-4 text-[var(--paper-link)]" />,
-                "border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/7"
-              )}
-            </div>
-          ))}
-          {outline.hypotheses.map((hypothesis, index) => (
-            <div key={`hypothesis-${index}`}>
-              {renderJumpItem(
-                hypothesis,
-                { section: "extended", index },
-                <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />,
-                "border-[#d7994c]/20 bg-[#d7994c]/8"
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
 
 export function ResearchProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -386,41 +225,7 @@ export function ResearchProjectPage() {
   const isOwner = currentUserRole === "owner";
   const isMember = currentUserRole === "member" || isOwner;
 
-  // Format date
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  // Get role icon
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "owner":
-        return <Crown className="w-4 h-4 text-amber-500" />;
-      case "member":
-      case "admin":
-      case "editor":
-      case "viewer":
-        return <UserCheck className="w-4 h-4 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
-
-  // Get role label
-  const getRoleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      owner: "组长",
-      member: "成员",
-      admin: "成员",
-      editor: "成员",
-      viewer: "成员",
-    };
-    return labels[role] || role;
-  };
+  const formatDate = formatProjectDate;
 
   // Handle member removal
   const handleRemoveMember = async () => {
@@ -536,70 +341,22 @@ export function ResearchProjectPage() {
   const displayRecruitmentRequirements =
     settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
   const hasPendingApplication = project?.has_pending_application ?? publicProject?.has_pending_application ?? false;
-  const projectOwner = project?.members.find((member) => member.role === "owner") ?? null;
   const isRecruitmentClosed = settings?.is_recruiting === false || publicProject?.is_recruiting === false;
-  const applicationProject: PublicProject | null = publicProject ?? (project ? {
-    id: project.id,
-    name_zh: project.name_zh,
-    name_en: project.name_en,
-    description_zh: project.description_zh,
-    description_en: project.description_en,
-    research_questions_zh: project.research_questions_zh,
-    research_hypotheses_zh: project.research_hypotheses_zh,
-    basic_plan_zh: project.basic_plan_zh,
-    extended_plan_zh: project.extended_plan_zh,
-    challenge_value_zh: project.challenge_value_zh,
-    challenge_objectives_zh: project.challenge_objectives_zh,
-    challenge_beginner_steps_zh: project.challenge_beginner_steps_zh,
-    challenge_min_deliverables_zh: project.challenge_min_deliverables_zh,
-    challenge_review_criteria_zh: project.challenge_review_criteria_zh,
-    challenge_timeline_zh: project.challenge_timeline_zh,
-    challenge_difficulty: project.challenge_difficulty,
-    challenge_roles_zh: project.challenge_roles_zh,
-    challenge_missing_roles_zh: project.challenge_missing_roles_zh,
-    challenge_progress_zh: project.challenge_progress_zh,
-    thumbnail: project.thumbnail,
-    status: project.status,
-    visibility: 'public' as const,
-    require_approval: displayRequireApproval,
-    recruitment_requirements: displayRecruitmentRequirements,
-    is_recruiting: !isRecruitmentClosed,
-    max_members: settings?.max_members ?? null,
-    member_count: project.member_count,
-    is_member: false,
-    has_pending_application: project.has_pending_application,
-    owner_username: projectOwner?.username ?? null,
-    owner_nickname: projectOwner?.nickname ?? null,
-    owner_real_name: projectOwner?.real_name ?? null,
-    owner_show_real_name_publicly: projectOwner?.show_real_name_publicly ?? false,
-    owner_avatar_url: projectOwner?.avatar_url ?? null,
-    members: project.members.map((member) => ({
-      username: member.username,
-      nickname: member.nickname ?? null,
-      real_name: member.real_name ?? null,
-      show_real_name_publicly: member.show_real_name_publicly ?? false,
-      avatar_url: member.avatar_url,
-      role: member.role,
-      member_role_label: member.member_role_label ?? null,
-    })),
-    created_at: project.created_at,
-    updated_at: project.updated_at,
-  } : null);
-  const applyButtonLabel = isPublicGuestMode
-    ? "登录后申请加入"
-    : hasPendingApplication
-      ? "申请已提交"
-      : isRecruitmentClosed
-        ? "招募已停止"
-      : "申请加入课题";
-  const applyBannerButtonLabel = isPublicGuestMode
-    ? "登录后加入"
-    : hasPendingApplication
-      ? "申请已提交"
-      : isRecruitmentClosed
-        ? "招募已停止"
-      : "申请加入";
-  const applyButtonDisabled = !isPublicGuestMode && hasPendingApplication;
+  const applicationProject: PublicProject | null =
+    publicProject
+    ?? (project
+      ? buildApplicationProjectFromProject(project, {
+          requireApproval: displayRequireApproval,
+          recruitmentRequirements: displayRecruitmentRequirements,
+          isRecruitmentClosed,
+          maxMembers: settings?.max_members ?? null,
+        })
+      : null);
+  const {
+    buttonLabel: applyButtonLabel,
+    bannerButtonLabel: applyBannerButtonLabel,
+    disabled: applyButtonDisabled,
+  } = getApplyButtonState({ isPublicGuestMode, hasPendingApplication, isRecruitmentClosed });
 
   const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
   const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
@@ -849,165 +606,23 @@ export function ResearchProjectPage() {
 
         {/* Members Section */}
         {!isExampleProject && displayMembers.length > 0 && (
-          <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
-            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2
-                  className="text-xl font-semibold text-[var(--paper-foreground)]"
-                  style={{ fontFamily: "var(--font-ui-display)" }}
-                >
-                  研究团队
-                </h2>
-                <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
-                  角色与权限说明白，协作会更顺。
-                </p>
-              </div>
-
-              {canManageProject && (
-                <button
-                  onClick={() => setIsApplicationDialogOpen(true)}
-                  className={cn(
-                    "relative inline-flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium transition-all sm:self-auto",
-                    pendingApplicationCount > 0
-                      ? "glass-button glass-button-primary text-white"
-                      : "glass-button"
-                  )}
-                >
-                  <UserCheck className="w-4 h-4" />
-                  申请管理
-                  {pendingApplicationCount > 0 && (
-                    <span className={cn(
-                      "ml-1 min-w-[22px] h-5.5 flex items-center justify-center px-1.5 rounded-full text-sm font-bold",
-                      "bg-white text-amber-600"
-                    )}>
-                      {pendingApplicationCount}
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {displayMembers.map((member) => {
-                // 判断是否可以移除该成员
-                const isActualProjectMember = isProjectMember(member);
-                const isSelf = isActualProjectMember && user?.id === member.user_id;
-                const isSelfRemoval = isSelf && member.role !== 'owner';
-                const canRemove = !!project && isActualProjectMember && !isReadOnlyMode && (
-                  isSelfRemoval || // 成员可以移除自己（退出）
-                  ((isOwner || isAdmin) && member.role !== 'owner' && !isSelf) // 组长或管理员可以移除其他成员
-                );
-                const memberKey = isActualProjectMember ? member.id : `${member.username}-${member.role}`;
-                const memberRoleLabel = member.member_role_label?.trim();
-                const memberDisplayName = formatUserIdentity(member);
-
-                return (
-                  <div
-                    key={memberKey}
-                    className="research-panel-soft flex items-center gap-3 rounded-[1.25rem] p-3"
-                  >
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
-                        member.role === "owner"
-                          ? "bg-amber-500/20 text-amber-500"
-                          : theme === "dark"
-                          ? "bg-gray-700 text-gray-300"
-                          : "bg-gray-100 text-gray-600"
-                      )}
-                    >
-                      {getUserIdentityInitial(member)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium text-[var(--paper-foreground)]">{memberDisplayName}</span>
-                        {getRoleIcon(member.role)}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-[var(--glass-text-muted)]">{getRoleLabel(member.role)}</span>
-                        {memberRoleLabel && (
-                          <ProjectRoleBadge seed={memberRoleLabel} className="px-2.5 py-0.5 text-xs">
-                            {memberRoleLabel}
-                          </ProjectRoleBadge>
-                        )}
-                      </div>
-                    </div>
-                    {canRemove && (
-                      <button
-                        onClick={() => {
-                          if (isActualProjectMember) {
-                            setMemberToRemove(member);
-                          }
-                        }}
-                        className="glass-button rounded-full p-2 text-[#b33d3d]"
-                        title={isSelfRemoval ? "退出课题组" : "移除成员"}
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {canManageProject && formerMembers.length > 0 && (
-              <div className="mt-6 border-t border-[var(--glass-stroke)] pt-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">待恢复成员</h3>
-                  <p className="mt-1 text-base text-[var(--glass-text-muted)]">
-                    这些成员曾加入过本课题，组长可以将他们重新拉回，恢复后统一为成员权限。
-                  </p>
-                </div>
-
-                {restoreMemberError && (
-                  <div className="mb-4 rounded-lg bg-red-50 p-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                    {restoreMemberError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {formerMembers.map((member) => {
-                    const memberDisplayName = formatUserIdentity(member);
-                    return (
-                    <div
-                      key={member.id}
-                      className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
-                    >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
-                          theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
-                        )}
-                      >
-                        {getUserIdentityInitial(member)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-[var(--paper-foreground)]">{memberDisplayName}</div>
-                        <div className="text-sm text-[var(--glass-text-muted)]">
-                          上次身份：{getRoleLabel(member.role)}
-                        </div>
-                        <div className="text-sm text-[var(--glass-text-muted)]">
-                          {member.removed_at ? `移除于 ${formatDate(member.removed_at)}` : "已离开课题"}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => void handleRestoreFormerMember(member)}
-                        disabled={isAddingFormerMemberId === member.user_id}
-                        className="glass-button rounded-full p-2 text-[var(--paper-link)] disabled:cursor-not-allowed disabled:opacity-60"
-                        title="拉回成员"
-                      >
-                        {isAddingFormerMemberId === member.user_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <UserPlus className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
+          <ProjectMembersSection
+            members={displayMembers}
+            formerMembers={formerMembers}
+            hasProject={!!project}
+            currentUserId={user?.id}
+            theme={theme === "dark" ? "dark" : "light"}
+            isReadOnlyMode={isReadOnlyMode}
+            isOwner={isOwner}
+            isAdmin={isAdmin}
+            canManageProject={canManageProject}
+            pendingApplicationCount={pendingApplicationCount}
+            restoreMemberError={restoreMemberError}
+            isAddingFormerMemberId={isAddingFormerMemberId}
+            onOpenApplications={() => setIsApplicationDialogOpen(true)}
+            onRequestRemoveMember={setMemberToRemove}
+            onRestoreFormerMember={handleRestoreFormerMember}
+          />
         )}
 
         {canShowDiscussionSection && projectId && (
@@ -1088,80 +703,18 @@ export function ResearchProjectPage() {
 
       {/* Remove Member Confirmation Dialog */}
       {memberToRemove && (
-        <Dialog isOpen={true} onClose={() => setMemberToRemove(null)} showCloseButton={false}>
-          <div className={cn(
-            "w-full max-w-md p-6 rounded-xl",
-            theme === "dark" ? "bg-gray-800" : "bg-white"
-          )}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className={cn(
-                "p-2 rounded-lg",
-                theme === "dark" ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"
-              )}>
-                <UserMinus className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className={cn(
-                  "text-lg font-semibold",
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                )}>
-                  {user?.id === memberToRemove.user_id ? "退出课题组" : "移除成员"}
-                </h3>
-                <p className={cn(
-                  "text-base",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
-                  {user?.id === memberToRemove.user_id
-                    ? "确定要退出该课题组吗？"
-                    : `确定要将 ${formatUserIdentity(memberToRemove)} 从课题组移除吗？`
-                  }
-                </p>
-              </div>
-            </div>
-
-            {removeMemberError && (
-              <div className={cn(
-                "mb-4 p-3 rounded-lg text-base",
-                theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
-              )}>
-                {removeMemberError}
-              </div>
-            )}
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setMemberToRemove(null);
-                  setRemoveMemberError(null);
-                }}
-                disabled={isRemovingMember}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-base font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700",
-                  isRemovingMember && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                取消
-              </button>
-              <button
-                onClick={handleRemoveMember}
-                disabled={isRemovingMember}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-base font-medium transition-colors flex items-center gap-2",
-                  theme === "dark"
-                    ? "bg-red-600 hover:bg-red-500 text-white"
-                    : "bg-red-500 hover:bg-red-600 text-white",
-                  isRemovingMember && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                {isRemovingMember && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isRemovingMember ? "处理中..." : "确认"}
-              </button>
-            </div>
-          </div>
-        </Dialog>
+        <RemoveMemberDialog
+          member={memberToRemove}
+          isSelf={user?.id === memberToRemove.user_id}
+          theme={theme === "dark" ? "dark" : "light"}
+          error={removeMemberError}
+          isRemoving={isRemovingMember}
+          onCancel={() => {
+            setMemberToRemove(null);
+            setRemoveMemberError(null);
+          }}
+          onConfirm={handleRemoveMember}
+        />
       )}
     </div>
   );

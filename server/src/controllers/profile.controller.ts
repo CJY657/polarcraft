@@ -9,6 +9,34 @@ import { ResearchModel } from "../models/research.model.js";
 import { logger } from "../utils/logger.js";
 
 /**
+ * Resolve the authenticated user id, or emit the shared 401 and return null.
+ * 返回已认证用户 ID，未认证时返回统一的 401 响应
+ */
+function getAuthenticatedUserId(req: Request, res: Response): string | null {
+  const userId = req.user?.sub;
+  if (!userId) {
+    res.status(401).json({
+      success: false,
+      error: { code: "UNAUTHORIZED", message: "未授权" },
+    });
+    return null;
+  }
+  return userId;
+}
+
+/**
+ * Log and emit the shared 500 SERVER_ERROR response with a per-endpoint message.
+ * 记录错误并返回统一的 500 响应（消息按接口区分）
+ */
+function sendServerError(res: Response, error: unknown, logLabel: string, message: string): void {
+  logger.error(logLabel, error);
+  res.status(500).json({
+    success: false,
+    error: { code: "SERVER_ERROR", message },
+  });
+}
+
+/**
  * Profile Controller Class
  * 个人资料控制器类
  */
@@ -24,23 +52,15 @@ export class ProfileController {
    */
   static async getUserEducations(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.sub;
+      const userId = getAuthenticatedUserId(req, res);
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "未授权" },
-        });
         return;
       }
 
       const educations = await ProfileModel.getUserEducations(userId);
       res.json({ success: true, data: educations });
     } catch (error) {
-      logger.error("Get educations error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "获取教育经历失败" },
-      });
+      sendServerError(res, error, "Get educations error:", "获取教育经历失败");
     }
   }
 
@@ -51,12 +71,8 @@ export class ProfileController {
    */
   static async createEducation(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.sub;
+      const userId = getAuthenticatedUserId(req, res);
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "未授权" },
-        });
         return;
       }
 
@@ -82,11 +98,7 @@ export class ProfileController {
       const education = await ProfileModel.getEducationById(educationId, userId);
       res.status(201).json({ success: true, data: education });
     } catch (error) {
-      logger.error("Create education error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "创建教育经历失败" },
-      });
+      sendServerError(res, error, "Create education error:", "创建教育经历失败");
     }
   }
 
@@ -97,14 +109,10 @@ export class ProfileController {
    */
   static async updateEducation(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.sub;
+      const userId = getAuthenticatedUserId(req, res);
       const { id } = req.params;
 
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "未授权" },
-        });
         return;
       }
 
@@ -121,11 +129,7 @@ export class ProfileController {
       const updated = await ProfileModel.getEducationById(id, userId);
       res.json({ success: true, data: updated });
     } catch (error) {
-      logger.error("Update education error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "更新教育经历失败" },
-      });
+      sendServerError(res, error, "Update education error:", "更新教育经历失败");
     }
   }
 
@@ -136,14 +140,10 @@ export class ProfileController {
    */
   static async deleteEducation(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.sub;
+      const userId = getAuthenticatedUserId(req, res);
       const { id } = req.params;
 
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "未授权" },
-        });
         return;
       }
 
@@ -159,11 +159,7 @@ export class ProfileController {
       await ProfileModel.deleteEducation(id, userId);
       res.json({ success: true, message: "删除成功" });
     } catch (error) {
-      logger.error("Delete education error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "删除教育经历失败" },
-      });
+      sendServerError(res, error, "Delete education error:", "删除教育经历失败");
     }
   }
 
@@ -178,23 +174,15 @@ export class ProfileController {
    */
   static async getUserApplications(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.sub;
+      const userId = getAuthenticatedUserId(req, res);
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "未授权" },
-        });
         return;
       }
 
       const applications = await ProfileModel.getUserApplications(userId);
       res.json({ success: true, data: applications });
     } catch (error) {
-      logger.error("Get applications error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "获取申请列表失败" },
-      });
+      sendServerError(res, error, "Get applications error:", "获取申请列表失败");
     }
   }
 
@@ -223,11 +211,7 @@ export class ProfileController {
       const projects = await ProfileModel.getPublicProjects(filters, userId);
       res.json({ success: true, data: projects });
     } catch (error) {
-      logger.error("Get public projects error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "获取公开项目失败" },
-      });
+      sendServerError(res, error, "Get public projects error:", "获取公开项目失败");
     }
   }
 
@@ -253,11 +237,7 @@ export class ProfileController {
 
       res.json({ success: true, data: project });
     } catch (error) {
-      logger.error("Get public project error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "获取公开项目详情失败" },
-      });
+      sendServerError(res, error, "Get public project error:", "获取公开项目详情失败");
     }
   }
 
@@ -284,11 +264,7 @@ export class ProfileController {
       const evidenceItems = await ResearchModel.getProjectEvidence(projectId);
       res.json({ success: true, data: evidenceItems });
     } catch (error) {
-      logger.error("Get public project evidence error:", error);
-      res.status(500).json({
-        success: false,
-        error: { code: "SERVER_ERROR", message: "获取公开课题证据失败" },
-      });
+      sendServerError(res, error, "Get public project evidence error:", "获取公开课题证据失败");
     }
   }
 }

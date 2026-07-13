@@ -6,7 +6,7 @@
  * 处理虚拟课题组系统相关的所有 API 调用
  */
 
-import { api } from './api';
+import { api, ensureApiSuccess, unwrapApiData } from './api';
 import type { ProjectStatus } from '@/feature/research/projectLifecycle';
 
 export type { ProjectStatus } from '@/feature/research/projectLifecycle';
@@ -263,10 +263,7 @@ export const researchApi = {
    */
   getUserProjects: async (): Promise<ResearchProject[]> => {
     const response = await api.get<ResearchProject[]>('/api/research/projects');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取课题列表失败');
+    return unwrapApiData(response, '获取课题列表失败');
   },
 
   /**
@@ -275,10 +272,7 @@ export const researchApi = {
    */
   getProject: async (projectId: string): Promise<ProjectWithMembers> => {
     const response = await api.get<ProjectWithMembers>(`/api/research/projects/${projectId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取课题详情失败');
+    return unwrapApiData(response, '获取课题详情失败');
   },
 
   /**
@@ -287,10 +281,7 @@ export const researchApi = {
    */
   createProject: async (input: CreateProjectInput): Promise<ResearchProject> => {
     const response = await api.post<ResearchProject>('/api/research/projects', input);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '创建课题失败');
+    return unwrapApiData(response, '创建课题失败');
   },
 
   /**
@@ -299,10 +290,7 @@ export const researchApi = {
    */
   updateProject: async (projectId: string, input: UpdateProjectInput): Promise<ResearchProject> => {
     const response = await api.put<ResearchProject>(`/api/research/projects/${projectId}`, input);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新课题失败');
+    return unwrapApiData(response, '更新课题失败');
   },
 
   /**
@@ -317,10 +305,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/cover-image`,
       file
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '上传课题封面失败');
+    return unwrapApiData(response, '上传课题封面失败');
   },
 
   /**
@@ -329,9 +314,7 @@ export const researchApi = {
    */
   deleteProject: async (projectId: string, confirmationText: string): Promise<void> => {
     const response = await api.delete(`/api/research/projects/${projectId}`, { confirmationText });
-    if (!response.success) {
-      throw new Error(response.error?.message || '删除课题失败');
-    }
+    ensureApiSuccess(response, '删除课题失败');
   },
 
   /**
@@ -349,9 +332,7 @@ export const researchApi = {
       role,
       memberRoleLabel,
     });
-    if (!response.success) {
-      throw new Error(response.error?.message || '添加成员失败');
-    }
+    ensureApiSuccess(response, '添加成员失败');
   },
 
   /**
@@ -360,9 +341,7 @@ export const researchApi = {
    */
   removeProjectMember: async (projectId: string, userId: string): Promise<void> => {
     const response = await api.delete(`/api/research/projects/${projectId}/members/${userId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '移除成员失败');
-    }
+    ensureApiSuccess(response, '移除成员失败');
   },
 
   /**
@@ -371,10 +350,7 @@ export const researchApi = {
    */
   getProjectDiscussionComments: async (projectId: string): Promise<ProjectDiscussionComment[]> => {
     const response = await api.get<ProjectDiscussionComment[]>(`/api/research/projects/${projectId}/discussion-comments`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取课题讨论失败');
+    return unwrapApiData(response, '获取课题讨论失败');
   },
 
   /**
@@ -386,10 +362,7 @@ export const researchApi = {
     input: { content: string; parentCommentId?: string; imageUrls?: string[]; videoUrls?: string[] }
   ): Promise<{ id: string }> => {
     const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/discussion-comments`, input);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '发布讨论留言失败');
+    return unwrapApiData(response, '发布讨论留言失败');
   },
 
   /**
@@ -404,10 +377,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/discussion-images`,
       file
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '上传讨论图片失败');
+    return unwrapApiData(response, '上传讨论图片失败');
   },
 
   /**
@@ -422,10 +392,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/discussion-videos`,
       file
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '上传讨论视频失败');
+    return unwrapApiData(response, '上传讨论视频失败');
   },
 
   /**
@@ -434,9 +401,7 @@ export const researchApi = {
    */
   deleteProjectDiscussionComment: async (commentId: string): Promise<void> => {
     const response = await api.delete(`/api/research/discussion-comments/${commentId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '删除讨论留言失败');
-    }
+    ensureApiSuccess(response, '删除讨论留言失败');
   },
 
   /**
@@ -445,10 +410,7 @@ export const researchApi = {
    */
   getProjectEvidence: async (projectId: string): Promise<ProjectEvidence[]> => {
     const response = await api.get<ProjectEvidence[]>(`/api/research/projects/${projectId}/evidence`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取证据库失败');
+    return unwrapApiData(response, '获取证据库失败');
   },
 
   /**
@@ -460,10 +422,7 @@ export const researchApi = {
     input: UpsertProjectEvidenceInput
   ): Promise<ProjectEvidence> => {
     const response = await api.post<ProjectEvidence>(`/api/research/projects/${projectId}/evidence`, input);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '新增证据失败');
+    return unwrapApiData(response, '新增证据失败');
   },
 
   /**
@@ -479,10 +438,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/evidence/${evidenceId}`,
       input
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新证据失败');
+    return unwrapApiData(response, '更新证据失败');
   },
 
   /**
@@ -491,9 +447,7 @@ export const researchApi = {
    */
   deleteProjectEvidence: async (projectId: string, evidenceId: string): Promise<void> => {
     const response = await api.delete(`/api/research/projects/${projectId}/evidence/${evidenceId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '删除证据失败');
-    }
+    ensureApiSuccess(response, '删除证据失败');
   },
 
   /**
@@ -509,10 +463,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/evidence-attachments/${category}`,
       file
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '上传证据附件失败');
+    return unwrapApiData(response, '上传证据附件失败');
   },
 
   /**
@@ -526,10 +477,7 @@ export const researchApi = {
     const response = await api.get<ResearchAgentMessagesResponse>(
       `/api/research/projects/${projectId}/agent/messages?limit=${limit}`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取 AI 顾问消息失败');
+    return unwrapApiData(response, '获取 AI 顾问消息失败');
   },
 
   /**
@@ -545,10 +493,7 @@ export const researchApi = {
       `/api/research/projects/${projectId}/agent/messages`,
       { content, history }
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'AI 顾问暂时不可用');
+    return unwrapApiData(response, 'AI 顾问暂时不可用');
   },
 
   /**
@@ -559,10 +504,7 @@ export const researchApi = {
     const response = await api.delete<{ deletedCount: number }>(
       `/api/research/projects/${projectId}/agent/messages`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '清空 AI 顾问消息失败');
+    return unwrapApiData(response, '清空 AI 顾问消息失败');
   },
 
   // =====================================================
@@ -575,9 +517,6 @@ export const researchApi = {
    */
   getProjectActivity: async (projectId: string, limit: number = 50): Promise<any[]> => {
     const response = await api.get<any[]>(`/api/research/projects/${projectId}/activity?limit=${limit}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取活动日志失败');
+    return unwrapApiData(response, '获取活动日志失败');
   },
 };

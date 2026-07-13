@@ -473,11 +473,11 @@ export class ResearchController {
     }
 
     // Get members
-    const members = await ResearchModel.getProjectMembers(id);
-    const formerMembers = access.canManage
-      ? await ResearchModel.getFormerProjectMembers(id)
-      : undefined;
-    const pendingApplication = await ProfileModel.getPendingApplication(id, req.user!.sub);
+    const [members, formerMembers, pendingApplication] = await Promise.all([
+      ResearchModel.getProjectMembers(id),
+      access.canManage ? ResearchModel.getFormerProjectMembers(id) : Promise.resolve(undefined),
+      ProfileModel.getPendingApplication(id, req.user!.sub),
+    ]);
 
     res.success({
       ...access.project,

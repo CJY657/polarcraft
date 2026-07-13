@@ -7,12 +7,10 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
-  CheckCircle,
   LogIn,
   Plus,
   RefreshCw,
   Search,
-  WifiOff,
   Users,
   FlaskConical,
   Trash2,
@@ -24,55 +22,11 @@ import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
+import { getHealthDisplay } from "../components/project/researchHealthDisplay";
 
 const CreateProjectWizard = lazy(() =>
   import("../components/project/CreateProjectWizard").then((module) => ({ default: module.CreateProjectWizard }))
 );
-
-function getHealthDisplay(healthStatus: string) {
-  switch (healthStatus) {
-    case "healthy":
-      return {
-        icon: CheckCircle,
-        text: "系统正常",
-        panelStyle: {
-          border: "1px solid color-mix(in srgb, var(--paper-accent) 22%, var(--glass-stroke))",
-          background: "color-mix(in srgb, var(--paper-accent-soft) 88%, transparent)",
-          color: "var(--paper-accent-strong)",
-        },
-      };
-    case "unhealthy":
-      return {
-        icon: AlertTriangle,
-        text: "系统异常",
-        panelStyle: {
-          border: "1px solid color-mix(in srgb, #d7994c 28%, var(--glass-stroke))",
-          background: "color-mix(in srgb, #d7994c 10%, transparent)",
-          color: "#a45a13",
-        },
-      };
-    case "offline":
-      return {
-        icon: WifiOff,
-        text: "服务器离线",
-        panelStyle: {
-          border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
-          background: "color-mix(in srgb, #d95b5b 10%, transparent)",
-          color: "#b33d3d",
-        },
-      };
-    default:
-      return {
-        icon: RefreshCw,
-        text: "检测中",
-        panelStyle: {
-          border: "1px solid var(--glass-stroke)",
-          background: "color-mix(in srgb, var(--glass-panel-soft) 88%, transparent)",
-          color: "var(--glass-text-muted)",
-        },
-      };
-  }
-}
 
 export function MyProjectsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
