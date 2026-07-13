@@ -120,11 +120,15 @@ const AdminGalleryPage = lazy(() => import("@/pages/admin/AdminGalleryPage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin/AdminFeedbackPage"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
 const AdminActivityPage = lazy(() => import("@/pages/admin/AdminActivityPage"));
+const AdminQuizPage = lazy(() => import("@/pages/admin/AdminQuizPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
 const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => ({ default: m.AdminRoute })));
 
 // Profile Page - 个人中心页面
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+
+// Quiz Page - 偏振知识测验
+const QuizPage = lazy(() => import("@/pages/QuizPage"));
 
 // Inbox Page - 收件箱页面
 const InboxPage = lazy(() => import("@/pages/InboxPage"));
@@ -318,6 +322,12 @@ function AppRouterContent() {
               element={<ProfilePage />}
             />
 
+            {/* Quiz - 偏振知识测验 */}
+            <Route
+              path="/quiz"
+              element={<QuizPage />}
+            />
+
             {/* Inbox - 收件箱 */}
             <Route
               path="/inbox"
@@ -432,6 +442,14 @@ function AppRouterContent() {
             element={
               <AdminRoute>
                 <AdminActivityPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/quiz"
+            element={
+              <AdminRoute>
+                <AdminQuizPage />
               </AdminRoute>
             }
           />
