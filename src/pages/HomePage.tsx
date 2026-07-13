@@ -223,14 +223,14 @@ export function HomePage() {
             New
           </span>
           <span className="text-clay-body">
-            计算模拟现已上线<strong className="mx-1.5 font-semibold text-clay-ink">交互式偏振态模拟</strong>
+            全新功能现已上线<strong className="mx-1.5 font-semibold text-clay-ink">偏振光学知识测验</strong>
           </span>
           <button 
             type="button"
-            onClick={() => navigate('/demos')}
+            onClick={() => navigate('/quiz')}
             className="group ml-3 flex items-center gap-1 font-semibold text-clay-ink hover:underline"
           >
-            去体验
+            去测验
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>

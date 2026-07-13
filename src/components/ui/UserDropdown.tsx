@@ -24,6 +24,7 @@ import {
   MessageSquareText,
   Users,
   ChartNoAxesCombined,
+  ClipboardCheck,
 } from 'lucide-react';
 
 interface UserDropdownProps {
@@ -164,6 +165,12 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       label: '用户活动',
       icon: ChartNoAxesCombined,
       href: '/admin/activity',
+    },
+    {
+      id: 'quiz',
+      label: '测验成绩',
+      icon: ClipboardCheck,
+      href: '/admin/quiz',
     },
     {
       id: 'feedback',

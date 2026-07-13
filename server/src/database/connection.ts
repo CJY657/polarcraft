@@ -239,6 +239,14 @@ const COLLECTION_INDEXES: Array<{
       { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
     ],
   },
+  {
+    name: 'quiz_attempts',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { user_id: 1, status: 1, created_at: -1 }, name: 'idx_user_status_created' },
+      { key: { status: 1, completed_at: -1 }, name: 'idx_status_completed' },
+    ],
+  },
 ];
 
 /**
