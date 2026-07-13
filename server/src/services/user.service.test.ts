@@ -93,7 +93,7 @@ describe('UserService.getActivityDashboardForAdmin', () => {
   it('delegates the selected range to PostHog aggregates', async () => {
     const dashboard = {
       status: 'ok',
-      days: 90,
+      range: { start: '2026-04-12', end: '2026-07-10', days: 90 },
       generated_at: '2026-07-10T00:00:00.000Z',
       summary: {
         active_learners: 1,
@@ -104,12 +104,15 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       daily: [],
       top_pages: [],
       activity_breakdown: [],
+      module_breakdown: [],
       top_learners: [],
     };
     getActivityDashboard.mockResolvedValue(dashboard);
 
-    await expect(UserService.getActivityDashboardForAdmin(90)).resolves.toBe(dashboard);
-    expect(getActivityDashboard).toHaveBeenCalledWith(90);
+    await expect(
+      UserService.getActivityDashboardForAdmin('2026-04-12', '2026-07-10', null)
+    ).resolves.toBe(dashboard);
+    expect(getActivityDashboard).toHaveBeenCalledWith('2026-04-12', '2026-07-10', null);
   });
 });
 

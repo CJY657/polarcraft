@@ -17,7 +17,6 @@ import {
 } from '../types/auth.types.js';
 import {
   AdminUserActivityDashboardResponse,
-  AdminUserActivityRange,
   AdminUserDetailResponse,
   AdminUserListResponse,
   AdminUserPostHogAnalyticsResponse,
@@ -136,9 +135,11 @@ export class UserService {
 
   /** Get aggregate learner activity for the administrator dashboard. */
   static async getActivityDashboardForAdmin(
-    days: AdminUserActivityRange
+    start: string,
+    end: string,
+    learnerLimit: number | null
   ): Promise<AdminUserActivityDashboardResponse> {
-    return PostHogService.getActivityDashboard(days);
+    return PostHogService.getActivityDashboard(start, end, learnerLimit);
   }
 
   /**

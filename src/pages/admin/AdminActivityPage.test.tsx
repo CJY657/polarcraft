@@ -22,9 +22,23 @@ vi.mock('@/components/shared/PersistentHeader', () => ({
 
 import AdminActivityPage from './AdminActivityPage';
 
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function presetRange(days: number): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { start: toDateInput(start), end: toDateInput(end) };
+}
+
 const activity = {
   status: 'ok' as const,
-  days: 30 as const,
+  range: { ...presetRange(30), days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
   summary: {
     active_learners: 18,
@@ -42,6 +56,22 @@ const activity = {
   activity_breakdown: [
     { event: 'experiment_opened', count: 42, unique_learners: 11 },
     { event: '$pageview', count: 21, unique_learners: 8 },
+  ],
+  module_breakdown: [
+    {
+      module: 'module1',
+      label: '实验内容',
+      pageviews: 21,
+      unique_learners: 8,
+      learners: [{ user_id: 'learner-1', username: '林晓光', pageviews: 12 }],
+    },
+    {
+      module: 'module6',
+      label: '虚拟课题',
+      pageviews: 6,
+      unique_learners: 2,
+      learners: [{ user_id: 'learner-2', username: '王小雨', pageviews: 6 }],
+    },
   ],
   top_learners: [
     {
@@ -69,10 +99,12 @@ describe('AdminActivityPage', () => {
     getActivity.mockResolvedValue(activity);
   });
 
-  it('loads 30 days by default and renders the dashboard data', async () => {
+  it('loads the last 30 days by default and renders the dashboard data', async () => {
     renderPage();
 
-    await waitFor(() => expect(getActivity).toHaveBeenCalledWith(30));
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(30), limit: 10 })
+    );
     expect(await screen.findByRole('heading', { name: '用户活动' })).toBeDefined();
     expect(screen.getAllByText('活跃学生').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('18')).toBeDefined();
@@ -81,23 +113,94 @@ describe('AdminActivityPage', () => {
     expect(screen.getByText('84')).toBeDefined();
     expect(screen.getByRole('img', { name: '每日活动趋势' })).toBeDefined();
     expect(screen.getByRole('table', { name: '每日活动趋势数据' })).toBeDefined();
-    expect(screen.getByText('/experiments/calcite')).toBeDefined();
+    expect(screen.getByText('实验内容 · 课程详情')).toBeDefined();
+    expect(screen.getByText(/\/experiments\/calcite/)).toBeDefined();
     expect(screen.getByText('进入实验')).toBeDefined();
     const mixPanel = screen.getByRole('heading', { name: '活动构成' }).closest('section');
     expect(mixPanel).not.toBeNull();
     expect(within(mixPanel!).getByText('页面访问')).toBeDefined();
-    expect(screen.getByText('林晓光')).toBeDefined();
+    expect(screen.getAllByText('林晓光').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('reloads when the selected range changes', async () => {
+  it('renders the module breakdown with per-module learners', async () => {
     renderPage();
-    await waitFor(() => expect(getActivity).toHaveBeenCalledWith(30));
+
+    const modulePanel = (
+      await screen.findByRole('heading', { name: '模块热度' })
+    ).closest('section');
+    expect(modulePanel).not.toBeNull();
+    expect(within(modulePanel!).getByText('实验内容')).toBeDefined();
+    expect(within(modulePanel!).getByText('虚拟课题')).toBeDefined();
+    expect(within(modulePanel!).getByText('21 次 / 8 人')).toBeDefined();
+    expect(within(modulePanel!).getByText('王小雨')).toBeDefined();
+  });
+
+  it('reloads when a preset range is selected', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(30), limit: 10 })
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '近 7 天' }));
 
-    await waitFor(() => expect(getActivity).toHaveBeenLastCalledWith(7));
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenLastCalledWith({ ...presetRange(7), limit: 10 })
+    );
     expect(screen.getByRole('button', { name: '近 7 天' }).getAttribute('aria-pressed')).toBe(
       'true'
+    );
+  });
+
+  it('reloads when a custom date range is entered', async () => {
+    renderPage();
+    await waitFor(() => expect(getActivity).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: '2026-06-01' },
+    });
+    fireEvent.change(screen.getByLabelText('结束日期'), {
+      target: { value: '2026-06-30' },
+    });
+
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenLastCalledWith({
+        start: '2026-06-01',
+        end: '2026-06-30',
+        limit: 10,
+      })
+    );
+  });
+
+  it('flags an inverted custom range instead of querying', async () => {
+    renderPage();
+    await waitFor(() => expect(getActivity).toHaveBeenCalled());
+    getActivity.mockClear();
+
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: '2026-06-30' },
+    });
+    fireEvent.change(screen.getByLabelText('结束日期'), {
+      target: { value: '2026-06-01' },
+    });
+
+    expect(await screen.findByRole('alert')).toBeDefined();
+    expect(getActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({ start: '2026-06-30', end: '2026-06-01' })
+    );
+  });
+
+  it('reloads when the learner list size changes', async () => {
+    renderPage();
+    await waitFor(() => expect(getActivity).toHaveBeenCalled());
+
+    fireEvent.change(await screen.findByLabelText(/显示人数/), {
+      target: { value: 'all' },
+    });
+
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ limit: 'all' })
+      )
     );
   });
 
@@ -124,6 +227,7 @@ describe('AdminActivityPage', () => {
       ],
       top_pages: [],
       activity_breakdown: [],
+      module_breakdown: [],
       top_learners: [],
     });
 
@@ -135,12 +239,13 @@ describe('AdminActivityPage', () => {
   it('shows a teacher-friendly disabled state', async () => {
     getActivity.mockResolvedValue({
       status: 'disabled',
-      days: 30,
+      range: { ...presetRange(30), days: 30 },
       generated_at: '2026-07-10T08:00:00.000Z',
       summary: null,
       daily: [],
       top_pages: [],
       activity_breakdown: [],
+      module_breakdown: [],
       top_learners: [],
     });
 
@@ -184,6 +289,6 @@ describe('AdminActivityPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
 
     await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText('林晓光')).toBeDefined();
+    expect((await screen.findAllByText('林晓光')).length).toBeGreaterThanOrEqual(1);
   });
 });

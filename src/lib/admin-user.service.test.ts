@@ -115,10 +115,10 @@ describe('adminUserApi', () => {
     expect(get).toHaveBeenCalledWith('/api/users/user-1/posthog-analytics');
   });
 
-  it('requests the selected admin activity range', async () => {
+  it('requests the selected admin activity range and learner limit', async () => {
     const activity = {
       status: 'ok',
-      days: 30,
+      range: { start: '2026-06-11', end: '2026-07-10', days: 30 },
       generated_at: '2026-07-10T08:00:00.000Z',
       summary: {
         active_learners: 18,
@@ -129,12 +129,17 @@ describe('adminUserApi', () => {
       daily: [],
       top_pages: [],
       activity_breakdown: [],
+      module_breakdown: [],
       top_learners: [],
     };
     get.mockResolvedValue({ success: true, data: activity });
 
-    await expect(adminUserApi.getActivity(30)).resolves.toEqual(activity);
+    await expect(
+      adminUserApi.getActivity({ start: '2026-06-11', end: '2026-07-10', limit: 'all' })
+    ).resolves.toEqual(activity);
 
-    expect(get).toHaveBeenCalledWith('/api/users/activity?days=30');
+    expect(get).toHaveBeenCalledWith(
+      '/api/users/activity?start=2026-06-11&end=2026-07-10&limit=all'
+    );
   });
 });

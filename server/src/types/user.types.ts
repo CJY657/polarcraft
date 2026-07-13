@@ -163,13 +163,30 @@ export interface AdminUserPostHogAnalyticsResponse {
   recent_events: AdminUserPostHogRecentEvent[];
 }
 
-/** Supported administrator activity windows / 管理员活动看板支持的时间范围 */
-export type AdminUserActivityRange = 7 | 30 | 90;
+/** Administrator activity date range / 管理员活动看板时间范围 */
+export interface AdminUserActivityDateRange {
+  start: string;
+  end: string;
+  days: number;
+}
+
+/** Per-module learner interest / 各模块学生兴趣统计 */
+export interface AdminUserActivityModuleBreakdown {
+  module: string;
+  label: string;
+  pageviews: number;
+  unique_learners: number;
+  learners: Array<{
+    user_id: string;
+    username: string;
+    pageviews: number;
+  }>;
+}
 
 /** Administrator learner activity dashboard / 管理员学生行为看板 */
 export interface AdminUserActivityDashboardResponse {
   status: 'ok' | 'disabled';
-  days: AdminUserActivityRange;
+  range: AdminUserActivityDateRange;
   generated_at: string;
   summary: {
     active_learners: number;
@@ -193,6 +210,7 @@ export interface AdminUserActivityDashboardResponse {
     count: number;
     unique_learners: number;
   }>;
+  module_breakdown: AdminUserActivityModuleBreakdown[];
   top_learners: Array<{
     user_id: string;
     username: string;

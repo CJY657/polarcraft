@@ -30,7 +30,12 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { token: 1 }, unique: true, name: 'unique_token' },
       { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
-      { key: { expires_at: 1 }, name: 'idx_expires_at' },
+      // TTL：过期令牌由 MongoDB 自动清理，避免集合无限增长
+      { key: { expires_at: 1 }, name: 'idx_expires_at', expireAfterSeconds: 0 },
+      // TTL：已撤销令牌（轮换/登出产生）对业务不可见——所有查询都过滤
+      // revoked_at: null——保留 24 小时供排查后自动清理，避免高频轮换令牌
+      // 挤占空间。revoked_at 为 null 的活跃令牌不是日期值，不受 TTL 影响。
+      { key: { revoked_at: 1 }, name: 'idx_revoked_ttl', expireAfterSeconds: 86_400 },
     ],
   },
   {
@@ -39,7 +44,8 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { token: 1 }, unique: true, name: 'unique_token' },
       { key: { user_id: 1 }, name: 'idx_user_id' },
-      { key: { expires_at: 1 }, name: 'idx_expires_at' },
+      // TTL：过期令牌由 MongoDB 自动清理，避免集合无限增长
+      { key: { expires_at: 1 }, name: 'idx_expires_at', expireAfterSeconds: 0 },
     ],
   },
   {
@@ -83,7 +89,6 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { course_id: 1, page: 1, created_at: 1 }, name: 'idx_course_page_created' },
-      { key: { target_media_id: 1 }, name: 'idx_target_media_id' },
     ],
   },
   {
@@ -91,7 +96,6 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { course_id: 1, created_at: -1 }, name: 'idx_course_created' },
-      { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
     ],
   },
   {
@@ -113,8 +117,6 @@ const COLLECTION_INDEXES: Array<{
     name: 'research_projects',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
-      { key: { is_public: 1, updated_at: -1 }, name: 'idx_public_updated' },
-      { key: { status: 1, last_activity_at: -1 }, name: 'idx_status_activity' },
       { key: { updated_at: -1 }, name: 'idx_updated_at' },
     ],
   },
@@ -139,7 +141,6 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { canvas_id: 1 }, name: 'idx_canvas_id' },
-      { key: { status: 1 }, name: 'idx_status' },
     ],
   },
   {
@@ -147,7 +148,6 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { canvas_id: 1 }, name: 'idx_canvas_id' },
-      { key: { source_node_id: 1, target_node_id: 1 }, name: 'idx_nodes' },
     ],
   },
   {
@@ -163,7 +163,6 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: 1 }, name: 'idx_project_created' },
       { key: { parent_comment_id: 1, created_at: 1 }, name: 'idx_parent_created' },
-      { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
     ],
   },
   {
@@ -214,7 +213,6 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
-      { key: { target_type: 1, target_id: 1 }, name: 'idx_target' },
     ],
   },
   {
@@ -239,9 +237,35 @@ const COLLECTION_INDEXES: Array<{
       { key: { project_id: 1, user_id: 1 }, unique: true, name: 'unique_project_user' },
       { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
       { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
-      { key: { status: 1 }, name: 'idx_status' },
     ],
   },
+];
+
+/**
+ * Indexes that existed in earlier releases but are provably unused by any
+ * query in the codebase. Dropped at startup so every environment (local and
+ * production) converges to COLLECTION_INDEXES without a manual migration.
+ * Dropping an index never changes query results, only the access path.
+ * 早期版本创建、但代码中已无任何查询会用到的索引。启动时自动删除，使本地与
+ * 生产环境无需手工迁移即可与 COLLECTION_INDEXES 保持一致。删除索引只影响
+ * 访问路径，不会改变查询结果。
+ */
+const DEPRECATED_INDEXES: Array<{ collection: string; index: string }> = [
+  // 公开课题的筛选走 research_project_settings.visibility，不再按 is_public/status 查询
+  { collection: 'research_projects', index: 'idx_public_updated' },
+  { collection: 'research_projects', index: 'idx_status_activity' },
+  // 节点状态只在 canvas_id 前缀下过滤；边删除用 $or（含未索引分支）必然全表扫描
+  { collection: 'research_nodes', index: 'idx_status' },
+  { collection: 'research_edges', index: 'idx_nodes' },
+  // target_type/target_id 只写入、从不查询
+  { collection: 'research_activity_log', index: 'idx_target' },
+  // status 总是与 project_id/user_id 一起查询，前缀索引已覆盖
+  { collection: 'research_project_applications', index: 'idx_status' },
+  // 两类评论均无按 user_id 的查询
+  { collection: 'research_project_comments', index: 'idx_user_created' },
+  { collection: 'course_discussion_comments', index: 'idx_user_created' },
+  // 只出现在 $or 删除（另一分支 source_media_id 未索引），索引不可用
+  { collection: 'course_hyperlinks', index: 'idx_target_media_id' },
 ];
 
 async function ensureIndexes(db: Db): Promise<void> {
@@ -249,18 +273,79 @@ async function ensureIndexes(db: Db): Promise<void> {
     return;
   }
 
+  await dropDeprecatedIndexes(db);
+
   for (const collection of COLLECTION_INDEXES) {
     if (collection.indexes.length === 0) {
       continue;
     }
 
-    await db.collection(collection.name).createIndexes(
-      collection.indexes
-    );
+    await createCollectionIndexes(db, collection.name, collection.indexes);
   }
 
   indexesInitialized = true;
   logger.info('MongoDB indexes ensured');
+}
+
+/**
+ * Drop deprecated indexes if present. Codes 26/27 = NamespaceNotFound /
+ * IndexNotFound — both mean "already gone" and are safely ignored.
+ */
+async function dropDeprecatedIndexes(db: Db): Promise<void> {
+  for (const { collection, index } of DEPRECATED_INDEXES) {
+    try {
+      await db.collection(collection).dropIndex(index);
+      logger.info(`Dropped deprecated MongoDB index ${collection}.${index}`);
+    } catch (error) {
+      const code = (error as { code?: number }).code;
+      if (code !== 26 && code !== 27) {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
+ * Create indexes, replacing a same-named index whose definition changed
+ * (e.g. a TTL option was added). Codes 85/86 = IndexOptionsConflict /
+ * IndexKeySpecsConflict.
+ */
+async function createCollectionIndexes(
+  db: Db,
+  name: string,
+  indexes: IndexDescription[]
+): Promise<void> {
+  const collection = db.collection(name);
+  try {
+    await collection.createIndexes(indexes);
+  } catch (error) {
+    const code = (error as { code?: number }).code;
+    if (code !== 85 && code !== 86) {
+      throw error;
+    }
+
+    const existing = (await collection.listIndexes().toArray()) as Array<{
+      name: string;
+      key: Record<string, unknown>;
+      unique?: boolean;
+      expireAfterSeconds?: number;
+    }>;
+    for (const desired of indexes) {
+      const current = existing.find((index) => index.name === desired.name);
+      if (!current) {
+        continue;
+      }
+      const changed =
+        JSON.stringify(current.key) !== JSON.stringify(desired.key) ||
+        Boolean(current.unique) !== Boolean(desired.unique) ||
+        current.expireAfterSeconds !== desired.expireAfterSeconds;
+      if (changed) {
+        logger.info(`Rebuilding MongoDB index ${name}.${String(desired.name)}`);
+        await collection.dropIndex(String(desired.name));
+      }
+    }
+    await collection.createIndexes(indexes);
+  }
 }
 
 export async function connectDatabase(): Promise<Db> {

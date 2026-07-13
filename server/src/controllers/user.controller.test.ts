@@ -49,8 +49,8 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     vi.clearAllMocks();
   });
 
-  it('uses a 30-day range when days is omitted', async () => {
-    const dashboard = { status: 'disabled', days: 30 };
+  it('uses a 30-day range ending today when days is omitted', async () => {
+    const dashboard = { status: 'disabled' };
     getActivityDashboardForAdmin.mockResolvedValue(dashboard);
     const res = { success: vi.fn(), error: vi.fn() };
 
@@ -61,12 +61,16 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(30);
+    const today = new Date().toISOString().slice(0, 10);
+    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(expectedStart, today, 10);
     expect(res.success).toHaveBeenCalledWith(dashboard);
   });
 
-  it('passes an allowed explicit range to the service', async () => {
-    getActivityDashboardForAdmin.mockResolvedValue({ status: 'ok', days: 90 });
+  it('passes an allowed preset range to the service', async () => {
+    getActivityDashboardForAdmin.mockResolvedValue({ status: 'ok' });
     const res = { success: vi.fn(), error: vi.fn() };
 
     UserController.getActivityDashboardForAdmin(
@@ -76,7 +80,71 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(90);
+    const today = new Date().toISOString().slice(0, 10);
+    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 89 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(expectedStart, today, 10);
+  });
+
+  it('passes an explicit custom date range and learner limit to the service', async () => {
+    getActivityDashboardForAdmin.mockResolvedValue({ status: 'ok' });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getActivityDashboardForAdmin(
+      { query: { start: '2026-01-01', end: '2026-01-31', limit: 'all' } } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(
+      '2026-01-01',
+      '2026-01-31',
+      null
+    );
+  });
+
+  it.each([
+    [{ start: '2026-01-31', end: '2026-01-01' }],
+    [{ start: '2026-01-01' }],
+    [{ start: '01/01/2026', end: '2026-01-31' }],
+    [{ start: '2026-01-01', end: '2999-01-01' }],
+    [{ start: '2020-01-01', end: '2026-01-01' }],
+  ])('rejects an invalid custom range %j without querying analytics', async (query) => {
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getActivityDashboardForAdmin(
+      { query } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      expect.any(String),
+      'INVALID_ACTIVITY_RANGE',
+      400
+    );
+    expect(getActivityDashboardForAdmin).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported learner limit without querying analytics', async () => {
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getActivityDashboardForAdmin(
+      { query: { limit: '25' } } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      '名单人数仅支持 10、50、100 或 all',
+      'INVALID_ACTIVITY_LIMIT',
+      400
+    );
+    expect(getActivityDashboardForAdmin).not.toHaveBeenCalled();
   });
 
   it('rejects a present unsupported range without querying analytics', async () => {

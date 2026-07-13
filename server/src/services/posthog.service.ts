@@ -1,13 +1,42 @@
 import { config } from '../config/index.js';
 import {
   AdminUserActivityDashboardResponse,
-  AdminUserActivityRange,
+  AdminUserActivityModuleBreakdown,
   AdminUserPostHogAnalyticsResponse,
   AdminUserPostHogPerson,
   AdminUserPostHogRecentEvent,
   AdminUserPostHogSummary,
 } from '../types/user.types.js';
 import { logger } from '../utils/logger.js';
+
+/** 六大核心模块的路由前缀映射（与 src/App.tsx 保持一致） */
+const MODULE_ROUTE_PREFIXES: Array<{ module: string; label: string; prefixes: string[] }> = [
+  {
+    module: 'module1',
+    label: '实验内容',
+    prefixes: ['/experiments', '/applications', '/units', '/courses', '/timeline', '/chronicles'],
+  },
+  { module: 'module2', label: '偏振挑战', prefixes: ['/devices', '/quiz'] },
+  { module: 'module3', label: '理论模拟', prefixes: ['/demos'] },
+  { module: 'module4', label: '游戏挑战', prefixes: ['/games'] },
+  { module: 'module5', label: '成果展示', prefixes: ['/gallery'] },
+  { module: 'module6', label: '虚拟课题', prefixes: ['/lab'] },
+];
+
+const OTHER_MODULE = { module: 'other', label: '其他页面' };
+
+function classifyModule(path: string): { module: string; label: string } {
+  for (const entry of MODULE_ROUTE_PREFIXES) {
+    if (
+      entry.prefixes.some(
+        (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+      )
+    ) {
+      return { module: entry.module, label: entry.label };
+    }
+  }
+  return OTHER_MODULE;
+}
 
 type PostHogPersonResponse = {
   results?: Array<{
@@ -74,32 +103,48 @@ export class PostHogService {
   }
 
   static async getActivityDashboard(
-    days: AdminUserActivityRange
+    start: string,
+    end: string,
+    learnerLimit: number | null
   ): Promise<AdminUserActivityDashboardResponse> {
     const generatedAt = new Date().toISOString();
+    const rangeDays =
+      Math.round(
+        (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) /
+          86_400_000
+      ) + 1;
+    const range = { start, end, days: rangeDays };
     if (!this.isEnabled()) {
       return {
         status: 'disabled',
-        days,
+        range,
         generated_at: generatedAt,
         summary: null,
         daily: [],
         top_pages: [],
         activity_breakdown: [],
+        module_breakdown: [],
         top_learners: [],
       };
     }
 
-    const startOffsetDays = days - 1;
     const learningEventPredicate =
       "event IN ('experiment_opened', 'project_application_submitted')";
+    // start/end are validated as YYYY-MM-DD literals by the controller.
     const filter = `
-      timestamp >= today() - INTERVAL ${startOffsetDays} DAY
-      AND timestamp < today() + INTERVAL 1 DAY
+      timestamp >= toDate('${start}')
+      AND timestamp < toDate('${end}') + INTERVAL 1 DAY
       AND person_id IS NOT NULL
       AND person.properties.role = 'user'
       AND properties.$is_identified = true
       AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
+    `;
+    const pathExpression = `
+      coalesce(
+        nullIf(toString(properties.pathname), ''),
+        nullIf(toString(properties.route), ''),
+        toString(properties.$current_url)
+      )
     `;
     const [summaryResponse, dailyResponse, pagesResponse] = await Promise.all([
       this.runQuery(
@@ -125,21 +170,17 @@ export class PostHogService {
             WHERE ${filter}
             GROUP BY day
             ORDER BY day WITH FILL
-              FROM today() - INTERVAL ${startOffsetDays} DAY
-              TO today() + INTERVAL 1 DAY
+              FROM toDate('${start}')
+              TO toDate('${end}') + INTERVAL 1 DAY
               STEP INTERVAL 1 DAY
-            LIMIT ${days}
+            LIMIT ${rangeDays}
         `,
         'admin learner activity daily'
       ),
       this.runQuery(
         `
             SELECT
-              coalesce(
-                nullIf(toString(properties.pathname), ''),
-                nullIf(toString(properties.route), ''),
-                toString(properties.$current_url)
-              ),
+              ${pathExpression},
               count(),
               count(DISTINCT person_id)
             FROM events
@@ -152,7 +193,7 @@ export class PostHogService {
         'admin learner activity top pages'
       ),
     ]);
-    const [breakdownResponse, learnersResponse] = await Promise.all([
+    const [breakdownResponse, learnersResponse, moduleResponse] = await Promise.all([
       this.runQuery(
         `
             SELECT event, count(), count(DISTINCT person_id)
@@ -177,9 +218,23 @@ export class PostHogService {
             WHERE ${filter}
             GROUP BY person_id
             ORDER BY count() DESC
-            LIMIT 10
+            ${learnerLimit === null ? '' : `LIMIT ${learnerLimit}`}
         `,
         'admin learner activity top learners'
+      ),
+      this.runQuery(
+        `
+            SELECT
+              ${pathExpression},
+              argMax(distinct_id, timestamp),
+              any(person.properties.username),
+              count()
+            FROM events
+            WHERE ${filter}
+              AND event = '$pageview'
+            GROUP BY 1, person_id
+        `,
+        'admin learner activity module usage'
       ),
     ]);
 
@@ -187,7 +242,7 @@ export class PostHogService {
 
     return {
       status: 'ok',
-      days,
+      range,
       generated_at: generatedAt,
       summary: {
         active_learners: this.numberOrZero(summaryRow[0]),
@@ -217,6 +272,7 @@ export class PostHogService {
           count: this.numberOrZero(row[1]),
           unique_learners: this.numberOrZero(row[2]),
         })),
+      module_breakdown: this.buildModuleBreakdown(this.extractRows(moduleResponse)),
       top_learners: this.extractRows(learnersResponse)
         .filter((row) => typeof row[0] === 'string')
         .map((row) => ({
@@ -228,6 +284,64 @@ export class PostHogService {
           last_activity: this.stringOrNull(row[5]),
         })),
     };
+  }
+
+  /**
+   * Aggregate per-(path, learner) pageview rows into per-module totals with
+   * the learners who visited each module.
+   */
+  private static buildModuleBreakdown(
+    rows: unknown[][]
+  ): AdminUserActivityModuleBreakdown[] {
+    const modules = new Map<
+      string,
+      {
+        module: string;
+        label: string;
+        pageviews: number;
+        learners: Map<string, { user_id: string; username: string; pageviews: number }>;
+      }
+    >();
+
+    for (const row of rows) {
+      if (typeof row[0] !== 'string' || typeof row[1] !== 'string') continue;
+      const path = this.pathFrom(row[0]);
+      const userId = row[1];
+      const username = typeof row[2] === 'string' && row[2] ? row[2] : userId;
+      const pageviews = this.numberOrZero(row[3]);
+      const { module, label } = classifyModule(path);
+
+      let entry = modules.get(module);
+      if (!entry) {
+        entry = { module, label, pageviews: 0, learners: new Map() };
+        modules.set(module, entry);
+      }
+      entry.pageviews += pageviews;
+      const learner = entry.learners.get(userId);
+      if (learner) {
+        learner.pageviews += pageviews;
+      } else {
+        entry.learners.set(userId, { user_id: userId, username, pageviews });
+      }
+    }
+
+    const ordered = [
+      ...MODULE_ROUTE_PREFIXES.map((entry) => entry.module),
+      OTHER_MODULE.module,
+    ];
+
+    return ordered
+      .map((moduleKey) => modules.get(moduleKey))
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      .map((entry) => ({
+        module: entry.module,
+        label: entry.label,
+        pageviews: entry.pageviews,
+        unique_learners: entry.learners.size,
+        learners: [...entry.learners.values()].sort(
+          (a, b) => b.pageviews - a.pageviews
+        ),
+      }));
   }
 
   private static isEnabled(): boolean {

@@ -4,7 +4,9 @@ import {
   AlertTriangle,
   BarChart3,
   BookOpenCheck,
+  ChevronDown,
   Eye,
+  LayoutGrid,
   MousePointerClick,
   RefreshCw,
   Users,
@@ -14,35 +16,34 @@ import { PersistentHeader } from '@/components/shared/PersistentHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   adminUserApi,
-  type AdminActivityDays,
+  type AdminActivityLimit,
   type AdminActivityResponse,
 } from '@/lib/admin-user.service';
+import { formatEventName, formatPagePath } from '@/pages/admin/activity-labels';
 import { cn } from '@/utils/classNames';
 
-const RANGES: Array<{ days: AdminActivityDays; label: string }> = [
+const RANGES: Array<{ days: number; label: string }> = [
   { days: 7, label: '近 7 天' },
   { days: 30, label: '近 30 天' },
   { days: 90, label: '近 90 天' },
 ];
 
-const EVENT_LABELS: Record<string, string> = {
-  $pageview: '页面访问',
-  auth_login_success: '登录平台',
-  auth_register_success: '完成注册',
-  course_opened: '进入课程',
-  experiment_opened: '进入实验',
-  feedback_submitted: '提交反馈',
-  gallery_work_opened: '查看学习成果',
-  project_application_submitted: '提交课题申请',
-  research_project_opened: '查看研究课题',
-  simulation_opened: '使用计算模拟',
-  unit_opened: '进入学习单元',
-};
+const LIMIT_OPTIONS: AdminActivityLimit[] = [10, 50, 100, 'all'];
 
 const CHART_COLORS = ['#ff4d8b', '#1a3a3a', '#b8a4ed', '#ffb084', '#e8b94a'];
 
-function formatEventName(event: string): string {
-  return EVENT_LABELS[event] ?? '其他学习行为';
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function presetRange(days: number): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { start: toDateInput(start), end: toDateInput(end) };
 }
 
 function formatDate(value: string): string {
@@ -63,20 +64,25 @@ function formatDateTime(value: string): string {
 
 export default function AdminActivityPage() {
   const { theme } = useTheme();
-  const [days, setDays] = useState<AdminActivityDays>(30);
+  const [range, setRange] = useState(() => presetRange(30));
+  const [limit, setLimit] = useState<AdminActivityLimit>(10);
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<AdminActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isDark = theme === 'dark';
+  const rangeInvalid = range.start > range.end;
 
   useEffect(() => {
+    if (rangeInvalid) {
+      return;
+    }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
 
     void adminUserApi
-      .getActivity(days)
+      .getActivity({ start: range.start, end: range.end, limit })
       .then((data) => {
         if (!cancelled) {
           setResult(data);
@@ -96,7 +102,7 @@ export default function AdminActivityPage() {
     return () => {
       cancelled = true;
     };
-  }, [days, retryKey]);
+  }, [range.start, range.end, limit, retryKey, rangeInvalid]);
 
   const isEmpty =
     result?.status === 'ok' &&
@@ -136,36 +142,87 @@ export default function AdminActivityPage() {
             </p>
           </div>
 
-          <div
-            className={cn(
-              'inline-flex w-full gap-1 rounded-2xl border p-1 lg:w-auto',
-              isDark ? 'border-slate-700 bg-slate-900' : 'border-[#e5e5e5] bg-white'
-            )}
-            aria-label="统计时间范围"
-          >
-            {RANGES.map((range) => {
-              const selected = days === range.days;
-              return (
-                <button
-                  key={range.days}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setDays(range.days)}
+          <div className="flex flex-col gap-3">
+            <div
+              className={cn(
+                'inline-flex w-full gap-1 rounded-2xl border p-1 lg:w-auto',
+                isDark ? 'border-slate-700 bg-slate-900' : 'border-[#e5e5e5] bg-white'
+              )}
+              aria-label="统计时间范围"
+            >
+              {RANGES.map((preset) => {
+                const presetDates = presetRange(preset.days);
+                const selected =
+                  range.start === presetDates.start && range.end === presetDates.end;
+                return (
+                  <button
+                    key={preset.days}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setRange(presetDates)}
+                    className={cn(
+                      'h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.98] lg:flex-none',
+                      selected
+                        ? isDark
+                          ? 'bg-emerald-300 text-slate-950'
+                          : 'bg-[#0a0a0a] text-white'
+                        : isDark
+                          ? 'text-slate-300 hover:bg-slate-800'
+                          : 'text-[#6a6a6a] hover:bg-[#faf5e8]'
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              className={cn(
+                'flex flex-wrap items-center gap-2 text-sm',
+                isDark ? 'text-slate-300' : 'text-[#3a3a3a]'
+              )}
+            >
+              <label className="inline-flex items-center gap-2">
+                <span>自定义</span>
+                <input
+                  type="date"
+                  value={range.start}
+                  max={toDateInput(new Date())}
+                  onChange={(event) =>
+                    setRange((current) => ({ ...current, start: event.target.value }))
+                  }
+                  aria-label="开始日期"
                   className={cn(
-                    'h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.98] lg:flex-none',
-                    selected
-                      ? isDark
-                        ? 'bg-emerald-300 text-slate-950'
-                        : 'bg-[#0a0a0a] text-white'
-                      : isDark
-                        ? 'text-slate-300 hover:bg-slate-800'
-                        : 'text-[#6a6a6a] hover:bg-[#faf5e8]'
+                    'h-11 rounded-xl border px-3',
+                    isDark
+                      ? 'border-slate-700 bg-slate-900 text-slate-100'
+                      : 'border-[#e5e5e5] bg-white text-[#0a0a0a]'
                   )}
-                >
-                  {range.label}
-                </button>
-              );
-            })}
+                />
+              </label>
+              <span aria-hidden="true">至</span>
+              <input
+                type="date"
+                value={range.end}
+                max={toDateInput(new Date())}
+                onChange={(event) =>
+                  setRange((current) => ({ ...current, end: event.target.value }))
+                }
+                aria-label="结束日期"
+                className={cn(
+                  'h-11 rounded-xl border px-3',
+                  isDark
+                    ? 'border-slate-700 bg-slate-900 text-slate-100'
+                    : 'border-[#e5e5e5] bg-white text-[#0a0a0a]'
+                )}
+              />
+              {rangeInvalid && (
+                <span role="alert" className="text-sm font-medium text-[#d23f63]">
+                  开始日期不能晚于结束日期
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
@@ -206,10 +263,10 @@ export default function AdminActivityPage() {
               isDark={isDark}
               icon={<BookOpenCheck className="h-6 w-6" />}
               title="暂无活动数据"
-              description={`近 ${days} 天还没有已登录学生的学习活动。`}
+              description={`${range.start} 至 ${range.end} 还没有已登录学生的学习活动。`}
             />
           ) : result?.summary ? (
-            <Dashboard result={result} isDark={isDark} />
+            <Dashboard result={result} isDark={isDark} limit={limit} onLimitChange={setLimit} />
           ) : null}
         </div>
       </main>
@@ -217,7 +274,17 @@ export default function AdminActivityPage() {
   );
 }
 
-function Dashboard({ result, isDark }: { result: AdminActivityResponse; isDark: boolean }) {
+function Dashboard({
+  result,
+  isDark,
+  limit,
+  onLimitChange,
+}: {
+  result: AdminActivityResponse;
+  isDark: boolean;
+  limit: AdminActivityLimit;
+  onLimitChange: (limit: AdminActivityLimit) => void;
+}) {
   const summary = result.summary!;
   const metrics = [
     { label: '活跃学生', value: summary.active_learners, icon: Users, color: '#ff4d8b' },
@@ -268,11 +335,52 @@ function Dashboard({ result, isDark }: { result: AdminActivityResponse; isDark: 
         </Panel>
       </div>
 
+      <div className="mt-6">
+        <Panel isDark={isDark} title="模块热度">
+          <ModuleBreakdown modules={result.module_breakdown} isDark={isDark} />
+        </Panel>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
         <Panel isDark={isDark} title="活动构成">
           <ActivityMix items={result.activity_breakdown} isDark={isDark} />
         </Panel>
-        <Panel isDark={isDark} title="活跃学生排行">
+        <Panel
+          isDark={isDark}
+          title="活跃学生排行"
+          action={
+            <label
+              className={cn(
+                'inline-flex items-center gap-2 text-sm',
+                isDark ? 'text-slate-300' : 'text-[#6a6a6a]'
+              )}
+            >
+              显示人数
+              <select
+                value={String(limit)}
+                onChange={(event) =>
+                  onLimitChange(
+                    event.target.value === 'all'
+                      ? 'all'
+                      : (Number(event.target.value) as AdminActivityLimit)
+                  )
+                }
+                className={cn(
+                  'h-10 rounded-xl border px-2',
+                  isDark
+                    ? 'border-slate-700 bg-slate-900 text-slate-100'
+                    : 'border-[#e5e5e5] bg-white text-[#0a0a0a]'
+                )}
+              >
+                {LIMIT_OPTIONS.map((option) => (
+                  <option key={String(option)} value={String(option)}>
+                    {option === 'all' ? '全部' : `前 ${option} 名`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        >
           <TopLearners learners={result.top_learners} isDark={isDark} />
         </Panel>
       </div>
@@ -287,10 +395,12 @@ function Dashboard({ result, isDark }: { result: AdminActivityResponse; isDark: 
 function Panel({
   isDark,
   title,
+  action,
   children,
 }: {
   isDark: boolean;
   title: string;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -300,9 +410,12 @@ function Panel({
         isDark ? 'border-slate-800 bg-slate-900' : 'border-[#e5e5e5] bg-white'
       )}
     >
-      <h2 className={cn('text-lg font-semibold', isDark ? 'text-slate-100' : 'text-[#0a0a0a]')}>
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className={cn('text-lg font-semibold', isDark ? 'text-slate-100' : 'text-[#0a0a0a]')}>
+          {title}
+        </h2>
+        {action}
+      </div>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -422,7 +535,7 @@ function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']
         <div key={page.path}>
           <div className="flex items-start justify-between gap-3 text-sm">
             <span className={cn('min-w-0 break-all font-medium', isDark ? 'text-slate-200' : 'text-[#1a1a1a]')}>
-              {page.path || '/'}
+              {formatPagePath(page.path)}
             </span>
             <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
               {page.pageviews} 次
@@ -431,10 +544,100 @@ function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']
           <div className={cn('mt-2 h-2 overflow-hidden rounded-full', isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]')}>
             <div className="h-full rounded-full bg-[#ffb084]" style={{ width: `${(page.pageviews / max) * 100}%` }} />
           </div>
-          <p className={cn('mt-1 text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-            {page.unique_learners} 名学生访问
+          <p className={cn('mt-1 break-all text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
+            {page.unique_learners} 名学生访问 · {page.path || '/'}
           </p>
         </div>
+      ))}
+    </div>
+  );
+}
+
+function ModuleBreakdown({
+  modules,
+  isDark,
+}: {
+  modules: AdminActivityResponse['module_breakdown'];
+  isDark: boolean;
+}) {
+  if (modules.length === 0) {
+    return <InlineEmpty isDark={isDark}>暂无模块访问数据</InlineEmpty>;
+  }
+  const max = Math.max(1, ...modules.map((entry) => entry.pageviews));
+
+  return (
+    <div className="space-y-3">
+      {modules.map((entry, index) => (
+        <details
+          key={entry.module}
+          className={cn(
+            'group rounded-2xl border',
+            isDark ? 'border-slate-800' : 'border-[#f0f0f0]'
+          )}
+        >
+          <summary
+            className={cn(
+              'flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 [&::-webkit-details-marker]:hidden',
+              isDark ? 'hover:bg-slate-800' : 'hover:bg-[#faf5e8]'
+            )}
+          >
+            <LayoutGrid
+              className="h-4 w-4 shrink-0"
+              style={{ color: CHART_COLORS[index % CHART_COLORS.length] }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className={cn('font-medium', isDark ? 'text-slate-200' : 'text-[#1a1a1a]')}>
+                  {entry.label}
+                </span>
+                <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
+                  {entry.pageviews} 次 / {entry.unique_learners} 人
+                </span>
+              </div>
+              <div className={cn('mt-2 h-2 overflow-hidden rounded-full', isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]')}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${(entry.pageviews / max) * 100}%`,
+                    background: CHART_COLORS[index % CHART_COLORS.length],
+                  }}
+                />
+              </div>
+            </div>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 shrink-0 transition-transform group-open:rotate-180',
+                isDark ? 'text-slate-500' : 'text-[#6a6a6a]'
+              )}
+              aria-hidden="true"
+            />
+          </summary>
+          <div className="px-4 pb-4">
+            {entry.learners.length === 0 ? (
+              <p className={cn('py-2 text-sm', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
+                暂无学生访问该模块
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {entry.learners.map((learner) => (
+                  <li
+                    key={learner.user_id}
+                    className={cn(
+                      'flex items-center justify-between gap-3 text-sm',
+                      isDark ? 'text-slate-300' : 'text-[#3a3a3a]'
+                    )}
+                  >
+                    <span className="min-w-0 truncate">{learner.username}</span>
+                    <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
+                      {learner.pageviews} 次
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </details>
       ))}
     </div>
   );

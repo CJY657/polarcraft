@@ -184,14 +184,17 @@ describe('PostHogService', () => {
   it('returns a disabled activity dashboard without querying when configuration is incomplete', async () => {
     mockedConfig.posthog.environmentId = '';
 
-    await expect(PostHogService.getActivityDashboard(30)).resolves.toEqual({
+    await expect(
+      PostHogService.getActivityDashboard('2026-06-10', '2026-07-09', 10)
+    ).resolves.toEqual({
       status: 'disabled',
-      days: 30,
+      range: { start: '2026-06-10', end: '2026-07-09', days: 30 },
       generated_at: expect.any(String),
       summary: null,
       daily: [],
       top_pages: [],
       activity_breakdown: [],
+      module_breakdown: [],
       top_learners: [],
     });
 
@@ -232,11 +235,21 @@ describe('PostHogService', () => {
             ['user-2', null, 6, 3, 3, null],
           ],
         })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['/courses', 'user-1', 'alice', 5],
+            ['/projects/1', 'user-2', null, 3],
+          ],
+        })
       );
 
-    await expect(PostHogService.getActivityDashboard(30)).resolves.toEqual({
+    await expect(
+      PostHogService.getActivityDashboard('2026-06-10', '2026-07-09', 10)
+    ).resolves.toEqual({
       status: 'ok',
-      days: 30,
+      range: { start: '2026-06-10', end: '2026-07-09', days: 30 },
       generated_at: expect.any(String),
       summary: {
         active_learners: 3,
@@ -255,6 +268,22 @@ describe('PostHogService', () => {
       activity_breakdown: [
         { event: 'experiment_opened', count: 6, unique_learners: 3 },
         { event: 'project_application_submitted', count: 4, unique_learners: 2 },
+      ],
+      module_breakdown: [
+        {
+          module: 'module1',
+          label: '实验内容',
+          pageviews: 5,
+          unique_learners: 1,
+          learners: [{ user_id: 'user-1', username: 'alice', pageviews: 5 }],
+        },
+        {
+          module: 'other',
+          label: '其他页面',
+          pageviews: 3,
+          unique_learners: 1,
+          learners: [{ user_id: 'user-2', username: 'user-2', pageviews: 3 }],
+        },
       ],
       top_learners: [
         {
@@ -276,16 +305,16 @@ describe('PostHogService', () => {
       ],
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
     const queryBodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
     );
     for (const body of queryBodies) {
       expect(body.query.query).toContain(
-        'timestamp >= today() - INTERVAL 29 DAY'
+        "timestamp >= toDate('2026-06-10')"
       );
       expect(body.query.query).toContain(
-        'timestamp < today() + INTERVAL 1 DAY'
+        "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
       );
       expect(body.query.query).toContain("person.properties.role = 'user'");
       expect(body.query.query).toContain('person_id IS NOT NULL');
@@ -297,10 +326,10 @@ describe('PostHogService', () => {
     expect(queryBodies[0]?.query.query).toContain('count(DISTINCT person_id)');
     expect(queryBodies[1]?.query.query).toContain('ORDER BY day WITH FILL');
     expect(queryBodies[1]?.query.query).toContain(
-      'FROM today() - INTERVAL 29 DAY'
+      "FROM toDate('2026-06-10')"
     );
     expect(queryBodies[1]?.query.query).toContain(
-      'TO today() + INTERVAL 1 DAY'
+      "TO toDate('2026-07-09') + INTERVAL 1 DAY"
     );
     expect(queryBodies[1]?.query.query).toContain('LIMIT 30');
     expect(queryBodies[2]?.query.query).toContain('LIMIT 10');
@@ -313,12 +342,32 @@ describe('PostHogService', () => {
     expect(queryBodies[4]?.query.query).toContain('LIMIT 10');
     expect(queryBodies[4]?.query.query).toContain('argMax(distinct_id, timestamp)');
     expect(queryBodies[4]?.query.query).toContain('GROUP BY person_id');
+    expect(queryBodies[5]?.query.query).toContain('GROUP BY 1, person_id');
+    expect(queryBodies[5]?.query.query).not.toContain('LIMIT');
+  });
+
+  it('omits the learner limit when all learners are requested', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ results: [[]] }));
+
+    await PostHogService.getActivityDashboard('2026-07-08', '2026-07-09', null);
+
+    const queryBodies = fetchMock.mock.calls.map((call) =>
+      JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
+    );
+    const learnersQuery = queryBodies.find(
+      (body) => body.name === 'admin learner activity top learners'
+    );
+    expect(learnersQuery).toBeDefined();
+    expect(learnersQuery?.query.query).toContain('GROUP BY person_id');
+    expect(learnersQuery?.query.query).not.toContain('LIMIT');
   });
 
   it('sanitizes activity dashboard upstream failures', async () => {
     fetchMock.mockResolvedValue(jsonResponse({}, false, 500));
 
-    await expect(PostHogService.getActivityDashboard(7)).rejects.toEqual(
+    await expect(
+      PostHogService.getActivityDashboard('2026-07-07', '2026-07-13', 10)
+    ).rejects.toEqual(
       expect.objectContaining({
         name: 'PostHogAnalyticsError',
         message: '行为数据查询失败，请稍后重试',
@@ -337,7 +386,7 @@ describe('PostHogService', () => {
       return jsonResponse({ results: [[]] });
     });
 
-    await PostHogService.getActivityDashboard(7);
+    await PostHogService.getActivityDashboard('2026-07-07', '2026-07-13', 10);
 
     expect(maximumConcurrency).toBeLessThanOrEqual(3);
   });

@@ -12,7 +12,71 @@ import { asyncHandler } from '../middleware/error.middleware.js';
 import { logger } from '../utils/logger.js';
 import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 import { PostHogAnalyticsError } from '../services/posthog.service.js';
-import { AdminUserActivityRange } from '../types/user.types.js';
+
+const ACTIVITY_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ACTIVITY_MAX_SPAN_DAYS = 366;
+const ACTIVITY_PRESET_DAYS = new Set(['7', '30', '90']);
+
+type ActivityDateRange = { start: string; end: string };
+
+function toUtcDate(value: string): number {
+  return Date.parse(`${value}T00:00:00Z`);
+}
+
+function formatUtcDate(timestamp: number): string {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
+/**
+ * Resolve the dashboard date range from either explicit start/end dates or a
+ * legacy `days` preset. Returns an error message on invalid input.
+ */
+function resolveActivityDateRange(
+  start: unknown,
+  end: unknown,
+  days: unknown
+): ActivityDateRange | { error: string } {
+  const todayTs = toUtcDate(new Date().toISOString().slice(0, 10));
+
+  if (start !== undefined || end !== undefined) {
+    if (
+      typeof start !== 'string' ||
+      typeof end !== 'string' ||
+      !ACTIVITY_DATE_PATTERN.test(start) ||
+      !ACTIVITY_DATE_PATTERN.test(end)
+    ) {
+      return { error: '起止日期需同时提供，格式为 YYYY-MM-DD' };
+    }
+    const startTs = toUtcDate(start);
+    const endTs = toUtcDate(end);
+    if (Number.isNaN(startTs) || Number.isNaN(endTs)) {
+      return { error: '起止日期无效' };
+    }
+    if (startTs > endTs) {
+      return { error: '开始日期不能晚于结束日期' };
+    }
+    if (endTs > todayTs) {
+      return { error: '结束日期不能晚于今天' };
+    }
+    if ((endTs - startTs) / 86_400_000 + 1 > ACTIVITY_MAX_SPAN_DAYS) {
+      return { error: `时间跨度不能超过 ${ACTIVITY_MAX_SPAN_DAYS} 天` };
+    }
+    return { start, end };
+  }
+
+  let presetDays = 30;
+  if (days !== undefined) {
+    if (typeof days !== 'string' || !ACTIVITY_PRESET_DAYS.has(days)) {
+      return { error: '时间范围仅支持 7、30 或 90 天' };
+    }
+    presetDays = Number(days);
+  }
+
+  return {
+    start: formatUtcDate(todayTs - (presetDays - 1) * 86_400_000),
+    end: formatUtcDate(todayTs),
+  };
+}
 
 export class UserController {
   /**
@@ -103,15 +167,25 @@ export class UserController {
   /** Get aggregate signed-in learner activity for administrators. */
   static getActivityDashboardForAdmin = asyncHandler(
     async (req: Request, res: Response) => {
-      let days: AdminUserActivityRange = 30;
-      if (req.query.days !== undefined) {
-        if (req.query.days === '7') days = 7;
-        else if (req.query.days === '30') days = 30;
-        else if (req.query.days === '90') days = 90;
-        else {
+      const range = resolveActivityDateRange(req.query.start, req.query.end, req.query.days);
+      if ('error' in range) {
+        res.error(range.error, 'INVALID_ACTIVITY_RANGE', 400);
+        return;
+      }
+
+      let learnerLimit: number | null = 10;
+      if (req.query.limit !== undefined) {
+        if (req.query.limit === 'all') learnerLimit = null;
+        else if (
+          req.query.limit === '10' ||
+          req.query.limit === '50' ||
+          req.query.limit === '100'
+        ) {
+          learnerLimit = Number(req.query.limit);
+        } else {
           res.error(
-            '时间范围仅支持 7、30 或 90 天',
-            'INVALID_ACTIVITY_RANGE',
+            '名单人数仅支持 10、50、100 或 all',
+            'INVALID_ACTIVITY_LIMIT',
             400
           );
           return;
@@ -119,7 +193,11 @@ export class UserController {
       }
 
       try {
-        const result = await UserService.getActivityDashboardForAdmin(days);
+        const result = await UserService.getActivityDashboardForAdmin(
+          range.start,
+          range.end,
+          learnerLimit
+        );
         res.success(result);
       } catch (error) {
         if (error instanceof PostHogAnalyticsError) {

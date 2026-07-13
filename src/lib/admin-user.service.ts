@@ -99,11 +99,33 @@ export interface AdminUserPostHogAnalyticsResponse {
   recent_events: AdminUserPostHogRecentEvent[];
 }
 
-export type AdminActivityDays = 7 | 30 | 90;
+export type AdminActivityLimit = 10 | 50 | 100 | 'all';
+
+export interface AdminActivityQuery {
+  start: string;
+  end: string;
+  limit: AdminActivityLimit;
+}
+
+export interface AdminActivityModuleBreakdown {
+  module: string;
+  label: string;
+  pageviews: number;
+  unique_learners: number;
+  learners: Array<{
+    user_id: string;
+    username: string;
+    pageviews: number;
+  }>;
+}
 
 export interface AdminActivityResponse {
   status: 'ok' | 'disabled';
-  days: AdminActivityDays;
+  range: {
+    start: string;
+    end: string;
+    days: number;
+  };
   generated_at: string;
   summary: {
     active_learners: number;
@@ -127,6 +149,7 @@ export interface AdminActivityResponse {
     count: number;
     unique_learners: number;
   }>;
+  module_breakdown: AdminActivityModuleBreakdown[];
   top_learners: Array<{
     user_id: string;
     username: string;
@@ -219,8 +242,15 @@ export const adminUserApi = {
     throw new Error(response.error?.message || '获取行为数据失败');
   },
 
-  async getActivity(days: AdminActivityDays): Promise<AdminActivityResponse> {
-    const response = await api.get<AdminActivityResponse>(`/api/users/activity?days=${days}`);
+  async getActivity(query: AdminActivityQuery): Promise<AdminActivityResponse> {
+    const search = new URLSearchParams({
+      start: query.start,
+      end: query.end,
+      limit: String(query.limit),
+    });
+    const response = await api.get<AdminActivityResponse>(
+      `/api/users/activity?${search.toString()}`
+    );
     if (response.success && response.data) {
       return response.data;
     }
