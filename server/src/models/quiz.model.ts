@@ -19,6 +19,71 @@ import type {
 
 const attemptsCollection = () => getCollection('quiz_attempts');
 
+/**
+ * Storage packing for the per-question arrays, which dominate attempt size.
+ * `option_orders` [[1,3,2,0],…] → "1320,0132,…"（one digit group per question）
+ * `answers` [0,3,null,…] → "0,3,,…"（empty slot = unanswered）
+ * Roughly halves each stored document. Reads accept both the packed string
+ * and the legacy array form, so existing documents need no migration and the
+ * decoded shape returned to callers is unchanged.
+ * 存储层压缩每题数组（作答文档的主要体积来源）：选项顺序打包为数字串、答案打包
+ * 为逗号分隔串，文档体积约减半。读取同时兼容旧的数组格式，线上数据无需迁移，
+ * 返回给调用方的结构保持不变。
+ */
+function encodeOptionOrders(orders: number[][]): string | number[][] {
+  const packable = orders.every(
+    (order) =>
+      Array.isArray(order) &&
+      order.every((index) => Number.isInteger(index) && index >= 0 && index <= 9)
+  );
+  if (!packable) {
+    return orders;
+  }
+
+  return orders.map((order) => order.join('')).join(',');
+}
+
+function decodeOptionOrders(value: unknown): number[][] {
+  if (typeof value === 'string') {
+    return value === '' ? [] : value.split(',').map((group) => Array.from(group, Number));
+  }
+
+  return Array.isArray(value) ? (value as number[][]) : [];
+}
+
+function encodeAnswers(answers: (number | null)[]): string | (number | null)[] {
+  const packable = answers.every(
+    (answer) => answer === null || (Number.isInteger(answer) && (answer as number) >= 0)
+  );
+  if (!packable) {
+    return answers;
+  }
+
+  const packed = answers.map((answer) => (answer === null ? '' : String(answer))).join(',');
+  // "" would be indistinguishable from an empty list — keep [null] as an array.
+  return packed === '' && answers.length > 0 ? answers : packed;
+}
+
+function decodeAnswers(value: unknown): (number | null)[] {
+  if (typeof value === 'string') {
+    return value === '' ? [] : value.split(',').map((slot) => (slot === '' ? null : Number(slot)));
+  }
+
+  return Array.isArray(value) ? (value as (number | null)[]) : [];
+}
+
+function decodeAttempt(attempt: QuizAttempt | null): QuizAttempt | null {
+  if (!attempt) {
+    return null;
+  }
+
+  return {
+    ...attempt,
+    option_orders: decodeOptionOrders(attempt.option_orders),
+    answers: decodeAnswers(attempt.answers),
+  };
+}
+
 export interface CreateAttemptInput {
   user_id: string;
   question_ids: string[];
@@ -66,12 +131,16 @@ export class QuizModel {
       created_at: now,
     };
 
-    await attemptsCollection().insertOne(attempt as unknown as Record<string, unknown>);
+    await attemptsCollection().insertOne({
+      ...attempt,
+      option_orders: encodeOptionOrders(attempt.option_orders),
+      answers: encodeAnswers(attempt.answers),
+    } as unknown as Record<string, unknown>);
     return attempt;
   }
 
   static async getById(id: string): Promise<QuizAttempt | null> {
-    return normalizeDocument<QuizAttempt>(await attemptsCollection().findOne({ id }));
+    return decodeAttempt(normalizeDocument<QuizAttempt>(await attemptsCollection().findOne({ id })));
   }
 
   /**
@@ -86,7 +155,7 @@ export class QuizModel {
       .toArray();
 
     return documents
-      .map((document) => normalizeDocument<QuizAttempt>(document))
+      .map((document) => decodeAttempt(normalizeDocument<QuizAttempt>(document)))
       .filter((document): document is QuizAttempt => document !== null);
   }
 
@@ -102,7 +171,7 @@ export class QuizModel {
       .toArray();
 
     return documents
-      .map((document) => normalizeDocument<QuizAttempt>(document))
+      .map((document) => decodeAttempt(normalizeDocument<QuizAttempt>(document)))
       .filter((document): document is QuizAttempt => document !== null);
   }
 
@@ -111,7 +180,7 @@ export class QuizModel {
       { id },
       {
         $set: {
-          answers: input.answers,
+          answers: encodeAnswers(input.answers),
           score: input.score,
           percent: input.percent,
           tier: input.tier,
