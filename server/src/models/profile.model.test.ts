@@ -173,6 +173,29 @@ describe('ProfileModel.createApplication', () => {
   });
 });
 
+describe('ProfileModel.updateApplicationStatus', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('only updates pending applications so concurrent reviews cannot emit duplicate results', async () => {
+    applicationCollection.updateOne.mockResolvedValue({ matchedCount: 0 });
+
+    const updated = await ProfileModel.updateApplicationStatus(
+      'application-1',
+      'approved',
+      'owner-1',
+      '欢迎加入'
+    );
+
+    expect(applicationCollection.updateOne).toHaveBeenCalledWith(
+      { id: 'application-1', status: 'pending' },
+      { $set: expect.objectContaining({ status: 'approved', reviewed_by: 'owner-1' }) }
+    );
+    expect(updated).toBe(false);
+  });
+});
+
 describe('ProfileModel.getPublicProjectById', () => {
   beforeEach(() => {
     vi.clearAllMocks();

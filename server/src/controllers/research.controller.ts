@@ -48,6 +48,16 @@ const RESEARCH_PROJECT_EVIDENCE_TYPES: ResearchProjectEvidenceType[] = [
   'other',
 ];
 const researchProjectEvidenceTypeSet = new Set<string>(RESEARCH_PROJECT_EVIDENCE_TYPES);
+const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  draft: '草稿',
+  recruiting: '招募中',
+  forming: '组队中',
+  active: '进行中',
+  review_pending: '待评审',
+  showcased: '已展示',
+  relay_open: '接力开放',
+  archived: '已归档',
+};
 
 function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null {
   if (value === undefined || value === null) {
@@ -264,6 +274,39 @@ async function notifyProjectDiscussionCommentRecipients(
       sender_id: senderId,
     },
     action_url: `/lab/projects/${projectId}#discussion-comment-${commentId}`,
+  });
+}
+
+async function notifyApplicationResult({
+  applicationId,
+  projectId,
+  applicantId,
+  status,
+  projectName,
+  reviewNotes,
+}: {
+  applicationId: string;
+  projectId: string;
+  applicantId: string;
+  status: 'approved' | 'rejected';
+  projectName?: string | null;
+  reviewNotes?: unknown;
+}): Promise<void> {
+  const projectLabel = projectName ? `“${projectName}”` : '该课题';
+  const resultText = status === 'approved' ? '已通过' : '未通过';
+  const notes = typeof reviewNotes === 'string' ? reviewNotes.trim() : '';
+
+  await NotificationModel.createNotification({
+    user_id: applicantId,
+    type: status === 'approved' ? 'application_approved' : 'application_rejected',
+    title: `课题申请${resultText}`,
+    content: `你加入${projectLabel}的申请${resultText}。${notes ? `\n审核备注：${notes}` : ''}`,
+    data: {
+      application_id: applicationId,
+      project_id: projectId,
+      status,
+    },
+    action_url: `/lab/projects/${projectId}`,
   });
 }
 
@@ -559,6 +602,7 @@ export class ResearchController {
     const previousThumbnail = access.project.thumbnail;
     const currentStatus = access.project.status as ProjectStatus;
     const nextStatus = req.body.status;
+    const statusChanged = nextStatus !== undefined && nextStatus !== currentStatus;
     const isAdmin = req.user!.role === 'admin';
     const settings = await ProfileModel.getOrCreateProjectSettings(id);
     const requestedVisibility = req.body.is_public === undefined
@@ -597,6 +641,31 @@ export class ResearchController {
     if (req.body.is_public !== undefined) {
       await ProfileModel.updateProjectSettings(id, { visibility: requestedVisibility });
       await ResearchModel.setLegacyProjectVisibility(id, requestedVisibility === 'public');
+    }
+
+    if (statusChanged) {
+      await ResearchModel.logActivity(
+        id,
+        req.user!.sub,
+        'project_status_changed',
+        'project',
+        id,
+        { from_status: currentStatus, to_status: nextStatus }
+      );
+      const recipients = (await ResearchModel.getActiveProjectMemberUserIds(id))
+        .filter((userId) => userId !== req.user!.sub);
+      await NotificationModel.createNotificationForUsers(recipients, {
+        type: 'system',
+        title: `课题“${access.project.name_zh || access.project.name_en || id}”阶段已更新`,
+        content: `${PROJECT_STATUS_LABELS[currentStatus]} → ${PROJECT_STATUS_LABELS[nextStatus as ProjectStatus]}`,
+        data: {
+          project_id: id,
+          from_status: currentStatus,
+          to_status: nextStatus,
+          actor_id: req.user!.sub,
+        },
+        action_url: `/lab/projects/${id}`,
+      });
     }
 
     const project = await ResearchModel.getProjectById(id);
@@ -827,12 +896,22 @@ export class ResearchController {
     const resolvedMemberRoleLabel = pendingApplication?.desired_role ?? memberRoleLabel;
     await ResearchModel.addProjectMember(id, userId, 'member', resolvedMemberRoleLabel);
     if (pendingApplication) {
-      await ProfileModel.updateApplicationStatus(
+      const applicationUpdated = await ProfileModel.updateApplicationStatus(
         pendingApplication.id,
         'approved',
         currentUserId,
         '组长直接拉回成员'
       );
+      if (applicationUpdated) {
+        await notifyApplicationResult({
+          applicationId: pendingApplication.id,
+          projectId: id,
+          applicantId: userId,
+          status: 'approved',
+          projectName: access.project.name_zh || access.project.name_en,
+          reviewNotes: '组长直接拉回成员',
+        });
+      }
     }
     logger.info(`Member added to project ${id} by ${req.user!.username}: ${userId}`);
     res.success(null, '成员已拉回');
@@ -1889,8 +1968,18 @@ export class ResearchController {
 
       // If no approval required, auto-approve
       if (!settings.require_approval) {
-        await ProfileModel.updateApplicationStatus(applicationId, 'approved', userId);
+        const applicationUpdated = await ProfileModel.updateApplicationStatus(applicationId, 'approved', userId);
+        if (!applicationUpdated) {
+          throw new Error('申请状态更新失败');
+        }
         await ResearchModel.addProjectMember(id, userId, 'member', application?.desired_role);
+        await notifyApplicationResult({
+          applicationId,
+          projectId: id,
+          applicantId: userId,
+          status: 'approved',
+          projectName: application?.project_name,
+        });
         logger.info(`Application auto-approved: ${applicationId}`);
       }
 
@@ -1952,7 +2041,10 @@ export class ResearchController {
       }
     }
 
-    await ProfileModel.updateApplicationStatus(id, status, reviewerId, review_notes);
+    const applicationUpdated = await ProfileModel.updateApplicationStatus(id, status, reviewerId, review_notes);
+    if (!applicationUpdated) {
+      return res.error('该申请已处理', 'ALREADY_PROCESSED', 400);
+    }
 
     // If approved, add to project members
     if (status === 'approved') {
@@ -1966,6 +2058,15 @@ export class ResearchController {
     } else {
       await ResearchModel.touchProjectActivity(application.project_id);
     }
+
+    await notifyApplicationResult({
+      applicationId: id,
+      projectId: application.project_id,
+      applicantId: application.user_id,
+      status,
+      projectName: application.project_name || access.project.name_zh || access.project.name_en,
+      reviewNotes: review_notes,
+    });
 
     logger.info(`Application ${id} ${status} by user ${req.user!.username}`);
     res.success(null, status === 'approved' ? '申请已通过' : '申请已拒绝');
