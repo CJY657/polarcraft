@@ -40,6 +40,7 @@ const {
     deleteProject: vi.fn(),
   },
   mockNotificationModel: {
+    createNotification: vi.fn(),
     createNotificationForUsers: vi.fn(),
   },
   mockProfileModel: {
@@ -296,6 +297,18 @@ describe('ResearchController member management', () => {
       'approved',
       'owner-1',
       '组长直接拉回成员'
+    );
+    expect(mockNotificationModel.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'former-1',
+        type: 'application_approved',
+        data: expect.objectContaining({
+          application_id: 'application-1',
+          project_id: 'project-1',
+          status: 'approved',
+        }),
+        action_url: '/lab/projects/project-1',
+      })
     );
     expect(res.success).toHaveBeenCalledWith(null, '成员已拉回');
   });
@@ -941,6 +954,7 @@ describe('ResearchController member management', () => {
       user_id: 'candidate-1',
       status: 'pending',
       desired_role: '数据整理',
+      project_name: '偏振课题',
     });
     mockResearchModel.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -976,7 +990,81 @@ describe('ResearchController member management', () => {
       'member',
       '数据整理'
     );
+    expect(mockNotificationModel.createNotification).toHaveBeenCalledWith({
+      user_id: 'candidate-1',
+      type: 'application_approved',
+      title: '课题申请已通过',
+      content: '你加入“偏振课题”的申请已通过。',
+      data: {
+        application_id: 'application-1',
+        project_id: 'project-1',
+        status: 'approved',
+      },
+      action_url: '/lab/projects/project-1',
+    });
     expect(res.success).toHaveBeenCalledWith(null, '申请已通过');
+  });
+
+  it('notifies applicants when their application is rejected', async () => {
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+      project_name: '偏振课题',
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', name_zh: '偏振课题' },
+      canManage: true,
+    });
+    mockProfileModel.updateApplicationStatus.mockResolvedValue(true);
+
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateApplicationStatus, {
+      params: { id: 'application-1' },
+      body: { status: 'rejected', review_notes: '本轮名额已满' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockNotificationModel.createNotification).toHaveBeenCalledWith({
+      user_id: 'candidate-1',
+      type: 'application_rejected',
+      title: '课题申请未通过',
+      content: '你加入“偏振课题”的申请未通过。\n审核备注：本轮名额已满',
+      data: {
+        application_id: 'application-1',
+        project_id: 'project-1',
+        status: 'rejected',
+      },
+      action_url: '/lab/projects/project-1',
+    });
+    expect(res.success).toHaveBeenCalledWith(null, '申请已拒绝');
+  });
+
+  it('does not notify or add a member when a concurrent reviewer already processed the application', async () => {
+    mockProfileModel.getApplicationById.mockResolvedValue({
+      id: 'application-1',
+      project_id: 'project-1',
+      user_id: 'candidate-1',
+      status: 'pending',
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      canManage: true,
+    });
+    mockResearchModel.getProjectMembership.mockResolvedValue(null);
+    mockProfileModel.updateApplicationStatus.mockResolvedValue(false);
+
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateApplicationStatus, {
+      params: { id: 'application-1' },
+      body: { status: 'approved' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('该申请已处理', 'ALREADY_PROCESSED', 400);
+    expect(mockResearchModel.addProjectMember).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotification).not.toHaveBeenCalled();
   });
 
   it('rejects approving applications when the project member limit is reached', async () => {
@@ -1122,6 +1210,7 @@ describe('ResearchController member management', () => {
       user_id: 'candidate-1',
       status: 'pending',
       desired_role: '数据整理',
+      project_name: '偏振课题',
     });
     mockProfileModel.updateApplicationStatus.mockResolvedValue(true);
     mockResearchModel.addProjectMember.mockResolvedValue(true);
@@ -1149,6 +1238,13 @@ describe('ResearchController member management', () => {
       'candidate-1',
       'member',
       '数据整理'
+    );
+    expect(mockNotificationModel.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'candidate-1',
+        type: 'application_approved',
+        action_url: '/lab/projects/project-1',
+      })
     );
     expect(res.success).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'application-1', desired_role: '数据整理' }),
@@ -1538,6 +1634,7 @@ describe('ResearchController member management', () => {
 describe('ResearchController Phase 0 project policy', () => {
   const completeProject = {
     id: 'project-1',
+    name_zh: '偏振课题',
     status: 'active',
     thumbnail: null,
     description_zh: '背景',
@@ -1566,6 +1663,7 @@ describe('ResearchController Phase 0 project policy', () => {
     });
     mockResearchModel.updateProject.mockResolvedValue('updated');
     mockResearchModel.getProjectById.mockResolvedValue({ ...completeProject, status: 'review_pending' });
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['owner-1', 'member-1', 'member-2']);
   });
 
   it('allows an adjacent lifecycle transition with an atomic current-status filter', async () => {
@@ -1581,6 +1679,41 @@ describe('ResearchController Phase 0 project policy', () => {
       { status: 'review_pending' },
       'active'
     );
+    expect(mockResearchModel.logActivity).toHaveBeenCalledWith(
+      'project-1',
+      'owner-1',
+      'project_status_changed',
+      'project',
+      'project-1',
+      { from_status: 'active', to_status: 'review_pending' }
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['member-1', 'member-2'],
+      {
+        type: 'system',
+        title: '课题“偏振课题”阶段已更新',
+        content: '进行中 → 待评审',
+        data: {
+          project_id: 'project-1',
+          from_status: 'active',
+          to_status: 'review_pending',
+          actor_id: 'owner-1',
+        },
+        action_url: '/lab/projects/project-1',
+      }
+    );
+  });
+
+  it('does not log or notify when the lifecycle status is unchanged', async () => {
+    const res = createResponse();
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'active' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotificationForUsers).not.toHaveBeenCalled();
   });
 
   it('allows an admin to roll the lifecycle back to any earlier state', async () => {
@@ -1734,6 +1867,8 @@ describe('ResearchController Phase 0 project policy', () => {
     }, res);
 
     expect(res.error).toHaveBeenCalledWith(expect.any(String), 'PROJECT_STATUS_CONFLICT', 409);
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotificationForUsers).not.toHaveBeenCalled();
   });
 
   it('rejects project updates without owner or admin access', async () => {

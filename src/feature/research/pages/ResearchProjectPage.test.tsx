@@ -507,6 +507,16 @@ describe("ResearchProjectPage", () => {
     expect(screen.getByText("一份观察记录")).toBeTruthy();
   });
 
+  it("shows the current lifecycle stage in the project journey", async () => {
+    mockGetProject.mockResolvedValue(createProject({ status: "showcased" }));
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByRole("heading", { name: "课题旅程" })).toBeTruthy();
+    const journeyStage = screen.getAllByText("已展示").find((element) => element.closest("li"));
+    expect(journeyStage?.closest("li")?.getAttribute("aria-current")).toBe("step");
+  });
+
   it("shows persisted task role labels on member cards", async () => {
     mockGetProject.mockResolvedValue(
       createProject({

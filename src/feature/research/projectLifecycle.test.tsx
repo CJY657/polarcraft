@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   PROJECT_LIFECYCLE_STATUSES,
   ProjectLifecycleBadges,
+  ProjectLifecycleJourney,
   getProjectStatusControlOptions,
   getProjectStatusMeta,
 } from './projectLifecycle';
@@ -67,5 +68,21 @@ describe('research project lifecycle metadata', () => {
 
     expect(screen.getByText('待评审（旧状态）')).toBeTruthy();
     expect(screen.getByText('状态：paused')).toBeTruthy();
+  });
+
+  it('renders the full project journey with completed, current, and upcoming stages', () => {
+    render(<ProjectLifecycleJourney status="active" />);
+
+    expect(screen.getByRole('heading', { name: '课题旅程' })).toBeTruthy();
+    expect(screen.getAllByRole('listitem')).toHaveLength(PROJECT_LIFECYCLE_STATUSES.length);
+    expect(screen.getByText('组队中').closest('li')?.getAttribute('data-state')).toBe('completed');
+    expect(screen.getByText('进行中').closest('li')?.getAttribute('aria-current')).toBe('step');
+    expect(screen.getByText('待评审').closest('li')?.getAttribute('data-state')).toBe('upcoming');
+  });
+
+  it('maps the legacy completed status onto the review stage in the journey', () => {
+    render(<ProjectLifecycleJourney status="completed" />);
+
+    expect(screen.getByText('待评审').closest('li')?.getAttribute('aria-current')).toBe('step');
   });
 });

@@ -599,7 +599,7 @@ export class ProfileModel {
     reviewNotes?: string
   ): Promise<boolean> {
     const result = await applicationsCollection().updateOne(
-      { id: applicationId },
+      { id: applicationId, status: 'pending' },
       {
         $set: {
           status,

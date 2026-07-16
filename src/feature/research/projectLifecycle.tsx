@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { Check } from 'lucide-react';
 
 export const PROJECT_LIFECYCLE_STATUSES = [
   'draft',
@@ -155,5 +156,81 @@ export function ProjectLifecycleBadges({
         </span>
       )}
     </span>
+  );
+}
+
+export function ProjectLifecycleJourney({ status }: { status: string }) {
+  const normalizedStatus = status === 'completed' ? 'review_pending' : status;
+  const currentIndex = PROJECT_LIFECYCLE_STATUSES.indexOf(normalizedStatus as ProjectStatus);
+
+  return (
+    <section
+      className="research-panel mb-8 rounded-[1.7rem] px-5 py-5 sm:px-6"
+      aria-labelledby="project-lifecycle-journey-title"
+    >
+      <div className="mb-5">
+        <h2
+          id="project-lifecycle-journey-title"
+          className="text-lg font-semibold text-[var(--paper-foreground)]"
+        >
+          课题旅程
+        </h2>
+        <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+          从草稿到归档，当前阶段和后续路径一目了然。
+        </p>
+      </div>
+
+      <ol className="grid grid-cols-1 md:grid-cols-8" aria-label="课题生命周期">
+        {PROJECT_LIFECYCLE_STATUSES.map((stage, index) => {
+          const meta = PROJECT_STATUS_META[stage];
+          const isCompleted = currentIndex >= 0 && index < currentIndex;
+          const isCurrent = index === currentIndex;
+          const isReached = isCompleted || isCurrent;
+
+          return (
+            <li
+              key={stage}
+              className="relative grid grid-cols-[2rem_1fr] items-center gap-3 pb-4 last:pb-0 md:grid-cols-1 md:justify-items-center md:gap-2 md:pb-0"
+              data-state={isCurrent ? 'current' : isCompleted ? 'completed' : 'upcoming'}
+              aria-current={isCurrent ? 'step' : undefined}
+            >
+              {index < PROJECT_LIFECYCLE_STATUSES.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-[0.9375rem] top-8 h-[calc(100%-1rem)] w-px md:left-1/2 md:top-4 md:h-px md:w-full"
+                  style={{
+                    background: isCompleted ? 'var(--paper-accent)' : 'var(--glass-stroke-strong)',
+                  }}
+                />
+              )}
+
+              <span
+                aria-hidden="true"
+                className="relative z-[1] flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold"
+                style={isReached ? meta.style : UNKNOWN_STATUS_STYLE}
+              >
+                {isCompleted ? <Check className="h-4 w-4" strokeWidth={2.5} /> : (
+                  <span className="h-2 w-2 rounded-full bg-current" />
+                )}
+              </span>
+
+              <span
+                className={`text-sm font-medium md:text-center ${
+                  isCurrent ? 'text-[var(--paper-foreground)]' : 'text-[var(--glass-text-muted)]'
+                }`}
+              >
+                {meta.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      {currentIndex < 0 && (
+        <p className="mt-4 text-sm text-[var(--glass-text-muted)]">
+          当前状态尚未纳入标准课题流程。
+        </p>
+      )}
+    </section>
   );
 }

@@ -49,7 +49,7 @@ import {
   type ProjectDiscussionOutline,
 } from "../components/project/ProjectDiscussionSection";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
-import { ProjectLifecycleBadges } from "../projectLifecycle";
+import { ProjectLifecycleBadges, ProjectLifecycleJourney } from "../projectLifecycle";
 import {
   buildApplicationProjectFromProject,
   formatProjectDate,
@@ -576,6 +576,8 @@ export function ResearchProjectPage() {
             </div>
           </div>
         </section>
+
+        <ProjectLifecycleJourney status={displayProject.status} />
 
         <ProjectChallengeDetail
           project={{
