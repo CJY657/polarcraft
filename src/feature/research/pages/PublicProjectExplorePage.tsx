@@ -372,13 +372,15 @@ export function PublicProjectExplorePage() {
             {displayedProjects.map((project) => (
               <article
                 key={project.id}
-                className="research-panel flex flex-col rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+                className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1.7rem] p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--paper-accent)]/10 bg-gradient-to-br from-transparent to-[var(--glass-surface)]/40 border border-transparent hover:border-[var(--glass-stroke)]"
               >
-                <ProjectCoverImage
-                  src={project.thumbnail || project.cover_image}
-                  alt={project.name_zh}
-                  className="mb-5 aspect-[16/9] w-full rounded-[1.25rem] object-cover"
-                />
+                <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-black/5 dark:ring-white/10">
+                  <ProjectCoverImage
+                    src={project.thumbnail || project.cover_image}
+                    alt={project.name_zh}
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-105"
+                  />
+                </div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <h2
@@ -388,8 +390,8 @@ export function PublicProjectExplorePage() {
                       {project.name_zh}
                     </h2>
                   </div>
-                  <div className="research-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                    <FlaskConical className="h-5 w-5 text-[var(--paper-link)]" />
+                  <div className="research-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover/card:-translate-y-0.5 group-hover/card:rotate-6 group-hover/card:bg-[var(--paper-accent)] group-hover/card:text-white">
+                    <FlaskConical className="h-5 w-5 text-[var(--paper-link)] transition-colors group-hover/card:text-white" />
                   </div>
                 </div>
 
@@ -423,7 +425,7 @@ export function PublicProjectExplorePage() {
                   <Link
                     to={`/lab/projects/${project.id}`}
                     state={{ readOnly: !project.is_member }}
-                    className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium"
+                    className="glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
                   >
                     {project.is_member ? "进入课题" : "查看详情"}
                   </Link>
@@ -433,7 +435,7 @@ export function PublicProjectExplorePage() {
                       onClick={() => handleApplyClick(project)}
                       disabled={project.has_pending_application}
                       className={cn(
-                        "glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60",
+                        "glass-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
                         project.is_recruiting === false && !project.has_pending_application
                           ? "border-[#f59e0b]/50 bg-[#f59e0b]/15 text-[#78350f] hover:border-[#f59e0b]/70 dark:text-[#fef3c7]"
                           : "glass-button-primary text-white"

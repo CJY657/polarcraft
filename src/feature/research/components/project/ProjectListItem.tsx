@@ -31,13 +31,15 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
   const coverImage = project.thumbnail || project.cover_image;
 
   return (
-    <article className="research-panel-soft rounded-[1.45rem] p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]">
+    <article className="group/card research-panel-soft relative overflow-hidden rounded-[1.45rem] p-4 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--paper-accent)]/10 bg-gradient-to-b from-transparent to-[var(--glass-surface)]/30 border border-transparent hover:border-[var(--glass-stroke)]">
       <Link to={`/lab/projects/${project.id}`} className="group block">
-        <ProjectCoverImage
-          src={coverImage}
-          alt={project.name_zh}
-          className="mb-3 aspect-[16/9] rounded-[1.1rem]"
-        />
+        <div className="mb-4 aspect-[16/9] w-full overflow-hidden rounded-[1.1rem] ring-1 ring-black/5 dark:ring-white/10">
+          <ProjectCoverImage
+            src={coverImage}
+            alt={project.name_zh}
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+        </div>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -55,13 +57,13 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
               {project.name_zh}
             </h3>
 
-            <p className="mt-2 line-clamp-2 text-lg leading-7 text-[var(--glass-text-muted)]">
+            <p className="mt-2 line-clamp-2 text-[0.95rem] leading-[1.6] text-[var(--glass-text-muted)] transition-colors duration-300 group-hover:text-[var(--paper-foreground)]/80">
               {project.description_zh || "还没有项目摘要，进入画布后补充研究目标与实验线索。"}
             </p>
           </div>
 
-          <div className="research-chip flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:translate-x-0.5">
-            <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />
+          <div className="research-chip flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-all duration-300 group-hover:translate-x-1.5 group-hover:bg-[var(--paper-accent)] group-hover:text-white">
+            <ArrowRight className="h-4 w-4 text-[var(--paper-link)] transition-colors group-hover:text-white" />
           </div>
         </div>
       </Link>
@@ -85,10 +87,10 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
 
           <Link
             to={`/lab/projects/${project.id}`}
-            className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium lg:self-auto"
+            className="glass-button group/btn inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md lg:self-auto"
           >
             进入项目
-            <ArrowRight className="h-4 w-4 text-[var(--paper-link)]" />
+            <ArrowRight className="h-4 w-4 text-[var(--paper-link)] transition-transform duration-300 group-hover/btn:translate-x-1" />
           </Link>
         </div>
 
