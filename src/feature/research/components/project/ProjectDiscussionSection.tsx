@@ -393,7 +393,7 @@ export function ProjectDiscussionSection({
   canParticipate,
   canModerate = false,
   currentUserId,
-  outline,
+
   jumpRequest,
 }: ProjectDiscussionSectionProps) {
   const [comments, setComments] = useState<ProjectDiscussionComment[]>([]);
@@ -505,19 +505,10 @@ export function ProjectDiscussionSection({
     const commentTargetId = jumpRequest.section === 'comments' && jumpRequest.commentId
       ? `discussion-comment-${jumpRequest.commentId}`
       : null;
-    const targetIdBySection: Record<ProjectDiscussionJumpSection, string> = {
-      topic: 'discussion-topic',
-      basic: jumpRequest.index === undefined ? 'discussion-basic' : `discussion-question-${jumpRequest.index}`,
-      extended: jumpRequest.index === undefined ? 'discussion-extended' : `discussion-hypothesis-${jumpRequest.index}`,
-      comments: 'discussion-comments',
-    };
-    const fallbackTargetId = {
-      topic: 'discussion-topic',
-      basic: 'discussion-basic',
-      extended: 'discussion-extended',
-      comments: 'discussion-comments',
-    }[jumpRequest.section];
-    const targetId = commentTargetId ?? targetIdBySection[jumpRequest.section];
+    // The outline blocks were removed from this card; every outline-derived
+    // jump now lands on the comment list itself.
+    const targetId = commentTargetId ?? 'discussion-comments';
+    const fallbackTargetId = 'discussion-comments';
 
     setIsDiscussionOpen(true);
     if (commentTargetId && isLoading) {
@@ -1030,22 +1021,10 @@ export function ProjectDiscussionSection({
   }
 
   const newCommentAttachmentCounts = countDraftAttachments(newCommentAttachments);
-  const outlineQuestions = outline?.questions ?? [];
-  const outlineHypotheses = outline?.hypotheses ?? [];
-  const hasOutline = Boolean(
-    outline
-      && (
-        outline.topicSummary.trim()
-        || outline.basicPlan?.trim()
-        || outline.extendedPlan?.trim()
-        || outlineQuestions.length > 0
-        || outlineHypotheses.length > 0
-      )
-  );
 
   return (
     <>
-      <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
+      <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2
@@ -1060,129 +1039,40 @@ export function ProjectDiscussionSection({
               <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
               {comments.length} 条留言
             </div>
-            <button
-              type="button"
-              onClick={() => setIsDiscussionOpen((current) => !current)}
-              aria-expanded={isDiscussionOpen}
-              className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium"
-            >
-              {isDiscussionOpen ? '收起讨论区' : '展开讨论区'}
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 text-[var(--paper-link)] transition-transform duration-200',
-                  isDiscussionOpen && 'rotate-180'
-                )}
-              />
-            </button>
+            {isDiscussionOpen && (
+              <button
+                type="button"
+                onClick={() => setIsDiscussionOpen(false)}
+                aria-expanded="true"
+                className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium"
+              >
+                收起讨论区
+                <ChevronDown className="h-4 w-4 rotate-180 text-[var(--paper-link)] transition-transform duration-200" />
+              </button>
+            )}
           </div>
         </div>
-
-        {hasOutline && outline && (
-          <div className="mb-4 grid gap-3 rounded-[1.45rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(247,250,255,0.9))] p-4">
-            <div id="discussion-topic" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
-                研究主题
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
-                {outline.topicSummary || '这个课题还没有补充详细摘要。'}
-              </p>
-            </div>
-
-            <div id="discussion-basic" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
-              <div className="mb-2 text-base font-semibold text-[var(--paper-foreground)]">
-                基础实验与问题
-              </div>
-              {outline.basicPlan?.trim() && (
-                <p className="mb-3 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
-                  {outline.basicPlan}
-                </p>
-              )}
-              {outlineQuestions.length > 0 && (
-                <div className="grid gap-2 md:grid-cols-2">
-                  {outlineQuestions.map((question, index) => (
-                    <button
-                      key={`discussion-question-${index}`}
-                      id={`discussion-question-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setIsDiscussionOpen(true);
-                        window.setTimeout(() => {
-                          document.getElementById('discussion-comments')?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start',
-                          });
-                        }, 0);
-                      }}
-                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[var(--paper-accent)]/12 bg-[var(--paper-accent)]/7 px-3 py-2 text-left text-base font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[var(--paper-accent)]/11"
-                    >
-                      {question}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div id="discussion-extended" className="scroll-mt-28 rounded-[1.05rem] bg-white/70 px-4 py-3">
-              <div className="mb-2 text-base font-semibold text-[var(--paper-foreground)]">
-                拓展问题、假设与实验
-              </div>
-              {outline.extendedPlan?.trim() && (
-                <p className="mb-3 whitespace-pre-wrap text-base leading-6 text-[var(--glass-text-muted)]">
-                  {outline.extendedPlan}
-                </p>
-              )}
-              {outlineHypotheses.length > 0 && (
-                <div className="grid gap-2 md:grid-cols-2">
-                  {outlineHypotheses.map((hypothesis, index) => (
-                    <button
-                      key={`discussion-hypothesis-${index}`}
-                      id={`discussion-hypothesis-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setIsDiscussionOpen(true);
-                        window.setTimeout(() => {
-                          document.getElementById('discussion-comments')?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start',
-                          });
-                        }, 0);
-                      }}
-                      className="scroll-mt-28 w-full rounded-[0.9rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3 py-2 text-left text-base font-medium leading-6 text-[var(--paper-foreground)] transition hover:bg-[#d7994c]/12"
-                    >
-                      {hypothesis}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {!isDiscussionOpen && (
           <button
             type="button"
             onClick={() => setIsDiscussionOpen(true)}
+            aria-label="展开讨论区"
+            aria-expanded="false"
             className="group w-full overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.76),rgba(244,248,255,0.88))] px-5 py-4 text-left transition hover:border-[var(--paper-accent)]/20 hover:shadow-[0_18px_42px_rgba(15,23,42,0.05)]"
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--paper-link)]">
-                  Discussion Preview
-                </div>
-                <p className="mt-2 text-lg font-semibold text-[var(--paper-foreground)]">
+                <p className="text-lg font-semibold text-[var(--paper-foreground)]">
                   {isLoading
-                    ? '正在同步讨论区内容'
+                    ? '正在同步讨论内容'
                     : commentTree.length === 0
-                    ? '讨论区已收起，展开后可以发起第一条讨论'
-                    : '讨论区已收起，展开后查看完整留言和回复'}
+                    ? '还没有留言，点开发起第一条讨论'
+                    : `共 ${comments.length} 条留言`}
                 </p>
-                <p className="mt-1 text-base text-[var(--glass-text-muted)]">
-                  {loadError
-                    ? loadError
-                    : commentTree.length === 0
-                    ? '像抖音评论区一样，平时收起来，需要时再点开。'
-                    : `当前有 ${comments.length} 条留言，最近的讨论会优先显示在上面。`}
-                </p>
+                {loadError && (
+                  <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
+                )}
               </div>
 
               <div className="flex items-center gap-3 md:justify-end">

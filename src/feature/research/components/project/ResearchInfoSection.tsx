@@ -82,7 +82,7 @@ export function ResearchInfoSection({
   };
 
   return (
-    <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
@@ -105,7 +105,7 @@ export function ResearchInfoSection({
             <h3 className="text-base font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
           </div>
           <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {outline.topicSummary || "这个课题还没有补充详细摘要。"}
+            {outline.topicSummary || "这个课题还没有写摘要。"}
           </p>
         </div>
 

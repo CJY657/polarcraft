@@ -164,8 +164,16 @@ export function ProjectChallengePreview({ project, className }: ProjectChallenge
 export function ProjectChallengeDetail({ project, className }: ProjectChallengeDetailProps) {
   const challenge = buildProjectChallengeCard(project);
 
+  const specRows = [
+    { title: '挑战目标', icon: <Target className="h-4 w-4" />, text: challenge.objectives },
+    { title: '入门步骤', icon: <Footprints className="h-4 w-4" />, text: challenge.beginnerSteps },
+    { title: '最低交付物', icon: <ClipboardCheck className="h-4 w-4" />, text: challenge.minDeliverables },
+    { title: '评价标准', icon: <Award className="h-4 w-4" />, text: challenge.reviewCriteria },
+    { title: '时间节奏', icon: <Flag className="h-4 w-4" />, text: challenge.timeline },
+  ];
+
   return (
-    <section className={cn('research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5', className)}>
+    <section className={cn("research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5", className)}>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
@@ -174,12 +182,8 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
           >
             挑战卡
           </h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--glass-text-muted)]">
-            把课题拆成学生可以直接理解的目标、角色和交付物。
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
           <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
           <ChallengeChip>{challenge.progress}</ChallengeChip>
           <ChallengeChip>{challenge.recruitmentState}</ChallengeChip>
@@ -193,50 +197,46 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
           </p>
         </ChallengeSection>
 
-        <ChallengeSection title="适合角色" icon={<Users className="h-4 w-4" />}>
-          <ChallengeList items={challenge.roleItems} fallback={challenge.roles} />
-        </ChallengeSection>
+        <div className="grid content-start gap-4">
+          <section
+            className="rounded-[1.35rem] border p-4"
+            style={{
+              borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
+              background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
+            }}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/70 text-[var(--paper-link)]">
+                <Gauge className="h-4 w-4" />
+              </span>
+              <h3 className="text-base font-semibold text-[var(--paper-foreground)]">当前缺口</h3>
+            </div>
+            <ChallengeRoleList
+              options={challenge.missingRoleOptions}
+              fallbackItems={challenge.missingRoleItems}
+              fallback={challenge.missingRoles}
+            />
+          </section>
+
+          <ChallengeSection title="适合角色" icon={<Users className="h-4 w-4" />}>
+            <ChallengeList items={challenge.roleItems} fallback={challenge.roles} />
+          </ChallengeSection>
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <ChallengeSection title="挑战目标" icon={<Target className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.objectives}
-          </p>
-        </ChallengeSection>
-
-        <ChallengeSection title="入门步骤" icon={<Footprints className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.beginnerSteps}
-          </p>
-        </ChallengeSection>
-
-        <ChallengeSection title="最低交付物" icon={<ClipboardCheck className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.minDeliverables}
-          </p>
-        </ChallengeSection>
-
-        <ChallengeSection title="评价标准" icon={<Award className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.reviewCriteria}
-          </p>
-        </ChallengeSection>
-
-        <ChallengeSection title="时间节奏" icon={<Flag className="h-4 w-4" />}>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-            {challenge.timeline}
-          </p>
-        </ChallengeSection>
-
-        <ChallengeSection title="当前缺口" icon={<Gauge className="h-4 w-4" />}>
-          <ChallengeRoleList
-            options={challenge.missingRoleOptions}
-            fallbackItems={challenge.missingRoleItems}
-            fallback={challenge.missingRoles}
-          />
-        </ChallengeSection>
-      </div>
+      <dl className="research-panel-soft mt-4 divide-y divide-[var(--glass-stroke)] rounded-[1.35rem] px-4 py-1 sm:px-5">
+        {specRows.map((row) => (
+          <div key={row.title} className="grid gap-1.5 py-3.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
+            <dt className="flex items-center gap-2 self-start text-base font-semibold text-[var(--paper-foreground)]">
+              <span className="text-[var(--paper-link)]">{row.icon}</span>
+              {row.title}
+            </dt>
+            <dd className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+              {row.text}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

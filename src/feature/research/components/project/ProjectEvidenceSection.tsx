@@ -311,7 +311,7 @@ export function ProjectEvidenceSection({
   );
 
   return (
-    <section className="research-panel mb-8 rounded-[1.9rem] p-5 sm:p-6">
+    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
@@ -320,9 +320,6 @@ export function ProjectEvidenceSection({
           >
             证据库
           </h2>
-          <p className="mt-2 text-base leading-6 text-[var(--glass-text-muted)]">
-            沉淀观察、数据、文献、实验记录和失败经验。
-          </p>
         </div>
 
         {canManage && (

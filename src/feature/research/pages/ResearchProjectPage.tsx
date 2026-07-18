@@ -117,6 +117,7 @@ export function ResearchProjectPage() {
   const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [discussionJumpRequest, setDiscussionJumpRequest] = useState<ProjectDiscussionJumpRequest | null>(null);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
   const isAdmin = user?.role === "admin";
@@ -158,6 +159,41 @@ export function ResearchProjectPage() {
   useEffect(() => {
     setDiscussionJumpRequest(null);
   }, [projectId]);
+
+  // Highlight the section nav pill matching the section currently in view
+  useEffect(() => {
+    if (isLoading || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const sectionIds = [
+      "project-challenge",
+      "project-research-info",
+      "project-evidence",
+      "project-members",
+      "project-discussion",
+    ];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActiveSectionId(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-25% 0px -65% 0px" }
+    );
+
+    for (const id of sectionIds) {
+      const element = document.getElementById(id);
+      if (element) {
+        observer.observe(element);
+      }
+    }
+
+    return () => observer.disconnect();
+  }, [isLoading, projectId]);
 
   useEffect(() => {
     const commentHashPrefix = "#discussion-comment-";
@@ -403,14 +439,12 @@ export function ResearchProjectPage() {
     extendedPlan: displayProject.extended_plan_zh || "",
   };
   const showResearchInfo = hasResearchOutline(researchOutline);
+  const showMembersRail = !isExampleProject && displayMembers.length > 0;
   const projectSectionLinks = [
-    { href: "#project-lifecycle", label: "进度总览" },
     { href: "#project-challenge", label: "挑战概览" },
     ...(showResearchInfo ? [{ href: "#project-research-info", label: "研究设计" }] : []),
     ...(canShowEvidenceSection ? [{ href: "#project-evidence", label: "课题证据" }] : []),
-    ...(!isExampleProject && displayMembers.length > 0
-      ? [{ href: "#project-members", label: "团队成员" }]
-      : []),
+    ...(showMembersRail ? [{ href: "#project-members", label: "团队成员" }] : []),
     ...(canShowDiscussionSection ? [{ href: "#project-discussion", label: "参与讨论" }] : []),
   ];
 
@@ -484,10 +518,10 @@ export function ResearchProjectPage() {
         }
       />
 
-      <main className="research-shell py-6 md:py-8">
+      <main className="research-shell py-4 md:py-6 xl:[width:min(100%,90rem)]">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div className="research-panel-soft mb-6 flex flex-col gap-4 rounded-[1.5rem] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="research-panel-soft mb-4 flex flex-col gap-4 rounded-[1.5rem] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
@@ -498,8 +532,8 @@ export function ResearchProjectPage() {
                 </p>
                 <p className="mt-1 text-base text-[var(--glass-text-muted)]">
                   {isPublicGuestMode
-                    ? "未登录时可以先看课题信息和成员，想申请加入时再登录。"
-                    : "如果想参与讨论或协作，请先提交加入申请。"}
+                    ? "不登录也能看课题内容和成员，想加入的时候再登录申请。"
+                    : "想参与讨论或一起做研究，先提交加入申请。"}
                 </p>
               </div>
             </div>
@@ -514,8 +548,8 @@ export function ResearchProjectPage() {
         )}
 
         {/* Project Header */}
-        <section className="research-hero mb-6 rounded-[2.1rem] p-5 sm:p-7 lg:p-8">
-          <div className="relative z-[1] grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
+        <section className="research-hero mb-4 rounded-[2.1rem] p-4 sm:p-5 lg:p-6">
+          <div className="relative z-[1] grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
             <div className="min-w-0 py-1">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="research-kicker">课题详情</span>
@@ -547,11 +581,11 @@ export function ResearchProjectPage() {
                 <p className="mt-2 text-lg text-[var(--glass-text-muted)] sm:text-lg">{displayProject.name_en}</p>
               )}
 
-              <p className="mt-4 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
-                {displayProject.description_zh || "这个课题还没有补充详细摘要。"}
+              <p className="mt-3 text-lg leading-7 text-[var(--glass-text-muted)]">
+                {displayProject.description_zh || "这个课题还没有写摘要。"}
               </p>
 
-              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
                 {isReadOnlyMode ? (
                   <button
                     onClick={handleApplyAction}
@@ -610,7 +644,7 @@ export function ResearchProjectPage() {
             </div>
           </div>
 
-          <dl className="relative z-[1] mt-6 grid gap-3 sm:grid-cols-3">
+          <dl className="relative z-[1] mt-4 grid gap-3 sm:grid-cols-3">
             <div className="research-metric flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] px-5 py-3 sm:flex-col sm:items-start sm:justify-center sm:gap-1 xl:flex-row xl:items-center xl:justify-between">
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">成员</dt>
               <dd className="text-2xl font-bold text-[var(--paper-foreground)]">{displayProject.member_count}</dd>
@@ -626,98 +660,122 @@ export function ResearchProjectPage() {
               </dd>
             </div>
           </dl>
+
+          <div
+            id="project-lifecycle"
+            className="relative z-[1] mt-4 scroll-mt-36 border-t border-[var(--glass-stroke)] pt-3"
+          >
+            <ProjectLifecycleJourney status={displayProject.status} variant="compact" />
+          </div>
         </section>
 
         <nav
           aria-label="课题内容导航"
-          className="research-panel-soft sticky top-20 z-30 mb-6 overflow-x-auto rounded-[1.3rem] p-2 backdrop-blur-xl"
+          className="research-panel-soft sticky top-20 z-30 mb-4 overflow-x-auto rounded-[1.3rem] p-2 backdrop-blur-xl"
         >
           <div className="flex min-w-max items-center gap-1.5">
-            {projectSectionLinks.map((section) => (
-              <a
-                key={section.href}
-                href={section.href}
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-[var(--glass-text-muted)] transition-colors hover:bg-[var(--glass-chip)] hover:text-[var(--paper-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--paper-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)]"
-              >
-                {section.label}
-              </a>
-            ))}
+            {projectSectionLinks.map((section) => {
+              const isActive = section.href === `#${activeSectionId}`;
+              return (
+                <a
+                  key={section.href}
+                  href={section.href}
+                  aria-current={isActive ? "true" : undefined}
+                  className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--glass-chip)] hover:text-[var(--paper-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--paper-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)] ${
+                    isActive
+                      ? "bg-[var(--glass-chip)] text-[var(--paper-foreground)]"
+                      : "text-[var(--glass-text-muted)]"
+                  }`}
+                >
+                  {section.label}
+                </a>
+              );
+            })}
           </div>
         </nav>
 
-        <div id="project-lifecycle" className="scroll-mt-36">
-          <ProjectLifecycleJourney status={displayProject.status} />
-        </div>
+        <div
+          className={
+            showMembersRail
+              ? "lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-6"
+              : undefined
+          }
+        >
+          <div className="min-w-0">
+            <div id="project-challenge" className="scroll-mt-36">
+              <ProjectChallengeDetail
+                project={{
+                  ...displayProject,
+                  recruitment_requirements: displayRecruitmentRequirements,
+                  is_recruiting: displayIsRecruiting,
+                }}
+              />
+            </div>
 
-        <div id="project-challenge" className="scroll-mt-36">
-          <ProjectChallengeDetail
-            project={{
-              ...displayProject,
-              recruitment_requirements: displayRecruitmentRequirements,
-              is_recruiting: displayIsRecruiting,
-            }}
-          />
-        </div>
+            {showResearchInfo && (
+              <div id="project-research-info" className="scroll-mt-36">
+                <ResearchInfoSection
+                  outline={researchOutline}
+                  canJumpToDiscussion={canShowDiscussionSection}
+                  onJumpToDiscussion={handleJumpToDiscussion}
+                />
+              </div>
+            )}
 
-        {showResearchInfo && (
-          <div id="project-research-info" className="scroll-mt-36">
-            <ResearchInfoSection
-              outline={researchOutline}
-              canJumpToDiscussion={canShowDiscussionSection}
-              onJumpToDiscussion={handleJumpToDiscussion}
-            />
+            {canShowEvidenceSection && projectId && (
+              <div id="project-evidence" className="scroll-mt-36">
+                <ProjectEvidenceSection
+                  projectId={projectId}
+                  canManage={canManageEvidence}
+                  usePublicEndpoint={Boolean(publicProject && !project)}
+                  theme={theme === "dark" ? "dark" : "light"}
+                />
+              </div>
+            )}
+
+            {canShowDiscussionSection && projectId && (
+              <div id="project-discussion" className="scroll-mt-36">
+                <ProjectDiscussionSection
+                  projectId={projectId}
+                  currentUserId={user?.id}
+                  canModerate={isOwner || isAdmin}
+                  canParticipate={canParticipateInDiscussion}
+                  outline={researchOutline}
+                  jumpRequest={discussionJumpRequest}
+                />
+              </div>
+            )}
           </div>
-        )}
 
-        {canShowEvidenceSection && projectId && (
-          <div id="project-evidence" className="scroll-mt-36">
-            <ProjectEvidenceSection
-              projectId={projectId}
-              canManage={canManageEvidence}
-              usePublicEndpoint={Boolean(publicProject && !project)}
-              theme={theme === "dark" ? "dark" : "light"}
-            />
-          </div>
-        )}
+          {showMembersRail && (
+            <aside
+              id="project-members"
+              className="scroll-mt-36 lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto"
+            >
+              <ProjectMembersSection
+                variant="rail"
+                members={displayMembers}
+                formerMembers={formerMembers}
+                hasProject={!!project}
+                currentUserId={user?.id}
+                theme={theme === "dark" ? "dark" : "light"}
+                isReadOnlyMode={isReadOnlyMode}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
+                canManageProject={canManageProject}
+                pendingApplicationCount={pendingApplicationCount}
+                restoreMemberError={restoreMemberError}
+                isAddingFormerMemberId={isAddingFormerMemberId}
+                onOpenApplications={() => setIsApplicationDialogOpen(true)}
+                onRequestRemoveMember={setMemberToRemove}
+                onRestoreFormerMember={handleRestoreFormerMember}
+              />
+            </aside>
+          )}
+        </div>
 
         {canShowAgentPanel && projectId && (
           <ResearchAgentPanel projectId={projectId} canClearHistory={canManageProject} />
-        )}
-
-        {/* Members Section */}
-        {!isExampleProject && displayMembers.length > 0 && (
-          <div id="project-members" className="scroll-mt-36">
-            <ProjectMembersSection
-              members={displayMembers}
-              formerMembers={formerMembers}
-              hasProject={!!project}
-              currentUserId={user?.id}
-              theme={theme === "dark" ? "dark" : "light"}
-              isReadOnlyMode={isReadOnlyMode}
-              isOwner={isOwner}
-              isAdmin={isAdmin}
-              canManageProject={canManageProject}
-              pendingApplicationCount={pendingApplicationCount}
-              restoreMemberError={restoreMemberError}
-              isAddingFormerMemberId={isAddingFormerMemberId}
-              onOpenApplications={() => setIsApplicationDialogOpen(true)}
-              onRequestRemoveMember={setMemberToRemove}
-              onRestoreFormerMember={handleRestoreFormerMember}
-            />
-          </div>
-        )}
-
-        {canShowDiscussionSection && projectId && (
-          <div id="project-discussion" className="scroll-mt-36">
-            <ProjectDiscussionSection
-              projectId={projectId}
-              currentUserId={user?.id}
-              canModerate={isOwner || isAdmin}
-              canParticipate={canParticipateInDiscussion}
-              outline={researchOutline}
-              jumpRequest={discussionJumpRequest}
-            />
-          </div>
         )}
 
       </main>

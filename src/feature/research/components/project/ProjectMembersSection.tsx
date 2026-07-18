@@ -54,6 +54,7 @@ export function ProjectMembersSection({
   onOpenApplications,
   onRequestRemoveMember,
   onRestoreFormerMember,
+  variant = "full",
 }: {
   members: Array<ProjectMember | PublicProjectMember>;
   formerMembers: FormerProjectMember[];
@@ -70,9 +71,16 @@ export function ProjectMembersSection({
   onOpenApplications: () => void;
   onRequestRemoveMember: (member: ProjectMember) => void;
   onRestoreFormerMember: (member: FormerProjectMember) => void;
+  /** "rail" renders single-column member cards for the narrow desktop sidebar */
+  variant?: "full" | "rail";
 }) {
+  const memberGridClass = cn(
+    "grid grid-cols-1 gap-4",
+    variant === "full" && "md:grid-cols-2 lg:grid-cols-3"
+  );
+
   return (
-    <section className="research-panel mb-6 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
@@ -81,9 +89,6 @@ export function ProjectMembersSection({
           >
             研究团队
           </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
-            角色与权限说明白，协作会更顺。
-          </p>
         </div>
 
         {canManageProject && (
@@ -109,7 +114,7 @@ export function ProjectMembersSection({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className={memberGridClass}>
         {members.map((member) => {
           // 判断是否可以移除该成员
           const isActualProjectMember = isProjectMember(member);
@@ -187,7 +192,7 @@ export function ProjectMembersSection({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className={memberGridClass}>
             {formerMembers.map((member) => {
               const memberDisplayName = formatUserIdentity(member);
               return (

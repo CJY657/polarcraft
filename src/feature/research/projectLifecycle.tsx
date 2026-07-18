@@ -159,9 +159,73 @@ export function ProjectLifecycleBadges({
   );
 }
 
-export function ProjectLifecycleJourney({ status }: { status: string }) {
+export function ProjectLifecycleJourney({
+  status,
+  variant = 'panel',
+}: {
+  status: string;
+  variant?: 'panel' | 'compact';
+}) {
   const normalizedStatus = status === 'completed' ? 'review_pending' : status;
   const currentIndex = PROJECT_LIFECYCLE_STATUSES.indexOf(normalizedStatus as ProjectStatus);
+
+  if (variant === 'compact') {
+    return (
+      <section aria-labelledby="project-lifecycle-journey-title">
+        <h2 id="project-lifecycle-journey-title" className="sr-only">
+          课题旅程
+        </h2>
+        <ol
+          className="flex min-w-max items-center gap-1 overflow-x-auto py-1 sm:min-w-0 sm:flex-wrap"
+          aria-label="课题生命周期"
+        >
+          {PROJECT_LIFECYCLE_STATUSES.map((stage, index) => {
+            const meta = PROJECT_STATUS_META[stage];
+            const isCompleted = currentIndex >= 0 && index < currentIndex;
+            const isCurrent = index === currentIndex;
+            const isReached = isCompleted || isCurrent;
+
+            return (
+              <li
+                key={stage}
+                className="flex items-center gap-1"
+                data-state={isCurrent ? 'current' : isCompleted ? 'completed' : 'upcoming'}
+                aria-current={isCurrent ? 'step' : undefined}
+              >
+                <span
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                    isCurrent ? '' : 'border-transparent'
+                  }`}
+                  style={
+                    isCurrent
+                      ? meta.style
+                      : { color: isCompleted ? 'var(--paper-foreground)' : 'var(--glass-text-muted)' }
+                  }
+                >
+                  {isCompleted && <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />}
+                  {meta.label}
+                </span>
+                {index < PROJECT_LIFECYCLE_STATUSES.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="h-px w-3 shrink-0"
+                    style={{
+                      background: isReached && index < currentIndex
+                        ? 'var(--paper-accent)'
+                        : 'var(--glass-stroke-strong)',
+                    }}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        {currentIndex < 0 && (
+          <p className="mt-1 text-sm text-[var(--glass-text-muted)]">当前状态尚未纳入标准课题流程。</p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section
