@@ -199,6 +199,12 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, cycle_id: 1 }, name: 'idx_project_cycle' },
+      // 每位评审者在一个周期内只保留一份评审，配合 upsert 语义防止重复写入
+      {
+        key: { project_id: 1, cycle_id: 1, reviewer_id: 1 },
+        unique: true,
+        name: 'unique_project_cycle_reviewer',
+      },
     ],
   },
   {

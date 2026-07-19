@@ -13,7 +13,6 @@ import {
   Search,
   Users,
   FlaskConical,
-  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystem } from "@/contexts/SystemContext";
@@ -22,6 +21,7 @@ import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
+import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { getHealthDisplay } from "../components/project/researchHealthDisplay";
 
 const CreateProjectWizard = lazy(() =>
@@ -371,23 +371,22 @@ export function MyProjectsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                  <div className="mt-5 flex flex-col gap-2">
                     <Link
                       to={`/lab/projects/${project.id}`}
-                      className="glass-button glass-button-primary inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white"
+                      className="glass-button glass-button-primary inline-flex w-full items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white"
                     >
                       进入课题
                     </Link>
-                    
+
                     {(user?.role === "admin" || project.current_user_role === "owner") && (
-                      <button
-                        onClick={() => handleDeleteProject(project, project.name_zh)}
-                        disabled={deletingProjectId === project.id}
-                        className="glass-button inline-flex items-center justify-center rounded-full px-4 py-2 text-base font-medium text-[#b33d3d] hover:bg-[#d95b5b]/10 disabled:opacity-50"
-                        title="删除课题"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <ProjectDeleteAction
+                        projectName={project.name_zh}
+                        onDelete={(confirmationText) => handleDeleteProject(project, confirmationText)}
+                        isDeleting={deletingProjectId === project.id}
+                        triggerLabel="删除课题"
+                        className="w-full justify-center"
+                      />
                     )}
                   </div>
                 </article>

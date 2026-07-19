@@ -38,6 +38,9 @@ import {
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
+import { ProjectPeerReviewSection } from "../components/project/ProjectPeerReviewSection";
+import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
+import { ProjectActivityFeed } from "../components/project/ProjectActivityFeed";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
   hasResearchOutline,
@@ -118,6 +121,10 @@ export function ResearchProjectPage() {
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [discussionJumpRequest, setDiscussionJumpRequest] = useState<ProjectDiscussionJumpRequest | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [hasPeerReviewContent, setHasPeerReviewContent] = useState(false);
+  const handlePeerReviewContentChange = useCallback((hasContent: boolean) => {
+    setHasPeerReviewContent(hasContent);
+  }, []);
 
   const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
   const isAdmin = user?.role === "admin";
@@ -170,6 +177,8 @@ export function ResearchProjectPage() {
       "project-challenge",
       "project-research-info",
       "project-evidence",
+      "project-peer-review",
+      "project-tasks",
       "project-members",
       "project-discussion",
     ];
@@ -243,6 +252,7 @@ export function ResearchProjectPage() {
         setPublicProject(null);
         setSettings(null);
         setPendingApplicationCount(0);
+        setHasPeerReviewContent(false);
 
         if (!isAuthenticated) {
           const publicProjectData = await profileApi.getPublicProjectById(targetProjectId);
@@ -388,6 +398,7 @@ export function ResearchProjectPage() {
         research_hypotheses_zh: null,
         basic_plan_zh: null,
         extended_plan_zh: null,
+        challenge_review_criteria_zh: null,
         status: "active" as const,
         is_public: true,
         thumbnail: exampleProject?.coverImage || null,
@@ -431,6 +442,8 @@ export function ResearchProjectPage() {
   const canShowAgentPanel = canShowDiscussionSection;
   const canManageEvidence = !isExampleProject && Boolean(projectId && project && !isReadOnlyMode && (isMember || isAdmin));
   const canShowEvidenceSection = !isExampleProject && Boolean(projectId && (project || publicProject));
+  const canShowPeerReviewSection = canShowEvidenceSection;
+  const canShowTasksSection = canShowDiscussionSection;
   const researchOutline: ProjectDiscussionOutline = {
     topicSummary: displayProject.description_zh || "",
     questions: splitResearchItems(displayProject.research_questions_zh),
@@ -444,6 +457,10 @@ export function ResearchProjectPage() {
     { href: "#project-challenge", label: "挑战概览" },
     ...(showResearchInfo ? [{ href: "#project-research-info", label: "研究设计" }] : []),
     ...(canShowEvidenceSection ? [{ href: "#project-evidence", label: "课题证据" }] : []),
+    ...(canShowPeerReviewSection && hasPeerReviewContent
+      ? [{ href: "#project-peer-review", label: "同伴评审" }]
+      : []),
+    ...(canShowTasksSection ? [{ href: "#project-tasks", label: "任务分工" }] : []),
     ...(showMembersRail ? [{ href: "#project-members", label: "团队成员" }] : []),
     ...(canShowDiscussionSection ? [{ href: "#project-discussion", label: "参与讨论" }] : []),
   ];
@@ -455,11 +472,6 @@ export function ResearchProjectPage() {
 
     if (isPublicGuestMode) {
       openDialog("login");
-      return;
-    }
-
-    if (isRecruitmentClosed) {
-      setIsApplicationFormOpen(true);
       return;
     }
 
@@ -733,6 +745,33 @@ export function ResearchProjectPage() {
               </div>
             )}
 
+            {canShowPeerReviewSection && projectId && (
+              <div id="project-peer-review" className="scroll-mt-36">
+                <ProjectPeerReviewSection
+                  projectId={projectId}
+                  projectStatus={displayProject.status}
+                  reviewCriteria={displayProject.challenge_review_criteria_zh}
+                  currentUserId={user?.id}
+                  isActiveMember={isMember}
+                  usePublicEndpoint={Boolean(publicProject && !project)}
+                  theme={theme === "dark" ? "dark" : "light"}
+                  onContentChange={handlePeerReviewContentChange}
+                />
+              </div>
+            )}
+
+            {canShowTasksSection && projectId && project && (
+              <div id="project-tasks" className="scroll-mt-36">
+                <ProjectTasksSection
+                  projectId={projectId}
+                  members={project.members}
+                  currentUserId={user?.id}
+                  canManage={isOwner || isAdmin}
+                  theme={theme === "dark" ? "dark" : "light"}
+                />
+              </div>
+            )}
+
             {canShowDiscussionSection && projectId && (
               <div id="project-discussion" className="scroll-mt-36">
                 <ProjectDiscussionSection
@@ -770,6 +809,10 @@ export function ResearchProjectPage() {
                 onRequestRemoveMember={setMemberToRemove}
                 onRestoreFormerMember={handleRestoreFormerMember}
               />
+
+              {canShowDiscussionSection && projectId && (
+                <ProjectActivityFeed projectId={projectId} limit={15} />
+              )}
             </aside>
           )}
         </div>

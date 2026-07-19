@@ -16,8 +16,23 @@ export interface CycleScopedResearchDocument {
 
 export interface ResearchProjectCharterDocument extends CycleScopedResearchDocument {}
 
-export interface ResearchProjectTaskDocument extends CycleScopedResearchDocument {}
+export type ResearchProjectTaskStatus = 'todo' | 'doing' | 'done';
 
-export interface ResearchProjectReviewDocument extends CycleScopedResearchDocument {}
+export interface ResearchProjectTaskDocument extends CycleScopedResearchDocument {
+  title: string;
+  assignee_user_id: string | null;
+  status: ResearchProjectTaskStatus;
+  due_date: string | null;
+  created_by: string;
+  completed_at: Date | null;
+}
+
+export type ResearchProjectReviewVerdict = 'approve' | 'request_changes';
+
+export interface ResearchProjectReviewDocument extends CycleScopedResearchDocument {
+  reviewer_id: string;
+  verdict: ResearchProjectReviewVerdict;
+  content: string;
+}
 
 export interface ResearchProjectOutcomeDocument extends CycleScopedResearchDocument {}

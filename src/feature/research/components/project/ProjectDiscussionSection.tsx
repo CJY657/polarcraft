@@ -4,6 +4,7 @@ import {
   ImagePlus,
   Loader2,
   MessageCircle,
+  Pencil,
   Reply,
   Send,
   Trash2,
@@ -63,6 +64,8 @@ interface DraftAttachment {
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_COMMENT_IMAGES = 6;
 const MAX_COMMENT_VIDEOS = 2;
+/** 首屏渲染的顶层讨论串数量；点击「展开更早的讨论」后每次追加同样数量 */
+const INITIAL_VISIBLE_THREADS = 20;
 
 function formatCommentTime(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -418,6 +421,12 @@ export function ProjectDiscussionSection({
   const [expandedCommentIds, setExpandedCommentIds] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<{ url: string; alt: string } | null>(null);
 
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEditCommentId, setSavingEditCommentId] = useState<string | null>(null);
+  const [visibleThreadCount, setVisibleThreadCount] = useState(INITIAL_VISIBLE_THREADS);
+
   const newCommentAttachmentsRef = useRef<DraftAttachment[]>([]);
   const replyAttachmentsRef = useRef<Record<string, DraftAttachment[]>>({});
   const newCommentFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -485,6 +494,10 @@ export function ProjectDiscussionSection({
     setDeleteError(null);
     setExpandedCommentIds({});
     setLightboxImage(null);
+    setEditingCommentId(null);
+    setEditDraft('');
+    setEditError(null);
+    setVisibleThreadCount(INITIAL_VISIBLE_THREADS);
     clearNewCommentComposer();
     setReplyAttachments((current) => {
       Object.values(current).forEach((attachments) => revokeDraftAttachments(attachments));
@@ -517,6 +530,8 @@ export function ProjectDiscussionSection({
 
     const targetCommentId = jumpRequest.commentId;
     if (targetCommentId && parentCommentLookup.has(targetCommentId)) {
+      // 跳转目标可能在未渲染的更早讨论串里，先展开全部顶层讨论串
+      setVisibleThreadCount((current) => Math.max(current, comments.length));
       setExpandedCommentIds((current) => ({
         ...current,
         ...expandCommentAncestors(targetCommentId, parentCommentLookup),
@@ -796,6 +811,45 @@ export function ProjectDiscussionSection({
     }
   }
 
+  function startEditingComment(comment: ProjectDiscussionComment) {
+    setEditingCommentId(comment.id);
+    setEditDraft(comment.content);
+    setEditError(null);
+    setReplyTargetId(null);
+  }
+
+  function cancelEditingComment() {
+    setEditingCommentId(null);
+    setEditDraft('');
+    setEditError(null);
+  }
+
+  async function handleSaveEditedComment(comment: ProjectDiscussionComment) {
+    const content = editDraft.trim();
+    const hasAttachments = comment.image_urls.length > 0 || (comment.video_urls?.length ?? 0) > 0;
+
+    if (!content && !hasAttachments) {
+      setEditError('留言内容不能为空');
+      return;
+    }
+
+    try {
+      setSavingEditCommentId(comment.id);
+      setEditError(null);
+      await researchApi.updateProjectDiscussionComment(comment.id, content);
+      cancelEditingComment();
+      await loadComments();
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : '编辑留言失败');
+    } finally {
+      setSavingEditCommentId(null);
+    }
+  }
+
+  function canEditComment(comment: ProjectDiscussionComment): boolean {
+    return !comment.is_deleted && canParticipate && currentUserId === comment.user_id;
+  }
+
   function canDeleteComment(comment: ProjectDiscussionComment): boolean {
     if (comment.is_deleted) {
       return false;
@@ -814,6 +868,8 @@ export function ProjectDiscussionSection({
     const totalReplyCount = countReplies(comment);
     const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
     const displayUsername = formatUserIdentity(comment, '未命名用户');
+    const isEditingThis = editingCommentId === comment.id;
+    const isEdited = !comment.is_deleted && comment.updated_at !== comment.created_at;
 
     return (
       <div
@@ -838,6 +894,11 @@ export function ProjectDiscussionSection({
               <span className="text-sm text-[var(--glass-text-muted)]">
                 {formatCommentTime(comment.created_at)}
               </span>
+              {isEdited && (
+                <span className="rounded-full bg-[var(--paper-accent)]/10 px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
+                  已编辑
+                </span>
+              )}
               {comment.is_deleted && (
                 <span className="rounded-full bg-slate-500/10 px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
                   已删除
@@ -848,6 +909,53 @@ export function ProjectDiscussionSection({
             <div className="mt-1.5 text-base leading-6 text-[var(--paper-foreground)]">
               {comment.is_deleted ? (
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
+              ) : isEditingThis ? (
+                <div className="rounded-[1rem] border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
+                  <textarea
+                    value={editDraft}
+                    onChange={(event) => setEditDraft(event.target.value)}
+                    rows={3}
+                    maxLength={MAX_COMMENT_LENGTH}
+                    autoFocus
+                    aria-label="编辑留言内容"
+                    className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
+                  />
+                  {(comment.image_urls.length > 0 || commentVideoUrls.length > 0) && (
+                    <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                      编辑只修改文字，已上传的图片和视频保持不变。
+                    </p>
+                  )}
+                  {editError && <p className="mt-2 text-sm text-[#b33d3d]">{editError}</p>}
+                  <div className="mt-2.5 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditingComment}
+                      disabled={savingEditCommentId === comment.id}
+                      className="glass-button rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveEditedComment(comment)}
+                      disabled={savingEditCommentId === comment.id}
+                      className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {savingEditCommentId === comment.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Pencil className="h-3.5 w-3.5" />
+                      )}
+                      保存修改
+                    </button>
+                  </div>
+                  <CommentMediaGrid
+                    imageUrls={comment.image_urls}
+                    videoUrls={commentVideoUrls}
+                    username={displayUsername}
+                    onPreview={(url, alt) => setLightboxImage({ url, alt })}
+                  />
+                </div>
               ) : (
                 <>
                   {comment.content.trim() ? (
@@ -885,6 +993,17 @@ export function ProjectDiscussionSection({
                 >
                   <Reply className="h-3.5 w-3.5" />
                   回复
+                </button>
+              )}
+
+              {canEditComment(comment) && !isEditingThis && (
+                <button
+                  type="button"
+                  onClick={() => startEditingComment(comment)}
+                  className="inline-flex items-center gap-1 text-[var(--paper-link)] transition-opacity hover:opacity-80"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  编辑
                 </button>
               )}
 
@@ -1021,6 +1140,8 @@ export function ProjectDiscussionSection({
   }
 
   const newCommentAttachmentCounts = countDraftAttachments(newCommentAttachments);
+  const visibleThreads = commentTree.slice(0, visibleThreadCount);
+  const hiddenThreadCount = Math.max(commentTree.length - visibleThreads.length, 0);
 
   return (
     <>
@@ -1255,7 +1376,18 @@ export function ProjectDiscussionSection({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {commentTree.map((comment) => renderComment(comment))}
+                  {visibleThreads.map((comment) => renderComment(comment))}
+
+                  {hiddenThreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
+                      className="glass-button flex w-full items-center justify-center gap-2 rounded-[1.25rem] px-4 py-3 text-base font-medium"
+                    >
+                      展开更早的讨论（还有 {hiddenThreadCount} 条）
+                      <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -222,6 +222,67 @@ router.post(
 );
 
 /**
+ * =====================================================
+ * Peer Review Routes / 同伴评审路由
+ * =====================================================
+ */
+
+/**
+ * @route   GET /api/research/projects/:projectId/reviews
+ * @desc    List project peer reviews (current cycle)
+ * @access  Private
+ */
+router.get('/projects/:projectId/reviews', ResearchController.getProjectReviews);
+
+/**
+ * @route   PUT /api/research/projects/:projectId/reviews/me
+ * @desc    Create or update own peer review
+ * @access  Private
+ */
+router.put('/projects/:projectId/reviews/me', ResearchController.upsertMyProjectReview);
+
+/**
+ * @route   DELETE /api/research/reviews/:id
+ * @desc    Delete a peer review (author or admin)
+ * @access  Private
+ */
+router.delete('/reviews/:id', ResearchController.deleteProjectReview);
+
+/**
+ * =====================================================
+ * Project Task Routes / 任务分工路由
+ * =====================================================
+ */
+
+/**
+ * @route   GET /api/research/projects/:projectId/tasks
+ * @desc    List project tasks (current cycle)
+ * @access  Private
+ */
+router.get('/projects/:projectId/tasks', ResearchController.getProjectTasks);
+
+/**
+ * @route   POST /api/research/projects/:projectId/tasks
+ * @desc    Create project task
+ * @access  Private
+ */
+router.post('/projects/:projectId/tasks', ResearchController.createProjectTask);
+
+/**
+ * @route   PUT /api/research/tasks/:id
+ * @desc    Update project task
+ * @access  Private
+ */
+router.put('/tasks/:id', ResearchController.updateProjectTask);
+
+/**
+ * @route   DELETE /api/research/tasks/:id
+ * @desc    Delete project task
+ * @access  Private
+ */
+router.delete('/tasks/:id', ResearchController.deleteProjectTask);
+
+/**
  * @route   POST /api/research/projects/:id/members
  * @desc    Add member to project
  * @access  Private
@@ -459,6 +520,13 @@ router.post(
   createScopedUploadHandler({ logMessage: 'Project discussion video upload started', category: 'video' }),
   UploadController.uploadFile
 );
+
+/**
+ * @route   PUT /api/research/discussion-comments/:id
+ * @desc    Update project discussion comment (author-only)
+ * @access  Private
+ */
+router.put('/discussion-comments/:id', ResearchController.updateProjectDiscussionComment);
 
 /**
  * @route   DELETE /api/research/discussion-comments/:id

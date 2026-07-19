@@ -10,9 +10,15 @@ import { Request, Response } from 'express';
 import { uploadConfig } from '../config/upload.config.js';
 import {
   ResearchModel,
+  type CreateResearchProjectTaskInput,
   type ResearchProjectEvidenceInput,
   type ResearchProjectEvidenceType,
+  type UpdateResearchProjectTaskInput,
 } from '../models/research.model.js';
+import type {
+  ResearchProjectReviewVerdict,
+  ResearchProjectTaskStatus,
+} from '../types/research-cycle.types.js';
 import { NotificationModel } from '../models/notification.model.js';
 import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
@@ -36,6 +42,11 @@ const MAX_PROJECT_DISCUSSION_IMAGES = 6;
 const MAX_PROJECT_DISCUSSION_VIDEOS = 2;
 const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
 const MAX_RESEARCH_AGENT_HISTORY_MESSAGES = 12;
+const MAX_PROJECT_REVIEW_CONTENT_LENGTH = 2000;
+const MAX_PROJECT_TASK_TITLE_LENGTH = 200;
+const PROJECT_REVIEW_QUORUM = 2;
+const PROJECT_REVIEW_VERDICTS: ResearchProjectReviewVerdict[] = ['approve', 'request_changes'];
+const PROJECT_TASK_STATUSES: ResearchProjectTaskStatus[] = ['todo', 'doing', 'done'];
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 const RESEARCH_PROJECT_EVIDENCE_TYPES: ResearchProjectEvidenceType[] = [
@@ -58,6 +69,57 @@ const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   relay_open: '接力开放',
   archived: '已归档',
 };
+
+function normalizeProjectTaskPayload(
+  body: Record<string, unknown>,
+  options: { partial?: boolean } = {}
+): { data: CreateResearchProjectTaskInput & UpdateResearchProjectTaskInput; error?: string } {
+  const partial = options.partial === true;
+  const data: CreateResearchProjectTaskInput & UpdateResearchProjectTaskInput = {} as never;
+
+  if (body.title !== undefined || !partial) {
+    if (
+      typeof body.title !== 'string'
+      || !body.title.trim()
+      || body.title.trim().length > MAX_PROJECT_TASK_TITLE_LENGTH
+    ) {
+      return { data, error: `任务标题为必填项，且不能超过 ${MAX_PROJECT_TASK_TITLE_LENGTH} 字` };
+    }
+    data.title = body.title.trim();
+  }
+
+  if (body.assignee_user_id !== undefined) {
+    if (body.assignee_user_id === null) {
+      data.assignee_user_id = null;
+    } else if (typeof body.assignee_user_id === 'string' && body.assignee_user_id.trim()) {
+      data.assignee_user_id = body.assignee_user_id.trim();
+    } else {
+      return { data, error: '任务负责人格式无效' };
+    }
+  }
+
+  if (body.due_date !== undefined) {
+    if (body.due_date === null) {
+      data.due_date = null;
+    } else if (typeof body.due_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.due_date.trim())) {
+      data.due_date = body.due_date.trim();
+    } else {
+      return { data, error: '截止日期格式无效，应为 YYYY-MM-DD' };
+    }
+  }
+
+  if (body.status !== undefined) {
+    if (!partial) {
+      return { data, error: '新任务默认从待办开始' };
+    }
+    if (typeof body.status !== 'string' || !PROJECT_TASK_STATUSES.includes(body.status as ResearchProjectTaskStatus)) {
+      return { data, error: '任务状态无效' };
+    }
+    data.status = body.status as ResearchProjectTaskStatus;
+  }
+
+  return { data };
+}
 
 function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null {
   if (value === undefined || value === null) {
@@ -618,6 +680,19 @@ export class ResearchController {
       if (!transition.valid) {
         return res.error('课题状态向前每次只能推进一步', 'INVALID_PROJECT_STATUS_TRANSITION', 400);
       }
+
+      // 待评审 → 已展示 is gated on the peer-review quorum; admins bypass.
+      if (!isAdmin && currentStatus === 'review_pending' && nextStatus === 'showcased') {
+        const cycle = await ResearchModel.ensureCurrentProjectCycle(id);
+        const reviewCount = await ResearchModel.countProjectReviews(id, cycle.id);
+        if (reviewCount < PROJECT_REVIEW_QUORUM) {
+          return res.error(
+            `需要至少收到 ${PROJECT_REVIEW_QUORUM} 份同伴评审后才能进入展示（当前已收到 ${reviewCount} 份）`,
+            'PROJECT_REVIEW_QUORUM_NOT_MET',
+            400
+          );
+        }
+      }
     }
 
     const { is_public: _ignoredLegacyVisibility, ...projectUpdate } = req.body;
@@ -852,6 +927,300 @@ export class ResearchController {
     });
     logger.info(`Project evidence deleted by user ${req.user!.username}: ${evidenceId}`);
     res.success(null, '证据已删除');
+  });
+
+  // ============================================================
+  // Peer Reviews / 同伴评审
+  // ============================================================
+
+  /**
+   * Get project peer reviews (current cycle)
+   * 获取课题同伴评审（当前周期）
+   */
+  static getProjectReviews = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能查看公开课题或已加入的课题评审'
+    );
+    if (!access) {
+      return;
+    }
+
+    const reviews = await ResearchModel.getProjectReviews(projectId);
+    res.success(reviews);
+  });
+
+  /**
+   * Create or update the current user's peer review
+   * 提交或更新当前用户的同伴评审
+   */
+  static upsertMyProjectReview = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const reviewerId = req.user!.sub;
+    const verdict = req.body?.verdict;
+    const rawContent = typeof req.body?.content === 'string' ? req.body.content : '';
+    const content = rawContent.trim();
+
+    if (!PROJECT_REVIEW_VERDICTS.includes(verdict)) {
+      return res.error('评审结论无效', 'INVALID_REVIEW_VERDICT', 400);
+    }
+
+    if (!content) {
+      return res.error('请填写评审意见', 'INVALID_REVIEW_CONTENT', 400);
+    }
+
+    if (content.length > MAX_PROJECT_REVIEW_CONTENT_LENGTH) {
+      return res.error(
+        `评审意见不能超过 ${MAX_PROJECT_REVIEW_CONTENT_LENGTH} 字`,
+        'REVIEW_CONTENT_TOO_LONG',
+        400
+      );
+    }
+
+    const access = await ResearchModel.getProjectAccess(projectId, reviewerId, req.user!.role);
+    if (!access.project) {
+      return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    if (!access.canRead) {
+      return res.error('你只能评审公开课题', 'FORBIDDEN', 403);
+    }
+
+    // Peer review comes from outside the group: active members are excluded.
+    if (access.isMember) {
+      return res.error('课题成员不能评审自己的课题', 'REVIEWER_IS_MEMBER', 403);
+    }
+
+    if (access.project.status !== 'review_pending') {
+      return res.error('该课题当前不在待评审阶段', 'PROJECT_NOT_REVIEW_PENDING', 400);
+    }
+
+    const cycle = await ResearchModel.ensureCurrentProjectCycle(projectId);
+    const { id: reviewId, created } = await ResearchModel.upsertProjectReview(
+      projectId,
+      cycle.id,
+      reviewerId,
+      { verdict, content }
+    );
+
+    // Only first-time submissions log activity and notify, so edits stay quiet.
+    if (created) {
+      await ResearchModel.logActivity(
+        projectId,
+        reviewerId,
+        'review_submitted',
+        'project_review',
+        reviewId,
+        { verdict }
+      );
+      const recipients = await ResearchModel.getActiveProjectMemberUserIds(projectId);
+      await NotificationModel.createNotificationForUsers(recipients, {
+        type: 'system',
+        title: `课题“${access.project.name_zh || access.project.name_en || projectId}”收到新的同伴评审`,
+        content: verdict === 'approve' ? '评审结论：建议通过' : '评审结论：建议修改',
+        data: {
+          project_id: projectId,
+          review_id: reviewId,
+          reviewer_id: reviewerId,
+          verdict,
+        },
+        action_url: `/lab/projects/${projectId}#project-peer-review`,
+      });
+    }
+
+    const reviews = await ResearchModel.getProjectReviews(projectId);
+    const review = reviews.find((item) => item.id === reviewId) ?? null;
+    logger.info(`Project review ${created ? 'submitted' : 'updated'} by user ${req.user!.username}: ${reviewId}`);
+    res.success(review, created ? '评审已提交' : '评审已更新', created ? 201 : 200);
+  });
+
+  /**
+   * Delete a peer review (author or admin)
+   * 删除同伴评审（作者本人或管理员）
+   */
+  static deleteProjectReview = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const review = await ResearchModel.getProjectReviewById(id);
+    if (!review) {
+      return res.error('评审未找到', 'REVIEW_NOT_FOUND', 404);
+    }
+
+    if (review.reviewer_id !== req.user!.sub && req.user!.role !== 'admin') {
+      return res.error('只能删除自己的评审', 'FORBIDDEN', 403);
+    }
+
+    await ResearchModel.deleteProjectReview(id);
+    logger.info(`Project review deleted by user ${req.user!.username}: ${id}`);
+    res.success(null, '评审已删除');
+  });
+
+  // ============================================================
+  // Project Tasks / 任务分工
+  // ============================================================
+
+  /**
+   * Get project tasks (current cycle)
+   * 获取课题任务（当前周期）
+   */
+  static getProjectTasks = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'discussion',
+      '只有课题成员可以查看任务分工'
+    );
+    if (!access) {
+      return;
+    }
+
+    const tasks = await ResearchModel.getProjectTasks(projectId);
+    res.success(tasks);
+  });
+
+  /**
+   * Create project task
+   * 创建课题任务
+   */
+  static createProjectTask = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以创建任务'
+    );
+    if (!access) {
+      return;
+    }
+
+    const { data, error } = normalizeProjectTaskPayload(req.body ?? {});
+    if (error) {
+      return res.error(error, 'INVALID_PROJECT_TASK', 400);
+    }
+
+    if (data.assignee_user_id) {
+      const memberIds = await ResearchModel.getActiveProjectMemberUserIds(projectId);
+      if (!memberIds.includes(data.assignee_user_id)) {
+        return res.error('任务负责人必须是当前课题成员', 'INVALID_TASK_ASSIGNEE', 400);
+      }
+    }
+
+    const cycle = await ResearchModel.ensureCurrentProjectCycle(projectId);
+    const taskId = await ResearchModel.createProjectTask(projectId, cycle.id, req.user!.sub, data);
+    await ResearchModel.logActivity(
+      projectId,
+      req.user!.sub,
+      'task_created',
+      'project_task',
+      taskId,
+      { title: data.title }
+    );
+
+    const tasks = await ResearchModel.getProjectTasks(projectId);
+    const task = tasks.find((item) => item.id === taskId) ?? null;
+    logger.info(`Project task created by user ${req.user!.username}: ${taskId}`);
+    res.success(task, '任务已创建', 201);
+  });
+
+  /**
+   * Update project task
+   * 更新课题任务
+   */
+  static updateProjectTask = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const existing = await ResearchModel.getProjectTaskById(id);
+    if (!existing) {
+      return res.error('任务未找到', 'TASK_NOT_FOUND', 404);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      existing.project_id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以更新任务'
+    );
+    if (!access) {
+      return;
+    }
+
+    const { data, error } = normalizeProjectTaskPayload(req.body ?? {}, { partial: true });
+    if (error) {
+      return res.error(error, 'INVALID_PROJECT_TASK', 400);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.error('没有可更新的任务字段', 'INVALID_PROJECT_TASK', 400);
+    }
+
+    if (data.assignee_user_id) {
+      const memberIds = await ResearchModel.getActiveProjectMemberUserIds(existing.project_id);
+      if (!memberIds.includes(data.assignee_user_id)) {
+        return res.error('任务负责人必须是当前课题成员', 'INVALID_TASK_ASSIGNEE', 400);
+      }
+    }
+
+    const completedNow = data.status === 'done' && existing.status !== 'done';
+    await ResearchModel.updateProjectTask(id, data);
+
+    if (completedNow) {
+      await ResearchModel.logActivity(
+        existing.project_id,
+        req.user!.sub,
+        'task_completed',
+        'project_task',
+        id,
+        { title: data.title ?? existing.title }
+      );
+    }
+
+    const tasks = await ResearchModel.getProjectTasks(existing.project_id);
+    const task = tasks.find((item) => item.id === id) ?? null;
+    logger.info(`Project task updated by user ${req.user!.username}: ${id}`);
+    res.success(task, '任务已更新');
+  });
+
+  /**
+   * Delete project task (creator, owner, or admin)
+   * 删除课题任务（创建者、组长或管理员）
+   */
+  static deleteProjectTask = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const existing = await ResearchModel.getProjectTaskById(id);
+    if (!existing) {
+      return res.error('任务未找到', 'TASK_NOT_FOUND', 404);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      existing.project_id,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以删除任务'
+    );
+    if (!access) {
+      return;
+    }
+
+    if (existing.created_by !== req.user!.sub && !access.canManage) {
+      return res.error('只有任务创建者、组长或管理员可以删除任务', 'FORBIDDEN', 403);
+    }
+
+    await ResearchModel.deleteProjectTask(id);
+    logger.info(`Project task deleted by user ${req.user!.username}: ${id}`);
+    res.success(null, '任务已删除');
   });
 
   /**
@@ -1710,6 +2079,47 @@ export class ResearchController {
 
     logger.info(`Project discussion comment added by user ${req.user!.username}: ${commentId}`);
     res.success({ id: commentId }, '讨论留言发布成功', 201);
+  });
+
+  /**
+   * Update project discussion comment (author-only, text only)
+   * 编辑课题讨论评论（仅作者本人，只改文字）
+   */
+  static updateProjectDiscussionComment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const currentUserId = req.user!.sub;
+    const rawContent = typeof req.body?.content === 'string' ? req.body.content : '';
+    const content = rawContent.trim();
+
+    if (content.length > 2000) {
+      return res.error('评论内容不能超过 2000 字', 'COMMENT_TOO_LONG', 400);
+    }
+
+    const comment = await ResearchModel.getProjectDiscussionCommentById(id);
+    if (!comment) {
+      return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
+    }
+
+    if (comment.is_deleted) {
+      return res.error('该评论已删除，无法编辑', 'COMMENT_DELETED', 400);
+    }
+
+    if (comment.user_id !== currentUserId) {
+      return res.error('只能编辑自己的留言', 'FORBIDDEN', 403);
+    }
+
+    if (!content && (comment.image_urls?.length ?? 0) === 0 && (comment.video_urls?.length ?? 0) === 0) {
+      return res.error('评论内容、图片和视频至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
+    }
+
+    const access = await ResearchModel.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
+    if (!access.canAccessDiscussion) {
+      return res.error('只有课题成员可以编辑讨论留言', 'FORBIDDEN', 403);
+    }
+
+    await ResearchModel.updateProjectDiscussionComment(id, currentUserId, content);
+    logger.info(`Project discussion comment updated by user ${req.user!.username}: ${id}`);
+    res.success(null, '讨论留言已更新');
   });
 
   /**

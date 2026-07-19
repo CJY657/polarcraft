@@ -639,7 +639,13 @@ export class ProfileModel {
    * 获取公开项目列表
    */
   static async getPublicProjects(
-    filters: { recruiting?: boolean; search?: string } = {},
+    filters: {
+      recruiting?: boolean;
+      search?: string;
+      status?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
     userId?: string
   ): Promise<any[]> {
     const settingsFilter: Record<string, unknown> = { visibility: 'public' };
@@ -657,6 +663,10 @@ export class ProfileModel {
     const projectIds = settings.map((item) => item.project_id);
     const projectFilter: Record<string, unknown> = { id: { $in: projectIds } };
 
+    if (filters.status) {
+      projectFilter.status = filters.status;
+    }
+
     if (filters.search) {
       const regex = new RegExp(escapeRegExp(filters.search), 'i');
       projectFilter.$or = [
@@ -666,9 +676,15 @@ export class ProfileModel {
       ];
     }
 
-    const projects = normalizeDocuments<any>(
-      await researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 }).toArray()
-    );
+    let projectsQuery = researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 });
+    if (filters.offset !== undefined && filters.offset > 0) {
+      projectsQuery = projectsQuery.skip(Math.floor(filters.offset));
+    }
+    if (filters.limit !== undefined && filters.limit > 0) {
+      projectsQuery = projectsQuery.limit(Math.floor(filters.limit));
+    }
+
+    const projects = normalizeDocuments<any>(await projectsQuery.toArray());
     if (projects.length === 0) {
       return [];
     }

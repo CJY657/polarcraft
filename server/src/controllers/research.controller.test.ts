@@ -38,6 +38,18 @@ const {
     setLegacyProjectVisibility: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
+    ensureCurrentProjectCycle: vi.fn(),
+    getProjectReviews: vi.fn(),
+    getProjectReviewById: vi.fn(),
+    upsertProjectReview: vi.fn(),
+    deleteProjectReview: vi.fn(),
+    countProjectReviews: vi.fn(),
+    getProjectTasks: vi.fn(),
+    getProjectTaskById: vi.fn(),
+    createProjectTask: vi.fn(),
+    updateProjectTask: vi.fn(),
+    deleteProjectTask: vi.fn(),
+    updateProjectDiscussionComment: vi.fn(),
   },
   mockNotificationModel: {
     createNotification: vi.fn(),
@@ -2055,5 +2067,539 @@ describe('ResearchController project discussion comments', () => {
         },
       })
     );
+  });
+});
+
+describe('ResearchController peer review quorum gate', () => {
+  const reviewPendingProject = {
+    id: 'project-1',
+    name_zh: '偏振课题',
+    status: 'review_pending',
+    thumbnail: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'public' });
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: reviewPendingProject,
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.updateProject.mockResolvedValue('updated');
+    mockResearchModel.getProjectById.mockResolvedValue({ ...reviewPendingProject, status: 'showcased' });
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['owner-1']);
+    mockResearchModel.ensureCurrentProjectCycle.mockResolvedValue({ id: 'cycle-1', cycle_number: 1 });
+  });
+
+  it.each([0, 1])('blocks 待评审→已展示 with only %i reviews', async (reviewCount) => {
+    mockResearchModel.countProjectReviews.mockResolvedValue(reviewCount);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'showcased' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.countProjectReviews).toHaveBeenCalledWith('project-1', 'cycle-1');
+    expect(res.error).toHaveBeenCalledWith(
+      expect.stringContaining('至少收到 2 份同伴评审'),
+      'PROJECT_REVIEW_QUORUM_NOT_MET',
+      400
+    );
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('allows 待评审→已展示 once two reviews are received', async () => {
+    mockResearchModel.countProjectReviews.mockResolvedValue(2);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'showcased' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { status: 'showcased' },
+      'review_pending'
+    );
+  });
+
+  it('lets admins bypass the review quorum', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'showcased' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(mockResearchModel.countProjectReviews).not.toHaveBeenCalled();
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { status: 'showcased' },
+      'review_pending'
+    );
+  });
+
+  it('does not consult the quorum for other transitions', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue({
+      project: { ...reviewPendingProject, status: 'active' },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { status: 'review_pending' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.countProjectReviews).not.toHaveBeenCalled();
+    expect(res.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchController peer reviews', () => {
+  function nonMemberAccess(overrides: Record<string, unknown> = {}) {
+    return {
+      project: { id: 'project-1', name_zh: '偏振课题', status: 'review_pending' },
+      membership: null,
+      role: null,
+      isAdmin: false,
+      isMember: false,
+      canRead: true,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+      canModerate: false,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess());
+    mockResearchModel.ensureCurrentProjectCycle.mockResolvedValue({ id: 'cycle-1', cycle_number: 1 });
+    mockResearchModel.upsertProjectReview.mockResolvedValue({ id: 'review-1', created: true });
+    mockResearchModel.getProjectReviews.mockResolvedValue([
+      { id: 'review-1', verdict: 'approve', content: '做得不错', reviewer_id: 'reviewer-9' },
+    ]);
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['owner-1', 'member-1']);
+  });
+
+  it('lets a logged-in non-member submit a review and notifies the group', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'approve', content: '  做得不错  ' },
+      user: { sub: 'reviewer-9', username: 'reviewer', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.upsertProjectReview).toHaveBeenCalledWith(
+      'project-1',
+      'cycle-1',
+      'reviewer-9',
+      { verdict: 'approve', content: '做得不错' }
+    );
+    expect(mockResearchModel.logActivity).toHaveBeenCalledWith(
+      'project-1',
+      'reviewer-9',
+      'review_submitted',
+      'project_review',
+      'review-1',
+      { verdict: 'approve' }
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['owner-1', 'member-1'],
+      expect.objectContaining({
+        type: 'system',
+        action_url: '/lab/projects/project-1#project-peer-review',
+      })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'review-1' }),
+      '评审已提交',
+      201
+    );
+  });
+
+  it('blocks active members from reviewing their own project', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess({
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canWrite: true,
+      canAccessDiscussion: true,
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'approve', content: '自评' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('课题成员不能评审自己的课题', 'REVIEWER_IS_MEMBER', 403);
+    expect(mockResearchModel.upsertProjectReview).not.toHaveBeenCalled();
+  });
+
+  it('rejects reviews when the project is not review_pending', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess({
+      project: { id: 'project-1', name_zh: '偏振课题', status: 'active' },
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'approve', content: '还没到评审阶段' },
+      user: { sub: 'reviewer-9', username: 'reviewer', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('该课题当前不在待评审阶段', 'PROJECT_NOT_REVIEW_PENDING', 400);
+    expect(mockResearchModel.upsertProjectReview).not.toHaveBeenCalled();
+  });
+
+  it('updates an existing review quietly without re-notifying', async () => {
+    mockResearchModel.upsertProjectReview.mockResolvedValue({ id: 'review-1', created: false });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'request_changes', content: '再补充一下数据' },
+      user: { sub: 'reviewer-9', username: 'reviewer', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotificationForUsers).not.toHaveBeenCalled();
+    expect(res.success).toHaveBeenCalledWith(expect.anything(), '评审已更新', 200);
+  });
+
+  it('validates verdict and content before touching the database', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'maybe', content: '意见' },
+      user: { sub: 'reviewer-9', username: 'reviewer', role: 'user' },
+    }, res);
+    expect(res.error).toHaveBeenCalledWith('评审结论无效', 'INVALID_REVIEW_VERDICT', 400);
+
+    const emptyRes = createResponse();
+    await invokeHandler(ResearchController.upsertMyProjectReview, {
+      params: { projectId: 'project-1' },
+      body: { verdict: 'approve', content: '   ' },
+      user: { sub: 'reviewer-9', username: 'reviewer', role: 'user' },
+    }, emptyRes);
+    expect(emptyRes.error).toHaveBeenCalledWith('请填写评审意见', 'INVALID_REVIEW_CONTENT', 400);
+
+    expect(mockResearchModel.getProjectAccess).not.toHaveBeenCalled();
+    expect(mockResearchModel.upsertProjectReview).not.toHaveBeenCalled();
+  });
+
+  it('allows only the author or an admin to delete a review', async () => {
+    mockResearchModel.getProjectReviewById.mockResolvedValue({ id: 'review-1', reviewer_id: 'reviewer-9' });
+
+    const forbiddenRes = createResponse();
+    await invokeHandler(ResearchController.deleteProjectReview, {
+      params: { id: 'review-1' },
+      user: { sub: 'other-1', username: 'other', role: 'user' },
+    }, forbiddenRes);
+    expect(forbiddenRes.error).toHaveBeenCalledWith('只能删除自己的评审', 'FORBIDDEN', 403);
+    expect(mockResearchModel.deleteProjectReview).not.toHaveBeenCalled();
+
+    const adminRes = createResponse();
+    await invokeHandler(ResearchController.deleteProjectReview, {
+      params: { id: 'review-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, adminRes);
+    expect(mockResearchModel.deleteProjectReview).toHaveBeenCalledWith('review-1');
+    expect(adminRes.success).toHaveBeenCalledWith(null, '评审已删除');
+  });
+});
+
+describe('ResearchController project tasks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockResearchModel.ensureCurrentProjectCycle.mockResolvedValue({ id: 'cycle-1', cycle_number: 1 });
+    mockResearchModel.createProjectTask.mockResolvedValue('task-1');
+    mockResearchModel.getProjectTasks.mockResolvedValue([
+      { id: 'task-1', title: '整理数据', status: 'todo' },
+    ]);
+    mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['member-1', 'owner-1']);
+    mockResearchModel.updateProjectTask.mockResolvedValue(true);
+    mockResearchModel.deleteProjectTask.mockResolvedValue(true);
+  });
+
+  it('creates a task for a member and logs task_created', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createProjectTask, {
+      params: { projectId: 'project-1' },
+      body: { title: '  整理数据  ', assignee_user_id: 'owner-1', due_date: '2026-08-01' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.createProjectTask).toHaveBeenCalledWith(
+      'project-1',
+      'cycle-1',
+      'member-1',
+      { title: '整理数据', assignee_user_id: 'owner-1', due_date: '2026-08-01' }
+    );
+    expect(mockResearchModel.logActivity).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      'task_created',
+      'project_task',
+      'task-1',
+      { title: '整理数据' }
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'task-1' }),
+      '任务已创建',
+      201
+    );
+  });
+
+  it('rejects task creation by non-members', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      membership: null,
+      role: null,
+      isMember: false,
+      canWrite: false,
+      canAccessDiscussion: false,
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createProjectTask, {
+      params: { projectId: 'project-1' },
+      body: { title: '外部任务' },
+      user: { sub: 'stranger-1', username: 'stranger', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('只有课题成员可以创建任务', 'FORBIDDEN', 403);
+    expect(mockResearchModel.createProjectTask).not.toHaveBeenCalled();
+  });
+
+  it('rejects an assignee who is not an active project member', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.createProjectTask, {
+      params: { projectId: 'project-1' },
+      body: { title: '整理数据', assignee_user_id: 'stranger-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('任务负责人必须是当前课题成员', 'INVALID_TASK_ASSIGNEE', 400);
+    expect(mockResearchModel.createProjectTask).not.toHaveBeenCalled();
+  });
+
+  it('logs task_completed only when a task first moves to done', async () => {
+    mockResearchModel.getProjectTaskById.mockResolvedValue({
+      id: 'task-1',
+      project_id: 'project-1',
+      title: '整理数据',
+      status: 'doing',
+      created_by: 'member-1',
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectTask, {
+      params: { id: 'task-1' },
+      body: { status: 'done' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProjectTask).toHaveBeenCalledWith('task-1', { status: 'done' });
+    expect(mockResearchModel.logActivity).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      'task_completed',
+      'project_task',
+      'task-1',
+      { title: '整理数据' }
+    );
+  });
+
+  it('does not log task_completed when the task is already done', async () => {
+    mockResearchModel.getProjectTaskById.mockResolvedValue({
+      id: 'task-1',
+      project_id: 'project-1',
+      title: '整理数据',
+      status: 'done',
+      created_by: 'member-1',
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectTask, {
+      params: { id: 'task-1' },
+      body: { status: 'done', title: '整理数据（更新）' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(res.error).not.toHaveBeenCalled();
+  });
+
+  it('restricts task deletion to the creator, owner, or admin', async () => {
+    mockResearchModel.getProjectTaskById.mockResolvedValue({
+      id: 'task-1',
+      project_id: 'project-1',
+      title: '整理数据',
+      status: 'todo',
+      created_by: 'owner-1',
+    });
+
+    const forbiddenRes = createResponse();
+    await invokeHandler(ResearchController.deleteProjectTask, {
+      params: { id: 'task-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, forbiddenRes);
+    expect(forbiddenRes.error).toHaveBeenCalledWith(
+      '只有任务创建者、组长或管理员可以删除任务',
+      'FORBIDDEN',
+      403
+    );
+    expect(mockResearchModel.deleteProjectTask).not.toHaveBeenCalled();
+
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      canManage: true,
+      canModerate: true,
+    }));
+    const ownerRes = createResponse();
+    await invokeHandler(ResearchController.deleteProjectTask, {
+      params: { id: 'task-1' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, ownerRes);
+    expect(mockResearchModel.deleteProjectTask).toHaveBeenCalledWith('task-1');
+    expect(ownerRes.success).toHaveBeenCalledWith(null, '任务已删除');
+  });
+});
+
+describe('ResearchController discussion comment editing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockResearchModel.getProjectDiscussionCommentById.mockResolvedValue({
+      id: 'comment-1',
+      project_id: 'project-1',
+      user_id: 'member-1',
+      content: '旧内容',
+      image_urls: [],
+      video_urls: [],
+      is_deleted: false,
+    });
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockResearchModel.updateProjectDiscussionComment.mockResolvedValue(true);
+  });
+
+  it('lets the author edit their own comment', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectDiscussionComment, {
+      params: { id: 'comment-1' },
+      body: { content: '  新内容  ' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProjectDiscussionComment).toHaveBeenCalledWith(
+      'comment-1',
+      'member-1',
+      '新内容'
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '讨论留言已更新');
+  });
+
+  it('rejects edits by anyone other than the author', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectDiscussionComment, {
+      params: { id: 'comment-1' },
+      body: { content: '别人的修改' },
+      user: { sub: 'member-2', username: 'other', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('只能编辑自己的留言', 'FORBIDDEN', 403);
+    expect(mockResearchModel.updateProjectDiscussionComment).not.toHaveBeenCalled();
+  });
+
+  it('rejects edits to deleted comments', async () => {
+    mockResearchModel.getProjectDiscussionCommentById.mockResolvedValue({
+      id: 'comment-1',
+      project_id: 'project-1',
+      user_id: 'member-1',
+      content: '',
+      image_urls: [],
+      video_urls: [],
+      is_deleted: true,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectDiscussionComment, {
+      params: { id: 'comment-1' },
+      body: { content: '恢复内容' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('该评论已删除，无法编辑', 'COMMENT_DELETED', 400);
+    expect(mockResearchModel.updateProjectDiscussionComment).not.toHaveBeenCalled();
+  });
+
+  it('rejects clearing the text of a comment without attachments', async () => {
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectDiscussionComment, {
+      params: { id: 'comment-1' },
+      body: { content: '   ' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('评论内容、图片和视频至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
+    expect(mockResearchModel.updateProjectDiscussionComment).not.toHaveBeenCalled();
+  });
+
+  it('allows clearing the text when the comment still has attachments', async () => {
+    mockResearchModel.getProjectDiscussionCommentById.mockResolvedValue({
+      id: 'comment-1',
+      project_id: 'project-1',
+      user_id: 'member-1',
+      content: '旧内容',
+      image_urls: ['/uploads/courses/project-discussion-project-1/image/a.png'],
+      video_urls: [],
+      is_deleted: false,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectDiscussionComment, {
+      params: { id: 'comment-1' },
+      body: { content: '' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.updateProjectDiscussionComment).toHaveBeenCalledWith('comment-1', 'member-1', '');
+    expect(res.success).toHaveBeenCalledWith(null, '讨论留言已更新');
   });
 });

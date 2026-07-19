@@ -19,6 +19,10 @@ import {
   type ProjectStatus,
 } from './research-project.util.js';
 import { getUserIdentityMap } from './user-identity.util.js';
+import type {
+  ResearchProjectReviewVerdict,
+  ResearchProjectTaskStatus,
+} from '../types/research-cycle.types.js';
 
 const researchProjectsCollection = () => getCollection('research_projects');
 const projectMembersCollection = () => getCollection('research_project_members');
@@ -80,6 +84,24 @@ export interface ResearchProjectEvidenceInput {
   attachment_mime_type?: string | null;
   attachment_category?: string | null;
   attachment_note?: string | null;
+}
+
+export interface ResearchProjectReviewInput {
+  verdict: ResearchProjectReviewVerdict;
+  content: string;
+}
+
+export interface CreateResearchProjectTaskInput {
+  title: string;
+  assignee_user_id?: string | null;
+  due_date?: string | null;
+}
+
+export interface UpdateResearchProjectTaskInput {
+  title?: string;
+  assignee_user_id?: string | null;
+  status?: ResearchProjectTaskStatus;
+  due_date?: string | null;
 }
 
 export interface ResearchProjectAccess {
@@ -423,6 +445,265 @@ export class ResearchModel {
 
   static async cycleBelongsToProject(projectId: string, cycleId: string): Promise<boolean> {
     return Boolean(await projectCyclesCollection().findOne({ id: cycleId, project_id: projectId }));
+  }
+
+  /**
+   * Get the current cycle, lazily creating cycle 1 for legacy projects that
+   * were created before cycles existed. No migration needed.
+   * 获取当前研究周期；旧课题缺少周期记录时惰性补建第 1 周期，无需迁移。
+   */
+  static async ensureCurrentProjectCycle(projectId: string): Promise<any> {
+    const existing = await this.getCurrentProjectCycle(projectId);
+    if (existing) {
+      return existing;
+    }
+
+    const now = new Date();
+    const cycle = {
+      id: generateId(),
+      project_id: projectId,
+      cycle_number: 1,
+      created_at: now,
+      updated_at: now,
+    };
+
+    try {
+      await projectCyclesCollection().insertOne({ ...cycle });
+    } catch (error) {
+      // 11000 = duplicate key: a concurrent request already created cycle 1.
+      if ((error as { code?: number }).code !== 11000) {
+        throw error;
+      }
+      return (await this.getCurrentProjectCycle(projectId)) ?? cycle;
+    }
+
+    logger.info(`Project cycle 1 backfilled for legacy project: ${projectId}`);
+    return cycle;
+  }
+
+  // ============================================================
+  // Peer reviews / 同伴评审
+  // ============================================================
+
+  private static async enrichProjectReviews(reviews: any[]): Promise<any[]> {
+    if (reviews.length === 0) {
+      return [];
+    }
+
+    const userMap = await getUserIdentityMap(reviews.map((review) => review.reviewer_id));
+
+    return reviews.map((review) => ({
+      ...review,
+      reviewer_username: userMap.get(review.reviewer_id)?.username || '',
+      reviewer_nickname: userMap.get(review.reviewer_id)?.nickname ?? null,
+      reviewer_real_name: userMap.get(review.reviewer_id)?.real_name ?? null,
+      reviewer_show_real_name_publicly: userMap.get(review.reviewer_id)?.show_real_name_publicly ?? false,
+      reviewer_avatar_url: userMap.get(review.reviewer_id)?.avatar_url || null,
+    }));
+  }
+
+  /**
+   * Get current-cycle peer reviews (newest first, enriched with reviewer identity)
+   * 获取当前周期的同伴评审（按时间倒序，附评审者身份）
+   */
+  static async getProjectReviews(projectId: string): Promise<any[]> {
+    const cycle = await this.ensureCurrentProjectCycle(projectId);
+    const reviews = normalizeDocuments<any>(
+      await projectReviewsCollection()
+        .find({ project_id: projectId, cycle_id: cycle.id })
+        .sort({ updated_at: -1 })
+        .toArray()
+    );
+
+    return this.enrichProjectReviews(reviews);
+  }
+
+  static async getProjectReviewById(reviewId: string): Promise<any | null> {
+    return normalizeDocument<any>(await projectReviewsCollection().findOne({ id: reviewId }));
+  }
+
+  /**
+   * Create or update the reviewer's single review for this cycle. One document
+   * per (project, cycle, reviewer) keeps the collection bounded.
+   * 创建或更新评审者在本周期内的唯一评审，按（课题、周期、评审者）去重，集合不会膨胀。
+   */
+  static async upsertProjectReview(
+    projectId: string,
+    cycleId: string,
+    reviewerId: string,
+    data: ResearchProjectReviewInput
+  ): Promise<{ id: string; created: boolean }> {
+    const now = new Date();
+    const filter = { project_id: projectId, cycle_id: cycleId, reviewer_id: reviewerId };
+    const existing = normalizeDocument<any>(await projectReviewsCollection().findOne(filter));
+
+    if (existing) {
+      await projectReviewsCollection().updateOne(
+        { id: existing.id },
+        { $set: { verdict: data.verdict, content: data.content, updated_at: now } }
+      );
+      await this.touchProjectActivity(projectId, now);
+      logger.info(`Project review updated: ${existing.id} in project ${projectId}`);
+      return { id: existing.id, created: false };
+    }
+
+    const reviewId = generateId();
+    try {
+      await projectReviewsCollection().insertOne({
+        id: reviewId,
+        project_id: projectId,
+        cycle_id: cycleId,
+        reviewer_id: reviewerId,
+        verdict: data.verdict,
+        content: data.content,
+        created_at: now,
+        updated_at: now,
+      });
+    } catch (error) {
+      // 11000 = duplicate key: concurrent submit by the same reviewer — fold into an update.
+      if ((error as { code?: number }).code !== 11000) {
+        throw error;
+      }
+      await projectReviewsCollection().updateOne(
+        filter,
+        { $set: { verdict: data.verdict, content: data.content, updated_at: now } }
+      );
+      const current = normalizeDocument<any>(await projectReviewsCollection().findOne(filter));
+      return { id: current?.id ?? reviewId, created: false };
+    }
+
+    await this.touchProjectActivity(projectId, now);
+    logger.info(`Project review submitted: ${reviewId} in project ${projectId}`);
+    return { id: reviewId, created: true };
+  }
+
+  static async deleteProjectReview(reviewId: string): Promise<boolean> {
+    const result = await projectReviewsCollection().deleteOne({ id: reviewId });
+    logger.info(`Project review deleted: ${reviewId}`);
+    return result.deletedCount > 0;
+  }
+
+  static async countProjectReviews(projectId: string, cycleId: string): Promise<number> {
+    return projectReviewsCollection().countDocuments({ project_id: projectId, cycle_id: cycleId });
+  }
+
+  // ============================================================
+  // Project tasks / 任务分工
+  // ============================================================
+
+  private static async enrichProjectTasks(tasks: any[]): Promise<any[]> {
+    if (tasks.length === 0) {
+      return [];
+    }
+
+    const userMap = await getUserIdentityMap(
+      tasks.flatMap((task) => [task.assignee_user_id, task.created_by]).filter(Boolean)
+    );
+
+    return tasks.map((task) => {
+      const assignee = task.assignee_user_id ? userMap.get(task.assignee_user_id) : undefined;
+      return {
+        ...task,
+        assignee_username: assignee?.username || '',
+        assignee_nickname: assignee?.nickname ?? null,
+        assignee_real_name: assignee?.real_name ?? null,
+        assignee_show_real_name_publicly: assignee?.show_real_name_publicly ?? false,
+        assignee_avatar_url: assignee?.avatar_url || null,
+      };
+    });
+  }
+
+  /**
+   * Get current-cycle tasks (oldest first, enriched with assignee identity)
+   * 获取当前周期的任务（按创建时间正序，附负责人身份）
+   */
+  static async getProjectTasks(projectId: string): Promise<any[]> {
+    const cycle = await this.ensureCurrentProjectCycle(projectId);
+    const tasks = normalizeDocuments<any>(
+      await projectTasksCollection()
+        .find({ project_id: projectId, cycle_id: cycle.id })
+        .sort({ created_at: 1 })
+        .toArray()
+    );
+
+    return this.enrichProjectTasks(tasks);
+  }
+
+  static async getProjectTaskById(taskId: string): Promise<any | null> {
+    return normalizeDocument<any>(await projectTasksCollection().findOne({ id: taskId }));
+  }
+
+  static async createProjectTask(
+    projectId: string,
+    cycleId: string,
+    createdBy: string,
+    data: CreateResearchProjectTaskInput
+  ): Promise<string> {
+    const now = new Date();
+    const taskId = generateId();
+
+    await projectTasksCollection().insertOne({
+      id: taskId,
+      project_id: projectId,
+      cycle_id: cycleId,
+      title: data.title,
+      assignee_user_id: data.assignee_user_id ?? null,
+      status: 'todo',
+      due_date: data.due_date ?? null,
+      created_by: createdBy,
+      completed_at: null,
+      created_at: now,
+      updated_at: now,
+    });
+    await this.touchProjectActivity(projectId, now);
+
+    logger.info(`Project task created: ${taskId} in project ${projectId}`);
+    return taskId;
+  }
+
+  static async updateProjectTask(taskId: string, data: UpdateResearchProjectTaskInput): Promise<boolean> {
+    const task = await this.getProjectTaskById(taskId);
+    if (!task) {
+      return false;
+    }
+
+    const updateDoc: Record<string, unknown> = pickDefined({
+      title: data.title,
+      assignee_user_id: data.assignee_user_id,
+      status: data.status,
+      due_date: data.due_date,
+    });
+
+    if (Object.keys(updateDoc).length === 0) {
+      return false;
+    }
+
+    // completed_at only moves on an actual status transition, not on repeated saves.
+    if (data.status !== undefined && data.status !== task.status) {
+      updateDoc.completed_at = data.status === 'done' ? new Date() : null;
+    }
+
+    const result = await projectTasksCollection().updateOne(
+      { id: taskId },
+      { $set: { ...updateDoc, updated_at: new Date() } }
+    );
+
+    if (result.matchedCount > 0) {
+      await this.touchProjectActivity(task.project_id);
+    }
+
+    logger.info(`Project task updated: ${taskId}`);
+    return result.matchedCount > 0;
+  }
+
+  static async deleteProjectTask(taskId: string): Promise<boolean> {
+    const task = await this.getProjectTaskById(taskId);
+    const result = await projectTasksCollection().deleteOne({ id: taskId });
+    if (result.deletedCount > 0 && task?.project_id) {
+      await this.touchProjectActivity(task.project_id);
+    }
+    logger.info(`Project task deleted: ${taskId}`);
+    return result.deletedCount > 0;
   }
 
   /**
@@ -1448,6 +1729,33 @@ export class ResearchModel {
 
     logger.info(`Project discussion comment added: ${commentId} in project ${projectId}`);
     return commentId;
+  }
+
+  /**
+   * Update a project discussion comment's text (author-only, attachments unchanged)
+   * 更新课题讨论评论文字（仅作者本人，附件保持不变）
+   */
+  static async updateProjectDiscussionComment(
+    commentId: string,
+    userId: string,
+    content: string
+  ): Promise<boolean> {
+    const comment = await this.getProjectDiscussionCommentById(commentId);
+    if (!comment || comment.is_deleted) {
+      return false;
+    }
+
+    const result = await projectCommentsCollection().updateOne(
+      { id: commentId, user_id: userId, is_deleted: { $ne: true } },
+      { $set: { content, updated_at: new Date() } }
+    );
+
+    if (result.matchedCount > 0) {
+      await this.touchProjectActivity(comment.project_id);
+    }
+
+    logger.info(`Project discussion comment updated: ${commentId}`);
+    return result.matchedCount > 0;
   }
 
   private static async pruneDeletedProjectDiscussionAncestor(commentId: string | null): Promise<void> {

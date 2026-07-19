@@ -4,7 +4,7 @@
  */
 
 import { api, ensureApiSuccess, unwrapApiData } from './api';
-import type { ProjectEvidence } from './research.service';
+import type { ProjectEvidence, ProjectReview } from './research.service';
 
 // =====================================================
 // Types / 类型定义
@@ -397,6 +397,9 @@ export const profileApi = {
   getPublicProjects: async (filters?: {
     recruiting?: boolean;
     search?: string;
+    status?: 'review_pending';
+    limit?: number;
+    offset?: number;
   }): Promise<PublicProject[]> => {
     const params = new URLSearchParams();
     if (filters?.recruiting !== undefined) {
@@ -404,6 +407,15 @@ export const profileApi = {
     }
     if (filters?.search) {
       params.append('search', filters.search);
+    }
+    if (filters?.status) {
+      params.append('status', filters.status);
+    }
+    if (filters?.limit !== undefined) {
+      params.append('limit', String(filters.limit));
+    }
+    if (filters?.offset !== undefined && filters.offset > 0) {
+      params.append('offset', String(filters.offset));
     }
     const queryString = params.toString();
     const url = queryString
@@ -430,5 +442,14 @@ export const profileApi = {
   getPublicProjectEvidence: async (projectId: string): Promise<ProjectEvidence[]> => {
     const response = await api.get<ProjectEvidence[]>(`/api/profile/public-projects/${projectId}/evidence`);
     return unwrapApiData(response, '获取公开课题证据失败');
+  },
+
+  /**
+   * Get public project peer reviews
+   * 获取公开课题同伴评审
+   */
+  getPublicProjectReviews: async (projectId: string): Promise<ProjectReview[]> => {
+    const response = await api.get<ProjectReview[]>(`/api/profile/public-projects/${projectId}/reviews`);
+    return unwrapApiData(response, '获取公开课题评审失败');
   },
 };

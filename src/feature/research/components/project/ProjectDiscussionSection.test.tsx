@@ -10,6 +10,7 @@ const mockUploadProjectDiscussionImage = vi.fn();
 const mockUploadProjectDiscussionVideo = vi.fn();
 const mockAddProjectDiscussionComment = vi.fn();
 const mockDeleteProjectDiscussionComment = vi.fn();
+const mockUpdateProjectDiscussionComment = vi.fn();
 
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, isOpen }: { children: unknown; isOpen: boolean }) =>
@@ -23,6 +24,7 @@ vi.mock('@/lib/research.service', () => ({
     uploadProjectDiscussionVideo: (...args: unknown[]) => mockUploadProjectDiscussionVideo(...args),
     addProjectDiscussionComment: (...args: unknown[]) => mockAddProjectDiscussionComment(...args),
     deleteProjectDiscussionComment: (...args: unknown[]) => mockDeleteProjectDiscussionComment(...args),
+    updateProjectDiscussionComment: (...args: unknown[]) => mockUpdateProjectDiscussionComment(...args),
   },
 }));
 
@@ -92,6 +94,7 @@ describe('ProjectDiscussionSection', () => {
     mockUploadProjectDiscussionVideo.mockResolvedValue({ url: '/uploads/test.mp4' });
     mockAddProjectDiscussionComment.mockResolvedValue({ id: 'new-comment' });
     mockDeleteProjectDiscussionComment.mockResolvedValue(undefined);
+    mockUpdateProjectDiscussionComment.mockResolvedValue(undefined);
   });
 
   it('supports pasting an image into the new comment composer', async () => {
@@ -343,5 +346,113 @@ describe('ProjectDiscussionSection', () => {
     await waitFor(() => {
       expect(mockDeleteProjectDiscussionComment).toHaveBeenCalledWith('comment-1');
     });
+  });
+
+  it('lets the author edit their own comment inline and shows the edited marker', async () => {
+    mockGetProjectDiscussionComments
+      .mockResolvedValueOnce([createComment()])
+      .mockResolvedValueOnce([
+        createComment({
+          content: '修改后的讨论',
+          updated_at: '2026-04-11T08:00:00.000Z',
+        }),
+      ]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    await screen.findByText('基础讨论');
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑' }));
+    const editor = screen.getByLabelText('编辑留言内容') as HTMLTextAreaElement;
+    expect(editor.value).toBe('基础讨论');
+
+    fireEvent.change(editor, { target: { value: '修改后的讨论' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+
+    await waitFor(() => {
+      expect(mockUpdateProjectDiscussionComment).toHaveBeenCalledWith('comment-1', '修改后的讨论');
+    });
+    expect(await screen.findByText('修改后的讨论')).toBeTruthy();
+    expect(screen.getByText('已编辑')).toBeTruthy();
+  });
+
+  it('hides the edit action on other members comments', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([
+      createComment({ user_id: 'user-2', username: '其他成员' }),
+    ]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    await screen.findByText('基础讨论');
+
+    expect(screen.queryByRole('button', { name: '编辑' })).toBeNull();
+  });
+
+  it('rejects saving an empty edit on a text-only comment', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([createComment()]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    await screen.findByText('基础讨论');
+
+    fireEvent.click(screen.getByRole('button', { name: '编辑' }));
+    fireEvent.change(screen.getByLabelText('编辑留言内容'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+
+    expect(await screen.findByText('留言内容不能为空')).toBeTruthy();
+    expect(mockUpdateProjectDiscussionComment).not.toHaveBeenCalled();
+  });
+
+  it('renders the first 20 threads and expands older ones on demand', async () => {
+    const manyThreads = Array.from({ length: 25 }, (_, index) =>
+      createComment({
+        id: `thread-${index}`,
+        content: `讨论串 ${index}`,
+        created_at: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+        updated_at: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+      })
+    );
+    mockGetProjectDiscussionComments.mockResolvedValue(manyThreads);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+
+    // 顶层按时间倒序排列：最新的 24 号先出现，最早的 0-4 号先被折叠
+    await screen.findByText('讨论串 24');
+    expect(screen.getByText('讨论串 5')).toBeTruthy();
+    expect(screen.queryByText('讨论串 4')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /展开更早的讨论（还有 5 条）/ }));
+
+    expect(await screen.findByText('讨论串 0')).toBeTruthy();
+    expect(screen.queryByText(/展开更早的讨论/)).toBeNull();
   });
 });

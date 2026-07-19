@@ -95,6 +95,79 @@ export interface ProjectDiscussionComment {
   avatar_url: string | null;
 }
 
+export type ProjectReviewVerdict = 'approve' | 'request_changes';
+
+export interface ProjectReview {
+  id: string;
+  project_id: string;
+  cycle_id: string;
+  reviewer_id: string;
+  verdict: ProjectReviewVerdict;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  reviewer_username: string;
+  reviewer_nickname?: string | null;
+  reviewer_real_name?: string | null;
+  reviewer_show_real_name_publicly?: boolean;
+  reviewer_avatar_url: string | null;
+}
+
+export interface UpsertProjectReviewInput {
+  verdict: ProjectReviewVerdict;
+  content: string;
+}
+
+export type ProjectTaskStatus = 'todo' | 'doing' | 'done';
+
+export interface ProjectTask {
+  id: string;
+  project_id: string;
+  cycle_id: string;
+  title: string;
+  assignee_user_id: string | null;
+  status: ProjectTaskStatus;
+  due_date: string | null;
+  created_by: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  assignee_username: string;
+  assignee_nickname?: string | null;
+  assignee_real_name?: string | null;
+  assignee_show_real_name_publicly?: boolean;
+  assignee_avatar_url: string | null;
+}
+
+export interface CreateProjectTaskInput {
+  title: string;
+  assignee_user_id?: string | null;
+  due_date?: string | null;
+}
+
+export interface UpdateProjectTaskInput {
+  title?: string;
+  assignee_user_id?: string | null;
+  status?: ProjectTaskStatus;
+  due_date?: string | null;
+}
+
+export interface ProjectActivityItem {
+  id: string;
+  project_id: string;
+  user_id: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  changes?: Record<string, unknown> | null;
+  created_at: string;
+  username: string;
+  nickname?: string | null;
+  real_name?: string | null;
+  show_real_name_publicly?: boolean;
+  avatar_url: string | null;
+}
+
 export type ProjectEvidenceType =
   | 'image_observation'
   | 'data_table'
@@ -405,6 +478,89 @@ export const researchApi = {
   },
 
   /**
+   * Update project discussion comment (author-only, text only)
+   * 编辑课题讨论评论（仅作者本人，只改文字）
+   */
+  updateProjectDiscussionComment: async (commentId: string, content: string): Promise<void> => {
+    const response = await api.put(`/api/research/discussion-comments/${commentId}`, { content });
+    ensureApiSuccess(response, '编辑讨论留言失败');
+  },
+
+  // =====================================================
+  // Peer Reviews / 同伴评审
+  // =====================================================
+
+  /**
+   * Get project peer reviews (current cycle)
+   * 获取课题同伴评审（当前周期）
+   */
+  getProjectReviews: async (projectId: string): Promise<ProjectReview[]> => {
+    const response = await api.get<ProjectReview[]>(`/api/research/projects/${projectId}/reviews`);
+    return unwrapApiData(response, '获取同伴评审失败');
+  },
+
+  /**
+   * Create or update own peer review
+   * 提交或更新自己的同伴评审
+   */
+  upsertMyProjectReview: async (
+    projectId: string,
+    input: UpsertProjectReviewInput
+  ): Promise<ProjectReview> => {
+    const response = await api.put<ProjectReview>(`/api/research/projects/${projectId}/reviews/me`, input);
+    return unwrapApiData(response, '提交评审失败');
+  },
+
+  /**
+   * Delete a peer review (author or admin)
+   * 删除同伴评审（作者本人或管理员）
+   */
+  deleteProjectReview: async (reviewId: string): Promise<void> => {
+    const response = await api.delete(`/api/research/reviews/${reviewId}`);
+    ensureApiSuccess(response, '删除评审失败');
+  },
+
+  // =====================================================
+  // Project Tasks / 任务分工
+  // =====================================================
+
+  /**
+   * Get project tasks (current cycle)
+   * 获取课题任务（当前周期）
+   */
+  getProjectTasks: async (projectId: string): Promise<ProjectTask[]> => {
+    const response = await api.get<ProjectTask[]>(`/api/research/projects/${projectId}/tasks`);
+    return unwrapApiData(response, '获取任务列表失败');
+  },
+
+  /**
+   * Create project task
+   * 创建课题任务
+   */
+  createProjectTask: async (projectId: string, input: CreateProjectTaskInput): Promise<ProjectTask> => {
+    const response = await api.post<ProjectTask>(`/api/research/projects/${projectId}/tasks`, input);
+    return unwrapApiData(response, '创建任务失败');
+  },
+
+  /**
+   * Update project task
+   * 更新课题任务
+   */
+  updateProjectTask: async (taskId: string, input: UpdateProjectTaskInput): Promise<ProjectTask> => {
+    const response = await api.put<ProjectTask>(`/api/research/tasks/${taskId}`, input);
+    return unwrapApiData(response, '更新任务失败');
+  },
+
+  /**
+   * Delete project task
+   * 删除课题任务
+   */
+  deleteProjectTask: async (taskId: string): Promise<void> => {
+    const response = await api.delete(`/api/research/tasks/${taskId}`);
+    ensureApiSuccess(response, '删除任务失败');
+  },
+
+  /**
    * Get project evidence
    * 获取课题证据库
    */
@@ -515,8 +671,8 @@ export const researchApi = {
    * Get project activity log
    * 获取课题活动日志
    */
-  getProjectActivity: async (projectId: string, limit: number = 50): Promise<any[]> => {
-    const response = await api.get<any[]>(`/api/research/projects/${projectId}/activity?limit=${limit}`);
+  getProjectActivity: async (projectId: string, limit: number = 50): Promise<ProjectActivityItem[]> => {
+    const response = await api.get<ProjectActivityItem[]>(`/api/research/projects/${projectId}/activity?limit=${limit}`);
     return unwrapApiData(response, '获取活动日志失败');
   },
 };

@@ -18,6 +18,9 @@ const mockRemoveProjectMember = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
 const mockProjectEvidenceSection = vi.fn();
+const mockProjectPeerReviewSection = vi.fn();
+const mockProjectTasksSection = vi.fn();
+const mockProjectActivityFeed = vi.fn();
 const openDialog = vi.fn();
 
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -91,6 +94,27 @@ vi.mock("../components/project/ProjectEvidenceSection", () => ({
   ProjectEvidenceSection: (props: Record<string, unknown>) => {
     mockProjectEvidenceSection(props);
     return <div data-testid="project-evidence-section" />;
+  },
+}));
+
+vi.mock("../components/project/ProjectPeerReviewSection", () => ({
+  ProjectPeerReviewSection: (props: Record<string, unknown>) => {
+    mockProjectPeerReviewSection(props);
+    return <div data-testid="project-peer-review-section" />;
+  },
+}));
+
+vi.mock("../components/project/ProjectTasksSection", () => ({
+  ProjectTasksSection: (props: Record<string, unknown>) => {
+    mockProjectTasksSection(props);
+    return <div data-testid="project-tasks-section" />;
+  },
+}));
+
+vi.mock("../components/project/ProjectActivityFeed", () => ({
+  ProjectActivityFeed: (props: Record<string, unknown>) => {
+    mockProjectActivityFeed(props);
+    return <div data-testid="project-activity-feed" />;
   },
 }));
 
@@ -263,6 +287,9 @@ describe("ResearchProjectPage", () => {
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
     mockProjectEvidenceSection.mockReset();
+    mockProjectPeerReviewSection.mockReset();
+    mockProjectTasksSection.mockReset();
+    mockProjectActivityFeed.mockReset();
     openDialog.mockReset();
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({
@@ -480,6 +507,58 @@ describe("ResearchProjectPage", () => {
         usePublicEndpoint: true,
       })
     );
+  });
+
+  it("renders tasks, activity feed, and member peer-review mode for project members", async () => {
+    mockGetProject.mockResolvedValue(createProject({ status: "review_pending" }));
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("project-tasks-section")).toBeTruthy();
+    expect(screen.getByTestId("project-activity-feed")).toBeTruthy();
+    expect(mockProjectTasksSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        currentUserId: "owner-1",
+        canManage: true,
+      })
+    );
+    expect(mockProjectActivityFeed).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "project-1", limit: 15 })
+    );
+    expect(mockProjectPeerReviewSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        projectStatus: "review_pending",
+        isActiveMember: true,
+        usePublicEndpoint: false,
+      })
+    );
+  });
+
+  it("passes guest peer-review mode and hides member-only sections for guests", async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    mockGetPublicProjectById.mockResolvedValue(
+      createPublicProjectDetail({ status: "review_pending" })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByTestId("project-peer-review-section")).toBeTruthy();
+    expect(mockProjectPeerReviewSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        projectStatus: "review_pending",
+        isActiveMember: false,
+        usePublicEndpoint: true,
+      })
+    );
+    expect(screen.queryByTestId("project-tasks-section")).toBeNull();
+    expect(screen.queryByTestId("project-activity-feed")).toBeNull();
   });
 
   it("renders the full challenge card on the project detail page", async () => {

@@ -197,15 +197,37 @@ export class ProfileController {
    */
   static async getPublicProjects(req: Request, res: Response): Promise<void> {
     try {
-      const { recruiting, search } = req.query;
+      const { recruiting, search, status, limit, offset } = req.query;
       const userId = req.user?.sub;
 
-      const filters: { recruiting?: boolean; search?: string } = {};
+      const filters: {
+        recruiting?: boolean;
+        search?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+      } = {};
       if (recruiting !== undefined) {
         filters.recruiting = recruiting === "true";
       }
       if (search && typeof search === "string") {
         filters.search = search;
+      }
+      // 目前公开探索页只按待评审过滤；白名单校验避免任意状态注入查询
+      if (status === "review_pending") {
+        filters.status = status;
+      }
+      if (typeof limit === "string") {
+        const parsedLimit = Number.parseInt(limit, 10);
+        if (Number.isFinite(parsedLimit) && parsedLimit > 0) {
+          filters.limit = Math.min(parsedLimit, 100);
+        }
+      }
+      if (typeof offset === "string") {
+        const parsedOffset = Number.parseInt(offset, 10);
+        if (Number.isFinite(parsedOffset) && parsedOffset > 0) {
+          filters.offset = parsedOffset;
+        }
       }
 
       const projects = await ProfileModel.getPublicProjects(filters, userId);
@@ -265,6 +287,33 @@ export class ProfileController {
       res.json({ success: true, data: evidenceItems });
     } catch (error) {
       sendServerError(res, error, "Get public project evidence error:", "获取公开课题证据失败");
+    }
+  }
+
+  /**
+   * Get public project peer reviews
+   * 获取公开课题同伴评审
+   * GET /api/profile/public-projects/:projectId/reviews
+   */
+  static async getPublicProjectReviews(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user?.sub;
+
+      const project = await ProfileModel.getPublicProjectById(projectId, userId);
+
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          error: { code: "PROJECT_NOT_FOUND", message: "公开课题不存在或暂未开放" },
+        });
+        return;
+      }
+
+      const reviews = await ResearchModel.getProjectReviews(projectId);
+      res.json({ success: true, data: reviews });
+    } catch (error) {
+      sendServerError(res, error, "Get public project reviews error:", "获取公开课题评审失败");
     }
   }
 }

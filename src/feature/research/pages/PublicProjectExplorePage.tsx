@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import {
   AlertCircle,
   BookOpenText,
+  ChevronDown,
   FlaskConical,
   Loader2,
   LogIn,
@@ -38,6 +39,9 @@ const ProjectApplicationForm = lazy(() =>
   import("../components/project/ProjectApplicationForm").then((module) => ({ default: module.ProjectApplicationForm }))
 );
 
+/** 每页加载的课题数量；返回数量等于页大小时认为可能还有下一页 */
+const EXPLORE_PAGE_SIZE = 24;
+
 function getApplyButtonLabel(project: PublicProject) {
   if (project.has_pending_application) return "待审核";
   if (project.is_recruiting === false) return "招募已停止";
@@ -51,14 +55,26 @@ export function PublicProjectExplorePage() {
 
   const [projects, setProjects] = useState<PublicProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recruitingOnly, setRecruitingOnly] = useState(false);
+  const [reviewPendingOnly, setReviewPendingOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [displayMode, setDisplayMode] = useState<ProjectDisplayMode>("recommended");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  const baseFilters = useMemo(
+    () => ({
+      recruiting: recruitingOnly || undefined,
+      search: searchQuery || undefined,
+      status: reviewPendingOnly ? ("review_pending" as const) : undefined,
+    }),
+    [recruitingOnly, reviewPendingOnly, searchQuery]
+  );
 
   useEffect(() => {
     let shouldIgnoreResult = false;
@@ -73,11 +89,12 @@ export function PublicProjectExplorePage() {
         setIsLoading(true);
         setError(null);
         const data = await profileApi.getPublicProjects({
-          recruiting: recruitingOnly || undefined,
-          search: searchQuery || undefined,
+          ...baseFilters,
+          limit: EXPLORE_PAGE_SIZE,
         });
         if (!shouldIgnoreResult) {
           setProjects(data);
+          setHasMore(data.length === EXPLORE_PAGE_SIZE);
         }
       } catch (err) {
         console.error("Failed to fetch public projects:", err);
@@ -103,7 +120,32 @@ export function PublicProjectExplorePage() {
     return () => {
       shouldIgnoreResult = true;
     };
-  }, [recruitingOnly, searchQuery, isSystemHealthy]);
+  }, [baseFilters, searchQuery, isSystemHealthy]);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || isLoading) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+    try {
+      const data = await profileApi.getPublicProjects({
+        ...baseFilters,
+        limit: EXPLORE_PAGE_SIZE,
+        offset: projects.length,
+      });
+      setProjects((prev) => {
+        const loadedIds = new Set(prev.map((project) => project.id));
+        return [...prev, ...data.filter((project) => !loadedIds.has(project.id))];
+      });
+      setHasMore(data.length === EXPLORE_PAGE_SIZE);
+    } catch (err) {
+      console.error("Failed to load more public projects:", err);
+      setError(err instanceof Error ? err.message : "加载课题失败");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const handleApplyClick = (project: PublicProject) => {
     if (project.has_pending_application) {
@@ -126,11 +168,14 @@ export function PublicProjectExplorePage() {
     setIsApplicationFormOpen(false);
 
     try {
+      // 重新拉取当前已加载的范围，保持列表长度并刷新申请状态标记
+      const requestLimit = Math.min(Math.max(projects.length, EXPLORE_PAGE_SIZE), 100);
       const data = await profileApi.getPublicProjects({
-        recruiting: recruitingOnly || undefined,
-        search: searchQuery || undefined,
+        ...baseFilters,
+        limit: requestLimit,
       });
       setProjects(data);
+      setHasMore(data.length === requestLimit);
     } catch (err) {
       console.error("Failed to refresh public projects:", err);
     }
@@ -294,8 +339,17 @@ export function PublicProjectExplorePage() {
                 />
                 仅看招募中
               </label>
+              <label className="research-chip inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-base font-medium">
+                <input
+                  type="checkbox"
+                  checked={reviewPendingOnly}
+                  onChange={(e) => setReviewPendingOnly(e.target.checked)}
+                  className="h-4 w-4 rounded"
+                />
+                仅看待评审
+              </label>
               <span className="research-chip inline-flex rounded-full px-4 py-2 text-base font-medium">
-                共 {projects.length} 条结果
+                {hasMore ? `已加载 ${projects.length} 条` : `共 ${projects.length} 条结果`}
               </span>
             </div>
           </div>
@@ -450,6 +504,24 @@ export function PublicProjectExplorePage() {
           </section>
         )}
 
+        {!isLoading && !error && hasMore && displayedProjects.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => void handleLoadMore()}
+              disabled={isLoadingMore}
+              className="glass-button inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-base font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+              {isLoadingMore ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
+              )}
+              {isLoadingMore ? "正在加载…" : "加载更多课题"}
+            </button>
+          </div>
+        )}
+
         {!isLoading && !error && projects.length === 0 && (
           <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.8rem] py-16 text-center">
             <div className="research-chip flex h-16 w-16 items-center justify-center rounded-[1.8rem]">
@@ -462,7 +534,7 @@ export function PublicProjectExplorePage() {
               没有找到合适的课题
             </h3>
             <p className="mt-2 max-w-md text-base leading-6 text-[var(--glass-text-muted)]">
-              {searchQuery || recruitingOnly
+              {searchQuery || recruitingOnly || reviewPendingOnly
                 ? "换一个关键词，或者取消筛选再试一次。"
                 : "当前还没有公开课题，稍后再回来看看。"}
             </p>

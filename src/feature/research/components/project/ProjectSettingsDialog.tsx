@@ -5,9 +5,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, Loader2 } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
-import { cn } from '@/utils/classNames';
+import { X, Save, Loader2, Settings } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, type ProjectSettings } from '@/lib/profile.service';
 
@@ -18,9 +16,11 @@ interface ProjectSettingsDialogProps {
   onSuccess: (settings: ProjectSettings) => void;
 }
 
+const fieldLabelClass = 'mb-1.5 block text-base font-medium text-[var(--paper-foreground)]';
+const fieldInputClass = 'research-input w-full rounded-[1rem] px-4 py-2.5 text-base';
+
 export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }: ProjectSettingsDialogProps) {
   const { t } = useTranslation();
-  const { theme } = useTheme();
 
   const [settings, setSettings] = useState<ProjectSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,58 +68,45 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
-      <div className={cn(
-        "w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 rounded-xl",
-        theme === "dark" ? "bg-gray-800" : "bg-white"
-      )}>
+      <div className="research-panel max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.9rem] p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={cn(
-            "text-xl font-bold",
-            theme === "dark" ? "text-white" : "text-gray-900"
-          )}>
-            {t('project.settings.title')}
-          </h2>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="research-chip flex h-11 w-11 items-center justify-center rounded-2xl">
+              <Settings className="h-5 w-5 text-[var(--paper-link)]" />
+            </div>
+            <h2
+              className="text-xl font-semibold text-[var(--paper-foreground)]"
+              style={{ fontFamily: 'var(--font-ui-display)' }}
+            >
+              {t('project.settings.title')}
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              theme === "dark"
-                ? "hover:bg-gray-700 text-gray-400"
-                : "hover:bg-gray-100 text-gray-500"
-            )}
+            className="glass-button rounded-full p-2 text-[var(--glass-text-muted)]"
+            aria-label={t('common.cancel')}
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Loading */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className={cn(
-              "w-6 h-6 animate-spin",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )} />
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--paper-accent)]" />
           </div>
         ) : settings ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Visibility */}
             <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <label className={fieldLabelClass}>
                 {t('project.settings.visibility')}
               </label>
               <select
                 value={settings.visibility}
-                onChange={(e) => setSettings({ ...settings, visibility: e.target.value as any })}
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                )}
+                onChange={(e) => setSettings({ ...settings, visibility: e.target.value as ProjectSettings['visibility'] })}
+                className={fieldInputClass}
               >
                 <option value="private">{t('project.settings.private')}</option>
                 <option value="public">{t('project.settings.public')}</option>
@@ -127,52 +114,40 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
               </select>
             </div>
 
-            {/* Require Approval */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="require_approval"
-                checked={settings.require_approval}
-                onChange={(e) => setSettings({ ...settings, require_approval: e.target.checked })}
-                className="w-4 h-4"
-              />
+            {/* Membership toggles */}
+            <div className="research-panel-soft grid gap-3 rounded-[1.25rem] p-4">
               <label
                 htmlFor="require_approval"
-                className={cn(
-                  "text-base",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}
+                className="flex cursor-pointer items-center gap-3 text-base text-[var(--paper-foreground)]"
               >
+                <input
+                  type="checkbox"
+                  id="require_approval"
+                  checked={settings.require_approval}
+                  onChange={(e) => setSettings({ ...settings, require_approval: e.target.checked })}
+                  className="h-4 w-4 rounded accent-[var(--paper-accent)]"
+                />
                 {t('project.settings.requireApproval')}
               </label>
-            </div>
 
-            {/* Is Recruiting */}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is_recruiting"
-                checked={settings.is_recruiting}
-                onChange={(e) => setSettings({ ...settings, is_recruiting: e.target.checked })}
-                className="w-4 h-4"
-              />
               <label
                 htmlFor="is_recruiting"
-                className={cn(
-                  "text-base",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}
+                className="flex cursor-pointer items-center gap-3 text-base text-[var(--paper-foreground)]"
               >
+                <input
+                  type="checkbox"
+                  id="is_recruiting"
+                  checked={settings.is_recruiting}
+                  onChange={(e) => setSettings({ ...settings, is_recruiting: e.target.checked })}
+                  className="h-4 w-4 rounded accent-[var(--paper-accent)]"
+                />
                 {t('project.settings.isRecruiting')}
               </label>
             </div>
 
             {/* Recruitment Requirements */}
             <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <label className={fieldLabelClass}>
                 {t('project.settings.recruitmentRequirements')}
               </label>
               <textarea
@@ -180,21 +155,13 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 onChange={(e) => setSettings({ ...settings, recruitment_requirements: e.target.value })}
                 placeholder={t('project.settings.recruitmentRequirementsPlaceholder')}
                 rows={3}
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                )}
+                className={`${fieldInputClass} resize-none leading-7`}
               />
             </div>
 
             {/* Max Members */}
             <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <label className={fieldLabelClass}>
                 {t('project.settings.maxMembers')}
               </label>
               <input
@@ -203,21 +170,13 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 value={settings.max_members || ''}
                 onChange={(e) => setSettings({ ...settings, max_members: e.target.value ? parseInt(e.target.value) : null })}
                 placeholder={t('project.settings.maxMembersPlaceholder')}
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                )}
+                className={fieldInputClass}
               />
             </div>
 
             {/* Contact Email */}
             <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <label className={fieldLabelClass}>
                 {t('project.settings.contactEmail')}
               </label>
               <input
@@ -225,21 +184,13 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 value={settings.contact_email || ''}
                 onChange={(e) => setSettings({ ...settings, contact_email: e.target.value })}
                 placeholder="contact@example.com"
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                )}
+                className={fieldInputClass}
               />
             </div>
 
             {/* Discussion Channel */}
             <div>
-              <label className={cn(
-                "block text-base font-medium mb-1.5",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <label className={fieldLabelClass}>
                 {t('project.settings.discussionChannel')}
               </label>
               <input
@@ -247,21 +198,13 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 value={settings.discussion_channel || ''}
                 onChange={(e) => setSettings({ ...settings, discussion_channel: e.target.value })}
                 placeholder="如微信群链接"
-                className={cn(
-                  "w-full px-3 py-2 rounded-lg border transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                )}
+                className={fieldInputClass}
               />
             </div>
 
             {/* Error */}
             {error && (
-              <div className={cn(
-                "p-3 rounded-lg text-base",
-                theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
-              )}>
+              <div className="rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
                 {error}
               </div>
             )}
@@ -272,39 +215,26 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className={cn(
-                  "flex-1 px-4 py-2 rounded-lg font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                )}
+                className="glass-button flex-1 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className={cn(
-                  "flex-1 px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2",
-                  theme === "dark"
-                    ? "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-                    : "bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
-                )}
+                className="glass-button glass-button-primary flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="w-4 h-4" />
+                  <Save className="h-4 w-4" />
                 )}
                 {t('common.save')}
               </button>
             </div>
           </form>
         ) : (
-          <div className={cn(
-            "text-center py-8",
-            theme === "dark" ? "text-gray-400" : "text-gray-500"
-          )}>
+          <div className="py-10 text-center text-base text-[var(--glass-text-muted)]">
             {t('common.error')}
           </div>
         )}
