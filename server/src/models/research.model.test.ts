@@ -27,6 +27,7 @@ const applicationsFind = vi.fn();
 const applicationsDeleteMany = vi.fn();
 const projectCommentsFind = vi.fn();
 const activityFind = vi.fn();
+const activityInsertOne = vi.fn();
 const creatorProfilesFind = vi.fn();
 const creatorProfilesDeleteMany = vi.fn();
 const evidenceFind = vi.fn();
@@ -101,6 +102,7 @@ vi.mock('../database/connection.js', () => ({
       case 'research_activity_log':
         return {
           find: (...args: unknown[]) => activityFind(...args),
+          insertOne: (...args: unknown[]) => activityInsertOne(...args),
           deleteMany: (...args: unknown[]) => activityDeleteMany(...args),
         };
       case 'research_project_creator_profiles':
@@ -164,7 +166,6 @@ describe('ResearchModel.createProject', () => {
     cycleInsertOne.mockResolvedValue({});
     membersFindOne.mockResolvedValue(null);
     membersInsertOne.mockResolvedValue({});
-    canvasesInsertOne.mockResolvedValue({});
   });
 
   it('always starts at draft with activity time and cycle 1', async () => {
@@ -185,6 +186,63 @@ describe('ResearchModel.createProject', () => {
       project_id: projectId,
       cycle_number: 1,
     }));
+    // 画布前端已下线，新课题不再自动生成画布文档。
+    expect(canvasesInsertOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchModel.logActivity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    activityInsertOne.mockResolvedValue({});
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('persists compact change payloads unchanged', async () => {
+    await ResearchModel.logActivity(
+      'project-1',
+      'user-1',
+      'task_created',
+      'project_task',
+      'task-1',
+      { title: '标定光路' }
+    );
+
+    expect(activityInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      project_id: 'project-1',
+      user_id: 'user-1',
+      action: 'task_created',
+      changes: { title: '标定光路' },
+    }));
+  });
+
+  it('drops oversized change payloads instead of persisting them', async () => {
+    await ResearchModel.logActivity(
+      'project-1',
+      'user-1',
+      'task_created',
+      'project_task',
+      'task-1',
+      { blob: 'x'.repeat(5000) }
+    );
+
+    expect(activityInsertOne).toHaveBeenCalledWith(expect.objectContaining({ changes: null }));
+  });
+
+  it('drops unserializable change payloads', async () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    await ResearchModel.logActivity(
+      'project-1',
+      'user-1',
+      'task_created',
+      'project_task',
+      'task-1',
+      circular
+    );
+
+    expect(activityInsertOne).toHaveBeenCalledWith(expect.objectContaining({ changes: null }));
   });
 });
 

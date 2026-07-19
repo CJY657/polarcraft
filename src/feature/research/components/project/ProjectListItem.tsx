@@ -7,7 +7,7 @@
  */
 
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar, Globe, LayoutGrid, Lock, Users } from "lucide-react";
+import { ArrowRight, Calendar, Globe, Lock, Users } from "lucide-react";
 import type { ResearchProject } from "@/lib/research.service";
 import { ProjectCoverImage } from "../shared/ProjectCoverImage";
 import { ProjectDeleteAction } from "./ProjectDeleteAction";
@@ -58,7 +58,7 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
             </h3>
 
             <p className="mt-2 line-clamp-2 text-[0.95rem] leading-[1.6] text-[var(--glass-text-muted)] transition-colors duration-300 group-hover:text-[var(--paper-foreground)]/80">
-              {project.description_zh || "还没有项目摘要，进入画布后补充研究目标与实验线索。"}
+              {project.description_zh || "还没有项目摘要，进入项目后补充研究目标与实验线索。"}
             </p>
           </div>
 
@@ -74,10 +74,6 @@ export function ProjectListItem({ project, canDelete = false, isDeleting = false
             <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
               <Users className="h-3.5 w-3.5" />
               {project.member_count} 位成员
-            </span>
-            <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
-              <LayoutGrid className="h-3.5 w-3.5" />
-              {project.canvas_count ?? 0} 张画布
             </span>
             <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1">
               <Calendar className="h-3.5 w-3.5" />

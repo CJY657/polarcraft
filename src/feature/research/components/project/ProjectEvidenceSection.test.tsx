@@ -96,7 +96,7 @@ describe('ProjectEvidenceSection', () => {
 
     expect(await screen.findByText('偏振图样观察')).toBeTruthy();
     expect(mockGetPublicProjectEvidence).toHaveBeenCalledWith('project-1');
-    expect(screen.getByText('当前为只读浏览，可以查看公开沉淀的研究证据，新增、编辑和删除仅对课题成员开放。')).toBeTruthy();
+    expect(screen.getByText('只读浏览：新增和编辑证据仅对课题成员开放。')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /编辑证据/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /删除证据/ })).toBeNull();
   });

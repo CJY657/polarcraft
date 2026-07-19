@@ -1086,7 +1086,7 @@ export function ProjectDiscussionSection({
                     添加附件
                   </button>
                   <span className="text-sm text-[var(--glass-text-muted)]">
-                    最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，支持 Ctrl+V 粘贴图片
+                    最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
                   </span>
                 </div>
 
@@ -1313,7 +1313,7 @@ export function ProjectDiscussionSection({
                   添加附件
                 </button>
                 <span className="text-sm text-[var(--glass-text-muted)]">
-                  最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频，单条评论可只发附件不写文字
+                  最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
                 </span>
               </div>
 
@@ -1326,15 +1326,7 @@ export function ProjectDiscussionSection({
               />
 
               {submitError && <p className="mt-2 text-base text-[#b33d3d]">{submitError}</p>}
-              {!canParticipate && (
-                <p className="mt-2 text-base text-[var(--glass-text-muted)]">
-                  只有课题成员可以参与讨论。
-                </p>
-              )}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm text-[var(--glass-text-muted)]">
-                  最多 {MAX_COMMENT_LENGTH} 字
-                </span>
+              <div className="mt-3 flex justify-end">
                 <button
                   type="button"
                   onClick={() => void handleSubmitComment()}
@@ -1369,9 +1361,8 @@ export function ProjectDiscussionSection({
                 </div>
               ) : commentTree.length === 0 ? (
                 <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
-                  <p className="text-base font-medium text-[var(--paper-foreground)]">还没有人开场</p>
-                  <p className="mt-2 text-base text-[var(--glass-text-muted)]">
-                    先抛一个明确问题，后面的回复自然会形成一条清楚的讨论线。
+                  <p className="text-base font-medium text-[var(--paper-foreground)]">
+                    还没有人开场，来发第一条讨论吧。
                   </p>
                 </div>
               ) : (

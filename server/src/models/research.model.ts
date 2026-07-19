@@ -43,6 +43,27 @@ const projectTasksCollection = () => getCollection('research_project_tasks');
 const projectReviewsCollection = () => getCollection('research_project_reviews');
 const projectOutcomesCollection = () => getCollection('research_project_outcomes');
 
+/**
+ * The activity log is appended on every project mutation and its payload is
+ * only used to render a one-line feed entry, so an oversized or unserializable
+ * `changes` object is dropped (stored as null) instead of persisted — a single
+ * careless call site must not be able to bloat the hottest collection.
+ * 活动日志随每次课题操作追加，载荷只用于渲染一行动态；超长或无法序列化的
+ * changes 直接置 null 落库，避免个别调用点把整份表单塞进日志导致集合膨胀。
+ */
+const MAX_ACTIVITY_CHANGES_JSON_LENGTH = 2_000;
+
+function clampActivityChanges(changes: unknown): unknown {
+  if (changes === undefined || changes === null) {
+    return null;
+  }
+  try {
+    return JSON.stringify(changes).length > MAX_ACTIVITY_CHANGES_JSON_LENGTH ? null : changes;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeVideoUrls(value: unknown): string[] {
   return normalizeImageUrls(value);
 }
@@ -356,10 +377,6 @@ export class ResearchModel {
     });
 
     await this.addProjectMember(projectId, ownerId, 'owner');
-    await this.createCanvas(projectId, {
-      name_zh: '主画布',
-      name_en: 'Main Canvas',
-    });
 
     logger.info(`Project created: ${projectId}`);
     return projectId;
@@ -1831,7 +1848,7 @@ export class ResearchModel {
       action,
       target_type: targetType,
       target_id: targetId,
-      changes: changes || null,
+      changes: clampActivityChanges(changes),
       created_at: new Date(),
     });
     await this.touchProjectActivity(projectId);

@@ -104,6 +104,9 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { user_id: 1, created_at: -1 }, name: 'idx_user_created' },
       { key: { user_id: 1, is_read: 1 }, name: 'idx_user_read' },
+      // TTL：通知是时效性内容（前端只按时间倒序分页展示），半年后自动清理，
+      // 避免集合随成员操作的多路广播（insertMany 给全体成员）无限增长。
+      { key: { created_at: 1 }, name: 'idx_created_ttl', expireAfterSeconds: 15_552_000 },
     ],
   },
   {
@@ -219,6 +222,9 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
+      // TTL：活动日志是每次课题操作都会追加的派生数据，前端动态只展示最近
+      // 50 条；保留一学年（365 天）后自动清理。
+      { key: { created_at: 1 }, name: 'idx_created_ttl', expireAfterSeconds: 31_536_000 },
     ],
   },
   {
@@ -251,6 +257,15 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { user_id: 1, status: 1, created_at: -1 }, name: 'idx_user_status_created' },
       { key: { status: 1, completed_at: -1 }, name: 'idx_status_completed' },
+      // TTL（部分索引）：弃考的作答（开考后一直停留在 in_progress）在到期
+      // 30 天后自动清理。状态一旦变为 completed/expired 即脱离部分索引、
+      // 永久保留，用户历史与管理端统计不受影响。
+      {
+        key: { expires_at: 1 },
+        name: 'idx_stale_attempt_ttl',
+        expireAfterSeconds: 2_592_000,
+        partialFilterExpression: { status: 'in_progress' },
+      },
     ],
   },
 ];
@@ -343,6 +358,7 @@ async function createCollectionIndexes(
       key: Record<string, unknown>;
       unique?: boolean;
       expireAfterSeconds?: number;
+      partialFilterExpression?: Record<string, unknown>;
     }>;
     for (const desired of indexes) {
       const current = existing.find((index) => index.name === desired.name);
@@ -352,7 +368,9 @@ async function createCollectionIndexes(
       const changed =
         JSON.stringify(current.key) !== JSON.stringify(desired.key) ||
         Boolean(current.unique) !== Boolean(desired.unique) ||
-        current.expireAfterSeconds !== desired.expireAfterSeconds;
+        current.expireAfterSeconds !== desired.expireAfterSeconds ||
+        JSON.stringify(current.partialFilterExpression ?? null) !==
+          JSON.stringify(desired.partialFilterExpression ?? null);
       if (changed) {
         logger.info(`Rebuilding MongoDB index ${name}.${String(desired.name)}`);
         await collection.dropIndex(String(desired.name));

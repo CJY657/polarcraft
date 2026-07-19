@@ -65,9 +65,8 @@ describe('ProjectPeerReviewSection', () => {
     expect(screen.getByText('1 / 2')).toBeTruthy();
     expect(screen.getByText('评审标准')).toBeTruthy();
     expect(screen.getByText('变量明确，证据完整')).toBeTruthy();
-    expect(screen.getByText('已收到 1 份评审，还差 1 份。')).toBeTruthy();
     expect(
-      screen.getByText('同伴评审由课题组外的同学提交，组内成员在这里查看收到的意见即可。')
+      screen.getByText('同伴评审由课题组外的同学提交，成员在这里查看结果。')
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: /提交评审/ })).toBeNull();
   });
@@ -142,7 +141,7 @@ describe('ProjectPeerReviewSection', () => {
     expect(await screen.findByText('评审同学')).toBeTruthy();
     expect(mockGetPublicProjectReviews).toHaveBeenCalledWith('project-1');
     expect(mockGetProjectReviews).not.toHaveBeenCalled();
-    expect(screen.getByText('登录后就可以对照评审标准提交你的同伴评审。')).toBeTruthy();
+    expect(screen.getByText('登录后即可提交同伴评审。')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /提交评审/ })).toBeNull();
   });
 
@@ -161,7 +160,6 @@ describe('ProjectPeerReviewSection', () => {
     );
 
     expect(await screen.findByText('评审同学')).toBeTruthy();
-    expect(screen.getByText('这些是课题在待评审阶段收到的同伴评审记录。')).toBeTruthy();
     expect(screen.queryByText('评审进度')).toBeNull();
     await waitFor(() => {
       expect(onContentChange).toHaveBeenLastCalledWith(true);

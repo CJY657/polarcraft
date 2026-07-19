@@ -38,11 +38,10 @@ const MAX_TASK_TITLE_LENGTH = 200;
 const TASK_STATUS_GROUPS: Array<{
   status: ProjectTaskStatus;
   label: string;
-  hint: string;
 }> = [
-  { status: 'todo', label: '待办', hint: '还没有开始的任务' },
-  { status: 'doing', label: '进行中', hint: '正在推进的任务' },
-  { status: 'done', label: '已完成', hint: '已经交付的任务' },
+  { status: 'todo', label: '待办' },
+  { status: 'doing', label: '进行中' },
+  { status: 'done', label: '已完成' },
 ];
 
 interface ProjectTasksSectionProps {
@@ -248,18 +247,13 @@ export function ProjectTasksSection({
 
   return (
     <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            任务分工
-          </h2>
-          <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
-            把研究计划拆成可以认领的小任务，谁负责、做到哪一步一目了然。
-          </p>
-        </div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2
+          className="text-2xl font-semibold text-[var(--paper-foreground)]"
+          style={{ fontFamily: 'var(--font-ui-display)' }}
+        >
+          任务分工
+        </h2>
 
         {tasks.length > 0 && (
           <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-4 py-1.5 text-sm font-semibold sm:self-auto">
@@ -364,9 +358,7 @@ export function ProjectTasksSection({
             <ListTodo className="h-5 w-5" />
           </div>
           <p className="mt-4 text-lg font-semibold text-[var(--paper-foreground)]">还没有任务</p>
-          <p className="mx-auto mt-2 max-w-md text-base leading-6 text-[var(--glass-text-muted)]">
-            从最小的一步开始拆解：一次观察、一张数据表、一段说明文字，都可以是一个任务。
-          </p>
+          <p className="mt-2 text-base text-[var(--glass-text-muted)]">在上方添加第一个任务，从最小的一步开始。</p>
         </div>
       )}
 
@@ -393,7 +385,7 @@ export function ProjectTasksSection({
 
                 {groupTasks.length === 0 ? (
                   <p className="rounded-[1rem] px-3 py-4 text-center text-sm text-[var(--glass-text-muted)]">
-                    {group.hint}
+                    暂无任务
                   </p>
                 ) : (
                   <ul className="grid gap-2.5">

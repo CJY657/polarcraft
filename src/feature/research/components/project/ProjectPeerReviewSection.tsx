@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   Loader2,
   PenLine,
@@ -31,9 +32,9 @@ import { profileApi } from '@/lib/profile.service';
 const PROJECT_REVIEW_QUORUM = 2;
 const MAX_REVIEW_CONTENT_LENGTH = 2000;
 
-const VERDICT_OPTIONS: Array<{ value: ProjectReviewVerdict; label: string; description: string }> = [
-  { value: 'approve', label: '建议通过', description: '课题达到了评审标准，可以进入展示' },
-  { value: 'request_changes', label: '建议修改', description: '还有需要补充或改进的地方' },
+const VERDICT_OPTIONS: Array<{ value: ProjectReviewVerdict; label: string }> = [
+  { value: 'approve', label: '建议通过' },
+  { value: 'request_changes', label: '建议修改' },
 ];
 
 interface ProjectPeerReviewSectionProps {
@@ -194,24 +195,17 @@ export function ProjectPeerReviewSection({
 
   return (
     <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            同伴评审
-          </h2>
-          <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
-            {isReviewPending
-              ? '课题正在等待组外同伴评审，收到足够评审后才能进入展示。'
-              : '这些是课题在待评审阶段收到的同伴评审记录。'}
-          </p>
-        </div>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2
+          className="text-2xl font-semibold text-[var(--paper-foreground)]"
+          style={{ fontFamily: 'var(--font-ui-display)' }}
+        >
+          同伴评审
+        </h2>
 
         {isReviewPending && (
-          <div className="research-panel-soft flex min-w-[13rem] flex-col gap-2 self-start rounded-[1.25rem] px-4 py-3 sm:self-auto">
-            <div className="flex items-center justify-between gap-3">
+          <div className="research-panel-soft flex min-w-[12rem] flex-col gap-2 self-start rounded-[1.25rem] px-4 py-3 sm:self-auto">
+            <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
                 评审进度
               </span>
@@ -235,41 +229,40 @@ export function ProjectPeerReviewSection({
                 />
               ))}
             </div>
-            <p className="text-sm leading-5 text-[var(--glass-text-muted)]">
-              {quorumMet
-                ? '评审数量已达标，组长可以推进到「已展示」。'
-                : `已收到 ${receivedCount} 份评审，还差 ${PROJECT_REVIEW_QUORUM - receivedCount} 份。`}
-            </p>
+            {quorumMet && (
+              <p className="text-sm leading-5 text-emerald-600 dark:text-emerald-400">
+                已达标，组长可推进到「已展示」
+              </p>
+            )}
           </div>
         )}
       </div>
 
       {reviewCriteria?.trim() && (
-        <div className="research-panel-soft mb-4 rounded-[1.35rem] p-4">
-          <div className="flex items-center gap-2">
+        <details className="group research-panel-soft mb-4 rounded-[1.35rem] px-4 py-3">
+          <summary className="flex cursor-pointer select-none list-none items-center gap-2 text-lg font-semibold text-[var(--paper-foreground)] [&::-webkit-details-marker]:hidden">
             <ClipboardCheck className="h-5 w-5 shrink-0 text-[var(--paper-link)]" />
-            <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">评审标准</h3>
-          </div>
+            评审标准
+            <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[var(--glass-text-muted)] transition-transform group-open:rotate-180" />
+          </summary>
           <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
             {reviewCriteria.trim()}
           </p>
-        </div>
+        </details>
       )}
 
       {usePublicEndpoint && isReviewPending && (
-        <div className="research-panel-soft mb-4 flex items-start gap-3 rounded-[1.25rem] px-4 py-3">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--paper-link)]" />
-          <p className="text-base leading-6 text-[var(--glass-text-muted)]">
-            登录后就可以对照评审标准提交你的同伴评审。
-          </p>
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
+          <p className="text-base text-[var(--glass-text-muted)]">登录后即可提交同伴评审。</p>
         </div>
       )}
 
       {!usePublicEndpoint && isActiveMember && isReviewPending && (
-        <div className="research-panel-soft mb-4 flex items-start gap-3 rounded-[1.25rem] px-4 py-3">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--paper-link)]" />
-          <p className="text-base leading-6 text-[var(--glass-text-muted)]">
-            同伴评审由课题组外的同学提交，组内成员在这里查看收到的意见即可。
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
+          <p className="text-base text-[var(--glass-text-muted)]">
+            同伴评审由课题组外的同学提交，成员在这里查看结果。
           </p>
         </div>
       )}
@@ -279,21 +272,18 @@ export function ProjectPeerReviewSection({
           <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">
             {myReview ? '修改我的评审' : '提交我的评审'}
           </h3>
-          <p className="mt-1 text-base text-[var(--glass-text-muted)]">
-            对照上方评审标准，先选结论，再写清楚理由和建议。
-          </p>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="评审结论">
+          <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="评审结论">
             {VERDICT_OPTIONS.map((option) => {
               const isSelected = verdict === option.value;
               return (
                 <label
                   key={option.value}
                   className={cn(
-                    'flex cursor-pointer items-start gap-3 rounded-[1.15rem] border px-4 py-3 transition',
+                    'inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-base font-semibold transition',
                     isSelected
-                      ? 'border-[var(--paper-accent)] bg-[var(--paper-accent)]/10 shadow-sm'
-                      : 'border-[var(--glass-stroke)] bg-white/55 hover:border-[var(--paper-accent)]/45 dark:bg-slate-900/35'
+                      ? 'border-[var(--paper-accent)] bg-[var(--paper-accent)]/10 text-[var(--paper-foreground)]'
+                      : 'border-[var(--glass-stroke)] bg-white/55 text-[var(--glass-text-muted)] hover:border-[var(--paper-accent)]/45 dark:bg-slate-900/35'
                   )}
                 >
                   <input
@@ -302,22 +292,15 @@ export function ProjectPeerReviewSection({
                     value={option.value}
                     checked={isSelected}
                     onChange={() => setVerdict(option.value)}
-                    className="mt-1.5 h-4 w-4 shrink-0 accent-[var(--paper-accent)]"
+                    className="h-4 w-4 shrink-0 accent-[var(--paper-accent)]"
                   />
-                  <span className="min-w-0">
-                    <span className="block text-base font-semibold text-[var(--paper-foreground)]">
-                      {option.label}
-                    </span>
-                    <span className="mt-0.5 block text-sm leading-5 text-[var(--glass-text-muted)]">
-                      {option.description}
-                    </span>
-                  </span>
+                  {option.label}
                 </label>
               );
             })}
           </div>
 
-          <label className="mt-4 grid gap-2 text-base font-medium text-[var(--paper-foreground)]">
+          <label className="mt-3 grid gap-2 text-base font-medium text-[var(--paper-foreground)]">
             评审意见
             <textarea
               value={content}
@@ -335,32 +318,27 @@ export function ProjectPeerReviewSection({
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-[var(--glass-text-muted)]">
-              最多 {MAX_REVIEW_CONTENT_LENGTH} 字，评审提交后可以再修改
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {myReview && (
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteConfirmOpen(true)}
-                  disabled={isSubmitting || isDeleting}
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  删除我的评审
-                </button>
-              )}
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            {myReview && (
               <button
                 type="button"
-                onClick={() => void handleSubmit()}
-                disabled={isSubmitting}
-                className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                disabled={isSubmitting || isDeleting}
+                className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {myReview ? '更新评审' : '提交评审'}
+                <Trash2 className="h-4 w-4" />
+                删除我的评审
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={isSubmitting}
+              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {myReview ? '更新评审' : '提交评审'}
+            </button>
           </div>
         </div>
       )}
@@ -401,11 +379,9 @@ export function ProjectPeerReviewSection({
             <ClipboardCheck className="h-5 w-5" />
           </div>
           <p className="mt-4 text-lg font-semibold text-[var(--paper-foreground)]">还没有收到同伴评审</p>
-          <p className="mx-auto mt-2 max-w-md text-base leading-6 text-[var(--glass-text-muted)]">
-            {canSubmitReview
-              ? '你可以成为第一位评审人，帮这个课题组看看成果是否达标。'
-              : '可以邀请其他课题组的同学来阅读成果并提交评审。'}
-          </p>
+          {canSubmitReview && (
+            <p className="mt-2 text-base text-[var(--glass-text-muted)]">你可以成为第一位评审人。</p>
+          )}
         </div>
       )}
 

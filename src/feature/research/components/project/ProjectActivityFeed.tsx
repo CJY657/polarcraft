@@ -143,7 +143,7 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
 
       {!isLoading && !loadError && activities.length === 0 && (
         <p className="research-panel-soft rounded-[1.1rem] px-4 py-4 text-base leading-6 text-[var(--glass-text-muted)]">
-          还没有动态记录，推进阶段、发布讨论或完成任务后会在这里出现。
+          还没有动态记录。
         </p>
       )}
 

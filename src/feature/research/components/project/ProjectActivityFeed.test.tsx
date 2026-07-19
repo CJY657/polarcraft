@@ -68,9 +68,7 @@ describe('ProjectActivityFeed', () => {
     await waitFor(() => {
       expect(mockGetProjectActivity).toHaveBeenCalledWith('project-1', 15);
     });
-    expect(
-      await screen.findByText('还没有动态记录，推进阶段、发布讨论或完成任务后会在这里出现。')
-    ).toBeTruthy();
+    expect(await screen.findByText('还没有动态记录。')).toBeTruthy();
   });
 
   it('falls back to a generic label for unknown actions', () => {

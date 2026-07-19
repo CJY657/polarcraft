@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "cleanup:uploads": "tsx src/scripts/prune-orphaned-managed-uploads.ts",
     "db:stats": "tsx src/scripts/db-stats.ts",
+    "prune:legacy": "tsx src/scripts/prune-legacy-data.ts",
     "backfill:knowledge-tags": "tsx src/scripts/backfill-course-knowledge-tags.ts",
     "backfill:research-phase0": "tsx src/scripts/backfill-research-phase0.ts",
     "test": "vitest",
@@ -41,7 +42,6 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^20.10.6",
     "@types/nodemailer": "^6.4.14",
-    "supertest": "^6.3.3",
     "tsx": "^4.7.0",
     "vitest": "^1.1.0"
   }

@@ -23,7 +23,7 @@ interface CollectionSpace {
   indexSize: number;
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
   }

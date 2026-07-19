@@ -538,16 +538,9 @@ export function ResearchProjectPage() {
               <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
-              <div>
-                <p className="text-base font-semibold text-[var(--paper-foreground)]">
-                  {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
-                </p>
-                <p className="mt-1 text-base text-[var(--glass-text-muted)]">
-                  {isPublicGuestMode
-                    ? "不登录也能看课题内容和成员，想加入的时候再登录申请。"
-                    : "想参与讨论或一起做研究，先提交加入申请。"}
-                </p>
-              </div>
+              <p className="text-base font-semibold text-[var(--paper-foreground)]">
+                {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
+              </p>
             </div>
             <button
               onClick={handleApplyAction}

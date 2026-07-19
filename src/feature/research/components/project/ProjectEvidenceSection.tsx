@@ -335,10 +335,10 @@ export function ProjectEvidenceSection({
       </div>
 
       {!canManage && (
-        <div className="research-panel-soft mb-4 flex items-start gap-3 rounded-[1.25rem] px-4 py-3">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--paper-link)]" />
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
           <p className="text-base leading-6 text-[var(--glass-text-muted)]">
-            当前为只读浏览，可以查看公开沉淀的研究证据，新增、编辑和删除仅对课题成员开放。
+            只读浏览：新增和编辑证据仅对课题成员开放。
           </p>
         </div>
       )}
