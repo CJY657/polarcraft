@@ -207,6 +207,52 @@ describe('UserModel admin queries', () => {
     expect(usersFindOne).toHaveBeenCalledWith({ id: 'inactive-user' });
   });
 
+  it('batch-loads private identity fields for an administrator ranking', async () => {
+    const cursor = createCursor([
+      {
+        id: 'user-1',
+        username: 'alice',
+        nickname: '小爱',
+        real_name: 'Alice Wang',
+      },
+      {
+        id: 'user-2',
+        username: 'bob',
+        nickname: '小波',
+        real_name: null,
+      },
+    ]);
+    usersFind.mockReturnValue(cursor);
+
+    await expect(
+      UserModel.findIdentitiesByIdsForAdmin(['user-1', 'user-2', 'user-1'])
+    ).resolves.toEqual([
+      {
+        id: 'user-1',
+        username: 'alice',
+        nickname: '小爱',
+        real_name: 'Alice Wang',
+      },
+      {
+        id: 'user-2',
+        username: 'bob',
+        nickname: '小波',
+        real_name: null,
+      },
+    ]);
+
+    expect(usersFind).toHaveBeenCalledWith({
+      id: { $in: ['user-1', 'user-2'] },
+    });
+    expect(cursor.project).toHaveBeenCalledWith({
+      _id: 0,
+      id: 1,
+      username: 1,
+      nickname: 1,
+      real_name: 1,
+    });
+  });
+
   it('creates users with legacy nickname unset', async () => {
     usersFindOne.mockResolvedValueOnce(null);
     usersInsertOne.mockResolvedValueOnce({ acknowledged: true });

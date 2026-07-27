@@ -9,6 +9,7 @@ import {
   AlertCircle,
   BookOpenText,
   ChevronDown,
+  ClipboardCheck,
   FlaskConical,
   Loader2,
   LogIn,
@@ -23,7 +24,7 @@ import { profileApi, type PublicProject } from "@/lib/profile.service";
 import { formatUserIdentity } from "@/lib/identity";
 import { cn } from "@/utils/classNames";
 import {
-  PROJECT_DISPLAY_MODE_OPTIONS,
+  PROJECT_EXPLORE_DISPLAY_MODE_OPTIONS,
   sortPublicProjectsByDisplayMode,
   type ProjectDisplayMode,
 } from "../components/project/projectDisplayModes";
@@ -61,7 +62,7 @@ export function PublicProjectExplorePage() {
   const [recruitingOnly, setRecruitingOnly] = useState(false);
   const [reviewPendingOnly, setReviewPendingOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [displayMode, setDisplayMode] = useState<ProjectDisplayMode>("recommended");
+  const [displayMode, setDisplayMode] = useState<ProjectDisplayMode>("updated_desc");
   const [selectedProject, setSelectedProject] = useState<PublicProject | null>(null);
   const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
@@ -248,7 +249,7 @@ export function PublicProjectExplorePage() {
                   onClick={() => setIsGuideOpen(true)}
                   className={cn(
                     "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-2 pr-2.5 text-xs font-semibold",
-                    "bg-clay-pink text-white",
+                    "bg-clay-lavender text-clay-ink",
                     "transition-transform hover:-translate-y-0.5",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-pink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)]"
                   )}
@@ -256,7 +257,7 @@ export function PublicProjectExplorePage() {
                   title="研究小组指南"
                 >
                   <span
-                    className="flex h-5 w-5 items-center justify-center rounded-xl bg-white/15 text-white"
+                    className="flex h-5 w-5 items-center justify-center rounded-xl bg-clay-canvas/70 text-clay-ink"
                     aria-hidden="true"
                   >
                     <BookOpenText className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -323,7 +324,7 @@ export function PublicProjectExplorePage() {
                   onChange={(e) => setDisplayMode(e.target.value as ProjectDisplayMode)}
                   className="research-input rounded-full px-4 py-2 text-base"
                 >
-                  {PROJECT_DISPLAY_MODE_OPTIONS.map((option) => (
+                  {PROJECT_EXPLORE_DISPLAY_MODE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -450,7 +451,44 @@ export function PublicProjectExplorePage() {
                 </div>
 
                 <div className="mt-4 flex flex-1 flex-col space-y-3">
-                  <ProjectChallengePreview project={project} />
+                  <ProjectChallengePreview
+                    project={project}
+                    showCurrentGapAndFirstStep={false}
+                  />
+
+                  {project.status === "review_pending" && (
+                    <section
+                      aria-label={`${project.name_zh} 同伴评审`}
+                      className="rounded-[1.2rem] border border-[#e8b94a]/50 bg-[#e8b94a]/12 px-4 py-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#e8b94a]/25 text-[#76570f] dark:text-[#f5d77f]">
+                          <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
+                            同伴评审开放中
+                          </h3>
+                          <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
+                            {project.is_member
+                              ? "等待课题组外同学提交评审。"
+                              : "课题组外、已登录用户可前往详情页提交评审。"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!project.is_member && (
+                        <Link
+                          to={`/lab/projects/${project.id}#project-peer-review`}
+                          state={{ readOnly: true }}
+                          className="glass-button glass-button-primary mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                        >
+                          <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+                          前往评审
+                        </Link>
+                      )}
+                    </section>
+                  )}
 
                   <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   findByIdForAdmin,
+  findIdentitiesByIdsForAdmin,
   getUserAnalytics,
   getActivityDashboard,
   getUserEducations,
@@ -9,6 +10,7 @@ const {
   getUserApplications,
 } = vi.hoisted(() => ({
   findByIdForAdmin: vi.fn(),
+  findIdentitiesByIdsForAdmin: vi.fn(),
   getUserAnalytics: vi.fn(),
   getActivityDashboard: vi.fn(),
   getUserEducations: vi.fn(),
@@ -19,6 +21,7 @@ const {
 vi.mock('../models/user.model.js', () => ({
   UserModel: {
     findByIdForAdmin,
+    findIdentitiesByIdsForAdmin,
   },
 }));
 
@@ -113,6 +116,85 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       UserService.getActivityDashboardForAdmin('2026-04-12', '2026-07-10', null)
     ).resolves.toBe(dashboard);
     expect(getActivityDashboard).toHaveBeenCalledWith('2026-04-12', '2026-07-10', null);
+    expect(findIdentitiesByIdsForAdmin).not.toHaveBeenCalled();
+  });
+
+  it('uses real names in the ranking and falls back to nicknames, then usernames', async () => {
+    getActivityDashboard.mockResolvedValue({
+      status: 'ok',
+      range: { start: '2026-07-01', end: '2026-07-10', days: 10 },
+      generated_at: '2026-07-10T00:00:00.000Z',
+      summary: {
+        active_learners: 3,
+        meaningful_events: 9,
+        pageviews: 6,
+        learning_actions: 3,
+      },
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      module_breakdown: [],
+      top_learners: [
+        {
+          user_id: 'real-name-user',
+          username: 'alice',
+          display_name: 'alice',
+          events: 4,
+          pageviews: 3,
+          learning_actions: 1,
+          last_activity: null,
+        },
+        {
+          user_id: 'nickname-user',
+          username: 'bob',
+          display_name: 'bob',
+          events: 3,
+          pageviews: 2,
+          learning_actions: 1,
+          last_activity: null,
+        },
+        {
+          user_id: 'unknown-user',
+          username: 'legacy-account',
+          display_name: 'legacy-account',
+          events: 2,
+          pageviews: 1,
+          learning_actions: 1,
+          last_activity: null,
+        },
+      ],
+    });
+    findIdentitiesByIdsForAdmin.mockResolvedValue([
+      {
+        id: 'real-name-user',
+        username: 'alice',
+        nickname: '小爱',
+        real_name: ' Alice Wang ',
+      },
+      {
+        id: 'nickname-user',
+        username: 'bob',
+        nickname: ' 小波 ',
+        real_name: '   ',
+      },
+    ]);
+
+    const result = await UserService.getActivityDashboardForAdmin(
+      '2026-07-01',
+      '2026-07-10',
+      10
+    );
+
+    expect(findIdentitiesByIdsForAdmin).toHaveBeenCalledWith([
+      'real-name-user',
+      'nickname-user',
+      'unknown-user',
+    ]);
+    expect(result.top_learners.map((learner) => learner.display_name)).toEqual([
+      'Alice Wang',
+      '小波',
+      'legacy-account',
+    ]);
   });
 });
 

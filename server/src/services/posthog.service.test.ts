@@ -290,6 +290,7 @@ describe('PostHogService', () => {
         {
           user_id: 'user-1',
           username: 'alice',
+          display_name: 'alice',
           events: 9,
           pageviews: 4,
           learning_actions: 5,
@@ -298,6 +299,7 @@ describe('PostHogService', () => {
         {
           user_id: 'user-2',
           username: 'user-2',
+          display_name: 'user-2',
           events: 6,
           pageviews: 3,
           learning_actions: 3,

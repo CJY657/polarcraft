@@ -268,6 +268,7 @@ export class PostHogService {
         .map((row) => ({
           user_id: row[0] as string,
           username: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
+          display_name: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
           events: this.numberOrZero(row[2]),
           pageviews: this.numberOrZero(row[3]),
           learning_actions: this.numberOrZero(row[4]),

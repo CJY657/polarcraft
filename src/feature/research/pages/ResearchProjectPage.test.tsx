@@ -303,6 +303,10 @@ describe("ResearchProjectPage", () => {
     mockAddProjectMember.mockResolvedValue(undefined);
     mockDeleteProject.mockResolvedValue(undefined);
     mockRemoveProjectMember.mockResolvedValue(undefined);
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(),
+    });
   });
 
   it("lets the owner re-add a former member as member", async () => {
@@ -559,6 +563,25 @@ describe("ResearchProjectPage", () => {
     );
     expect(screen.queryByTestId("project-tasks-section")).toBeNull();
     expect(screen.queryByTestId("project-activity-feed")).toBeNull();
+  });
+
+  it("scrolls to the peer-review section after a deep-linked project loads", async () => {
+    mockGetProject.mockResolvedValue(createProject({ status: "review_pending" }));
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
+
+    renderPage([{
+      pathname: "/lab/projects/project-1",
+      hash: "#project-peer-review",
+      state: { readOnly: true },
+    }]);
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("project-peer-review"));
   });
 
   it("renders the full challenge card on the project detail page", async () => {

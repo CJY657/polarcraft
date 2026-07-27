@@ -75,6 +75,43 @@ export class UserModel {
   }
 
   /**
+   * Batch-load private identity fields for administrator-only surfaces.
+   * 批量加载仅管理员可见的用户身份字段
+   */
+  static async findIdentitiesByIdsForAdmin(
+    ids: string[]
+  ): Promise<
+    Array<Pick<AdminUserListItem, 'id' | 'username' | 'nickname' | 'real_name'>>
+  > {
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
+    const users = normalizeDocuments<
+      Pick<User, 'id' | 'username' | 'nickname' | 'real_name'>
+    >(
+      await usersCollection()
+        .find({ id: { $in: uniqueIds } })
+        .project({
+          _id: 0,
+          id: 1,
+          username: 1,
+          nickname: 1,
+          real_name: 1,
+        })
+        .toArray()
+    );
+
+    return users.map((user) => ({
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname ?? null,
+      real_name: user.real_name ?? null,
+    }));
+  }
+
+  /**
    * Find user by username (includes password hash for authentication)
    * 根据用户名查找用户（包含密码哈希用于认证）
    */

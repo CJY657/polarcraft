@@ -76,7 +76,8 @@ const activity = {
   top_learners: [
     {
       user_id: 'learner-1',
-      username: '林晓光',
+      username: 'learner-account',
+      display_name: '林晓光',
       events: 32,
       pageviews: 12,
       learning_actions: 20,
@@ -133,6 +134,17 @@ describe('AdminActivityPage', () => {
     expect(within(modulePanel!).getByText('虚拟课题')).toBeDefined();
     expect(within(modulePanel!).getByText('21 次 / 8 人')).toBeDefined();
     expect(within(modulePanel!).getByText('王小雨')).toBeDefined();
+  });
+
+  it('renders the admin-resolved learner name instead of the account username', async () => {
+    renderPage();
+
+    const rankingPanel = (
+      await screen.findByRole('heading', { name: '活跃学生排行' })
+    ).closest('section');
+    expect(rankingPanel).not.toBeNull();
+    expect(within(rankingPanel!).getByText('林晓光')).toBeDefined();
+    expect(within(rankingPanel!).queryByText('learner-account')).toBeNull();
   });
 
   it('reloads when a preset range is selected', async () => {

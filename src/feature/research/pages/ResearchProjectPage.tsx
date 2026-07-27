@@ -272,6 +272,17 @@ export function ResearchProjectPage() {
     void fetchProjectData();
   }, [projectId, isAuthenticated, authLoading, isExampleProject, loadAuthenticatedProjectData]);
 
+  useEffect(() => {
+    if (isLoading || location.hash !== "#project-peer-review") {
+      return;
+    }
+
+    document.getElementById("project-peer-review")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [isLoading, location.hash, location.key, projectId]);
+
   const isOwner = currentUserRole === "owner";
   const isMember = currentUserRole === "member" || isOwner;
 

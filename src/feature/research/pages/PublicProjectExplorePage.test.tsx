@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicProject } from "@/lib/profile.service";
@@ -146,13 +146,13 @@ describe("PublicProjectExplorePage", () => {
 
     await screen.findByText("推荐更新课题", {}, { timeout: 2000 });
     expect(screen.getByText("观察记录员")).toBeTruthy();
-    expect(screen.getAllByText("当前缺口").length).toBeGreaterThan(0);
-    expect(screen.getByText("缺数据整理 1 人")).toBeTruthy();
-    expect(screen.getByText("先记录第一轮变量")).toBeTruthy();
+    expect(screen.queryByText("当前缺口")).toBeNull();
+    expect(screen.queryByText("缺数据整理 1 人")).toBeNull();
+    expect(screen.queryByText("先记录第一轮变量")).toBeNull();
     expect(getCardTitles(container)).toEqual([
       "推荐更新课题",
-      "招募旧课题",
       "成员最多课题",
+      "招募旧课题",
       "最新创建课题",
     ]);
 
@@ -182,6 +182,76 @@ describe("PublicProjectExplorePage", () => {
     });
   });
 
+  it("shows an actionable review section only to outsiders during review_pending", async () => {
+    getPublicProjects.mockResolvedValue([
+      createPublicProject({
+        id: "external-review",
+        name_zh: "开放评审课题",
+        status: "review_pending",
+        challenge_review_criteria_zh: "证据完整，结论可复核",
+      }),
+      createPublicProject({
+        id: "member-review",
+        name_zh: "我的待评审课题",
+        status: "review_pending",
+        is_member: true,
+      }),
+      createPublicProject({
+        id: "showcased-project",
+        name_zh: "已展示课题",
+        status: "showcased",
+      }),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <PublicProjectExplorePage />
+      </MemoryRouter>
+    );
+
+    const externalCard = (await screen.findByRole("heading", { name: "开放评审课题" })).closest("article");
+    const memberCard = screen.getByRole("heading", { name: "我的待评审课题" }).closest("article");
+    const showcasedCard = screen.getByRole("heading", { name: "已展示课题" }).closest("article");
+
+    expect(externalCard).toBeTruthy();
+    expect(memberCard).toBeTruthy();
+    expect(showcasedCard).toBeTruthy();
+
+    const reviewLink = within(externalCard!).getByRole("link", { name: "前往评审" });
+    expect(reviewLink.getAttribute("href")).toBe("/lab/projects/external-review#project-peer-review");
+    expect(within(externalCard!).getByText("课题组外、已登录用户可前往详情页提交评审。")).toBeTruthy();
+    expect(within(externalCard!).queryByText("证据完整，结论可复核")).toBeNull();
+
+    expect(within(memberCard!).getByText("等待课题组外同学提交评审。")).toBeTruthy();
+    expect(within(memberCard!).queryByRole("link", { name: "前往评审" })).toBeNull();
+    expect(within(showcasedCard!).queryByText("同伴评审开放中")).toBeNull();
+  });
+
+  it("lets guests inspect the review section before login", async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    getPublicProjects.mockResolvedValue([
+      createPublicProject({
+        id: "guest-review",
+        name_zh: "访客可查看评审课题",
+        status: "review_pending",
+      }),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <PublicProjectExplorePage />
+      </MemoryRouter>
+    );
+
+    const reviewLink = await screen.findByRole("link", { name: "前往评审" });
+    expect(reviewLink.getAttribute("href")).toBe("/lab/projects/guest-review#project-peer-review");
+    fireEvent.click(reviewLink);
+    expect(openDialog).not.toHaveBeenCalled();
+  });
+
   it("opens the research group guide from the page header", async () => {
     getPublicProjects.mockResolvedValue([]);
 
@@ -191,16 +261,25 @@ describe("PublicProjectExplorePage", () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "打开研究小组指南 Research Group Guide" })
-    );
+    await screen.findByRole("heading", { name: "没有找到合适的课题" });
+
+    const guideButton = screen.getByRole("button", {
+      name: "打开研究小组指南 Research Group Guide",
+    });
+    expect(guideButton.className).toContain("bg-clay-lavender");
+    expect(guideButton.className).toContain("text-clay-ink");
+    expect(guideButton.className).not.toContain("bg-clay-pink text-white");
+
+    fireEvent.click(guideButton);
 
     expect(screen.getByRole("heading", { name: "研究小组指南" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "虚拟课题组是什么" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "访客（未登录）" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "同伴评审者（课题组外）" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "课题成员" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "组长职责与权限" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "课题组如何运作" })).toBeTruthy();
+    expect(screen.getByText("至少收到 2 份同伴评审后，组长才能将课题推进至「已展示」")).toBeTruthy();
   });
 
   it("opens login for guest create and join actions", async () => {

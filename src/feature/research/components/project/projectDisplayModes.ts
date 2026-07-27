@@ -1,12 +1,22 @@
 import type { PublicProject } from "@/lib/profile.service";
 
-export type ProjectDisplayMode = "recommended" | "member_count" | "created_desc" | "created_asc";
+export type ProjectDisplayMode =
+  | "recommended"
+  | "updated_desc"
+  | "member_count"
+  | "created_desc"
+  | "created_asc";
 
 export const PROJECT_DISPLAY_MODE_OPTIONS: Array<{ value: ProjectDisplayMode; label: string }> = [
   { value: "recommended", label: "推荐优先" },
   { value: "member_count", label: "成员最多" },
   { value: "created_desc", label: "最新创建" },
   { value: "created_asc", label: "最早创建" },
+];
+
+export const PROJECT_EXPLORE_DISPLAY_MODE_OPTIONS: Array<{ value: ProjectDisplayMode; label: string }> = [
+  { value: "updated_desc", label: "最近更新" },
+  ...PROJECT_DISPLAY_MODE_OPTIONS.slice(1),
 ];
 
 function getTime(value: string | null | undefined) {
@@ -62,6 +72,10 @@ function compareStableTies(left: PublicProject, right: PublicProject) {
 }
 
 function compareProjects(left: PublicProject, right: PublicProject, mode: ProjectDisplayMode) {
+  if (mode === "updated_desc") {
+    return compareDateDesc(left.updated_at, right.updated_at) || compareStableTies(left, right);
+  }
+
   if (mode === "member_count") {
     return right.member_count - left.member_count || compareStableTies(left, right);
   }

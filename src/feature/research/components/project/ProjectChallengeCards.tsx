@@ -13,6 +13,7 @@ import { ProjectRoleBadge } from './ProjectRoleBadge';
 interface ProjectChallengePreviewProps {
   project: ProjectChallengeSource;
   className?: string;
+  showCurrentGapAndFirstStep?: boolean;
 }
 
 interface ProjectChallengeDetailProps {
@@ -113,7 +114,11 @@ function ChallengeSection({
   );
 }
 
-export function ProjectChallengePreview({ project, className }: ProjectChallengePreviewProps) {
+export function ProjectChallengePreview({
+  project,
+  className,
+  showCurrentGapAndFirstStep = true,
+}: ProjectChallengePreviewProps) {
   const challenge = buildProjectChallengeCard(project);
 
   return (
@@ -126,36 +131,40 @@ export function ProjectChallengePreview({ project, className }: ProjectChallenge
       </div>
 
       <div className="space-y-3">
-        <div
-          className="rounded-[1rem] border px-3 py-3"
-          style={{
-            borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
-            background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
-          }}
-        >
-          <p className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">当前缺口</p>
-          <ChallengeRoleList
-            options={challenge.missingRoleOptions}
-            fallbackItems={challenge.missingRoleItems}
-            fallback={challenge.missingRoles}
-            maxItems={4}
-          />
-        </div>
+        {showCurrentGapAndFirstStep && (
+          <div
+            className="rounded-[1rem] border px-3 py-3"
+            style={{
+              borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
+              background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
+            }}
+          >
+            <p className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">当前缺口</p>
+            <ChallengeRoleList
+              options={challenge.missingRoleOptions}
+              fallbackItems={challenge.missingRoleItems}
+              fallback={challenge.missingRoles}
+              maxItems={4}
+            />
+          </div>
+        )}
 
         <div>
           <p className="mb-2 text-sm font-medium text-[var(--glass-text-muted)]">适合角色</p>
           <ChallengeList items={challenge.roleItems} fallback={challenge.roles} maxItems={4} />
         </div>
 
-        <div
-          className="rounded-[1rem] px-3 py-2"
-          style={{ background: 'color-mix(in srgb, var(--paper-link) 8%, transparent)' }}
-        >
-          <p className="text-sm font-medium text-[var(--glass-text-muted)]">第一步</p>
-          <p className="mt-1 text-base leading-6 text-[var(--paper-foreground)]">
-            {getProjectFirstStep(project)}
-          </p>
-        </div>
+        {showCurrentGapAndFirstStep && (
+          <div
+            className="rounded-[1rem] px-3 py-2"
+            style={{ background: 'color-mix(in srgb, var(--paper-link) 8%, transparent)' }}
+          >
+            <p className="text-sm font-medium text-[var(--glass-text-muted)]">第一步</p>
+            <p className="mt-1 text-base leading-6 text-[var(--paper-foreground)]">
+              {getProjectFirstStep(project)}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -153,6 +153,7 @@ export interface AdminActivityResponse {
   top_learners: Array<{
     user_id: string;
     username: string;
+    display_name: string;
     events: number;
     pageviews: number;
     learning_actions: number;

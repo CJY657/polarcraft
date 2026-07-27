@@ -712,7 +712,7 @@ function TopLearners({
         <tbody className={isDark ? 'text-slate-200' : 'text-[#1a1a1a]'}>
           {learners.map((learner) => (
             <tr key={learner.user_id} className={cn('border-t', isDark ? 'border-slate-800' : 'border-[#f0f0f0]')}>
-              <td className="py-3 pr-4 font-medium">{learner.username}</td>
+              <td className="py-3 pr-4 font-medium">{learner.display_name}</td>
               <td className="hidden py-3 pr-4 text-right tabular-nums sm:table-cell">{learner.events}</td>
               <td className="hidden py-3 pr-4 text-right tabular-nums md:table-cell">{learner.pageviews}</td>
               <td className="py-3 pr-4 text-right tabular-nums">{learner.learning_actions}</td>

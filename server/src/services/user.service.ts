@@ -139,7 +139,31 @@ export class UserService {
     end: string,
     learnerLimit: number | null
   ): Promise<AdminUserActivityDashboardResponse> {
-    return PostHogService.getActivityDashboard(start, end, learnerLimit);
+    const dashboard = await PostHogService.getActivityDashboard(start, end, learnerLimit);
+    if (dashboard.top_learners.length === 0) {
+      return dashboard;
+    }
+
+    const identities = await UserModel.findIdentitiesByIdsForAdmin(
+      dashboard.top_learners.map((learner) => learner.user_id)
+    );
+    const identityById = new Map(identities.map((identity) => [identity.id, identity]));
+
+    return {
+      ...dashboard,
+      top_learners: dashboard.top_learners.map((learner) => {
+        const identity = identityById.get(learner.user_id);
+        const displayName =
+          identity?.real_name?.trim() ||
+          identity?.nickname?.trim() ||
+          learner.username;
+
+        return {
+          ...learner,
+          display_name: displayName,
+        };
+      }),
+    };
   }
 
   /**
