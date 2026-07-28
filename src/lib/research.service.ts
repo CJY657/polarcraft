@@ -82,6 +82,7 @@ export interface ProjectDiscussionComment {
   project_id: string;
   user_id: string;
   parent_comment_id: string | null;
+  question_index?: number | null;
   content: string;
   image_urls: string[];
   video_urls: string[];
@@ -432,7 +433,13 @@ export const researchApi = {
    */
   addProjectDiscussionComment: async (
     projectId: string,
-    input: { content: string; parentCommentId?: string; imageUrls?: string[]; videoUrls?: string[] }
+    input: {
+      content: string;
+      parentCommentId?: string;
+      questionIndex?: number;
+      imageUrls?: string[];
+      videoUrls?: string[];
+    }
   ): Promise<{ id: string }> => {
     const response = await api.post<{ id: string }>(`/api/research/projects/${projectId}/discussion-comments`, input);
     return unwrapApiData(response, '发布讨论留言失败');

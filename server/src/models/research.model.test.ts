@@ -19,6 +19,7 @@ const nodesDeleteMany = vi.fn();
 const edgesDeleteMany = vi.fn();
 const commentsDeleteMany = vi.fn();
 const projectCommentsDeleteMany = vi.fn();
+const projectCommentsInsertOne = vi.fn();
 const agentMessagesDeleteMany = vi.fn();
 const activityDeleteMany = vi.fn();
 const projectSettingsDeleteMany = vi.fn();
@@ -97,6 +98,7 @@ vi.mock('../database/connection.js', () => ({
       case 'research_project_comments':
         return {
           find: (...args: unknown[]) => projectCommentsFind(...args),
+          insertOne: (...args: unknown[]) => projectCommentsInsertOne(...args),
           deleteMany: (...args: unknown[]) => projectCommentsDeleteMany(...args),
         };
       case 'research_activity_log':
@@ -267,6 +269,74 @@ describe('ResearchModel.updateProject', () => {
         last_activity_at: expect.any(Date),
       }) }
     );
+  });
+});
+
+describe('ResearchModel project question discussions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectCommentsInsertOne.mockResolvedValue({});
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('returns unique discussed top-level question indexes', async () => {
+    projectCommentsFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [
+          { question_index: 2 },
+          { question_index: 0 },
+          { question_index: 2 },
+          { question_index: -1 },
+        ],
+      }),
+    });
+
+    await expect(ResearchModel.getDiscussedProjectQuestionIndexes('project-1'))
+      .resolves.toEqual([0, 2]);
+    expect(projectCommentsFind).toHaveBeenCalledWith({
+      project_id: 'project-1',
+      parent_comment_id: null,
+      question_index: { $type: 'number' },
+    });
+  });
+
+  it('stores question_index only for a scoped top-level comment', async () => {
+    await ResearchModel.addProjectDiscussionComment(
+      'project-1',
+      'user-1',
+      '回答',
+      null,
+      [],
+      [],
+      1
+    );
+
+    expect(projectCommentsInsertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: 'project-1',
+        parent_comment_id: null,
+        question_index: 1,
+      })
+    );
+  });
+
+  it('keeps legacy general comments and replies unscoped', async () => {
+    await ResearchModel.addProjectDiscussionComment('project-1', 'user-1', '其它讨论');
+    const generalComment = projectCommentsInsertOne.mock.calls[0][0];
+    expect(generalComment).not.toHaveProperty('question_index');
+
+    await ResearchModel.addProjectDiscussionComment(
+      'project-1',
+      'user-1',
+      '回复',
+      'parent-1',
+      [],
+      [],
+      1
+    );
+    const reply = projectCommentsInsertOne.mock.calls[1][0];
+    expect(reply).toEqual(expect.objectContaining({ parent_comment_id: 'parent-1' }));
+    expect(reply).not.toHaveProperty('question_index');
   });
 });
 

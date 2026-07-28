@@ -15,6 +15,7 @@ const mockGetPublicProjectById = vi.fn();
 const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
+const mockProjectEditDialog = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
 const mockProjectEvidenceSection = vi.fn();
@@ -51,7 +52,10 @@ vi.mock("../components/project/ApplicationManagementDialog", () => ({
 }));
 
 vi.mock("../components/project/ProjectEditDialog", () => ({
-  ProjectEditDialog: () => null,
+  ProjectEditDialog: (props: Record<string, unknown>) => {
+    mockProjectEditDialog(props);
+    return <div data-testid="project-edit-dialog" />;
+  },
 }));
 
 vi.mock("../components/project/ProjectSettingsDialog", () => ({
@@ -284,6 +288,7 @@ describe("ResearchProjectPage", () => {
     mockAddProjectMember.mockReset();
     mockDeleteProject.mockReset();
     mockRemoveProjectMember.mockReset();
+    mockProjectEditDialog.mockReset();
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
     mockProjectEvidenceSection.mockReset();
@@ -740,7 +745,7 @@ describe("ResearchProjectPage", () => {
     expect(openDialog).not.toHaveBeenCalled();
   });
 
-  it("jumps research information into the discussion subsections", async () => {
+  it("keeps hypotheses static, manages questions through the editor, and places discussion after research info", async () => {
     mockGetProject.mockResolvedValue(
       createProject({
         research_questions_zh: "气泡条纹与膜厚变化是否相关？\n明暗图样是否受偏振方向影响？",
@@ -753,41 +758,59 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByText("研究信息")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "气泡条纹与膜厚变化是否相关？" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "明暗图样是否受偏振方向影响？" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "条纹由膜厚变化引起。" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "明暗图样由几何与偏振耦合产生。" })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "气泡条纹与膜厚变化是否相关？" }));
-
-    await waitFor(() => {
-      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          jumpRequest: expect.objectContaining({
-            section: "basic",
-            index: 0,
-            version: 1,
-          }),
-        })
-      );
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "条纹由膜厚变化引起。" }));
-
-    await waitFor(() => {
-      expect(mockProjectDiscussionSection).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          jumpRequest: expect.objectContaining({
-            section: "extended",
-            index: 0,
-            version: 2,
-          }),
-        })
-      );
-    });
+    expect(screen.queryByText("气泡条纹与膜厚变化是否相关？")).toBeNull();
+    expect(screen.getByText("条纹由膜厚变化引起。")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "条纹由膜厚变化引起。" })).toBeNull();
 
     expect(screen.getAllByText("先做基础观察，再记录变量。").length).toBeGreaterThan(0);
     expect(screen.getByText("继续验证不同角度下的表现。")).toBeTruthy();
+
+    const researchInfo = screen.getByText("研究信息").closest("section");
+    const discussion = screen.getByTestId("project-discussion-section");
+    const evidence = screen.getByTestId("project-evidence-section");
+    expect(researchInfo?.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(discussion.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "管理问题" }));
+
+    await waitFor(() => {
+      expect(mockProjectEditDialog).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isOpen: true,
+          initialFocusField: "questions",
+        })
+      );
+    });
+  });
+
+  it("hides the question management shortcut from ordinary members", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "member-1", username: "member", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createProject({
+        research_questions_zh: "核心问题",
+        members: [
+          ...createProject().members,
+          {
+            id: "member-1",
+            project_id: "project-1",
+            user_id: "member-1",
+            role: "member",
+            joined_at: new Date().toISOString(),
+            username: "普通成员",
+            avatar_url: null,
+          },
+        ],
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("研究信息")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "管理问题" })).toBeNull();
   });
 
   it("converts the discussion comments hash into a discussion jump request", async () => {

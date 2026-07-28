@@ -1669,6 +1669,25 @@ export class ResearchModel {
     }));
   }
 
+  static async getDiscussedProjectQuestionIndexes(projectId: string): Promise<number[]> {
+    const comments = normalizeDocuments<{ question_index?: unknown }>(
+      await projectCommentsCollection()
+        .find({
+          project_id: projectId,
+          parent_comment_id: null,
+          question_index: { $type: 'number' },
+        })
+        .project({ _id: 0, question_index: 1 })
+        .toArray()
+    );
+
+    return [...new Set(
+      comments
+        .map((comment) => comment.question_index)
+        .filter((index): index is number => typeof index === 'number' && Number.isInteger(index) && index >= 0)
+    )].sort((a, b) => a - b);
+  }
+
   static async getRecentProjectDiscussionDigest(
     projectId: string,
     limit: number = 8
@@ -1725,7 +1744,8 @@ export class ResearchModel {
     content: string,
     parentCommentId: string | null = null,
     imageUrls: string[] = [],
-    videoUrls: string[] = []
+    videoUrls: string[] = [],
+    questionIndex?: number
   ): Promise<string> {
     const now = new Date();
     const commentId = generateId();
@@ -1735,6 +1755,7 @@ export class ResearchModel {
       project_id: projectId,
       user_id: userId,
       parent_comment_id: parentCommentId,
+      ...(parentCommentId === null && questionIndex !== undefined ? { question_index: questionIndex } : {}),
       content,
       image_urls: normalizeImageUrls(imageUrls),
       video_urls: normalizeVideoUrls(videoUrls),

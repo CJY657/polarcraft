@@ -3,7 +3,7 @@
  * 课题编辑对话框组件
  */
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,9 +27,16 @@ interface ProjectEditDialogProps {
   onClose: () => void;
   project: ResearchProject | null;
   onSuccess: (project: ResearchProject) => void;
+  initialFocusField?: 'questions';
 }
 
-export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: ProjectEditDialogProps) {
+export function ProjectEditDialog({
+  isOpen,
+  onClose,
+  project,
+  onSuccess,
+  initialFocusField,
+}: ProjectEditDialogProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -49,6 +56,7 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isAdvanceConfirmationOpen, setIsAdvanceConfirmationOpen] = useState(false);
+  const questionsInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Initialize form data when project changes
   useEffect(() => {
@@ -78,6 +86,12 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
     setError('');
     setIsAdvanceConfirmationOpen(false);
   }, [project, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && initialFocusField === 'questions') {
+      questionsInputRef.current?.focus();
+    }
+  }, [initialFocusField, isOpen]);
 
   const submitProjectUpdate = async () => {
     if (!project) return;
@@ -241,6 +255,8 @@ export function ProjectEditDialog({ isOpen, onClose, project, onSuccess }: Proje
               研究问题（中文，每行一个）
             </label>
             <textarea
+              ref={questionsInputRef}
+              aria-label="研究问题（中文，每行一个）"
               value={formData.research_questions_zh}
               onChange={(e) => setFormData({ ...formData, research_questions_zh: e.target.value })}
               rows={3}

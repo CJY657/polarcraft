@@ -8,6 +8,7 @@
 
 import { generateTokenPair, verifyRefreshToken, getTokenExpiry } from '../utils/jwt.util.js';
 import { RefreshTokenModel } from '../models/refresh-token.model.js';
+import { UserModel } from '../models/user.model.js';
 import { TokenPayload, TokenPair, SessionInfo } from '../types/auth.types.js';
 import { logger } from '../utils/logger.js';
 import { AuthError } from '../types/auth.types.js';
@@ -102,6 +103,11 @@ export class TokenService {
     // Revoke the old refresh token (token rotation)
     // 撤销旧的刷新令牌（令牌轮换）
     await RefreshTokenModel.revoke(tokenRecord.id);
+
+    // Silent refresh keeps sessions alive without hitting /login, so stamp
+    // last_login_at here too — otherwise long-lived sessions show "从未登录"
+    // 静默刷新会绕过 /login，这里同步更新最后登录时间
+    await UserModel.updateLastLogin(payload.sub);
 
     // Generate new token pair
     // 生成新的 token 对

@@ -79,6 +79,23 @@ describe('ProjectEditDialog lifecycle control', () => {
     ]);
   });
 
+  it('focuses the research question field when opened from the management shortcut', async () => {
+    render(
+      <ProjectEditDialog
+        isOpen
+        onClose={vi.fn()}
+        project={project}
+        onSuccess={vi.fn()}
+        initialFocusField="questions"
+      />
+    );
+
+    const questionField = screen.getByLabelText('研究问题（中文，每行一个）');
+    await waitFor(() => {
+      expect(document.activeElement).toBe(questionField);
+    });
+  });
+
   it('enables every status for administrators', () => {
     mockUseAuth.mockReturnValue({ user: { role: 'admin' } });
 

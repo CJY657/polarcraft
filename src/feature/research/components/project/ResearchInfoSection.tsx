@@ -2,23 +2,17 @@
  * Research Info Section
  * 研究信息区块
  *
- * Renders the topic summary, plans, and a jumpable index of research questions
- * and hypotheses. Extracted from ResearchProjectPage; markup is unchanged.
+ * Renders the topic summary, plans, and read-only research hypotheses.
  */
 
-import type { ReactNode } from "react";
 import {
   BookOpen,
   FlaskConical,
-  HelpCircle,
   Lightbulb,
   ListChecks,
+  Pencil,
 } from "lucide-react";
-import { cn } from "@/utils/classNames";
-import type {
-  ProjectDiscussionJumpTarget,
-  ProjectDiscussionOutline,
-} from "./ProjectDiscussionSection";
+import type { ProjectDiscussionOutline } from "./ProjectDiscussionSection";
 
 export function hasResearchOutline(outline: ProjectDiscussionOutline): boolean {
   return Boolean(
@@ -32,54 +26,19 @@ export function hasResearchOutline(outline: ProjectDiscussionOutline): boolean {
 
 export function ResearchInfoSection({
   outline,
-  canJumpToDiscussion,
-  onJumpToDiscussion,
+  canManageQuestions,
+  onManageQuestions,
 }: {
   outline: ProjectDiscussionOutline;
-  canJumpToDiscussion: boolean;
-  onJumpToDiscussion: (target: ProjectDiscussionJumpTarget) => void;
+  canManageQuestions: boolean;
+  onManageQuestions: () => void;
 }) {
-  const hasQuestions = outline.questions.length > 0;
   const hasHypotheses = outline.hypotheses.length > 0;
   const hasPlans = Boolean(outline.basicPlan?.trim() || outline.extendedPlan?.trim());
 
   if (!hasResearchOutline(outline)) {
     return null;
   }
-
-  const renderJumpItem = (
-    label: string,
-    target: ProjectDiscussionJumpTarget,
-    icon: ReactNode,
-    toneClass: string
-  ) => {
-    const className = cn(
-      "group flex min-h-[4rem] items-start gap-3 rounded-[1.1rem] border px-3.5 py-3 text-left transition",
-      toneClass,
-      canJumpToDiscussion && "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.07)]"
-    );
-
-    const content = (
-      <>
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
-          {icon}
-        </span>
-        <span className="min-w-0 flex-1 text-base font-medium leading-6 text-[var(--paper-foreground)]">
-          {label}
-        </span>
-      </>
-    );
-
-    if (!canJumpToDiscussion) {
-      return <div className={className}>{content}</div>;
-    }
-
-    return (
-      <button type="button" onClick={() => onJumpToDiscussion(target)} className={className}>
-        {content}
-      </button>
-    );
-  };
 
   return (
     <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
@@ -92,10 +51,24 @@ export function ResearchInfoSection({
             研究信息
           </h2>
         </div>
-        <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-xs font-medium sm:self-auto">
-          <ListChecks className="h-3.5 w-3.5" />
-          问题与假设索引
-        </span>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {hasHypotheses && (
+            <span className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium">
+              <ListChecks className="h-3.5 w-3.5" />
+              研究假设
+            </span>
+          )}
+          {canManageQuestions && (
+            <button
+              type="button"
+              onClick={onManageQuestions}
+              className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
+            >
+              <Pencil className="h-3.5 w-3.5 text-[var(--paper-link)]" />
+              管理问题
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
@@ -137,26 +110,19 @@ export function ResearchInfoSection({
         )}
       </div>
 
-      {(hasQuestions || hasHypotheses) && (
+      {hasHypotheses && (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {outline.questions.map((question, index) => (
-            <div key={`question-${index}`}>
-              {renderJumpItem(
-                question,
-                { section: "basic", index },
-                <HelpCircle className="h-4 w-4 text-[var(--paper-link)]" />,
-                "border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/7"
-              )}
-            </div>
-          ))}
           {outline.hypotheses.map((hypothesis, index) => (
-            <div key={`hypothesis-${index}`}>
-              {renderJumpItem(
-                hypothesis,
-                { section: "extended", index },
-                <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />,
-                "border-[#d7994c]/20 bg-[#d7994c]/8"
-              )}
+            <div
+              key={`hypothesis-${index}`}
+              className="flex min-h-[4rem] items-start gap-3 rounded-[1.1rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3.5 py-3"
+            >
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
+                <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
+              </span>
+              <span className="min-w-0 flex-1 text-base font-medium leading-6 text-[var(--paper-foreground)]">
+                {hypothesis}
+              </span>
             </div>
           ))}
         </div>

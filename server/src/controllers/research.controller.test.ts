@@ -34,6 +34,7 @@ const {
     removeProjectMember: vi.fn(),
     createProject: vi.fn(),
     updateProject: vi.fn(),
+    getDiscussedProjectQuestionIndexes: vi.fn(),
     touchProjectActivity: vi.fn(),
     setLegacyProjectVisibility: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
@@ -1656,6 +1657,7 @@ describe('ResearchController Phase 0 project policy', () => {
     challenge_min_deliverables_zh: '成果',
     challenge_timeline_zh: '周期',
     challenge_review_criteria_zh: '标准',
+    research_questions_zh: '问题一\n问题二\n问题三',
   };
 
   beforeEach(() => {
@@ -1674,6 +1676,7 @@ describe('ResearchController Phase 0 project policy', () => {
       canModerate: true,
     });
     mockResearchModel.updateProject.mockResolvedValue('updated');
+    mockResearchModel.getDiscussedProjectQuestionIndexes.mockResolvedValue([]);
     mockResearchModel.getProjectById.mockResolvedValue({ ...completeProject, status: 'review_pending' });
     mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['owner-1', 'member-1', 'member-2']);
   });
@@ -1813,6 +1816,50 @@ describe('ResearchController Phase 0 project policy', () => {
     );
     expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
     expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+  });
+
+  it.each([
+    ['rewriting a discussed question in place', '问题一\n改写后的问题二\n问题三'],
+    ['appending questions after discussed positions', '问题一\n问题二\n问题三\n问题四'],
+  ])('allows %s', async (_label, researchQuestions) => {
+    mockResearchModel.getDiscussedProjectQuestionIndexes.mockResolvedValue([1]);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { research_questions_zh: researchQuestions },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.updateProject).toHaveBeenCalledWith(
+      'project-1',
+      { research_questions_zh: researchQuestions },
+      undefined
+    );
+  });
+
+  it.each([
+    ['deleting a discussed position', '问题一\n问题三'],
+    ['deleting before a discussed position while rewriting it', '替换后的问题\n改写后的问题二'],
+    ['inserting before a discussed position', '问题一\n新问题\n问题二\n问题三'],
+    ['reordering existing questions', '问题一\n问题三\n问题二'],
+  ])('rejects %s', async (_label, researchQuestions) => {
+    mockResearchModel.getDiscussedProjectQuestionIndexes.mockResolvedValue([1]);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProject, {
+      params: { id: 'project-1' },
+      body: { research_questions_zh: researchQuestions },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '已有讨论的问题不能删除、前插或重排；可原位修改文字或在末尾追加问题',
+      'RESEARCH_QUESTION_POSITIONS_LOCKED',
+      400
+    );
+    expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
   });
 
   it('allows clearing publication fields while making a project private', async () => {
@@ -2000,7 +2047,8 @@ describe('ResearchController project discussion comments', () => {
       '新的观察记录',
       null,
       [],
-      []
+      [],
+      undefined
     );
     expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
       ['member-2', 'owner-1'],
@@ -2012,6 +2060,79 @@ describe('ResearchController project discussion comments', () => {
       })
     );
     expect(res.success).toHaveBeenCalledWith({ id: 'comment-1' }, '讨论留言发布成功', 201);
+  });
+
+  it('sends a valid current question index for a top-level answer', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        research_questions_zh: ' 问题一 \n\n 问题二 ',
+      },
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, {
+      params: { projectId: 'project-1' },
+      body: { content: '回答问题二', questionIndex: 1 },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    }, res);
+
+    expect(res.error).not.toHaveBeenCalled();
+    expect(mockResearchModel.addProjectDiscussionComment).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      '回答问题二',
+      null,
+      [],
+      [],
+      1
+    );
+  });
+
+  it.each([-1, 0.5, 2, '1'])('rejects invalid question index %s', async (questionIndex) => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        research_questions_zh: '问题一\n问题二',
+      },
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, {
+      params: { projectId: 'project-1' },
+      body: { content: '回答', questionIndex },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(expect.any(String), 'INVALID_QUESTION_INDEX', 400);
+    expect(mockResearchModel.addProjectDiscussionComment).not.toHaveBeenCalled();
+  });
+
+  it('rejects combining a question index with a reply target', async () => {
+    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        research_questions_zh: '问题一',
+      },
+    }));
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.addProjectDiscussionComment, {
+      params: { projectId: 'project-1' },
+      body: { content: '回复', questionIndex: 0, parentCommentId: 'parent-comment' },
+      user: { sub: 'member-1', username: '小林', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '问题讨论不能同时指定回复目标',
+      'QUESTION_INDEX_WITH_PARENT',
+      400
+    );
+    expect(mockResearchModel.getProjectDiscussionCommentById).not.toHaveBeenCalled();
+    expect(mockResearchModel.addProjectDiscussionComment).not.toHaveBeenCalled();
   });
 
   it('notifies every other active member after a discussion reply', async () => {
@@ -2032,6 +2153,15 @@ describe('ResearchController project discussion comments', () => {
 
     await invokeHandler(ResearchController.addProjectDiscussionComment, req, res);
 
+    expect(mockResearchModel.addProjectDiscussionComment).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      '我补充一个角度',
+      'parent-comment',
+      [],
+      [],
+      undefined
+    );
     expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
       ['member-2', 'parent-author'],
       expect.objectContaining({

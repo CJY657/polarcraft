@@ -265,7 +265,8 @@ export class UserModel {
       email_verified: false,
       created_at: now,
       updated_at: now,
-      last_login_at: null,
+      // 注册即登录（注册接口会直接签发 token）
+      last_login_at: now,
     };
 
     await usersCollection().insertOne(user as unknown as Record<string, unknown>);

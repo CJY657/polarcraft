@@ -152,6 +152,50 @@ function normalizeProjectDiscussionManagedUrls(value: unknown): string[] | null 
   return [...uniqueUrls];
 }
 
+function parseResearchQuestions(value: unknown): string[] {
+  return typeof value === 'string'
+    ? value.split(/\r?\n/).map((question) => question.trim()).filter(Boolean)
+    : [];
+}
+
+function preservesDiscussedQuestionPositions(
+  previousValue: unknown,
+  nextValue: unknown,
+  discussedIndexes: number[]
+): boolean {
+  const previousQuestions = parseResearchQuestions(previousValue);
+  const nextQuestions = parseResearchQuestions(nextValue);
+
+  if (discussedIndexes.length === 0) {
+    return true;
+  }
+
+  if (
+    nextQuestions.length < previousQuestions.length
+    || discussedIndexes.some((index) => index >= previousQuestions.length)
+  ) {
+    return false;
+  }
+
+  return previousQuestions.every((previousQuestion, index) => {
+    const nextQuestion = nextQuestions[index];
+    if (nextQuestion === previousQuestion) {
+      return true;
+    }
+
+    const previousQuestionMoved = nextQuestions.some((
+      question,
+      nextIndex
+    ) => nextIndex !== index && question === previousQuestion);
+    const nextQuestionMoved = previousQuestions.some((
+      question,
+      previousIndex
+    ) => previousIndex !== index && question === nextQuestion);
+
+    return !previousQuestionMoved && !nextQuestionMoved;
+  });
+}
+
 function normalizeManagedUploadUrl(value: unknown): string | null | undefined {
   if (value === undefined) {
     return undefined;
@@ -670,6 +714,21 @@ export class ResearchController {
     const requestedVisibility = req.body.is_public === undefined
       ? settings.visibility
       : req.body.is_public === true ? 'public' : 'private';
+
+    if (req.body.research_questions_zh !== undefined) {
+      const discussedQuestionIndexes = await ResearchModel.getDiscussedProjectQuestionIndexes(id);
+      if (!preservesDiscussedQuestionPositions(
+        access.project.research_questions_zh,
+        req.body.research_questions_zh,
+        discussedQuestionIndexes
+      )) {
+        return res.error(
+          '已有讨论的问题不能删除、前插或重排；可原位修改文字或在末尾追加问题',
+          'RESEARCH_QUESTION_POSITIONS_LOCKED',
+          400
+        );
+      }
+    }
 
     if (nextStatus !== undefined) {
       if (isProjectStatusRollback(currentStatus, nextStatus) && !isAdmin) {
@@ -1998,6 +2057,8 @@ export class ResearchController {
     const parentCommentId = typeof req.body.parentCommentId === 'string' && req.body.parentCommentId.trim().length > 0
       ? req.body.parentCommentId.trim()
       : null;
+    const hasQuestionIndex = req.body.questionIndex !== undefined;
+    const questionIndex = req.body.questionIndex;
 
     if (imageUrls === null) {
       return res.error('评论附件地址格式无效', 'INVALID_COMMENT_IMAGES', 400);
@@ -2035,6 +2096,21 @@ export class ResearchController {
       return;
     }
 
+    if (hasQuestionIndex && (!Number.isInteger(questionIndex) || questionIndex < 0)) {
+      return res.error('问题索引必须是当前问题的非负整数索引', 'INVALID_QUESTION_INDEX', 400);
+    }
+
+    if (hasQuestionIndex && parentCommentId) {
+      return res.error('问题讨论不能同时指定回复目标', 'QUESTION_INDEX_WITH_PARENT', 400);
+    }
+
+    if (
+      hasQuestionIndex
+      && questionIndex >= parseResearchQuestions(access.project.research_questions_zh).length
+    ) {
+      return res.error('问题索引超出当前问题范围', 'INVALID_QUESTION_INDEX', 400);
+    }
+
     if (parentCommentId) {
       const parentComment = await ResearchModel.getProjectDiscussionCommentById(parentCommentId);
       if (!parentComment || parentComment.project_id !== projectId) {
@@ -2052,7 +2128,8 @@ export class ResearchController {
       content,
       parentCommentId,
       imageUrls ?? [],
-      videoUrls ?? []
+      videoUrls ?? [],
+      hasQuestionIndex ? questionIndex : undefined
     );
 
     await notifyProjectDiscussionCommentRecipients(

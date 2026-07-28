@@ -52,7 +52,6 @@ import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import {
   ProjectDiscussionSection,
   type ProjectDiscussionJumpRequest,
-  type ProjectDiscussionJumpTarget,
   type ProjectDiscussionOutline,
 } from "../components/project/ProjectDiscussionSection";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
@@ -104,6 +103,7 @@ export function ResearchProjectPage() {
 
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editDialogInitialFocus, setEditDialogInitialFocus] = useState<'questions' | undefined>();
   const [isCoverDialogOpen, setIsCoverDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
@@ -467,13 +467,13 @@ export function ResearchProjectPage() {
   const projectSectionLinks = [
     { href: "#project-challenge", label: "挑战概览" },
     ...(showResearchInfo ? [{ href: "#project-research-info", label: "研究设计" }] : []),
+    ...(canShowDiscussionSection ? [{ href: "#project-discussion", label: "参与讨论" }] : []),
     ...(canShowEvidenceSection ? [{ href: "#project-evidence", label: "课题证据" }] : []),
     ...(canShowPeerReviewSection && hasPeerReviewContent
       ? [{ href: "#project-peer-review", label: "同伴评审" }]
       : []),
     ...(canShowTasksSection ? [{ href: "#project-tasks", label: "任务分工" }] : []),
     ...(showMembersRail ? [{ href: "#project-members", label: "团队成员" }] : []),
-    ...(canShowDiscussionSection ? [{ href: "#project-discussion", label: "参与讨论" }] : []),
   ];
 
   const handleApplyAction = () => {
@@ -489,11 +489,14 @@ export function ResearchProjectPage() {
     setIsApplicationFormOpen(true);
   };
 
-  const handleJumpToDiscussion = (target: ProjectDiscussionJumpTarget) => {
-    setDiscussionJumpRequest((current) => ({
-      ...target,
-      version: (current?.version ?? 0) + 1,
-    }));
+  const openEditDialog = (initialFocus?: 'questions') => {
+    setEditDialogInitialFocus(initialFocus);
+    setIsEditDialogOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setEditDialogInitialFocus(undefined);
   };
 
   return (
@@ -522,7 +525,7 @@ export function ResearchProjectPage() {
                   设置
                 </button>
                 <button
-                  onClick={() => setIsEditDialogOpen(true)}
+                  onClick={() => openEditDialog()}
                   className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
                 >
                   <Edit3 className="w-4 h-4" />
@@ -622,7 +625,7 @@ export function ResearchProjectPage() {
                           管理封面
                         </button>
                         <button
-                          onClick={() => setIsEditDialogOpen(true)}
+                          onClick={() => openEditDialog()}
                           className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium sm:w-auto"
                         >
                           <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
@@ -732,8 +735,21 @@ export function ResearchProjectPage() {
               <div id="project-research-info" className="scroll-mt-36">
                 <ResearchInfoSection
                   outline={researchOutline}
-                  canJumpToDiscussion={canShowDiscussionSection}
-                  onJumpToDiscussion={handleJumpToDiscussion}
+                  canManageQuestions={canManageProject}
+                  onManageQuestions={() => openEditDialog('questions')}
+                />
+              </div>
+            )}
+
+            {canShowDiscussionSection && projectId && (
+              <div id="project-discussion" className="scroll-mt-36">
+                <ProjectDiscussionSection
+                  projectId={projectId}
+                  currentUserId={user?.id}
+                  canModerate={isOwner || isAdmin}
+                  canParticipate={canParticipateInDiscussion}
+                  outline={researchOutline}
+                  jumpRequest={discussionJumpRequest}
                 />
               </div>
             )}
@@ -776,18 +792,6 @@ export function ResearchProjectPage() {
               </div>
             )}
 
-            {canShowDiscussionSection && projectId && (
-              <div id="project-discussion" className="scroll-mt-36">
-                <ProjectDiscussionSection
-                  projectId={projectId}
-                  currentUserId={user?.id}
-                  canModerate={isOwner || isAdmin}
-                  canParticipate={canParticipateInDiscussion}
-                  outline={researchOutline}
-                  jumpRequest={discussionJumpRequest}
-                />
-              </div>
-            )}
           </div>
 
           {showMembersRail && (
@@ -842,8 +846,9 @@ export function ResearchProjectPage() {
         {!isExampleProject && project && isEditDialogOpen && (
           <ProjectEditDialog
             isOpen={isEditDialogOpen}
-            onClose={() => setIsEditDialogOpen(false)}
+            onClose={closeEditDialog}
             project={project}
+            initialFocusField={editDialogInitialFocus}
             onSuccess={(updatedProject) => {
               setProject({ ...project, ...updatedProject });
             }}

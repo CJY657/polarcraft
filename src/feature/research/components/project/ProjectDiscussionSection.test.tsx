@@ -67,6 +67,10 @@ function createClipboardImageItem(file: File) {
   };
 }
 
+function openGeneralDiscussion() {
+  fireEvent.click(screen.getByRole('button', { name: /其它讨论/ }));
+}
+
 beforeAll(() => {
   vi.stubGlobal('DataTransfer', MockDataTransfer);
 
@@ -106,7 +110,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
 
     const textarea = await screen.findByPlaceholderText(/支持 Ctrl\+V 粘贴图片/);
     const file = new File(['image-bytes'], 'pasted-comment.png', { type: 'image/png' });
@@ -133,7 +137,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
 
     await screen.findByText('基础讨论');
     fireEvent.click(screen.getByRole('button', { name: '回复' }));
@@ -161,7 +165,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
 
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['video-bytes'], 'demo.mp4', { type: 'video/mp4' });
@@ -188,7 +192,31 @@ describe('ProjectDiscussionSection', () => {
     });
   });
 
-  it('opens the requested discussion subsection when jumped from research info', async () => {
+  it('groups root comments by question and keeps only one discussion row open', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([
+      createComment({
+        id: 'question-0-root',
+        content: '问题一答案',
+        question_index: 0,
+      }),
+      createComment({
+        id: 'question-0-reply',
+        parent_comment_id: 'question-0-root',
+        content: '问题一追问',
+        user_id: 'user-2',
+        updated_at: '2026-04-12T08:00:00.000Z',
+      }),
+      createComment({
+        id: 'question-1-root',
+        content: '问题二答案',
+        question_index: 1,
+      }),
+      createComment({
+        id: 'legacy-general',
+        content: '旧版其它讨论',
+      }),
+    ]);
+
     render(
       <ProjectDiscussionSection
         projectId="project-1"
@@ -196,21 +224,207 @@ describe('ProjectDiscussionSection', () => {
         currentUserId="user-1"
         outline={{
           topicSummary: '研究摘要',
-          questions: ['基础问题'],
-          hypotheses: ['扩展假设'],
-          basicPlan: '基础实验',
-          extendedPlan: '扩展实验',
+          questions: ['第一个核心问题', '第二个核心问题'],
+          hypotheses: [],
         }}
-        jumpRequest={{ section: 'extended', index: 0, version: 1 }}
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '收起讨论区' })).toBeTruthy();
+    const firstQuestion = await screen.findByRole('button', { name: /第一个核心问题/ });
+    const secondQuestion = screen.getByRole('button', { name: /第二个核心问题/ });
+    const general = screen.getByRole('button', { name: /其它讨论/ });
+
+    expect(firstQuestion.textContent).toContain('2 条讨论');
+    expect(firstQuestion.textContent).toContain('最近活动');
+    expect(general.textContent).toContain('1 条讨论');
+
+    fireEvent.click(firstQuestion);
+    expect(await screen.findByText('问题一答案')).toBeTruthy();
+    expect(screen.queryByText('问题二答案')).toBeNull();
+    expect(screen.queryByText('旧版其它讨论')).toBeNull();
+
+    fireEvent.click(secondQuestion);
+    expect(secondQuestion.getAttribute('aria-expanded')).toBe('true');
+    expect(firstQuestion.getAttribute('aria-expanded')).toBe('false');
+    expect(await screen.findByText('问题二答案')).toBeTruthy();
+    expect(screen.queryByText('问题一答案')).toBeNull();
+
+    fireEvent.click(general);
+    expect(general.getAttribute('aria-expanded')).toBe('true');
+    expect(secondQuestion.getAttribute('aria-expanded')).toBe('false');
+    expect(await screen.findByText('旧版其它讨论')).toBeTruthy();
+    expect(screen.queryByText('问题二答案')).toBeNull();
+  });
+
+  it('clears the top-level draft when switching discussion rows', async () => {
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['第一个核心问题', '第二个核心问题'],
+          hypotheses: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /第一个核心问题/ }));
+    fireEvent.change(screen.getByPlaceholderText(/写下你的答案或新观点/), {
+      target: { value: '只属于问题一的草稿' },
     });
-    await waitFor(() => {
-      expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /第二个核心问题/ }));
+
+    expect((await screen.findByPlaceholderText(
+      /写下你的答案或新观点/
+    ) as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('keeps the top-level draft when collapsing and reopening the same row', async () => {
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['核心问题'],
+          hypotheses: [],
+        }}
+      />
+    );
+
+    const questionRow = screen.getByRole('button', { name: /核心问题/ });
+    fireEvent.click(questionRow);
+    fireEvent.change(screen.getByPlaceholderText(/写下你的答案或新观点/), {
+      target: { value: '尚未发布的草稿' },
     });
+
+    fireEvent.click(questionRow);
+    fireEvent.click(questionRow);
+
+    expect((await screen.findByPlaceholderText(
+      /写下你的答案或新观点/
+    ) as HTMLTextAreaElement).value).toBe('尚未发布的草稿');
+  });
+
+  it('sends questionIndex for a question answer', async () => {
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['需要回答的问题'],
+          hypotheses: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /需要回答的问题/ }));
+    const composer = screen.getByPlaceholderText(/写下你的答案或新观点/);
+    fireEvent.change(composer, { target: { value: '我的答案' } });
+    fireEvent.click(screen.getByRole('button', { name: '发布' }));
+
+    await waitFor(() => {
+      expect(mockAddProjectDiscussionComment).toHaveBeenCalledWith('project-1', {
+        content: '我的答案',
+        imageUrls: [],
+        videoUrls: [],
+        questionIndex: 0,
+      });
+    });
+  });
+
+  it('keeps topic comments out of general and replies send only parentCommentId', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([
+      createComment({
+        id: 'question-root',
+        content: '问题答案',
+        question_index: 0,
+      }),
+    ]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['核心问题'],
+          hypotheses: [],
+        }}
+      />
+    );
+
+    openGeneralDiscussion();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /其它讨论/ }).textContent).toContain('0 条讨论');
+    });
+    expect(screen.queryByText('问题答案')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /核心问题/ }));
+    await screen.findByText('问题答案');
+    fireEvent.click(screen.getByRole('button', { name: '回复' }));
+    fireEvent.change(
+      screen.getByPlaceholderText('补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）'),
+      { target: { value: '继续追问' } }
+    );
+    fireEvent.click(screen.getByRole('button', { name: '发送回复' }));
+
+    await waitFor(() => {
+      expect(mockAddProjectDiscussionComment).toHaveBeenCalledWith('project-1', {
+        content: '继续追问',
+        parentCommentId: 'question-root',
+        imageUrls: [],
+        videoUrls: [],
+      });
+    });
+  });
+
+  it('keeps nested replies collapsed by default', async () => {
+    mockGetProjectDiscussionComments.mockResolvedValue([
+      createComment({
+        id: 'question-root',
+        content: '问题答案',
+        question_index: 0,
+      }),
+      createComment({
+        id: 'first-reply',
+        parent_comment_id: 'question-root',
+        content: '一级追问',
+      }),
+      createComment({
+        id: 'nested-reply',
+        parent_comment_id: 'first-reply',
+        content: '二级追问',
+      }),
+    ]);
+
+    render(
+      <ProjectDiscussionSection
+        projectId="project-1"
+        canParticipate
+        currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['核心问题'],
+          hypotheses: [],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /核心问题/ }));
+    await screen.findByText('问题答案');
+    expect(screen.queryByText('一级追问')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /展开 2 条回复/ }));
+    expect(await screen.findByText('一级追问')).toBeTruthy();
+    expect(screen.queryByText('二级追问')).toBeNull();
   });
 
   it('opens and scrolls to the comment composer when jumped to comments', async () => {
@@ -224,7 +438,9 @@ describe('ProjectDiscussionSection', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '收起讨论区' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /其它讨论/ }).getAttribute('aria-expanded')).toBe(
+        'true'
+      );
     });
     await waitFor(() => {
       expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
@@ -234,18 +450,26 @@ describe('ProjectDiscussionSection', () => {
     );
   });
 
-  it('expands collapsed comment ancestors and scrolls to a targeted reply', async () => {
+  it('opens the scoped question, expands reply ancestors and scrolls to a targeted reply', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({
         id: 'parent-comment',
         content: '父级讨论',
+        question_index: 0,
+      }),
+      createComment({
+        id: 'middle-reply',
+        parent_comment_id: 'parent-comment',
+        content: '中间回复',
+        user_id: 'user-2',
+        username: '回复者',
       }),
       createComment({
         id: 'reply-comment',
-        parent_comment_id: 'parent-comment',
+        parent_comment_id: 'middle-reply',
         content: '目标回复',
-        user_id: 'user-2',
-        username: '回复者',
+        user_id: 'user-3',
+        username: '目标回复者',
       }),
     ]);
 
@@ -254,6 +478,11 @@ describe('ProjectDiscussionSection', () => {
         projectId="project-1"
         canParticipate
         currentUserId="user-1"
+        outline={{
+          topicSummary: '',
+          questions: ['深链问题'],
+          hypotheses: [],
+        }}
         jumpRequest={{ section: 'comments', commentId: 'reply-comment', version: 1 }}
       />
     );
@@ -261,6 +490,12 @@ describe('ProjectDiscussionSection', () => {
     await waitFor(() => {
       expect(screen.getByText('目标回复')).toBeTruthy();
     });
+    expect(screen.getByRole('button', { name: /深链问题/ }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+    expect(screen.getByRole('button', { name: /其它讨论/ }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
     await waitFor(() => {
       const scrollMock = HTMLElement.prototype.scrollIntoView as any;
       const scrollContexts = scrollMock.mock.contexts;
@@ -285,7 +520,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getAllByAltText('研究员 上传的图片 1')[0]);
@@ -330,7 +565,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getByRole('button', { name: '删除' }));
@@ -366,7 +601,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getByRole('button', { name: '编辑' }));
@@ -396,7 +631,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
     await screen.findByText('基础讨论');
 
     expect(screen.queryByRole('button', { name: '编辑' })).toBeNull();
@@ -413,7 +648,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getByRole('button', { name: '编辑' }));
@@ -443,7 +678,7 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '展开讨论区' }));
+    openGeneralDiscussion();
 
     // 顶层按时间倒序排列：最新的 24 号先出现，最早的 0-4 号先被折叠
     await screen.findByText('讨论串 24');

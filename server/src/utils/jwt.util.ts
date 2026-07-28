@@ -9,6 +9,7 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/index.js';
 import { TokenPayload } from '../types/auth.types.js';
+import { generateId } from './crypto.util.js';
 import { logger } from './logger.js';
 
 /**
@@ -38,6 +39,7 @@ export function generateRefreshToken(payload: Omit<TokenPayload, 'type' | 'iat' 
 
   return jwt.sign(tokenPayload, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpiry,
+    jwtid: generateId(),
   } as jwt.SignOptions);
 }
 

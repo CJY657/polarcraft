@@ -52,6 +52,8 @@ interface DiscussionTreeComment extends ProjectDiscussionComment {
   replies: DiscussionTreeComment[];
 }
 
+type DiscussionTopic = number | 'general';
+
 type DraftAttachmentType = 'image' | 'video';
 
 interface DraftAttachment {
@@ -107,6 +109,25 @@ function countReplies(comment: DiscussionTreeComment): number {
   return comment.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
 }
 
+function countDiscussionComments(threads: DiscussionTreeComment[]): number {
+  return threads.reduce((total, thread) => total + 1 + countReplies(thread), 0);
+}
+
+function getLatestDiscussionActivity(threads: DiscussionTreeComment[]): string | null {
+  let latest: string | null = null;
+
+  const visit = (comment: DiscussionTreeComment) => {
+    const activityAt = comment.updated_at || comment.created_at;
+    if (!latest || new Date(activityAt).getTime() > new Date(latest).getTime()) {
+      latest = activityAt;
+    }
+    comment.replies.forEach(visit);
+  };
+
+  threads.forEach(visit);
+  return latest;
+}
+
 function buildParentCommentLookup(
   comments: ProjectDiscussionComment[]
 ): Map<string, string | null> {
@@ -117,6 +138,21 @@ function buildParentCommentLookup(
   }
 
   return parentLookup;
+}
+
+function findRootCommentId(
+  commentId: string,
+  parentLookup: Map<string, string | null>
+): string {
+  let rootId = commentId;
+  let parentId = parentLookup.get(rootId) ?? null;
+
+  while (parentId) {
+    rootId = parentId;
+    parentId = parentLookup.get(rootId) ?? null;
+  }
+
+  return rootId;
 }
 
 function expandCommentAncestors(
@@ -264,24 +300,6 @@ function createFileListFromArray(files: File[]): FileList {
   return dataTransfer.files;
 }
 
-function getCommentPreviewText(comment: ProjectDiscussionComment): string {
-  if (comment.is_deleted) {
-    return '这条留言已删除';
-  }
-
-  if (comment.content.trim()) {
-    return comment.content;
-  }
-
-  const videoCount = comment.video_urls?.length ?? 0;
-
-  if (comment.image_urls.length > 0 || videoCount > 0) {
-    return `附带 ${comment.image_urls.length} 张图片、${videoCount} 个视频`;
-  }
-
-  return '无文字内容';
-}
-
 function DraftAttachmentPreviewList({
   attachments,
   onRemove,
@@ -396,13 +414,13 @@ export function ProjectDiscussionSection({
   canParticipate,
   canModerate = false,
   currentUserId,
-
+  outline,
   jumpRequest,
 }: ProjectDiscussionSectionProps) {
   const [comments, setComments] = useState<ProjectDiscussionComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isDiscussionOpen, setIsDiscussionOpen] = useState(false);
+  const [openDiscussionTopic, setOpenDiscussionTopic] = useState<DiscussionTopic | null>(null);
 
   const [newComment, setNewComment] = useState('');
   const [newCommentAttachments, setNewCommentAttachments] = useState<DraftAttachment[]>([]);
@@ -428,13 +446,19 @@ export function ProjectDiscussionSection({
   const [visibleThreadCount, setVisibleThreadCount] = useState(INITIAL_VISIBLE_THREADS);
 
   const newCommentAttachmentsRef = useRef<DraftAttachment[]>([]);
+  const newCommentTopicRef = useRef<DiscussionTopic | null>(null);
   const replyAttachmentsRef = useRef<Record<string, DraftAttachment[]>>({});
   const newCommentFileInputRef = useRef<HTMLInputElement | null>(null);
   const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const commentTree = buildCommentTree(comments);
   const parentCommentLookup = buildParentCommentLookup(comments);
-  const summaryComments = commentTree.slice(0, 3);
+  const commentsById = new Map(comments.map((comment) => [comment.id, comment]));
+  const questions = outline?.questions ?? [];
+  const questionThreads = questions.map((_, questionIndex) =>
+    commentTree.filter((comment) => comment.question_index === questionIndex)
+  );
+  const generalThreads = commentTree.filter((comment) => comment.question_index == null);
 
   useEffect(() => {
     newCommentAttachmentsRef.current = newCommentAttachments;
@@ -486,7 +510,8 @@ export function ProjectDiscussionSection({
   }
 
   function resetDiscussionState() {
-    setIsDiscussionOpen(false);
+    newCommentTopicRef.current = null;
+    setOpenDiscussionTopic(null);
     setSubmitError(null);
     setReplyTargetId(null);
     setReplyDrafts({});
@@ -518,18 +543,24 @@ export function ProjectDiscussionSection({
     const commentTargetId = jumpRequest.section === 'comments' && jumpRequest.commentId
       ? `discussion-comment-${jumpRequest.commentId}`
       : null;
-    // The outline blocks were removed from this card; every outline-derived
-    // jump now lands on the comment list itself.
     const targetId = commentTargetId ?? 'discussion-comments';
-    const fallbackTargetId = 'discussion-comments';
-
-    setIsDiscussionOpen(true);
     if (commentTargetId && isLoading) {
       return;
     }
 
     const targetCommentId = jumpRequest.commentId;
+    let targetTopic: DiscussionTopic = 'general';
+
     if (targetCommentId && parentCommentLookup.has(targetCommentId)) {
+      const rootComment = commentsById.get(findRootCommentId(targetCommentId, parentCommentLookup));
+      if (
+        typeof rootComment?.question_index === 'number'
+        && rootComment.question_index >= 0
+        && rootComment.question_index < questions.length
+      ) {
+        targetTopic = rootComment.question_index;
+      }
+
       // 跳转目标可能在未渲染的更早讨论串里，先展开全部顶层讨论串
       setVisibleThreadCount((current) => Math.max(current, comments.length));
       setExpandedCommentIds((current) => ({
@@ -537,6 +568,18 @@ export function ProjectDiscussionSection({
         ...expandCommentAncestors(targetCommentId, parentCommentLookup),
       }));
     }
+
+    if (
+      newCommentTopicRef.current !== null
+      && newCommentTopicRef.current !== targetTopic
+    ) {
+      clearNewCommentComposer();
+    }
+    newCommentTopicRef.current = targetTopic;
+    setOpenDiscussionTopic(targetTopic);
+    const fallbackTargetId = targetTopic === 'general'
+      ? 'discussion-comments'
+      : `discussion-question-${targetTopic}`;
 
     const timer = window.setTimeout(() => {
       (document.getElementById(targetId) ?? document.getElementById(fallbackTargetId))?.scrollIntoView({
@@ -548,7 +591,15 @@ export function ProjectDiscussionSection({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [comments, isLoading, jumpRequest?.commentId, jumpRequest?.index, jumpRequest?.section, jumpRequest?.version]);
+  }, [
+    comments,
+    isLoading,
+    jumpRequest?.commentId,
+    jumpRequest?.index,
+    jumpRequest?.section,
+    jumpRequest?.version,
+    questions.length,
+  ]);
 
   async function uploadDraftAttachments(attachments: DraftAttachment[]): Promise<{
     imageUrls: string[];
@@ -753,9 +804,15 @@ export function ProjectDiscussionSection({
       setIsSubmitting(true);
       setSubmitError(null);
       const { imageUrls, videoUrls } = await uploadDraftAttachments(newCommentAttachments);
-      await researchApi.addProjectDiscussionComment(projectId, { content, imageUrls, videoUrls });
+      await researchApi.addProjectDiscussionComment(projectId, {
+        content,
+        imageUrls,
+        videoUrls,
+        ...(typeof openDiscussionTopic === 'number'
+          ? { questionIndex: openDiscussionTopic }
+          : {}),
+      });
       clearNewCommentComposer();
-      setIsDiscussionOpen(true);
       await loadComments();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '发布留言失败');
@@ -789,7 +846,6 @@ export function ProjectDiscussionSection({
         ...current,
         ...expandCommentAncestors(parentCommentId, parentCommentLookup),
       }));
-      setIsDiscussionOpen(true);
       await loadComments();
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : '回复失败');
@@ -866,7 +922,7 @@ export function ProjectDiscussionSection({
     const commentVideoUrls = comment.video_urls ?? [];
     const hasReplies = comment.replies.length > 0;
     const totalReplyCount = countReplies(comment);
-    const isRepliesExpanded = expandedCommentIds[comment.id] ?? depth > 0;
+    const isRepliesExpanded = expandedCommentIds[comment.id] ?? false;
     const displayUsername = formatUserIdentity(comment, '未命名用户');
     const isEditingThis = editingCommentId === comment.id;
     const isEdited = !comment.is_deleted && comment.updated_at !== comment.created_at;
@@ -987,7 +1043,6 @@ export function ProjectDiscussionSection({
                     setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                     setReplyError(null);
                     setDeleteError(null);
-                    setIsDiscussionOpen(true);
                   }}
                   className="inline-flex items-center gap-1 text-[var(--paper-link)] transition-opacity hover:opacity-80"
                 >
@@ -1029,7 +1084,7 @@ export function ProjectDiscussionSection({
                   onClick={() => {
                     setExpandedCommentIds((current) => ({
                       ...current,
-                      [comment.id]: !(current[comment.id] ?? depth > 0),
+                      [comment.id]: !(current[comment.id] ?? false),
                     }));
                   }}
                   className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-accent)]/10 px-2.5 py-1 text-[var(--paper-link)] transition-colors hover:bg-[var(--paper-accent)]/16"
@@ -1140,250 +1195,234 @@ export function ProjectDiscussionSection({
   }
 
   const newCommentAttachmentCounts = countDraftAttachments(newCommentAttachments);
-  const visibleThreads = commentTree.slice(0, visibleThreadCount);
-  const hiddenThreadCount = Math.max(commentTree.length - visibleThreads.length, 0);
+
+  function toggleDiscussionTopic(topic: DiscussionTopic) {
+    if (openDiscussionTopic === topic) {
+      setOpenDiscussionTopic(null);
+    } else {
+      if (
+        newCommentTopicRef.current !== null
+        && newCommentTopicRef.current !== topic
+      ) {
+        clearNewCommentComposer();
+      }
+      newCommentTopicRef.current = topic;
+      setOpenDiscussionTopic(topic);
+    }
+    setVisibleThreadCount(INITIAL_VISIBLE_THREADS);
+    setReplyTargetId(null);
+    setReplyError(null);
+    setDeleteError(null);
+  }
+
+  function renderDiscussionContent(topic: DiscussionTopic, threads: DiscussionTreeComment[]) {
+    const visibleThreads = threads.slice(0, visibleThreadCount);
+    const hiddenThreadCount = Math.max(threads.length - visibleThreads.length, 0);
+    const contentId = topic === 'general' ? 'discussion-comments' : `discussion-question-${topic}`;
+
+    return (
+      <div
+        id={contentId}
+        role="region"
+        aria-labelledby={`${contentId}-trigger`}
+        className="scroll-mt-28 border-t border-[var(--paper-accent)]/12 p-3 sm:p-4"
+      >
+        <div className="rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5">
+          <textarea
+            value={newComment}
+            onChange={(event) => setNewComment(event.target.value)}
+            onPaste={handleNewCommentPaste}
+            rows={3}
+            maxLength={MAX_COMMENT_LENGTH}
+            disabled={!canParticipate || isSubmitting}
+            placeholder={
+              canParticipate
+                ? topic === 'general'
+                  ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
+                  : '写下你的答案或新观点…（支持 Ctrl+V 粘贴图片）'
+                : '只有课题成员可以参与讨论'
+            }
+            className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
+          />
+
+          <input
+            ref={newCommentFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
+            multiple
+            className="hidden"
+            onChange={handleNewCommentAttachmentSelection}
+          />
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => newCommentFileInputRef.current?.click()}
+              disabled={
+                !canParticipate
+                || isSubmitting
+                || (
+                  newCommentAttachmentCounts.image >= MAX_COMMENT_IMAGES
+                  && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
+                )
+              }
+              className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
+              <Video className="h-4 w-4 text-[var(--paper-link)]" />
+              添加附件
+            </button>
+            <span className="text-sm text-[var(--glass-text-muted)]">
+              最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
+            </span>
+          </div>
+
+          <DraftAttachmentPreviewList
+            attachments={newCommentAttachments}
+            onRemove={handleRemoveNewCommentAttachment}
+            onPreview={(attachment) =>
+              setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
+            }
+          />
+
+          {submitError && <p className="mt-2 text-base text-[#b33d3d]">{submitError}</p>}
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSubmitComment()}
+              disabled={!canParticipate || isSubmitting}
+              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              发布
+            </button>
+          </div>
+        </div>
+
+        {deleteError && (
+          <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-base text-[#b33d3d]">
+            {deleteError}
+          </div>
+        )}
+
+        <div className="mt-4">
+          {isLoading ? (
+            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-base text-[var(--glass-text-muted)]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              正在加载讨论内容
+            </div>
+          ) : loadError ? (
+            <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-base text-[#b33d3d]">
+              {loadError}
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
+              <p className="text-base font-medium text-[var(--paper-foreground)]">
+                还没有人开场，来发第一条讨论吧。
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visibleThreads.map((comment) => renderComment(comment))}
+
+              {hiddenThreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
+                  className="glass-button flex w-full items-center justify-center gap-2 rounded-[1.25rem] px-4 py-3 text-base font-medium"
+                >
+                  展开更早的讨论（还有 {hiddenThreadCount} 条）
+                  <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderDiscussionRow(
+    topic: DiscussionTopic,
+    label: string,
+    threads: DiscussionTreeComment[]
+  ) {
+    const isOpen = openDiscussionTopic === topic;
+    const contentId = topic === 'general' ? 'discussion-comments' : `discussion-question-${topic}`;
+    const discussionCount = countDiscussionComments(threads);
+    const latestActivity = getLatestDiscussionActivity(threads);
+
+    return (
+      <div
+        key={topic}
+        className="overflow-hidden rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-white/68"
+      >
+        <button
+          id={`${contentId}-trigger`}
+          type="button"
+          onClick={() => toggleDiscussionTopic(topic)}
+          aria-expanded={isOpen}
+          aria-controls={contentId}
+          className="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-white/72 sm:px-5"
+        >
+          <div className="min-w-0 flex-1">
+            {typeof topic === 'number' && (
+              <span className="mb-1 block text-sm font-medium text-[var(--paper-link)]">
+                核心问题 {topic + 1}
+              </span>
+            )}
+            <p className="text-base font-semibold leading-6 text-[var(--paper-foreground)]">
+              {label}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--glass-text-muted)]">
+              <span>{discussionCount} 条讨论</span>
+              <span>
+                {isLoading
+                  ? '正在同步'
+                  : latestActivity
+                    ? `最近活动 ${formatCommentTime(latestActivity)}`
+                    : '暂无活动'}
+              </span>
+            </div>
+          </div>
+          <ChevronDown
+            className={cn(
+              'h-5 w-5 shrink-0 text-[var(--paper-link)] transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )}
+          />
+        </button>
+        {isOpen && renderDiscussionContent(topic, threads)}
+      </div>
+    );
+  }
 
   return (
     <>
       <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2
-              className="text-2xl font-semibold text-[var(--paper-foreground)]"
-              style={{ fontFamily: 'var(--font-ui-display)' }}
-            >
-              课题讨论区
-            </h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            <div className="research-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
-              <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
-              {comments.length} 条留言
-            </div>
-            {isDiscussionOpen && (
-              <button
-                type="button"
-                onClick={() => setIsDiscussionOpen(false)}
-                aria-expanded="true"
-                className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium"
-              >
-                收起讨论区
-                <ChevronDown className="h-4 w-4 rotate-180 text-[var(--paper-link)] transition-transform duration-200" />
-              </button>
-            )}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: 'var(--font-ui-display)' }}
+          >
+            课题讨论区
+          </h2>
+          <div className="research-chip inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
+            <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
+            {comments.length} 条讨论
           </div>
         </div>
 
-        {!isDiscussionOpen && (
-          <button
-            type="button"
-            onClick={() => setIsDiscussionOpen(true)}
-            aria-label="展开讨论区"
-            aria-expanded="false"
-            className="group w-full overflow-hidden rounded-[1.6rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.76),rgba(244,248,255,0.88))] px-5 py-4 text-left transition hover:border-[var(--paper-accent)]/20 hover:shadow-[0_18px_42px_rgba(15,23,42,0.05)]"
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <p className="text-lg font-semibold text-[var(--paper-foreground)]">
-                  {isLoading
-                    ? '正在同步讨论内容'
-                    : commentTree.length === 0
-                    ? '还没有留言，点开发起第一条讨论'
-                    : `共 ${comments.length} 条留言`}
-                </p>
-                {loadError && (
-                  <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 md:justify-end">
-                {summaryComments.length > 0 && (
-                  <div className="flex -space-x-2">
-                    {summaryComments.map((comment) => (
-                      <div
-                        key={comment.id}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-[var(--paper-accent)]/16 text-sm font-semibold text-[var(--paper-link)] shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
-                      >
-                        {getUserIdentityInitial(comment)}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/82 px-3 py-2 text-base font-medium text-[var(--paper-foreground)]">
-                  点此展开
-                  <ChevronDown className="h-4 w-4 text-[var(--paper-link)] transition-transform duration-200 group-hover:translate-y-0.5" />
-                </div>
-              </div>
-            </div>
-
-            {summaryComments.length > 0 && (
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {summaryComments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="rounded-[1.2rem] border border-white/60 bg-white/76 px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-base font-semibold text-[var(--paper-foreground)]">
-                        {formatUserIdentity(comment, '未命名用户')}
-                      </span>
-                      <span className="text-[11px] text-[var(--glass-text-muted)]">
-                        {formatCommentTime(comment.created_at)}
-                      </span>
-                    </div>
-                    {comment.image_urls.length > 0 && !comment.is_deleted && (
-                      <div className="mt-2 overflow-hidden rounded-[0.9rem] border border-white/70 bg-white">
-                        <img
-                          src={comment.image_urls[0]}
-                          alt={`${formatUserIdentity(comment, '用户')} 上传的图片预览`}
-                          loading="lazy"
-                          className="h-24 w-full object-cover"
-                        />
-                      </div>
-                    )}
-                    {comment.image_urls.length === 0 && (comment.video_urls?.length ?? 0) > 0 && !comment.is_deleted && (
-                      <div className="mt-2 overflow-hidden rounded-[0.9rem] border border-white/70 bg-slate-950">
-                        <video
-                          src={comment.video_urls?.[0]}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className="h-24 w-full object-cover"
-                          aria-label={`${formatUserIdentity(comment, '用户')} 上传的视频预览`}
-                        />
-                      </div>
-                    )}
-                    <p className="mt-2 line-clamp-2 text-base leading-6 text-[var(--glass-text-muted)]">
-                      {getCommentPreviewText(comment)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </button>
-        )}
-
-        {isDiscussionOpen && (
-          <>
-            <div
-              id="discussion-comments"
-              className="scroll-mt-28 rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5"
-            >
-              <textarea
-                value={newComment}
-                onChange={(event) => setNewComment(event.target.value)}
-                onPaste={handleNewCommentPaste}
-                rows={3}
-                maxLength={MAX_COMMENT_LENGTH}
-                disabled={!canParticipate || isSubmitting}
-                placeholder={
-                  canParticipate
-                    ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
-                    : '只有课题成员可以参与讨论'
-                }
-                className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
-              />
-
-              <input
-                ref={newCommentFileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
-                multiple
-                className="hidden"
-                onChange={handleNewCommentAttachmentSelection}
-              />
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => newCommentFileInputRef.current?.click()}
-                  disabled={
-                    !canParticipate
-                    || isSubmitting
-                    || (
-                      newCommentAttachmentCounts.image >= MAX_COMMENT_IMAGES
-                      && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
-                    )
-                  }
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
-                  <Video className="h-4 w-4 text-[var(--paper-link)]" />
-                  添加附件
-                </button>
-                <span className="text-sm text-[var(--glass-text-muted)]">
-                  最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
-                </span>
-              </div>
-
-              <DraftAttachmentPreviewList
-                attachments={newCommentAttachments}
-                onRemove={handleRemoveNewCommentAttachment}
-                onPreview={(attachment) =>
-                  setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
-                }
-              />
-
-              {submitError && <p className="mt-2 text-base text-[#b33d3d]">{submitError}</p>}
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => void handleSubmitComment()}
-                  disabled={!canParticipate || isSubmitting}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  发布
-                </button>
-              </div>
-            </div>
-
-            {deleteError && (
-              <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-base text-[#b33d3d]">
-                {deleteError}
-              </div>
-            )}
-
-            <div className="mt-4">
-              {isLoading ? (
-                <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-base text-[var(--glass-text-muted)]">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  正在加载讨论内容
-                </div>
-              ) : loadError ? (
-                <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-base text-[#b33d3d]">
-                  {loadError}
-                </div>
-              ) : commentTree.length === 0 ? (
-                <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
-                  <p className="text-base font-medium text-[var(--paper-foreground)]">
-                    还没有人开场，来发第一条讨论吧。
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {visibleThreads.map((comment) => renderComment(comment))}
-
-                  {hiddenThreadCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
-                      className="glass-button flex w-full items-center justify-center gap-2 rounded-[1.25rem] px-4 py-3 text-base font-medium"
-                    >
-                      展开更早的讨论（还有 {hiddenThreadCount} 条）
-                      <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        )}
+        <div className="space-y-3">
+          {questions.map((question, questionIndex) =>
+            renderDiscussionRow(questionIndex, question, questionThreads[questionIndex])
+          )}
+          {renderDiscussionRow('general', '其它讨论', generalThreads)}
+        </div>
       </section>
 
       <ConfirmDialog
