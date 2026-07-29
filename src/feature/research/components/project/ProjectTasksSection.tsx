@@ -246,14 +246,17 @@ export function ProjectTasksSection({
   const doneCount = tasks.filter((task) => task.status === 'done').length;
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2
-          className="text-2xl font-semibold text-[var(--paper-foreground)]"
-          style={{ fontFamily: 'var(--font-ui-display)' }}
-        >
-          任务分工
-        </h2>
+        <div>
+          <h2
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: 'var(--font-ui-display)' }}
+          >
+            任务分工
+          </h2>
+          <p className="research-section-note mt-1">课题任务与认领情况</p>
+        </div>
 
         {tasks.length > 0 && (
           <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-4 py-1.5 text-sm font-semibold sm:self-auto">
@@ -263,7 +266,7 @@ export function ProjectTasksSection({
         )}
       </div>
 
-      <form onSubmit={handleCreateTask} className="research-panel-soft mb-4 rounded-[1.35rem] p-4">
+      <form onSubmit={handleCreateTask} className="research-panel-soft mb-4 rounded-2xl p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(11rem,auto)_minmax(10rem,auto)_auto] lg:items-end">
           <label className="grid gap-1.5 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--glass-text-muted)]">
             任务标题
@@ -273,7 +276,7 @@ export function ProjectTasksSection({
               maxLength={MAX_TASK_TITLE_LENGTH}
               placeholder="例如：整理第一轮偏振观察数据"
               disabled={isCreating}
-              className="research-input rounded-[1rem] px-4 py-2.5 text-base normal-case tracking-normal"
+              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
             />
           </label>
 
@@ -283,7 +286,7 @@ export function ProjectTasksSection({
               value={newAssigneeId}
               onChange={(event) => setNewAssigneeId(event.target.value)}
               disabled={isCreating}
-              className="research-input rounded-[1rem] px-4 py-2.5 text-base normal-case tracking-normal"
+              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
             >
               <option value="">暂不指定</option>
               {members.map((member) => (
@@ -301,7 +304,7 @@ export function ProjectTasksSection({
               value={newDueDate}
               onChange={(event) => setNewDueDate(event.target.value)}
               disabled={isCreating}
-              className="research-input rounded-[1rem] px-4 py-2.5 text-base normal-case tracking-normal"
+              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
             />
           </label>
 
@@ -317,7 +320,7 @@ export function ProjectTasksSection({
       </form>
 
       {actionError && (
-        <div className="mb-4 rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
+        <div className="research-error mb-4 rounded-2xl px-4 py-3 text-base">
           {actionError}
         </div>
       )}
@@ -325,16 +328,16 @@ export function ProjectTasksSection({
       {isLoading && (
         <div className="grid gap-3 lg:grid-cols-3">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="research-panel-soft h-40 animate-pulse rounded-[1.35rem]" />
+            <div key={item} className="research-panel-soft h-40 animate-pulse rounded-2xl" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-6">
+        <div className="research-panel-soft rounded-2xl px-5 py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 text-[#b33d3d]" />
+              <AlertCircle className="mt-0.5 h-5 w-5 text-[var(--color-destructive)]" />
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">任务列表加载失败</p>
                 <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
@@ -353,7 +356,7 @@ export function ProjectTasksSection({
       )}
 
       {!isLoading && !loadError && tasks.length === 0 && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-8 text-center">
+        <div className="research-panel-soft rounded-2xl px-5 py-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--paper-link)]/10 text-[var(--paper-link)]">
             <ListTodo className="h-5 w-5" />
           </div>
@@ -368,11 +371,11 @@ export function ProjectTasksSection({
             const groupTasks = tasks.filter((task) => task.status === group.status);
 
             return (
-              <div key={group.status} className="research-panel-soft rounded-[1.35rem] p-3">
+              <div key={group.status} className="research-panel-soft rounded-2xl p-3">
                 <div className="mb-3 flex items-center justify-between gap-2 px-1">
                   <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
                     {group.status === 'done' ? (
-                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <Check className="h-4 w-4 text-[color-mix(in_srgb,var(--clay-teal)_72%,var(--paper-foreground))]" />
                     ) : (
                       <CircleDashed className="h-4 w-4 text-[var(--paper-link)]" />
                     )}
@@ -384,7 +387,7 @@ export function ProjectTasksSection({
                 </div>
 
                 {groupTasks.length === 0 ? (
-                  <p className="rounded-[1rem] px-3 py-4 text-center text-sm text-[var(--glass-text-muted)]">
+                  <p className="rounded-2xl px-3 py-4 text-center text-sm text-[var(--glass-text-muted)]">
                     暂无任务
                   </p>
                 ) : (
@@ -406,7 +409,7 @@ export function ProjectTasksSection({
                       return (
                         <li
                           key={task.id}
-                          className="rounded-[1.15rem] border border-[var(--glass-stroke)] bg-white/60 p-3 shadow-sm dark:bg-slate-900/40"
+                          className="rounded-2xl border border-[var(--glass-stroke)] bg-[var(--paper-surface)] p-3 shadow-sm"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <p
@@ -423,7 +426,7 @@ export function ProjectTasksSection({
                               <button
                                 type="button"
                                 onClick={() => setDeleteTarget(task)}
-                                className="glass-button shrink-0 rounded-full p-1.5 text-[#a24432]"
+                                className="glass-button shrink-0 rounded-full p-1.5 text-[var(--color-destructive)]"
                                 aria-label={`删除任务 ${task.title}`}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -446,7 +449,7 @@ export function ProjectTasksSection({
                                   className={cn(
                                     'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium',
                                     overdue
-                                      ? 'bg-red-500/12 font-semibold text-red-600 dark:bg-red-500/20 dark:text-red-300'
+                                      ? 'research-error font-semibold'
                                       : 'research-chip'
                                   )}
                                 >

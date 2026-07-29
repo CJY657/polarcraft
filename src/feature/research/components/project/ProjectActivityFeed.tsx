@@ -107,10 +107,10 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
   }, [loadActivities]);
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-6 rounded-3xl p-5 sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2
-          className="flex items-center gap-2 text-xl font-semibold text-[var(--paper-foreground)]"
+          className="flex items-center gap-2 text-lg font-semibold text-[var(--paper-foreground)]"
           style={{ fontFamily: 'var(--font-ui-display)' }}
         >
           <Activity className="h-5 w-5 text-[var(--paper-link)]" />
@@ -130,19 +130,19 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
       {isLoading && (
         <div className="grid gap-2.5">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="research-panel-soft h-14 animate-pulse rounded-[1.1rem]" />
+            <div key={item} className="research-panel-soft h-14 animate-pulse rounded-2xl" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <p className="research-panel-soft rounded-[1.1rem] px-4 py-3 text-base text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-2xl px-4 py-3 text-base text-[var(--glass-text-muted)]">
           {loadError}
         </p>
       )}
 
       {!isLoading && !loadError && activities.length === 0 && (
-        <p className="research-panel-soft rounded-[1.1rem] px-4 py-4 text-base leading-6 text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-2xl px-4 py-4 text-base leading-6 text-[var(--glass-text-muted)]">
           还没有动态记录。
         </p>
       )}
@@ -153,7 +153,7 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
             const actorName = formatUserIdentity(item, '成员');
 
             return (
-              <li key={item.id} className="research-panel-soft flex items-start gap-2.5 rounded-[1.1rem] px-3 py-2.5">
+              <li key={item.id} className="research-panel-soft flex items-start gap-2.5 rounded-2xl px-3 py-2.5">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
                   {getUserIdentityInitial(item, '员')}
                 </span>

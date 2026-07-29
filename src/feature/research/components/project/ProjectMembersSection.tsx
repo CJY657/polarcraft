@@ -3,7 +3,7 @@
  * 研究团队区块
  *
  * Renders the active member grid and the former-member restore grid. Extracted
- * from ResearchProjectPage; markup and class names are unchanged.
+ * from ResearchProjectPage.
  */
 
 import {
@@ -27,12 +27,12 @@ import {
 function getRoleIcon(role: string) {
   switch (role) {
     case "owner":
-      return <Crown className="w-4 h-4 text-amber-500" />;
+      return <Crown className="w-4 h-4 text-[var(--clay-ochre)]" />;
     case "member":
     case "admin":
     case "editor":
     case "viewer":
-      return <UserCheck className="w-4 h-4 text-blue-500" />;
+      return <UserCheck className="w-4 h-4 text-[var(--paper-link)]" />;
     default:
       return null;
   }
@@ -43,7 +43,6 @@ export function ProjectMembersSection({
   formerMembers,
   hasProject,
   currentUserId,
-  theme,
   isReadOnlyMode,
   isOwner,
   isAdmin,
@@ -80,11 +79,14 @@ export function ProjectMembersSection({
   );
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className={cn("research-panel rounded-3xl p-5 sm:p-6", variant === "rail" ? "mb-6" : "mb-8")}>
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
+            className={cn(
+              "font-semibold text-[var(--paper-foreground)]",
+              variant === "rail" ? "text-lg" : "text-2xl"
+            )}
             style={{ fontFamily: "var(--font-ui-display)" }}
           >
             研究团队
@@ -131,16 +133,14 @@ export function ProjectMembersSection({
           return (
             <div
               key={memberKey}
-              className="research-panel-soft flex items-center gap-3 rounded-[1.25rem] p-3"
+              className="research-panel-soft flex items-center gap-3 rounded-2xl p-3"
             >
               <div
                 className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
                   member.role === "owner"
-                    ? "bg-amber-500/20 text-amber-500"
-                    : theme === "dark"
-                    ? "bg-gray-700 text-gray-300"
-                    : "bg-gray-100 text-gray-600"
+                    ? "research-tint-ochre text-[var(--clay-ochre)]"
+                    : "bg-[var(--glass-chip)] text-[var(--glass-text-muted)]"
                 )}
               >
                 {getUserIdentityInitial(member)}
@@ -166,7 +166,7 @@ export function ProjectMembersSection({
                       onRequestRemoveMember(member);
                     }
                   }}
-                  className="glass-button rounded-full p-2 text-[#b33d3d]"
+                  className="glass-button rounded-full p-2 text-[var(--color-destructive)]"
                   title={isSelfRemoval ? "退出课题组" : "移除成员"}
                 >
                   <UserMinus className="w-4 h-4" />
@@ -187,7 +187,7 @@ export function ProjectMembersSection({
           </div>
 
           {restoreMemberError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-400">
+            <div className="research-error mb-4 rounded-xl p-3 text-base">
               {restoreMemberError}
             </div>
           )}
@@ -198,14 +198,9 @@ export function ProjectMembersSection({
               return (
               <div
                 key={member.id}
-                className="research-panel-soft flex items-center gap-3 rounded-[1.35rem] p-4"
+                className="research-panel-soft flex items-center gap-3 rounded-2xl p-4"
               >
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full text-base font-medium",
-                    theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
-                  )}
-                >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--glass-chip)] text-base font-medium text-[var(--glass-text-muted)]">
                   {getUserIdentityInitial(member)}
                 </div>
                 <div className="min-w-0 flex-1">

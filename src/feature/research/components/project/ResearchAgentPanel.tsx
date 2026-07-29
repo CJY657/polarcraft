@@ -138,9 +138,9 @@ export function ResearchAgentPanel({
           className={cn(
             "fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6",
             "flex overflow-hidden rounded-2xl",
-            "border border-[#e5e5e5]/80",
-            "bg-[#fffaf0]/95 backdrop-blur-xl",
-            "text-[#0a0a0a]",
+            "border border-[var(--glass-stroke)]",
+            "bg-[var(--glass-panel-strong)] backdrop-blur-xl",
+            "text-[var(--paper-foreground)]",
             "shadow-[0_24px_80px_-12px_rgba(10,10,10,0.22),0_0_0_1px_rgba(10,10,10,0.03)]",
             "animate-fade-in-up",
           )}
@@ -195,25 +195,25 @@ export function ResearchAgentPanel({
                   aria-label="载入顾问历史"
                   className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4"
                 >
-                  <div className="h-16 w-4/5 animate-pulse rounded-2xl bg-[#f5f0e0]" />
-                  <div className="ml-auto h-14 w-3/5 animate-pulse rounded-2xl bg-[#ebe6d6]" />
-                  <div className="h-20 w-5/6 animate-pulse rounded-2xl bg-[#f5f0e0]" />
+                  <div className="h-16 w-4/5 animate-pulse rounded-2xl bg-[var(--glass-chip)]" />
+                  <div className="ml-auto h-14 w-3/5 animate-pulse rounded-2xl bg-[var(--glass-panel-soft)]" />
+                  <div className="h-20 w-5/6 animate-pulse rounded-2xl bg-[var(--glass-chip)]" />
                 </div>
               ) : (
                 <>
                   <div
                     ref={scrollRef}
-                    className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[#fffaf0] p-4"
+                    className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
                   >
                     {!isEnabled && (
-                      <div className="flex items-start gap-2 rounded-xl border border-red-200/60 bg-red-50/80 p-3 text-sm leading-6 text-red-700">
+                      <div className="research-error flex items-start gap-2 rounded-xl p-3 text-sm leading-6">
                         <AlertCircle className="mt-1 h-4 w-4 shrink-0" />
                         <span>AI 顾问未配置，请在服务器环境变量中填写提供商地址、密钥和模型。</span>
                       </div>
                     )}
 
                     {error && (
-                      <div className="flex items-start gap-2 rounded-xl border border-red-200/60 bg-red-50/80 p-3 text-sm leading-6 text-red-700">
+                      <div className="research-error flex items-start gap-2 rounded-xl p-3 text-sm leading-6">
                         <AlertCircle className="mt-1 h-4 w-4 shrink-0" />
                         <span>{error}</span>
                       </div>
@@ -222,9 +222,9 @@ export function ResearchAgentPanel({
                     {messages.length === 0 && !isSending ? (
                       <div className="flex flex-col items-center gap-3 py-8 text-center">
                         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#b8a4ed]/20 to-[#a4d4c5]/20">
-                          <Bot className="h-5 w-5 text-[#6a6a6a]" />
+                          <Bot className="h-5 w-5 text-[var(--glass-text-muted)]" />
                         </span>
-                        <p className="text-sm text-[#6a6a6a]">
+                        <p className="text-sm text-[var(--glass-text-muted)]">
                           还没有顾问消息。
                         </p>
                       </div>
@@ -239,14 +239,14 @@ export function ResearchAgentPanel({
                                 "max-w-[86%] rounded-2xl p-3 text-sm",
                                 "transition-all duration-200",
                                 isAssistant
-                                  ? "mr-auto border border-[#e5e5e5]/70 bg-white text-[#3a3a3a] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                                  ? "mr-auto border border-[var(--glass-stroke)] bg-[var(--paper-surface)] text-[var(--paper-foreground)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
                                   : "ml-auto bg-[#0a0a0a] text-white shadow-[0_2px_8px_rgba(10,10,10,0.15)]"
                               )}
                             >
                               <div
                                 className={cn(
                                   "mb-1.5 flex items-center justify-between gap-3 text-[11px]",
-                                  isAssistant ? "text-[#9a9a9a]" : "text-white/50"
+                                  isAssistant ? "text-[var(--glass-text-muted)]" : "text-white/50"
                                 )}
                               >
                                 <span>{isAssistant ? "AI 顾问" : "你的即时提问"}</span>
@@ -255,7 +255,7 @@ export function ResearchAgentPanel({
                               {isAssistant ? (
                                 <MarkdownRenderer
                                   content={message.content}
-                                  className="[&_a]:!text-[#1a3a3a] [&_code]:!bg-[#f5f0e0] [&_code]:!text-[#1a3a3a] [&_li]:!text-[#3a3a3a] [&_p]:!text-[#3a3a3a] [&_strong]:!text-[#0a0a0a]"
+                                  className="[&_a]:!text-[var(--paper-link)] [&_code]:!bg-[var(--glass-chip)] [&_code]:!text-[var(--paper-link)] [&_li]:!text-[var(--paper-foreground)] [&_p]:!text-[var(--paper-foreground)] [&_strong]:!text-[var(--paper-foreground)]"
                                 />
                               ) : (
                                 <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
@@ -264,11 +264,11 @@ export function ResearchAgentPanel({
                           );
                         })}
                         {isSending && (
-                          <article className="mr-auto max-w-[86%] rounded-2xl border border-[#e5e5e5]/70 bg-white p-3 text-sm text-[#3a3a3a] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                            <div className="mb-1.5 text-[11px] text-[#9a9a9a]">AI 顾问</div>
+                          <article className="mr-auto max-w-[86%] rounded-2xl border border-[var(--glass-stroke)] bg-[var(--paper-surface)] p-3 text-sm text-[var(--paper-foreground)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                            <div className="mb-1.5 text-[11px] text-[var(--glass-text-muted)]">AI 顾问</div>
                             <div className="inline-flex items-center gap-2 leading-6">
                               <Loader2 className="h-4 w-4 animate-spin text-[#b8a4ed]" />
-                              <span className="text-[#6a6a6a]">思考中...</span>
+                              <span className="text-[var(--glass-text-muted)]">思考中...</span>
                             </div>
                           </article>
                         )}
@@ -279,7 +279,7 @@ export function ResearchAgentPanel({
                   {/* ── Input Area ── */}
                   <form
                     onSubmit={handleSubmit}
-                    className="flex items-end gap-2 border-t border-[#e5e5e5]/60 bg-[#fffaf0] px-3 py-3"
+                    className="flex items-end gap-2 border-t border-[var(--glass-stroke)] px-3 py-3"
                   >
                     <label className="sr-only" htmlFor="research-agent-message">
                       AI 顾问消息
@@ -294,11 +294,11 @@ export function ResearchAgentPanel({
                       rows={2}
                       className={cn(
                         "min-h-11 flex-1 resize-none rounded-xl",
-                        "border border-[#e5e5e5] bg-white",
-                        "px-3 py-2 text-sm leading-6 text-[#0a0a0a]",
+                        "border border-[var(--glass-stroke-strong)] bg-[var(--paper-surface)]",
+                        "px-3 py-2 text-sm leading-6 text-[var(--paper-foreground)]",
                         "outline-none transition-all duration-200",
-                        "placeholder:text-[#9a9a9a]",
-                        "focus:border-[#b8a4ed]/50 focus:bg-white focus:shadow-[0_0_0_3px_rgba(184,164,237,0.12)]",
+                        "placeholder:text-[var(--glass-text-muted)]",
+                        "focus:border-[#b8a4ed]/50 focus:shadow-[0_0_0_3px_rgba(184,164,237,0.12)]",
                         "disabled:cursor-not-allowed disabled:opacity-50",
                       )}
                       placeholder="输入研究问题、实验思路或需要总结的不确定性"
@@ -314,7 +314,7 @@ export function ResearchAgentPanel({
                         "hover:bg-[#1f1f1f] hover:shadow-[0_4px_12px_rgba(10,10,10,0.2)]",
                         "active:scale-95",
                         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8a4ed]",
-                        "disabled:cursor-not-allowed disabled:bg-[#e5e5e5] disabled:text-[#9a9a9a] disabled:shadow-none",
+                        "disabled:cursor-not-allowed disabled:bg-[var(--glass-chip)] disabled:text-[var(--glass-text-muted)] disabled:shadow-none",
                       )}
                     >
                       {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

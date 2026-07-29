@@ -342,8 +342,8 @@ export function ResearchProjectPage() {
   if (isLoading) {
     return (
       <div className="research-page min-h-screen">
-        <main className="research-shell py-8 md:py-12" aria-busy="true">
-          <section className="research-hero rounded-[2.1rem] p-5 sm:p-7 lg:p-8">
+        <main className="research-shell py-6 md:py-8" aria-busy="true">
+          <section className="research-hero rounded-3xl p-5 sm:p-7 lg:p-8">
             <div className="relative grid animate-pulse gap-8 motion-reduce:animate-none lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
               <div>
                 <div className="h-7 w-52 rounded-full bg-[var(--glass-chip)]" />
@@ -356,12 +356,12 @@ export function ResearchProjectPage() {
                   <div className="h-11 w-28 rounded-full bg-[var(--glass-chip)]" />
                 </div>
               </div>
-              <div className="aspect-[16/9] rounded-[1.6rem] bg-[var(--glass-chip)]" />
+              <div className="aspect-[16/9] rounded-2xl bg-[var(--glass-chip)]" />
             </div>
 
             <div className="relative mt-6 grid animate-pulse gap-3 motion-reduce:animate-none sm:grid-cols-3">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="research-metric h-20 rounded-[1.25rem]" />
+                <div key={item} className="research-metric h-20 rounded-2xl" />
               ))}
             </div>
           </section>
@@ -379,8 +379,8 @@ export function ResearchProjectPage() {
   if (error && !isExampleProject) {
     return (
       <div className="research-page flex min-h-screen items-center justify-center px-6">
-        <div className="research-panel max-w-md rounded-[1.9rem] px-8 py-8 text-center">
-          <p className="text-lg text-[#b33d3d]">{error}</p>
+        <div className="research-panel max-w-md rounded-3xl px-8 py-8 text-center">
+          <p className="research-error rounded-2xl px-4 py-3 text-lg">{error}</p>
           <Link
             to="/lab/projects"
             className="glass-button glass-button-primary mt-5 inline-flex rounded-full px-5 py-2.5 text-base font-semibold text-white"
@@ -507,49 +507,22 @@ export function ResearchProjectPage() {
         showBreadcrumb={false}
         className="sticky top-0 z-40 bg-[var(--glass-panel)] text-[var(--paper-foreground)] backdrop-blur-xl [&_.bg-clay-surface-card]:bg-[var(--glass-chip)] [&_.text-clay-ink]:text-[var(--paper-foreground)] [&_.text-clay-muted]:text-[var(--glass-text-muted)]"
         rightContent={
-          <div className="flex min-w-0 items-center gap-2">
-            {canManageProject && (
-              <div className="hidden items-center gap-2 xl:flex">
-                <button
-                  onClick={() => setIsCoverDialogOpen(true)}
-                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
-                >
-                  <ImagePlus className="w-4 h-4" />
-                  封面
-                </button>
-                <button
-                  onClick={() => setIsSettingsDialogOpen(true)}
-                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
-                >
-                  <Settings className="w-4 h-4" />
-                  设置
-                </button>
-                <button
-                  onClick={() => openEditDialog()}
-                  className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  编辑
-                </button>
-              </div>
-            )}
-            <Link
-              to={backHref}
-              className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              返回
-            </Link>
-          </div>
+          <Link
+            to={backHref}
+            className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回
+          </Link>
         }
       />
 
-      <main className="research-shell py-4 md:py-6 xl:[width:min(100%,90rem)]">
+      <main className="research-shell py-6 md:py-8">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div className="research-panel-soft mb-4 flex flex-col gap-4 rounded-[1.5rem] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="research-panel-soft mb-6 flex flex-col gap-4 rounded-3xl p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
+              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-xl">
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
               </div>
               <p className="text-base font-semibold text-[var(--paper-foreground)]">
@@ -567,7 +540,7 @@ export function ResearchProjectPage() {
         )}
 
         {/* Project Header */}
-        <section className="research-hero mb-4 rounded-[2.1rem] p-4 sm:p-5 lg:p-6">
+        <section className="research-hero mb-6 rounded-3xl p-5 sm:p-7 lg:p-8">
           <div className="relative z-[1] grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
             <div className="min-w-0 py-1">
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -590,17 +563,17 @@ export function ResearchProjectPage() {
               </div>
 
               <h1
-                className="text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
+                className="text-balance text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
                 style={{ fontFamily: "var(--font-ui-display)" }}
               >
                 {displayProject.name_zh}
               </h1>
 
               {displayProject.name_en && (
-                <p className="mt-2 text-lg text-[var(--glass-text-muted)] sm:text-lg">{displayProject.name_en}</p>
+                <p className="mt-2 text-lg text-[var(--glass-text-muted)]">{displayProject.name_en}</p>
               )}
 
-              <p className="mt-3 text-lg leading-7 text-[var(--glass-text-muted)]">
+              <p className="mt-3 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
                 {displayProject.description_zh || "这个课题还没有写摘要。"}
               </p>
 
@@ -653,26 +626,26 @@ export function ResearchProjectPage() {
             </div>
 
             <div className="min-w-0">
-              <div className="rounded-[1.7rem] border border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)] p-2 shadow-[var(--glass-shadow)]">
+              <div className="rounded-2xl border border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)] p-2 shadow-[var(--glass-shadow)]">
                 <ProjectCoverImage
                   src={displayProject.thumbnail || displayProject.cover_image}
                   alt={displayProject.name_zh}
-                  className="aspect-[16/9] w-full rounded-[1.35rem]"
+                  className="aspect-[16/9] w-full rounded-xl"
                 />
               </div>
             </div>
           </div>
 
           <dl className="relative z-[1] mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="research-metric flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] px-5 py-3 sm:flex-col sm:items-start sm:justify-center sm:gap-1 xl:flex-row xl:items-center xl:justify-between">
+            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">成员</dt>
-              <dd className="text-2xl font-bold text-[var(--paper-foreground)]">{displayProject.member_count}</dd>
+              <dd className="text-2xl font-bold tabular-nums text-[var(--paper-foreground)]">{displayProject.member_count}</dd>
             </div>
-            <div className="research-metric flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] px-5 py-3 sm:flex-col sm:items-start sm:justify-center sm:gap-1 xl:flex-row xl:items-center xl:justify-between">
+            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">创建时间</dt>
-              <dd className="text-base font-semibold text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</dd>
+              <dd className="text-base font-semibold tabular-nums text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</dd>
             </div>
-            <div className="research-metric flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] px-5 py-3 sm:flex-col sm:items-start sm:justify-center sm:gap-1 xl:flex-row xl:items-center xl:justify-between">
+            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">协作方式</dt>
               <dd className="text-base font-semibold text-[var(--paper-foreground)]">
                 {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
@@ -690,7 +663,7 @@ export function ResearchProjectPage() {
 
         <nav
           aria-label="课题内容导航"
-          className="research-panel-soft sticky top-20 z-30 mb-4 overflow-x-auto rounded-[1.3rem] p-2 backdrop-blur-xl"
+          className="research-panel-soft sticky top-20 z-30 mb-6 overflow-x-auto rounded-3xl p-2 backdrop-blur-xl"
         >
           <div className="flex min-w-max items-center gap-1.5">
             {projectSectionLinks.map((section) => {

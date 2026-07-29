@@ -67,8 +67,8 @@ function VerdictChip({ verdict }: { verdict: ProjectReviewVerdict }) {
       className={cn(
         'inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold',
         isApprove
-          ? 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-          : 'bg-amber-500/12 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300'
+          ? 'research-tint-mint'
+          : 'research-tint-ochre text-[color-mix(in_srgb,var(--clay-ochre)_72%,var(--paper-foreground))]'
       )}
     >
       {isApprove ? <CheckCircle2 className="h-4 w-4" /> : <PenLine className="h-4 w-4" />}
@@ -194,17 +194,20 @@ export function ProjectPeerReviewSection({
   const quorumMet = receivedCount >= PROJECT_REVIEW_QUORUM;
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2
-          className="text-2xl font-semibold text-[var(--paper-foreground)]"
-          style={{ fontFamily: 'var(--font-ui-display)' }}
-        >
-          同伴评审
-        </h2>
+        <div>
+          <h2
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
+            style={{ fontFamily: 'var(--font-ui-display)' }}
+          >
+            同伴评审
+          </h2>
+          <p className="research-section-note mt-1">其他同学对课题的评审反馈</p>
+        </div>
 
         {isReviewPending && (
-          <div className="research-panel-soft flex min-w-[12rem] flex-col gap-2 self-start rounded-[1.25rem] px-4 py-3 sm:self-auto">
+          <div className="research-panel-soft flex min-w-[12rem] flex-col gap-2 self-start rounded-2xl px-4 py-3 sm:self-auto">
             <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
                 评审进度
@@ -212,7 +215,7 @@ export function ProjectPeerReviewSection({
               <span
                 className={cn(
                   'text-base font-bold',
-                  quorumMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--paper-foreground)]'
+                  quorumMet ? 'text-[color-mix(in_srgb,var(--clay-teal)_72%,var(--paper-foreground))]' : 'text-[var(--paper-foreground)]'
                 )}
               >
                 {Math.min(receivedCount, PROJECT_REVIEW_QUORUM)} / {PROJECT_REVIEW_QUORUM}
@@ -230,7 +233,7 @@ export function ProjectPeerReviewSection({
               ))}
             </div>
             {quorumMet && (
-              <p className="text-sm leading-5 text-emerald-600 dark:text-emerald-400">
+              <p className="text-sm leading-5 text-[color-mix(in_srgb,var(--clay-teal)_72%,var(--paper-foreground))]">
                 已达标，组长可推进到「已展示」
               </p>
             )}
@@ -239,7 +242,7 @@ export function ProjectPeerReviewSection({
       </div>
 
       {reviewCriteria?.trim() && (
-        <details className="group research-panel-soft mb-4 rounded-[1.35rem] px-4 py-3">
+        <details className="group research-panel-soft mb-4 rounded-2xl px-4 py-3">
           <summary className="flex cursor-pointer select-none list-none items-center gap-2 text-lg font-semibold text-[var(--paper-foreground)] [&::-webkit-details-marker]:hidden">
             <ClipboardCheck className="h-5 w-5 shrink-0 text-[var(--paper-link)]" />
             评审标准
@@ -252,14 +255,14 @@ export function ProjectPeerReviewSection({
       )}
 
       {usePublicEndpoint && isReviewPending && (
-        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-2xl px-4 py-3">
           <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
           <p className="text-base text-[var(--glass-text-muted)]">登录后即可提交同伴评审。</p>
         </div>
       )}
 
       {!usePublicEndpoint && isActiveMember && isReviewPending && (
-        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-2xl px-4 py-3">
           <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
           <p className="text-base text-[var(--glass-text-muted)]">
             同伴评审由课题组外的同学提交，成员在这里查看结果。
@@ -268,7 +271,7 @@ export function ProjectPeerReviewSection({
       )}
 
       {canSubmitReview && (
-        <div className="research-panel-soft mb-5 rounded-[1.35rem] p-4">
+        <div className="research-panel-soft mb-5 rounded-2xl p-4">
           <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">
             {myReview ? '修改我的评审' : '提交我的评审'}
           </h3>
@@ -283,7 +286,7 @@ export function ProjectPeerReviewSection({
                     'inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-base font-semibold transition',
                     isSelected
                       ? 'border-[var(--paper-accent)] bg-[var(--paper-accent)]/10 text-[var(--paper-foreground)]'
-                      : 'border-[var(--glass-stroke)] bg-white/55 text-[var(--glass-text-muted)] hover:border-[var(--paper-accent)]/45 dark:bg-slate-900/35'
+                      : 'border-[var(--glass-stroke)] bg-[var(--glass-chip)] text-[var(--glass-text-muted)] hover:border-[var(--paper-accent)]/45'
                   )}
                 >
                   <input
@@ -308,12 +311,12 @@ export function ProjectPeerReviewSection({
               rows={4}
               maxLength={MAX_REVIEW_CONTENT_LENGTH}
               placeholder="写下课题做得好的地方、不足之处和具体的改进建议…"
-              className="resize-y rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base leading-7 text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+              className="research-input resize-y rounded-xl px-4 py-3 text-base leading-7"
             />
           </label>
 
           {formError && (
-            <div className="mt-3 rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
+            <div className="research-error mt-3 rounded-2xl px-4 py-3 text-base">
               {formError}
             </div>
           )}
@@ -324,7 +327,7 @@ export function ProjectPeerReviewSection({
                 type="button"
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 disabled={isSubmitting || isDeleting}
-                className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] disabled:cursor-not-allowed disabled:opacity-60"
+                className="glass-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[var(--color-destructive)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
                 删除我的评审
@@ -346,16 +349,16 @@ export function ProjectPeerReviewSection({
       {isLoading && (
         <div className="grid gap-3">
           {[0, 1].map((item) => (
-            <div key={item} className="research-panel-soft h-24 animate-pulse rounded-[1.35rem]" />
+            <div key={item} className="research-panel-soft h-24 animate-pulse rounded-2xl" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-6">
+        <div className="research-panel-soft rounded-2xl px-5 py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 text-[#b33d3d]" />
+              <AlertCircle className="mt-0.5 h-5 w-5 text-[var(--color-destructive)]" />
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">同伴评审加载失败</p>
                 <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
@@ -374,7 +377,7 @@ export function ProjectPeerReviewSection({
       )}
 
       {!isLoading && !loadError && reviews.length === 0 && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-8 text-center">
+        <div className="research-panel-soft rounded-2xl px-5 py-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--paper-link)]/10 text-[var(--paper-link)]">
             <ClipboardCheck className="h-5 w-5" />
           </div>
@@ -401,7 +404,7 @@ export function ProjectPeerReviewSection({
             const isEdited = review.updated_at !== review.created_at;
 
             return (
-              <article key={review.id} className="research-panel-soft rounded-[1.35rem] p-4">
+              <article key={review.id} className="research-panel-soft rounded-2xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-base font-semibold text-[var(--paper-link)]">

@@ -311,7 +311,7 @@ export function ProjectEvidenceSection({
   );
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
@@ -320,6 +320,7 @@ export function ProjectEvidenceSection({
           >
             证据库
           </h2>
+          <p className="research-section-note mt-1">实验记录、数据与阶段性成果</p>
         </div>
 
         {canManage && (
@@ -335,7 +336,7 @@ export function ProjectEvidenceSection({
       </div>
 
       {!canManage && (
-        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-[1.25rem] px-4 py-3">
+        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-2xl px-4 py-3">
           <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
           <p className="text-base leading-6 text-[var(--glass-text-muted)]">
             只读浏览：新增和编辑证据仅对课题成员开放。
@@ -344,7 +345,7 @@ export function ProjectEvidenceSection({
       )}
 
       {isFormOpen && canManage && (
-        <form onSubmit={handleSubmit} className="research-panel-soft mb-5 rounded-[1.35rem] p-4">
+        <form onSubmit={handleSubmit} className="research-panel-soft mb-5 rounded-2xl p-4">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">
@@ -372,7 +373,7 @@ export function ProjectEvidenceSection({
                 value={formState.title}
                 onChange={(event) => setFormState((state) => ({ ...state, title: event.target.value }))}
                 maxLength={120}
-                className="rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+                className="research-input rounded-xl px-4 py-3 text-base"
                 required
               />
             </label>
@@ -387,7 +388,7 @@ export function ProjectEvidenceSection({
                     evidenceType: event.target.value as ProjectEvidenceType,
                   }))
                 )}
-                className="rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+                className="research-input rounded-xl px-4 py-3 text-base"
               >
                 {EVIDENCE_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -404,7 +405,7 @@ export function ProjectEvidenceSection({
                 onChange={(event) => setFormState((state) => ({ ...state, description: event.target.value }))}
                 rows={4}
                 maxLength={4000}
-                className="resize-y rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base leading-7 text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+                className="research-input resize-y rounded-xl px-4 py-3 text-base leading-7"
               />
             </label>
 
@@ -415,7 +416,7 @@ export function ProjectEvidenceSection({
                 onChange={(event) => setFormState((state) => ({ ...state, externalUrl: event.target.value }))}
                 maxLength={1000}
                 inputMode="url"
-                className="rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+                className="research-input rounded-xl px-4 py-3 text-base"
               />
             </label>
 
@@ -425,12 +426,12 @@ export function ProjectEvidenceSection({
                 value={formState.attachmentNote}
                 onChange={(event) => setFormState((state) => ({ ...state, attachmentNote: event.target.value }))}
                 maxLength={1000}
-                className="rounded-[1rem] border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-link)] dark:bg-slate-900/50"
+                className="research-input rounded-xl px-4 py-3 text-base"
               />
             </label>
           </div>
 
-          <div className="mt-4 rounded-[1.15rem] border border-[var(--glass-stroke)] bg-white/45 p-4 dark:bg-slate-900/30">
+          <div className="mt-4 rounded-2xl border border-[var(--glass-stroke)] bg-[var(--glass-chip)] p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">可选附件上传</p>
@@ -461,7 +462,7 @@ export function ProjectEvidenceSection({
                 <button
                   type="button"
                   onClick={() => setSelectedFile(null)}
-                  className="text-sm font-semibold text-[#a24432]"
+                  className="text-sm font-semibold text-[var(--color-destructive)]"
                 >
                   移除
                 </button>
@@ -475,7 +476,7 @@ export function ProjectEvidenceSection({
                 <button
                   type="button"
                   onClick={() => setRemoveCurrentAttachment(true)}
-                  className="text-sm font-semibold text-[#a24432]"
+                  className="text-sm font-semibold text-[var(--color-destructive)]"
                 >
                   移除
                 </button>
@@ -484,7 +485,7 @@ export function ProjectEvidenceSection({
           </div>
 
           {formError && (
-            <div className="mt-4 rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
+            <div className="research-error mt-4 rounded-2xl px-4 py-3 text-base">
               {formError}
             </div>
           )}
@@ -513,16 +514,16 @@ export function ProjectEvidenceSection({
       {isLoading && (
         <div className="grid gap-3 md:grid-cols-2">
           {[0, 1].map((item) => (
-            <div key={item} className="research-panel-soft h-36 animate-pulse rounded-[1.35rem]" />
+            <div key={item} className="research-panel-soft h-36 animate-pulse rounded-2xl" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-6">
+        <div className="research-panel-soft rounded-2xl px-5 py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 text-[#b33d3d]" />
+              <AlertCircle className="mt-0.5 h-5 w-5 text-[var(--color-destructive)]" />
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">证据库加载失败</p>
                 <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
@@ -541,7 +542,7 @@ export function ProjectEvidenceSection({
       )}
 
       {!isLoading && !loadError && evidenceItems.length === 0 && (
-        <div className="research-panel-soft rounded-[1.35rem] px-5 py-8 text-center">
+        <div className="research-panel-soft rounded-2xl px-5 py-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--paper-link)]/10 text-[var(--paper-link)]">
             <ImageIcon className="h-5 w-5" />
           </div>
@@ -568,7 +569,7 @@ export function ProjectEvidenceSection({
             const hasAttachment = Boolean(evidence.attachment_url);
 
             return (
-              <article key={evidence.id} className="research-panel-soft rounded-[1.35rem] p-4">
+              <article key={evidence.id} className="research-panel-soft rounded-2xl p-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <span className="research-chip inline-flex rounded-full px-3 py-1 text-sm font-medium">
@@ -592,7 +593,7 @@ export function ProjectEvidenceSection({
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(evidence)}
-                        className="glass-button rounded-full p-2 text-[#a24432]"
+                        className="glass-button rounded-full p-2 text-[var(--color-destructive)]"
                         aria-label={`删除证据 ${evidence.title}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -626,7 +627,7 @@ export function ProjectEvidenceSection({
                         href={evidence.external_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/55 px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-white/80 dark:bg-slate-900/40"
+                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
                       >
                         <Link2 className="h-4 w-4 shrink-0" />
                         <span className="truncate">查看外部链接</span>
@@ -638,7 +639,7 @@ export function ProjectEvidenceSection({
                         href={evidence.attachment_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-white/55 px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-white/80 dark:bg-slate-900/40"
+                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
                       >
                         <FileText className="h-4 w-4 shrink-0" />
                         <span className="truncate">{getAttachmentLabel(evidence)}</span>
@@ -649,7 +650,7 @@ export function ProjectEvidenceSection({
                 )}
 
                 {evidence.attachment_note && (
-                  <p className="mt-3 rounded-[1rem] bg-white/45 px-3 py-2 text-sm leading-6 text-[var(--glass-text-muted)] dark:bg-slate-900/30">
+                  <p className="mt-3 rounded-2xl bg-[var(--glass-chip)] px-3 py-2 text-sm leading-6 text-[var(--glass-text-muted)]">
                     {evidence.attachment_note}
                   </p>
                 )}

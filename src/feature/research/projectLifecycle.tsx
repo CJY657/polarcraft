@@ -37,49 +37,49 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
   recruiting: {
     label: '招募中',
     style: {
-      color: '#0a0a0a',
+      color: 'var(--clay-ink)',
       borderColor: '#d93670',
-      background: '#ff4d8b',
+      background: 'var(--clay-pink)',
     },
   },
   forming: {
     label: '组队中',
     style: {
-      color: '#0a0a0a',
+      color: 'var(--clay-ink)',
       borderColor: '#8f78c9',
-      background: '#b8a4ed',
+      background: 'var(--clay-lavender)',
     },
   },
   active: {
     label: '进行中',
     style: {
-      color: '#0a0a0a',
+      color: 'var(--clay-ink)',
       borderColor: '#6cae99',
-      background: '#a4d4c5',
+      background: 'var(--clay-mint)',
     },
   },
   review_pending: {
     label: '待评审',
     style: {
-      color: '#0a0a0a',
+      color: 'var(--clay-ink)',
       borderColor: '#b8891d',
-      background: '#e8b94a',
+      background: 'var(--clay-ochre)',
     },
   },
   showcased: {
     label: '已展示',
     style: {
-      color: '#0a0a0a',
+      color: 'var(--clay-ink)',
       borderColor: '#d98255',
-      background: '#ffb084',
+      background: 'var(--clay-peach)',
     },
   },
   relay_open: {
     label: '接力开放',
     style: {
       color: '#ffffff',
-      borderColor: '#1a3a3a',
-      background: '#1a3a3a',
+      borderColor: 'var(--clay-teal)',
+      background: 'var(--clay-teal)',
     },
   },
   archived: {
@@ -87,7 +87,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     style: {
       color: 'var(--glass-text-muted)',
       borderColor: 'var(--glass-stroke)',
-      background: 'color-mix(in srgb, var(--glass-surface-soft) 92%, transparent)',
+      background: 'color-mix(in srgb, var(--glass-panel-soft) 92%, transparent)',
     },
   },
 };
@@ -139,17 +139,17 @@ export function ProjectLifecycleBadges({
   return (
     <span className={`inline-flex flex-wrap items-center gap-2 ${className}`.trim()}>
       <span
-        className="inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold"
+        className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
         style={meta.style}
       >
         {meta.label}
       </span>
       {isDormant && (
         <span
-          className="inline-flex items-center rounded-full border bg-transparent px-3 py-1 text-[11px] font-semibold"
+          className="inline-flex items-center rounded-full border bg-transparent px-3 py-1 text-xs font-semibold"
           style={{
             color: '#a83224',
-            borderColor: 'var(--brand-coral, #ff6b5a)',
+            borderColor: 'var(--clay-coral)',
           }}
         >
           休眠
@@ -229,7 +229,7 @@ export function ProjectLifecycleJourney({
 
   return (
     <section
-      className="research-panel mb-8 rounded-[1.7rem] px-5 py-5 sm:px-6"
+      className="research-panel mb-8 rounded-3xl p-5 sm:p-6"
       aria-labelledby="project-lifecycle-journey-title"
     >
       <div className="mb-5">

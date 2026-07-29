@@ -97,17 +97,17 @@ function ChallengeSection({
   return (
     <section
       className={cn(
-        'rounded-[1.35rem] border p-4',
+        'rounded-2xl border p-4',
         accent
-          ? 'border-[#ffb084]/45 bg-[#ffb084]/18'
-          : 'border-[var(--glass-stroke)] bg-[var(--glass-surface-soft)]'
+          ? 'research-tint-peach'
+          : 'border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)]'
       )}
     >
       <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/70 text-[var(--paper-link)]">
+        <span className="research-icon-chip">
           {icon}
         </span>
-        <h3 className="text-base font-semibold text-[var(--paper-foreground)]">{title}</h3>
+        <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">{title}</h3>
       </div>
       {children}
     </section>
@@ -122,7 +122,7 @@ export function ProjectChallengePreview({
   const challenge = buildProjectChallengeCard(project);
 
   return (
-    <div className={cn('research-panel-soft rounded-[1.25rem] p-4', className)}>
+    <div className={cn('research-panel-soft rounded-2xl p-4', className)}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
         <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
@@ -132,13 +132,7 @@ export function ProjectChallengePreview({
 
       <div className="space-y-3">
         {showCurrentGapAndFirstStep && (
-          <div
-            className="rounded-[1rem] border px-3 py-3"
-            style={{
-              borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
-              background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
-            }}
-          >
+          <div className="research-tint-pink rounded-2xl border px-3 py-3">
             <p className="mb-2 text-sm font-semibold text-[var(--paper-foreground)]">当前缺口</p>
             <ChallengeRoleList
               options={challenge.missingRoleOptions}
@@ -156,7 +150,7 @@ export function ProjectChallengePreview({
 
         {showCurrentGapAndFirstStep && (
           <div
-            className="rounded-[1rem] px-3 py-2"
+            className="rounded-2xl px-3 py-2"
             style={{ background: 'color-mix(in srgb, var(--paper-link) 8%, transparent)' }}
           >
             <p className="text-sm font-medium text-[var(--glass-text-muted)]">第一步</p>
@@ -182,15 +176,16 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
   ];
 
   return (
-    <section className={cn("research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5", className)}>
+    <section className={cn("research-panel mb-8 rounded-3xl p-5 sm:p-6", className)}>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: 'var(--font-ui-display)' }}
           >
             挑战卡
           </h2>
+          <p className="research-section-note mt-1">课题目标、当前缺口与协作需求一览</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
@@ -207,18 +202,12 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
         </ChallengeSection>
 
         <div className="grid content-start gap-4">
-          <section
-            className="rounded-[1.35rem] border p-4"
-            style={{
-              borderColor: 'color-mix(in srgb, #ff4d8b 24%, var(--glass-stroke))',
-              background: 'color-mix(in srgb, #ff4d8b 7%, transparent)',
-            }}
-          >
+          <section className="research-tint-pink rounded-2xl border p-4">
             <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/70 text-[var(--paper-link)]">
+              <span className="research-icon-chip">
                 <Gauge className="h-4 w-4" />
               </span>
-              <h3 className="text-base font-semibold text-[var(--paper-foreground)]">当前缺口</h3>
+              <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">当前缺口</h3>
             </div>
             <ChallengeRoleList
               options={challenge.missingRoleOptions}
@@ -233,7 +222,7 @@ export function ProjectChallengeDetail({ project, className }: ProjectChallengeD
         </div>
       </div>
 
-      <dl className="research-panel-soft mt-4 divide-y divide-[var(--glass-stroke)] rounded-[1.35rem] px-4 py-1 sm:px-5">
+      <dl className="research-panel-soft mt-4 divide-y divide-[var(--glass-stroke)] rounded-2xl px-4 py-1 sm:px-5">
         {specRows.map((row) => (
           <div key={row.title} className="grid gap-1.5 py-3.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
             <dt className="flex items-center gap-2 self-start text-base font-semibold text-[var(--paper-foreground)]">

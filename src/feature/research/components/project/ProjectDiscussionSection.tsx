@@ -318,13 +318,13 @@ function DraftAttachmentPreviewList({
       {attachments.map((attachment) => (
         <div
           key={attachment.id}
-          className="group relative overflow-hidden rounded-[1rem] border border-[var(--paper-accent)]/14 bg-white/85"
+          className="group relative overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-surface)]"
         >
           {attachment.type === 'image' ? (
             <button
               type="button"
               onClick={() => onPreview(attachment)}
-              className="block h-28 w-full overflow-hidden bg-slate-100"
+              className="block h-28 w-full overflow-hidden bg-[var(--glass-chip)]"
             >
               <img
                 src={attachment.previewUrl}
@@ -350,7 +350,7 @@ function DraftAttachmentPreviewList({
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="border-t border-white/70 px-2.5 py-2">
+          <div className="border-t border-[var(--glass-stroke)] px-2.5 py-2">
             <p className="truncate text-sm text-[var(--glass-text-muted)]">{attachment.file.name}</p>
           </div>
         </div>
@@ -381,7 +381,7 @@ function CommentMediaGrid({
           key={`${url}-${index}`}
           type="button"
           onClick={() => onPreview(url, `${username || '用户'} 上传的图片 ${index + 1}`)}
-          className="group overflow-hidden rounded-[1rem] border border-[var(--paper-accent)]/14 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]"
+          className="group overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-surface)] shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]"
         >
           <img
             src={url}
@@ -394,7 +394,7 @@ function CommentMediaGrid({
       {videoUrls.map((url, index) => (
         <div
           key={`${url}-${index}`}
-          className="overflow-hidden rounded-[1rem] border border-[var(--paper-accent)]/14 bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.06)]"
+          className="overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.06)]"
         >
           <video
             src={url}
@@ -934,7 +934,7 @@ export function ProjectDiscussionSection({
         className={cn(
           'scroll-mt-28 relative',
           depth === 0
-            ? 'rounded-[1.25rem] border border-[var(--paper-accent)]/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,249,252,0.96))] p-3.5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] md:p-4'
+            ? 'research-panel-soft rounded-2xl p-3.5 md:p-4'
             : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'
         )}
       >
@@ -956,7 +956,7 @@ export function ProjectDiscussionSection({
                 </span>
               )}
               {comment.is_deleted && (
-                <span className="rounded-full bg-slate-500/10 px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
+                <span className="rounded-full bg-[var(--glass-chip)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
                   已删除
                 </span>
               )}
@@ -966,7 +966,7 @@ export function ProjectDiscussionSection({
               {comment.is_deleted ? (
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
               ) : isEditingThis ? (
-                <div className="rounded-[1rem] border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
+                <div className="rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
                   <textarea
                     value={editDraft}
                     onChange={(event) => setEditDraft(event.target.value)}
@@ -974,14 +974,14 @@ export function ProjectDiscussionSection({
                     maxLength={MAX_COMMENT_LENGTH}
                     autoFocus
                     aria-label="编辑留言内容"
-                    className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
+                    className="research-input w-full resize-y rounded-xl px-3 py-2 text-base transition"
                   />
                   {(comment.image_urls.length > 0 || commentVideoUrls.length > 0) && (
                     <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
                       编辑只修改文字，已上传的图片和视频保持不变。
                     </p>
                   )}
-                  {editError && <p className="mt-2 text-sm text-[#b33d3d]">{editError}</p>}
+                  {editError && <p className="mt-2 text-sm text-[var(--color-destructive)]">{editError}</p>}
                   <div className="mt-2.5 flex flex-wrap justify-end gap-2">
                     <button
                       type="button"
@@ -1067,7 +1067,7 @@ export function ProjectDiscussionSection({
                   type="button"
                   onClick={() => setConfirmDeleteId(comment.id)}
                   disabled={deletingCommentId === comment.id}
-                  className="inline-flex items-center gap-1 text-[#b33d3d] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1 text-[var(--color-destructive)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deletingCommentId === comment.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1101,7 +1101,7 @@ export function ProjectDiscussionSection({
             </div>
 
             {isReplying && canParticipate && (
-              <div className="mt-3 rounded-[1rem] border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
+              <div className="mt-3 rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
                 <textarea
                   value={replyDraft}
                   onChange={(event) => {
@@ -1112,7 +1112,7 @@ export function ProjectDiscussionSection({
                   rows={2}
                   maxLength={MAX_COMMENT_LENGTH}
                   placeholder="补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）"
-                  className="w-full resize-y rounded-[0.9rem] border border-white/60 bg-white/88 px-3 py-2 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/50 focus:ring-2 focus:ring-[var(--paper-accent)]/15"
+                  className="research-input w-full resize-y rounded-xl px-3 py-2 text-base transition"
                 />
 
                 <input
@@ -1153,7 +1153,7 @@ export function ProjectDiscussionSection({
                   }
                 />
 
-                {replyError && <p className="mt-2 text-sm text-[#b33d3d]">{replyError}</p>}
+                {replyError && <p className="mt-2 text-sm text-[var(--color-destructive)]">{replyError}</p>}
 
                 <div className="mt-2.5 flex flex-wrap justify-end gap-2">
                   <button
@@ -1227,7 +1227,7 @@ export function ProjectDiscussionSection({
         aria-labelledby={`${contentId}-trigger`}
         className="scroll-mt-28 border-t border-[var(--paper-accent)]/12 p-3 sm:p-4"
       >
-        <div className="rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-[linear-gradient(135deg,rgba(255,248,239,0.88),rgba(244,248,255,0.92))] p-4 sm:p-5">
+        <div className="research-panel-soft rounded-2xl p-4 sm:p-5">
           <textarea
             value={newComment}
             onChange={(event) => setNewComment(event.target.value)}
@@ -1242,7 +1242,7 @@ export function ProjectDiscussionSection({
                   : '写下你的答案或新观点…（支持 Ctrl+V 粘贴图片）'
                 : '只有课题成员可以参与讨论'
             }
-            className="w-full resize-y rounded-[1rem] border border-white/70 bg-white/94 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[var(--paper-accent)]/45 focus:ring-2 focus:ring-[var(--paper-accent)]/15 disabled:cursor-not-allowed disabled:opacity-70"
+            className="research-input w-full resize-y rounded-xl px-4 py-3 text-base transition disabled:cursor-not-allowed disabled:opacity-70"
           />
 
           <input
@@ -1285,7 +1285,7 @@ export function ProjectDiscussionSection({
             }
           />
 
-          {submitError && <p className="mt-2 text-base text-[#b33d3d]">{submitError}</p>}
+          {submitError && <p className="mt-2 text-base text-[var(--color-destructive)]">{submitError}</p>}
           <div className="mt-3 flex justify-end">
             <button
               type="button"
@@ -1304,23 +1304,23 @@ export function ProjectDiscussionSection({
         </div>
 
         {deleteError && (
-          <div className="mt-4 rounded-[1.2rem] bg-red-50 px-4 py-3 text-base text-[#b33d3d]">
+          <div className="research-error mt-4 rounded-2xl px-4 py-3 text-base">
             {deleteError}
           </div>
         )}
 
         <div className="mt-4">
           {isLoading ? (
-            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-[1.4rem] px-4 py-8 text-base text-[var(--glass-text-muted)]">
+            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-2xl px-4 py-8 text-base text-[var(--glass-text-muted)]">
               <Loader2 className="h-4 w-4 animate-spin" />
               正在加载讨论内容
             </div>
           ) : loadError ? (
-            <div className="rounded-[1.4rem] bg-red-50 px-4 py-4 text-base text-[#b33d3d]">
+            <div className="research-error rounded-2xl px-4 py-4 text-base">
               {loadError}
             </div>
           ) : threads.length === 0 ? (
-            <div className="research-panel-soft rounded-[1.4rem] px-4 py-8 text-center">
+            <div className="research-panel-soft rounded-2xl px-4 py-8 text-center">
               <p className="text-base font-medium text-[var(--paper-foreground)]">
                 还没有人开场，来发第一条讨论吧。
               </p>
@@ -1333,7 +1333,7 @@ export function ProjectDiscussionSection({
                 <button
                   type="button"
                   onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
-                  className="glass-button flex w-full items-center justify-center gap-2 rounded-[1.25rem] px-4 py-3 text-base font-medium"
+                  className="glass-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-medium"
                 >
                   展开更早的讨论（还有 {hiddenThreadCount} 条）
                   <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
@@ -1359,7 +1359,7 @@ export function ProjectDiscussionSection({
     return (
       <div
         key={topic}
-        className="overflow-hidden rounded-[1.25rem] border border-[var(--paper-accent)]/12 bg-white/68"
+        className="overflow-hidden rounded-2xl border border-[var(--paper-accent)]/12 bg-[var(--glass-panel-soft)]"
       >
         <button
           id={`${contentId}-trigger`}
@@ -1367,7 +1367,7 @@ export function ProjectDiscussionSection({
           onClick={() => toggleDiscussionTopic(topic)}
           aria-expanded={isOpen}
           aria-controls={contentId}
-          className="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-white/72 sm:px-5"
+          className="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[var(--glass-chip)] sm:px-5"
         >
           <div className="min-w-0 flex-1">
             {typeof topic === 'number' && (
@@ -1403,14 +1403,17 @@ export function ProjectDiscussionSection({
 
   return (
     <>
-      <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+      <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            课题讨论区
-          </h2>
+          <div>
+            <h2
+              className="text-2xl font-semibold text-[var(--paper-foreground)]"
+              style={{ fontFamily: 'var(--font-ui-display)' }}
+            >
+              课题讨论区
+            </h2>
+            <p className="research-section-note mt-1">围绕研究问题展开的组内讨论</p>
+          </div>
           <div className="research-chip inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
             <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
             {comments.length} 条讨论

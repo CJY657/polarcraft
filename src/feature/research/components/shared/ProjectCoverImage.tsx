@@ -1,5 +1,5 @@
 export const PROJECT_COVER_PLACEHOLDER =
-  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23cbd5e1"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2364748b" font-size="12" font-family="sans-serif"%3E暂无封面%3C/text%3E%3C/svg%3E';
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f5f0e0"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%236a6a6a" font-size="12" font-family="sans-serif"%3E暂无封面%3C/text%3E%3C/svg%3E';
 
 interface ProjectCoverImageProps {
   src?: string | null;

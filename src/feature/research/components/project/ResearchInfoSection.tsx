@@ -41,15 +41,16 @@ export function ResearchInfoSection({
   }
 
   return (
-    <section className="research-panel mb-4 rounded-[1.6rem] p-4 sm:p-5">
+    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
+            className="text-2xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: "var(--font-ui-display)" }}
           >
             研究信息
           </h2>
+          <p className="research-section-note mt-1">课题的研究主题、实验计划与研究假设</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {hasHypotheses && (
@@ -72,10 +73,10 @@ export function ResearchInfoSection({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
-        <div className="research-panel-soft rounded-[1.35rem] p-4">
+        <div className="research-panel-soft rounded-2xl p-4">
           <div className="mb-3 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-[var(--paper-link)]" />
-            <h3 className="text-base font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
+            <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">研究主题简述</h3>
           </div>
           <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
             {outline.topicSummary || "这个课题还没有写摘要。"}
@@ -85,10 +86,10 @@ export function ResearchInfoSection({
         {hasPlans && (
           <div className="grid gap-3">
             {outline.basicPlan?.trim() && (
-              <div className="research-panel-soft rounded-[1.35rem] p-4">
+              <div className="research-panel-soft rounded-2xl p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
+                  <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">基础实验与问题</h3>
                 </div>
                 <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
                   {outline.basicPlan}
@@ -96,10 +97,10 @@ export function ResearchInfoSection({
               </div>
             )}
             {outline.extendedPlan?.trim() && (
-              <div className="research-panel-soft rounded-[1.35rem] p-4">
+              <div className="research-panel-soft rounded-2xl p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
-                  <h3 className="text-base font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
+                  <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">拓展问题、假设与实验</h3>
                 </div>
                 <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
                   {outline.extendedPlan}
@@ -115,9 +116,9 @@ export function ResearchInfoSection({
           {outline.hypotheses.map((hypothesis, index) => (
             <div
               key={`hypothesis-${index}`}
-              className="flex min-h-[4rem] items-start gap-3 rounded-[1.1rem] border border-[#d7994c]/20 bg-[#d7994c]/8 px-3.5 py-3"
+              className="research-tint-ochre flex min-h-[4rem] items-start gap-3 rounded-2xl border px-3.5 py-3"
             >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70">
+              <span className="research-icon-chip mt-0.5">
                 <Lightbulb className="h-4 w-4 text-[var(--paper-link)]" />
               </span>
               <span className="min-w-0 flex-1 text-base font-medium leading-6 text-[var(--paper-foreground)]">

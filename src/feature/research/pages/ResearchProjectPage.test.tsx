@@ -423,8 +423,8 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect((await screen.findAllByRole("button", { name: "设置" })).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "编辑" }).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("button", { name: "协作设置" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "编辑信息" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /申请管理/ })).toBeTruthy();
     expect(screen.getByText("待恢复成员")).toBeTruthy();
     expect(screen.getByRole("button", { name: "删除课题" })).toBeTruthy();
@@ -707,8 +707,8 @@ describe("ResearchProjectPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "登录后加入" })[0]);
 
     expect(openDialog).toHaveBeenCalledWith("login");
-    expect(screen.queryByRole("button", { name: "设置" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "协作设置" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "编辑信息" })).toBeNull();
     expect(screen.queryByRole("button", { name: /申请管理/ })).toBeNull();
     expect(mockGetProject).not.toHaveBeenCalled();
   });

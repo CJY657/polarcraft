@@ -454,6 +454,51 @@ html {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 
+  .research-tint-pink {
+    border-color: color-mix(in srgb, var(--clay-pink) 32%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--clay-pink) 8%, transparent);
+  }
+
+  .research-tint-peach {
+    border-color: color-mix(in srgb, var(--clay-peach) 45%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--clay-peach) 14%, transparent);
+  }
+
+  .research-tint-ochre {
+    border-color: color-mix(in srgb, var(--clay-ochre) 35%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--clay-ochre) 10%, transparent);
+  }
+
+  .research-tint-mint {
+    border-color: color-mix(in srgb, var(--clay-teal) 30%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--clay-mint) 22%, transparent);
+    color: color-mix(in srgb, var(--clay-teal) 72%, var(--paper-foreground));
+  }
+
+  .research-icon-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--paper-surface) 85%, transparent);
+    color: var(--paper-link);
+    flex-shrink: 0;
+  }
+
+  .research-error {
+    border: 1px solid color-mix(in srgb, var(--color-destructive) 30%, var(--glass-stroke));
+    background: color-mix(in srgb, var(--color-destructive) 8%, transparent);
+    color: color-mix(in srgb, var(--color-destructive) 72%, var(--paper-foreground));
+  }
+
+  .research-section-note {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--glass-text-muted);
+  }
+
   /* ===== Clay claymation system ===== */
   .clay-canvas {
     background-color: var(--clay-canvas);
