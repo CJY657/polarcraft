@@ -1,22 +1,16 @@
 import type { PublicProject } from "@/lib/profile.service";
 
 export type ProjectDisplayMode =
-  | "recommended"
   | "updated_desc"
   | "member_count"
   | "created_desc"
   | "created_asc";
 
-export const PROJECT_DISPLAY_MODE_OPTIONS: Array<{ value: ProjectDisplayMode; label: string }> = [
-  { value: "recommended", label: "推荐优先" },
+export const PROJECT_EXPLORE_DISPLAY_MODE_OPTIONS: Array<{ value: ProjectDisplayMode; label: string }> = [
+  { value: "updated_desc", label: "最近更新" },
   { value: "member_count", label: "成员最多" },
   { value: "created_desc", label: "最新创建" },
   { value: "created_asc", label: "最早创建" },
-];
-
-export const PROJECT_EXPLORE_DISPLAY_MODE_OPTIONS: Array<{ value: ProjectDisplayMode; label: string }> = [
-  { value: "updated_desc", label: "最近更新" },
-  ...PROJECT_DISPLAY_MODE_OPTIONS.slice(1),
 ];
 
 function getTime(value: string | null | undefined) {
@@ -84,11 +78,7 @@ function compareProjects(left: PublicProject, right: PublicProject, mode: Projec
     return compareDateDesc(left.created_at, right.created_at) || compareStableTies(left, right);
   }
 
-  if (mode === "created_asc") {
-    return compareDateAsc(left.created_at, right.created_at) || compareStableTies(left, right);
-  }
-
-  return compareStableTies(left, right);
+  return compareDateAsc(left.created_at, right.created_at) || compareStableTies(left, right);
 }
 
 export function sortPublicProjectsByDisplayMode(projects: PublicProject[], mode: ProjectDisplayMode) {

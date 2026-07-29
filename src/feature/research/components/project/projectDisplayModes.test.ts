@@ -33,7 +33,7 @@ function names(projects: PublicProject[]) {
 }
 
 describe("sortPublicProjectsByDisplayMode", () => {
-  it("keeps recommendation priority separate from recent-update ordering", () => {
+  it("sorts recently updated projects first", () => {
     const projects = [
       createProject({
         id: "non-recruiting-new",
@@ -55,11 +55,6 @@ describe("sortPublicProjectsByDisplayMode", () => {
       }),
     ];
 
-    expect(names(sortPublicProjectsByDisplayMode(projects, "recommended"))).toEqual([
-      "招募最新更新",
-      "招募较早更新",
-      "非招募但更新",
-    ]);
     expect(names(sortPublicProjectsByDisplayMode(projects, "updated_desc"))).toEqual([
       "招募最新更新",
       "非招募但更新",
