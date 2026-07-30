@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>课题详情页重设计原型 · PolariScope 虚拟课题</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;900&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-role="owner">
+
+<!-- ═══════════════ 原型演示工具条（非正式页面内容） ═══════════════ -->
+<div class="proto-toolbar" role="region" aria-label="原型演示工具">
+  <span class="proto-toolbar__tag"><i class="fa-solid fa-flask"></i> 布局重设计原型</span>
+  <span class="proto-toolbar__label">视角切换：</span>
+  <div class="role-switch" role="tablist" aria-label="视角切换">
+    <button class="role-switch__btn" data-set-role="guest" role="tab">访客</button>
+    <button class="role-switch__btn" data-set-role="member" role="tab">成员</button>
+    <button class="role-switch__btn is-active" data-set-role="owner" role="tab">负责人</button>
+  </div>
+  <button class="proto-toolbar__compare" id="toggle-compare" type="button">
+    <i class="fa-solid fa-image"></i> 对照原布局截图
+  </button>
+</div>
+
+<!-- 原布局截图对照层 -->
+<div class="compare-overlay" id="compare-overlay" hidden>
+  <div class="compare-overlay__bar">
+    <span>原布局截图（用户提供）</span>
+    <button id="close-compare" type="button"><i class="fa-solid fa-xmark"></i> 关闭</button>
+  </div>
+  <div style="max-width:1200px;margin:0 auto;padding:40px;background:#faf5e8;border:1.5px solid #0a0a0a;border-radius:12px;text-align:center;color:#6a6a66;">（占位）原布局截图未上传</div>
+</div>
+
+<!-- ═══════════════ 顶部导航（PersistentHeader） ═══════════════ -->
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-header__brand" href="#">
+      <span class="site-header__logo"><i class="fa-solid fa-circle-half-stroke"></i></span>
+      <span>PolariScope · 虚拟课题组</span>
+    </a>
+    <nav class="site-header__nav" aria-label="模块导航">
+      <a href="#">实验内容</a>
+      <a href="#">偏振挑战</a>
+      <a href="#">理论模拟</a>
+      <a href="#">成果展示</a>
+      <a href="#" class="is-current">虚拟课题</a>
+    </nav>
+    <a class="btn btn--ghost btn--sm" href="#"><i class="fa-solid fa-arrow-left"></i> 返回课题列表</a>
+  </div>
+</header>
+
+<main class="page-shell">
+
+  <!-- ═══════════════ 只读模式提示（访客/非成员可见） ═══════════════ -->
+  <div class="readonly-banner" data-show="guest" role="status">
+    <div class="readonly-banner__text">
+      <i class="fa-solid fa-circle-info"></i>
+      <p><strong>你正在浏览公开课题详情。</strong>登录并提交申请后，即可参与讨论、认领任务并上传研究证据。</p>
+    </div>
+    <button class="btn btn--primary" data-open-modal="modal-apply">申请加入课题</button>
+  </div>
+  <div class="readonly-banner" data-show="member" role="status" hidden>
+    <div class="readonly-banner__text">
+      <i class="fa-solid fa-user-check"></i>
+      <p><strong>你已加入本课题。</strong>可参与讨论、上传证据并完成分配给你的任务。</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ ① 课题头部：紧凑 Hero ═══════════════ -->
+  <section class="hero" aria-labelledby="project-title">
+    <div class="hero__main">
+      <!-- 徽章行 -->
+      <div class="hero__badges">
+        <span class="kicker">课题详情</span>
+        <span class="badge badge--status"><i class="fa-solid fa-circle fa-2xs"></i> 进行中</span>
+        <span class="badge badge--accent">招募中</span>
+        <span class="badge"><i class="fa-solid fa-globe"></i> 公开课题</span>
+      </div>
+
+      <h1 id="project-title">基于缪勒显微镜的显微成像技术观察枯草芽孢杆菌在不同抗生素下的生理状态</h1>
+      <p class="hero__subtitle">Observing the physiological states of <em>Bacillus subtilis</em> under different antibiotics via Müller microscopy imaging</p>
+
+      <div class="hero__desc" id="hero-desc">
+        <p>抗生素滥用导致细菌耐药性问题日益严峻。本课题利用缪勒显微镜的偏振成像能力，在不染色、不标记的前提下，实时观察枯草芽孢杆菌在青霉素、四环素、环丙沙星三种抗生素梯度浓度下的形态与生理状态变化，建立「偏振图像特征—生理状态」的对应关系，为快速药敏检测探索新思路。</p>
+      </div>
+      <button class="hero__desc-toggle" id="desc-toggle" type="button" aria-expanded="false">
+        展开完整简介 <i class="fa-solid fa-chevron-down"></i>
+      </button>
+
+      <!-- 内联元信息（替代原 3 张大指标卡） -->
+      <dl class="hero__meta">
+        <div class="hero__meta-item">
+          <dt><i class="fa-solid fa-users"></i> 成员</dt>
+          <dd><strong>4</strong> 人</dd>
+        </div>
+        <div class="hero__meta-item">
+          <dt><i class="fa-regular fa-calendar"></i> 创建时间</dt>
+          <dd>2023 年 7 月 29 日</dd>
+        </div>
+        <div class="hero__meta-item">
+          <dt><i class="fa-solid fa-handshake"></i> 协作方式</dt>
+          <dd data-meta-collab>开放招募 · 需审批</dd>
+        </div>
+      </dl>
+
+      <!-- 操作区：主 CTA 与管理操作分组 -->
+      <div class="hero__actions">
+        <button class="btn btn--primary btn--lg" data-show="guest member" data-open-modal="modal-apply">
+          <i class="fa-solid fa-user-plus"></i> 申请加入课题
+        </button>
+        <div class="manage-group" data-show="owner">
+          <button class="btn btn--soft" data-open-modal="modal-cover"><i class="fa-regular fa-image"></i> 管理封面</button>
+          <button class="btn btn--soft" data-open-modal="modal-edit"><i class="fa-solid fa-pen-to-square"></i> 编辑信息</button>
+          <button class="btn btn--soft" data-open-modal="modal-settings"><i class="fa-solid fa-gear"></i> 协作设置</button>
+          <button class="btn btn--danger-ghost" data-open-modal="modal-delete"><i class="fa-regular fa-trash-can"></i> 删除课题</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 封面（缩小为侧栏尺寸） -->
+    <figure class="hero__cover">
+      <div class="hero__cover-placeholder" aria-label="课题封面">
+        <div class="cover-art">
+          <div class="cover-art__grid" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="cover-art__mark"><i class="fa-solid fa-microscope"></i></div>
+          <div class="cover-art__meta">
+            <span class="cover-art__title">缪勒偏振成像</span>
+            <span class="cover-art__sub">Bacillus subtilis · 药敏观测</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>课题封面 · 缪勒偏振成像实验海报</figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══════════════ ② 生命周期：细长步骤条（独立一行） ═══════════════ -->
+  <section class="lifecycle" aria-label="课题生命周期">
+    <ol class="lifecycle__steps">
+      <li class="is-done"><span class="lifecycle__dot"><i class="fa-solid fa-check"></i></span><span class="lifecycle__label">课题创建</span></li>
+      <li class="is-done"><span class="lifecycle__dot"><i class="fa-solid fa-check"></i></span><span class="lifecycle__label">开放招募</span></li>
+      <li class="is-current"><span class="lifecycle__dot">3</span><span class="lifecycle__label">研究进行</span></li>
+      <li><span class="lifecycle__dot">4</span><span class="lifecycle__label">同伴评审</span></li>
+      <li><span class="lifecycle__dot">5</span><span class="lifecycle__label">成果归档</span></li>
+    </ol>
+  </section>
+
+  <!-- ═══════════════ ③ 内容区：Tab 分区 + 右侧栏 ═══════════════ -->
+  <div class="content-grid">
+
+    <div class="content-main">
+      <!-- Tab 导航（粘性，替代原锚点导航） -->
+      <nav class="tabbar" aria-label="课题内容导航">
+        <button class="tabbar__tab is-active" data-tab="overview"><i class="fa-solid fa-bullseye"></i> 挑战概览</button>
+        <button class="tabbar__tab" data-tab="design"><i class="fa-solid fa-compass-drafting"></i> 研究设计</button>
+        <button class="tabbar__tab" data-tab="evidence"><i class="fa-solid fa-folder-open"></i> 课题证据 <span class="tabbar__count">3</span></button>
+        <button class="tabbar__tab" data-tab="review"><i class="fa-solid fa-comments"></i> 同伴评审 <span class="tabbar__count">2</span></button>
+        <button class="tabbar__tab" data-tab="tasks" data-tab-roles="member owner"><i class="fa-solid fa-list-check"></i> 任务分工 <span class="tabbar__count">4</span></button>
+        <button class="tabbar__tab" data-tab="discussion" data-tab-roles="member owner"><i class="fa-regular fa-comment-dots"></i> 参与讨论 <span class="tabbar__count">12</span></button>
+      </nav>
+
+      <!-- ─── Tab: 挑战概览 ─── -->
+      <section class="tabpanel is-active" id="panel-overview" aria-label="挑战概览">
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-bullseye"></i> 研究目标</h2>
+          </header>
+          <ol class="goal-list">
+            <li>
+              <span class="goal-list__num">1</span>
+              <div><strong>建立偏振成像观测流程</strong><p>搭建缪勒显微镜成像光路，完成枯草芽孢杆菌标准样本的偏振参数标定与基线图像采集。</p></div>
+            </li>
+            <li>
+              <span class="goal-list__num">2</span>
+              <div><strong>采集抗生素梯度响应数据</strong><p>在青霉素、四环素、环丙沙星各 5 个浓度梯度下，每隔 30 分钟采集一次偏振图像，持续 6 小时。</p></div>
+            </li>
+            <li>
+              <span class="goal-list__num">3</span>
+              <div><strong>提取形态与偏振特征</strong><p>对图像进行缪勒矩阵分解，提取退偏度、双折射等特征参数，关联细菌存活率与形态变化。</p></div>
+            </li>
+            <li>
+              <span class="goal-list__num">4</span>
+              <div><strong>建立状态判别模型</strong><p>基于特征数据训练轻量分类器，实现「正常 / 受抑制 / 死亡」三态的快速判别并验证准确性。</p></div>
+            </li>
+          </ol>
+        </article>
+
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-user-plus"></i> 招募要求</h2>
+            <span class="badge badge--accent">招募中 · 需审批</span>
+          </header>
+          <ul class="check-list">
+            <li><i class="fa-solid fa-circle-check"></i> 对微生物实验或光学成像有兴趣，能保证每周 ≥ 4 小时投入</li>
+            <li><i class="fa-solid fa-circle-check"></i> 有基础生物实验操作经验者优先（涂片、培养、无菌操作）</li>
+            <li><i class="fa-solid fa-circle-check"></i> 愿意学习图像处理基础（Python / ImageJ 任一即可）</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-shield-halved"></i> 安全及限制</h2>
+          </header>
+          <ul class="warn-list">
+            <li><i class="fa-solid fa-triangle-exclamation"></i> 所有细菌操作须在 BSL-1 实验台完成，全程佩戴手套与护目镜</li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i> 抗生素母液由负责人统一配制与保管，浓度超过 10 mg/mL 的操作需两人同时在场</li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i> 废弃培养物须经高压灭菌后按生物废弃物处理，禁止直接倒入下水道</li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i> 激光光源调试期间须关闭显微镜照明，避免直视光路</li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- ─── Tab: 研究设计 ─── -->
+      <section class="tabpanel" id="panel-design" aria-label="研究设计" hidden>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-circle-question"></i> 研究问题</h2>
+            <button class="btn btn--soft btn--sm" data-show="owner" data-open-modal="modal-edit"><i class="fa-solid fa-pen"></i> 管理问题</button>
+          </header>
+          <ul class="qa-list">
+            <li>枯草芽孢杆菌在不同种类、不同浓度抗生素作用下，其偏振图像特征（退偏度、双折射、缪勒矩阵元）呈现怎样的时序变化规律？</li>
+            <li>偏振特征参数能否早于传统浊度法指示细菌生理状态的改变？提前量有多大？</li>
+            <li>三种抗生素（细胞壁合成抑制 / 蛋白质合成抑制 / DNA 复制抑制）作用下的偏振响应是否存在可区分的模式差异？</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-lightbulb"></i> 研究假设</h2>
+          </header>
+          <ul class="qa-list qa-list--hypo">
+            <li>H1：细菌受抗生素抑制后，细胞内大分子有序度下降，表现为退偏度升高，且该变化早于浊度变化 ≥ 1 小时。</li>
+            <li>H2：不同作用机制的抗生素会产生特征性偏振响应曲线，可用于抗生素类别的初步判别。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-route"></i> 基础方案</h2>
+          </header>
+          <div class="prose">
+            <p><strong>第一阶段（第 1–2 周）：</strong>复苏并扩大培养枯草芽孢杆菌标准菌株，配制三种抗生素梯度母液；搭建并标定缪勒成像光路。</p>
+            <p><strong>第二阶段（第 3–6 周）：</strong>按浓度梯度分组给药，每 30 分钟采集偏振图像与同步浊度数据（OD600），每组 3 次重复。</p>
+            <p><strong>第三阶段（第 7–8 周）：</strong>图像特征提取与统计分析，训练三态分类器，撰写研究报告并提交同伴评审。</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-rocket"></i> 拓展方案</h2>
+          </header>
+          <div class="prose">
+            <p>若基础方案进展顺利，将尝试：（1）引入活菌/死菌荧光染色作为金标准对照，量化偏振方法的灵敏度与特异度；（2）扩展至大肠杆菌与金黄色葡萄球菌，检验方法的菌种普适性；（3）探索偏振特征与最小抑菌浓度（MIC）的定量关系。</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- ─── Tab: 课题证据 ─── -->
+      <section class="tabpanel" id="panel-evidence" aria-label="课题证据" hidden>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-folder-open"></i> 课题证据库</h2>
+            <button class="btn btn--primary btn--sm" data-show="member owner"><i class="fa-solid fa-plus"></i> 上传证据</button>
+          </header>
+          <div class="evidence-grid">
+            <div class="evidence-card">
+              <div class="evidence-card__thumb evidence-card__thumb--img"><i class="fa-solid fa-microscope"></i></div>
+              <div class="evidence-card__body">
+                <strong>基线偏振图像集（未给药组）</strong>
+                <p>48 张缪勒矩阵图像 + 标定参数，作为后续所有实验的对照基线。</p>
+                <div class="evidence-card__meta"><span class="badge">图像数据</span><span>陈同学 · 2023-08-12</span></div>
+              </div>
+            </div>
+            <div class="evidence-card">
+              <div class="evidence-card__thumb evidence-card__thumb--data"><i class="fa-solid fa-chart-line"></i></div>
+              <div class="evidence-card__body">
+                <strong>青霉素梯度 6 小时时序数据</strong>
+                <p>5 个浓度 × 13 个时间点 × 3 次重复的退偏度与 OD600 同步记录（CSV）。</p>
+                <div class="evidence-card__meta"><span class="badge">实验数据</span><span>李同学 · 2023-08-25</span></div>
+              </div>
+            </div>
+            <div class="evidence-card">
+              <div class="evidence-card__thumb evidence-card__thumb--doc"><i class="fa-solid fa-file-lines"></i></div>
+              <div class="evidence-card__body">
+                <strong>中期分析报告 v1</strong>
+                <p>H1 假设的初步验证：退偏度拐点平均早于浊度拐点 1.4 小时。</p>
+                <div class="evidence-card__meta"><span class="badge">分析文档</span><span>王同学 · 2023-09-03</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ─── Tab: 同伴评审 ─── -->
+      <section class="tabpanel" id="panel-review" aria-label="同伴评审" hidden>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-clipboard-check"></i> 评审标准</h2>
+          </header>
+          <div class="prose">
+            <p>评审请围绕以下维度展开：① 实验设计的严谨性（对照设置、重复次数）；② 数据质量（图像标定是否规范、异常值处理）；③ 结论与证据的匹配度；④ 安全规范的执行情况。</p>
+          </div>
+        </article>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-comments"></i> 收到的评审（2）</h2>
+          </header>
+          <div class="review-item">
+            <header><span class="avatar avatar--blue">周</span><div><strong>周老师 · 校外导师</strong><time>2023-09-05</time></div><span class="badge badge--accent">建议修改后通过</span></header>
+            <p>实验设计整体合理，对照组设置规范。建议补充：退偏度拐点判定需给出明确阈值定义，并说明 3 次重复间的一致性检验方法。</p>
+          </div>
+          <div class="review-item">
+            <header><span class="avatar avatar--green">林</span><div><strong>林同学 · 课题组成员</strong><time>2023-09-06</time></div><span class="badge">已回复</span></header>
+            <p>中期报告图 3 的时间轴标注有误（第 5 小时与第 6 小时标反了），已在上传的新版 CSV 中修正，请周老师复核。</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- ─── Tab: 任务分工（成员/负责人） ─── -->
+      <section class="tabpanel" id="panel-tasks" aria-label="任务分工" hidden>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-list-check"></i> 任务分工</h2>
+            <span class="badge">2 进行中 · 1 待认领 · 1 已完成</span>
+          </header>
+          <div class="task-table-wrap">
+            <table class="task-table">
+              <thead>
+                <tr><th>任务内容</th><th>负责人</th><th>截止日期</th><th>状态</th><th data-show="owner">操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>四环素梯度实验数据采集（第 4 周）</td><td><span class="avatar avatar--blue">李</span> 李同学</td><td>2023-08-28</td>
+                  <td><span class="badge badge--accent">进行中</span></td>
+                  <td data-show="owner"><button class="btn btn--soft btn--xs">催办</button></td>
+                </tr>
+                <tr>
+                  <td>图像特征提取脚本重构（支持批量处理）</td><td><span class="avatar avatar--green">王</span> 王同学</td><td>2023-09-10</td>
+                  <td><span class="badge badge--accent">进行中</span></td>
+                  <td data-show="owner"><button class="btn btn--soft btn--xs">催办</button></td>
+                </tr>
+                <tr>
+                  <td>环丙沙星组补充重复实验（第 3 次）</td><td><span class="text-muted">待认领</span></td><td>2023-09-15</td>
+                  <td><span class="badge">待认领</span></td>
+                  <td data-show="owner"><button class="btn btn--soft btn--xs">指派</button></td>
+                </tr>
+                <tr>
+                  <td>基线图像集采集与标定</td><td><span class="avatar avatar--purple">陈</span> 陈同学</td><td>2023-08-12</td>
+                  <td><span class="badge badge--done">已完成</span></td>
+                  <td data-show="owner"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <form class="task-form" data-show="owner">
+            <input type="text" placeholder="任务内容，如：整理第 5 周实验数据" aria-label="任务内容" />
+            <select aria-label="负责人"><option>负责人</option><option>李同学</option><option>王同学</option><option>陈同学</option></select>
+            <input type="date" aria-label="截止日期" />
+            <button class="btn btn--primary" type="submit"><i class="fa-solid fa-plus"></i> 添加任务</button>
+          </form>
+        </article>
+      </section>
+
+      <!-- ─── Tab: 参与讨论（成员/负责人） ─── -->
+      <section class="tabpanel" id="panel-discussion" aria-label="参与讨论" hidden>
+        <article class="card">
+          <header class="card__head">
+            <h2><i class="fa-regular fa-comment-dots"></i> 课题讨论区</h2>
+            <select class="select-sm" aria-label="排序方式"><option>按时间（最新）</option><option>按时间（最早）</option><option>按热度</option></select>
+          </header>
+          <div class="comment-list">
+            <div class="comment">
+              <span class="avatar avatar--blue">李</span>
+              <div class="comment__body">
+                <header><strong>李同学</strong><time>2 小时前</time></header>
+                <p>四环素 4 mg/mL 组第 3 小时的退偏度突然跳变，怀疑是载物台漂移导致，我重新采集了该时间点，数据已同步到证据库。</p>
+                <div class="comment__actions"><button><i class="fa-regular fa-thumbs-up"></i> 3</button><button><i class="fa-regular fa-comment"></i> 回复</button></div>
+              </div>
+            </div>
+            <div class="comment">
+              <span class="avatar avatar--purple">陈</span>
+              <div class="comment__body">
+                <header><strong>陈同学</strong><time>昨天</time></header>
+                <p>建议下周组会前完成 H1 假设的统计检验，我可以负责画时序对比图。另外安全柜的预约已经排到周四了。</p>
+                <div class="comment__actions"><button><i class="fa-regular fa-thumbs-up"></i> 5</button><button><i class="fa-regular fa-comment"></i> 回复</button></div>
+              </div>
+            </div>
+          </div>
+          <form class="comment-form">
+            <span class="avatar avatar--owner">我</span>
+            <input type="text" placeholder="在这分享您的想法…" aria-label="发表评论" />
+            <button class="btn btn--primary" type="submit"><i class="fa-solid fa-paper-plane"></i> 发表</button>
+          </form>
+        </article>
+
+        <!-- 研究助手：收进讨论 Tab 底部 -->
+        <article class="card card--agent">
+          <header class="card__head">
+            <h2><i class="fa-solid fa-wand-magic-sparkles"></i> 研究助手</h2>
+            <button class="btn btn--soft btn--sm" data-show="owner">清空历史</button>
+          </header>
+          <div class="agent-msg"><i class="fa-solid fa-robot"></i><p>基于当前证据库，H1 假设的支持度较强（退偏度拐点平均提前 1.4 ± 0.3 小时）。建议优先补充环丙沙星组第 3 次重复，再启动分类器训练。</p></div>
+          <form class="comment-form"><input type="text" placeholder="向研究助手提问…" aria-label="向研究助手提问" /><button class="btn btn--soft" type="submit">提问</button></form>
+        </article>
+      </section>
+    </div>
+
+    <!-- ═══════════════ 右侧栏 ═══════════════ -->
+    <aside class="side-rail">
+      <!-- 团队成员 -->
+      <article class="card card--rail">
+        <header class="card__head">
+          <h2><i class="fa-solid fa-users"></i> 团队成员 <span class="tabbar__count">4</span></h2>
+          <button class="btn btn--soft btn--sm" data-show="owner" data-open-modal="modal-applications">
+            申请管理 <span class="badge badge--accent badge--dot">2</span>
+          </button>
+        </header>
+        <ul class="member-list">
+          <li><span class="avatar avatar--owner">陈</span><div><strong>陈同学</strong><small>发起人 · 成像光路</small></div><span class="badge badge--accent">负责人</span></li>
+          <li><span class="avatar avatar--blue">李</span><div><strong>李同学</strong><small>成员 · 实验操作</small></div><span class="badge">成员</span></li>
+          <li><span class="avatar avatar--green">王</span><div><strong>王同学</strong><small>成员 · 数据分析</small></div><span class="badge">成员</span></li>
+          <li><span class="avatar avatar--purple">周</span><div><strong>周老师</strong><small>导师 · 评审指导</small></div><span class="badge">导师</span></li>
+        </ul>
+        <details class="former-members" data-show="owner">
+          <summary>已退出成员（1）</summary>
+          <div class="former-members__row">
+            <span class="avatar avatar--muted">赵</span><div><strong>赵同学</strong><small>2023-08 退出</small></div>
+            <button class="btn btn--soft btn--xs">拉回</button>
+          </div>
+        </details>
+      </article>
+
+      <!-- 最新动态 -->
+      <article class="card card--rail">
+        <header class="card__head"><h2><i class="fa-solid fa-bolt"></i> 最新动态</h2></header>
+        <ul class="feed-list">
+          <li><i class="fa-solid fa-upload"></i><p><strong>李同学</strong> 上传了证据「青霉素梯度时序数据」</p><time>2 小时前</time></li>
+          <li><i class="fa-regular fa-comment"></i><p><strong>陈同学</strong> 在讨论区回复了数据跳变问题</p><time>昨天</time></li>
+          <li><i class="fa-solid fa-user-plus"></i><p><strong>周老师</strong> 加入了课题并担任导师</p><time>3 天前</time></li>
+          <li><i class="fa-solid fa-clipboard-check"></i><p><strong>周老师</strong> 提交了同伴评审意见</p><time>5 天前</time></li>
+        </ul>
+      </article>
+
+      <!-- 快捷操作 -->
+      <article class="card card--rail">
+        <header class="card__head"><h2><i class="fa-solid fa-bolt-lightning"></i> 快捷操作</h2></header>
+        <div class="quick-actions">
+          <a href="#" class="quick-action" data-show="member owner"><i class="fa-solid fa-upload"></i> 上传证据</a>
+          <a href="#" class="quick-action" data-show="member owner"><i class="fa-solid fa-list-check"></i> 查看我的任务</a>
+          <a href="#" class="quick-action" data-show="owner"><i class="fa-solid fa-gear"></i> 协作设置</a>
+          <a href="#" class="quick-action" data-show="guest"><i class="fa-solid fa-user-plus"></i> 申请加入</a>
+          <a href="#" class="quick-action"><i class="fa-solid fa-share-nodes"></i> 分享课题</a>
+        </div>
+      </article>
+    </aside>
+  </div>
+</main>
+
+<!-- ═══════════════ 页脚 ═══════════════ -->
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div>
+      <strong>PolariScope · 偏振光下新世界</strong>
+      <p>由零一学院开发，为科研爱好者与学生提供公开透明的课题协作平台。</p>
+    </div>
+    <nav aria-label="页脚导航"><a href="#">关于平台</a><a href="#">使用指南</a><a href="#">反馈</a></nav>
+  </div>
+</footer>
+
+<!-- ═══════════════ 对话框（原页面 5 个 Dialog 全部保留） ═══════════════ -->
+<!-- 编辑信息 -->
+<div class="modal" id="modal-edit" role="dialog" aria-modal="true" aria-labelledby="modal-edit-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-edit-title"><i class="fa-solid fa-pen-to-square"></i> 编辑课题信息</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <label>课题名称<input type="text" value="基于缪勒显微镜的显微成像技术观察枯草芽孢杆菌在不同抗生素下的生理状态" /></label>
+    <label>课题摘要<textarea rows="4">抗生素滥用导致细菌耐药性问题日益严峻。本课题利用缪勒显微镜的偏振成像能力……</textarea></label>
+    <label>研究问题（每行一条）<textarea rows="3">偏振图像特征呈现怎样的时序变化规律？&#10;偏振特征能否早于浊度法指示状态改变？</textarea></label>
+    <footer class="modal__foot"><button class="btn btn--ghost" data-close-modal>取消</button><button class="btn btn--primary" data-close-modal>保存修改</button></footer>
+  </div>
+</div>
+
+<!-- 管理封面 -->
+<div class="modal" id="modal-cover" role="dialog" aria-modal="true" aria-labelledby="modal-cover-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-cover-title"><i class="fa-regular fa-image"></i> 管理课题封面</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <div class="cover-upload"><i class="fa-solid fa-cloud-arrow-up"></i><p>点击或拖拽上传新封面（建议 16:9，≥ 1280×720）</p><button class="btn btn--soft btn--sm">选择图片</button></div>
+    <footer class="modal__foot"><button class="btn btn--ghost" data-close-modal>取消</button><button class="btn btn--primary" data-close-modal>应用封面</button></footer>
+  </div>
+</div>
+
+<!-- 协作设置 -->
+<div class="modal" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-settings-title"><i class="fa-solid fa-gear"></i> 协作设置</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <label class="switch-row"><span>开放招募<small>关闭后访客将无法提交加入申请</small></span><input type="checkbox" checked /></label>
+    <label class="switch-row"><span>申请需审批<small>新成员需负责人批准后加入</small></span><input type="checkbox" checked /></label>
+    <label class="switch-row"><span>允许访客评论<small>未登录用户可在讨论区留言</small></span><input type="checkbox" /></label>
+    <label class="switch-row"><span>启用任务看板<small>在课题中启用任务分工模块</small></span><input type="checkbox" checked /></label>
+    <footer class="modal__foot"><button class="btn btn--ghost" data-close-modal>取消</button><button class="btn btn--primary" data-close-modal>保存设置</button></footer>
+  </div>
+</div>
+
+<!-- 申请加入 -->
+<div class="modal" id="modal-apply" role="dialog" aria-modal="true" aria-labelledby="modal-apply-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-apply-title"><i class="fa-solid fa-user-plus"></i> 申请加入课题</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <div class="apply-req"><strong>招募要求</strong><ul><li>每周投入 ≥ 4 小时</li><li>有基础生物实验操作经验者优先</li><li>愿意学习图像处理基础</li></ul></div>
+    <label>申请理由<textarea rows="4" placeholder="介绍你的背景、兴趣和可投入的时间…"></textarea></label>
+    <footer class="modal__foot"><button class="btn btn--ghost" data-close-modal>取消</button><button class="btn btn--primary" data-close-modal>提交申请</button></footer>
+  </div>
+</div>
+
+<!-- 申请管理 -->
+<div class="modal" id="modal-applications" role="dialog" aria-modal="true" aria-labelledby="modal-apps-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-apps-title"><i class="fa-solid fa-inbox"></i> 加入申请管理</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <div class="application-row">
+      <span class="avatar avatar--blue">吴</span>
+      <div class="application-row__info"><strong>吴同学</strong><p>「生物竞赛省二，熟悉无菌操作，每周可投入 6 小时」</p></div>
+      <div class="application-row__btns"><button class="btn btn--primary btn--sm">通过</button><button class="btn btn--ghost btn--sm">拒绝</button></div>
+    </div>
+    <div class="application-row">
+      <span class="avatar avatar--green">郑</span>
+      <div class="application-row__info"><strong>郑同学</strong><p>「对偏振成像很感兴趣，会 Python 图像处理」</p></div>
+      <div class="application-row__btns"><button class="btn btn--primary btn--sm">通过</button><button class="btn btn--ghost btn--sm">拒绝</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 删除课题 -->
+<div class="modal" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title" hidden>
+  <div class="modal__box">
+    <header class="modal__head"><h3 id="modal-delete-title"><i class="fa-regular fa-trash-can"></i> 删除课题</h3><button class="modal__close" data-close-modal><i class="fa-solid fa-xmark"></i></button></header>
+    <p class="delete-warn">此操作不可恢复，将删除课题的全部讨论、证据与任务记录。请输入课题名称中的「<strong>缪勒显微镜</strong>」以确认删除。</p>
+    <label>确认文字<input type="text" placeholder="输入：缪勒显微镜" /></label>
+    <footer class="modal__foot"><button class="btn btn--ghost" data-close-modal>取消</button><button class="btn btn--danger" disabled>永久删除</button></footer>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -3,7 +3,6 @@ import {
   ChevronDown,
   ImagePlus,
   Loader2,
-  MessageCircle,
   Pencil,
   Reply,
   Send,
@@ -16,6 +15,7 @@ import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImage
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
+import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 export interface ProjectDiscussionOutline {
   topicSummary: string;
@@ -318,7 +318,7 @@ function DraftAttachmentPreviewList({
       {attachments.map((attachment) => (
         <div
           key={attachment.id}
-          className="group relative overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-surface)]"
+          className="group relative overflow-hidden rounded-lg border border-[var(--research-line)]"
         >
           {attachment.type === 'image' ? (
             <button
@@ -350,7 +350,7 @@ function DraftAttachmentPreviewList({
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="border-t border-[var(--glass-stroke)] px-2.5 py-2">
+          <div className="border-t border-[var(--research-line)] bg-[var(--research-head)] px-2.5 py-2">
             <p className="truncate text-sm text-[var(--glass-text-muted)]">{attachment.file.name}</p>
           </div>
         </div>
@@ -381,7 +381,7 @@ function CommentMediaGrid({
           key={`${url}-${index}`}
           type="button"
           onClick={() => onPreview(url, `${username || '用户'} 上传的图片 ${index + 1}`)}
-          className="group overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-surface)] shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]"
+          className="group overflow-hidden rounded-lg border border-[var(--research-line)]"
         >
           <img
             src={url}
@@ -394,7 +394,7 @@ function CommentMediaGrid({
       {videoUrls.map((url, index) => (
         <div
           key={`${url}-${index}`}
-          className="overflow-hidden rounded-2xl border border-[var(--paper-accent)]/14 bg-slate-950 shadow-[0_10px_26px_rgba(15,23,42,0.06)]"
+          className="overflow-hidden rounded-lg border border-[var(--research-line)] bg-slate-950"
         >
           <video
             src={url}
@@ -934,12 +934,12 @@ export function ProjectDiscussionSection({
         className={cn(
           'scroll-mt-28 relative',
           depth === 0
-            ? 'research-panel-soft rounded-2xl p-3.5 md:p-4'
-            : 'ml-4 border-l border-[var(--paper-accent)]/16 pl-3.5 sm:ml-6 sm:pl-4'
+            ? 'research-panel-soft rounded-lg p-3.5 md:p-4'
+            : 'ml-4 border-l border-[var(--research-line)] pl-3.5 sm:ml-6 sm:pl-4'
         )}
       >
         <div className="flex items-start gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
             {getUserIdentityInitial(comment)}
           </div>
           <div className="min-w-0 flex-1">
@@ -951,7 +951,7 @@ export function ProjectDiscussionSection({
                 {formatCommentTime(comment.created_at)}
               </span>
               {isEdited && (
-                <span className="rounded-full bg-[var(--paper-accent)]/10 px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
+                <span className="rounded-md bg-[var(--glass-chip)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
                   已编辑
                 </span>
               )}
@@ -966,7 +966,7 @@ export function ProjectDiscussionSection({
               {comment.is_deleted ? (
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
               ) : isEditingThis ? (
-                <div className="rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
+                <div className="rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
                   <textarea
                     value={editDraft}
                     onChange={(event) => setEditDraft(event.target.value)}
@@ -1087,7 +1087,7 @@ export function ProjectDiscussionSection({
                       [comment.id]: !(current[comment.id] ?? false),
                     }));
                   }}
-                  className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-accent)]/10 px-2.5 py-1 text-[var(--paper-link)] transition-colors hover:bg-[var(--paper-accent)]/16"
+                  className="inline-flex items-center gap-1 rounded-md bg-[var(--glass-chip)] px-2.5 py-1 text-[var(--paper-foreground)] transition-colors hover:bg-[var(--research-head)]"
                 >
                   {isRepliesExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
                   <ChevronDown
@@ -1101,7 +1101,7 @@ export function ProjectDiscussionSection({
             </div>
 
             {isReplying && canParticipate && (
-              <div className="mt-3 rounded-2xl border border-[var(--paper-accent)]/14 bg-[var(--paper-accent)]/6 p-2.5">
+              <div className="mt-3 rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
                 <textarea
                   value={replyDraft}
                   onChange={(event) => {
@@ -1225,9 +1225,9 @@ export function ProjectDiscussionSection({
         id={contentId}
         role="region"
         aria-labelledby={`${contentId}-trigger`}
-        className="scroll-mt-28 border-t border-[var(--paper-accent)]/12 p-3 sm:p-4"
+        className="scroll-mt-28 border-t border-[var(--research-line)] bg-[var(--research-surface)] p-3 sm:p-4"
       >
-        <div className="research-panel-soft rounded-2xl p-4 sm:p-5">
+        <div className="research-panel-soft rounded-lg p-4">
           <textarea
             value={newComment}
             onChange={(event) => setNewComment(event.target.value)}
@@ -1359,7 +1359,7 @@ export function ProjectDiscussionSection({
     return (
       <div
         key={topic}
-        className="overflow-hidden rounded-2xl border border-[var(--paper-accent)]/12 bg-[var(--glass-panel-soft)]"
+        className="overflow-hidden rounded-lg border border-[var(--research-line)] bg-[var(--research-head)]"
       >
         <button
           id={`${contentId}-trigger`}
@@ -1367,11 +1367,11 @@ export function ProjectDiscussionSection({
           onClick={() => toggleDiscussionTopic(topic)}
           aria-expanded={isOpen}
           aria-controls={contentId}
-          className="group flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[var(--glass-chip)] sm:px-5"
+          className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--glass-chip)]"
         >
           <div className="min-w-0 flex-1">
             {typeof topic === 'number' && (
-              <span className="mb-1 block text-sm font-medium text-[var(--paper-link)]">
+              <span className="mb-1 block text-sm font-semibold text-[var(--glass-text-muted)]">
                 核心问题 {topic + 1}
               </span>
             )}
@@ -1391,7 +1391,7 @@ export function ProjectDiscussionSection({
           </div>
           <ChevronDown
             className={cn(
-              'h-5 w-5 shrink-0 text-[var(--paper-link)] transition-transform duration-200',
+              'h-5 w-5 shrink-0 text-[var(--glass-text-muted)] transition-transform duration-200',
               isOpen && 'rotate-180'
             )}
           />
@@ -1403,30 +1403,22 @@ export function ProjectDiscussionSection({
 
   return (
     <>
-      <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h2
-              className="text-2xl font-semibold text-[var(--paper-foreground)]"
-              style={{ fontFamily: 'var(--font-ui-display)' }}
-            >
-              课题讨论区
-            </h2>
-            <p className="research-section-note mt-1">围绕研究问题展开的组内讨论</p>
-          </div>
-          <div className="research-chip inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
-            <MessageCircle className="h-4 w-4 text-[var(--paper-link)]" />
+      <ResearchSectionCard
+        title="课题讨论区"
+        note="围绕研究问题展开的组内讨论"
+        actions={
+          <span className="research-chip rounded-md px-3 py-1 text-sm font-semibold tabular-nums">
             {comments.length} 条讨论
-          </div>
-        </div>
-
-        <div className="space-y-3">
+          </span>
+        }
+      >
+        <div className="space-y-2.5">
           {questions.map((question, questionIndex) =>
             renderDiscussionRow(questionIndex, question, questionThreads[questionIndex])
           )}
           {renderDiscussionRow('general', '其它讨论', generalThreads)}
         </div>
-      </section>
+      </ResearchSectionCard>
 
       <ConfirmDialog
         open={confirmDeleteId !== null}

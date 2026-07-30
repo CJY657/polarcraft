@@ -175,46 +175,35 @@ export function ProjectLifecycleJourney({
         <h2 id="project-lifecycle-journey-title" className="sr-only">
           课题旅程
         </h2>
-        <ol
-          className="flex min-w-max items-center gap-1 overflow-x-auto py-1 sm:min-w-0 sm:flex-wrap"
-          aria-label="课题生命周期"
-        >
+        <ol className="flex min-w-max items-center gap-2.5 sm:min-w-0" aria-label="课题生命周期">
           {PROJECT_LIFECYCLE_STATUSES.map((stage, index) => {
             const meta = PROJECT_STATUS_META[stage];
             const isCompleted = currentIndex >= 0 && index < currentIndex;
             const isCurrent = index === currentIndex;
-            const isReached = isCompleted || isCurrent;
 
             return (
               <li
                 key={stage}
-                className="flex items-center gap-1"
+                className="flex flex-1 items-center gap-2.5"
                 data-state={isCurrent ? 'current' : isCompleted ? 'completed' : 'upcoming'}
                 aria-current={isCurrent ? 'step' : undefined}
               >
+                <span className="research-step-dot" aria-hidden="true">
+                  {isCompleted ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : index + 1}
+                </span>
                 <span
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                    isCurrent ? '' : 'border-transparent'
-                  }`}
-                  style={
+                  className={`whitespace-nowrap text-sm ${
                     isCurrent
-                      ? meta.style
-                      : { color: isCompleted ? 'var(--paper-foreground)' : 'var(--glass-text-muted)' }
-                  }
+                      ? 'font-bold text-[var(--paper-foreground)]'
+                      : isCompleted
+                        ? 'font-medium text-[var(--paper-foreground)]'
+                        : 'font-medium text-[var(--glass-text-muted)]'
+                  }`}
                 >
-                  {isCompleted && <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />}
                   {meta.label}
                 </span>
                 {index < PROJECT_LIFECYCLE_STATUSES.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="h-px w-3 shrink-0"
-                    style={{
-                      background: isReached && index < currentIndex
-                        ? 'var(--paper-accent)'
-                        : 'var(--glass-stroke-strong)',
-                    }}
-                  />
+                  <span aria-hidden="true" className="research-step-line" />
                 )}
               </li>
             );

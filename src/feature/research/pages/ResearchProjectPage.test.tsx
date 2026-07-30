@@ -337,8 +337,8 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect(await screen.findByText("待恢复成员")).toBeTruthy();
-    fireEvent.click(screen.getByTitle("拉回成员"));
+    expect(await screen.findByText(/已退出成员/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "拉回" }));
 
     await waitFor(() => {
       expect(mockAddProjectMember).toHaveBeenCalledWith("project-1", "user-2", "member");
@@ -426,7 +426,7 @@ describe("ResearchProjectPage", () => {
     expect(await screen.findByRole("button", { name: "协作设置" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "编辑信息" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /申请管理/ })).toBeTruthy();
-    expect(screen.getByText("待恢复成员")).toBeTruthy();
+    expect(screen.getByText(/已退出成员/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "删除课题" })).toBeTruthy();
   });
 
@@ -654,7 +654,7 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect(await screen.findByText("研究团队")).toBeTruthy();
+    expect(await screen.findByText("团队成员")).toBeTruthy();
     expect(screen.getByText("小林")).toBeTruthy();
     expect(screen.getByText("记录表达")).toBeTruthy();
   });
@@ -745,11 +745,13 @@ describe("ResearchProjectPage", () => {
     expect(openDialog).not.toHaveBeenCalled();
   });
 
-  it("keeps hypotheses static, manages questions through the editor, and places discussion after research info", async () => {
+  it("keeps hypotheses static, manages questions through the editor, and places discussion after evidence", async () => {
     mockGetProject.mockResolvedValue(
       createProject({
         research_questions_zh: "气泡条纹与膜厚变化是否相关？\n明暗图样是否受偏振方向影响？",
         research_hypotheses_zh: "条纹由膜厚变化引起。\n明暗图样由几何与偏振耦合产生。",
+        // 挑战卡目标为空时会回退展示研究问题，这里显式给目标避免误判
+        challenge_objectives_zh: "建立变量表",
         basic_plan_zh: "先做基础观察，再记录变量。",
         extended_plan_zh: "继续验证不同角度下的表现。",
       })
@@ -768,9 +770,10 @@ describe("ResearchProjectPage", () => {
     const researchInfo = screen.getByText("研究信息").closest("section");
     const discussion = screen.getByTestId("project-discussion-section");
     const evidence = screen.getByTestId("project-evidence-section");
-    expect(researchInfo?.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(discussion.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(researchInfo?.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(evidence.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("tab", { name: "研究设计" }));
     fireEvent.click(screen.getByRole("button", { name: "管理问题" }));
 
     await waitFor(() => {
@@ -921,7 +924,7 @@ describe("ResearchProjectPage", () => {
     await screen.findByText("普通成员");
     expect(screen.queryByText("admin")).toBeNull();
 
-    fireEvent.click(screen.getByTitle("移除成员"));
+    fireEvent.click(screen.getByRole("button", { name: "移除" }));
     fireEvent.click(screen.getByRole("button", { name: "确认" }));
 
     await waitFor(() => {

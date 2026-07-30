@@ -25,6 +25,7 @@ import {
 } from '@/lib/research.service';
 import { profileApi } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
+import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 interface ProjectEvidenceSectionProps {
   projectId: string;
@@ -311,37 +312,25 @@ export function ProjectEvidenceSection({
   );
 
   return (
-    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            证据库
-          </h2>
-          <p className="research-section-note mt-1">实验记录、数据与阶段性成果</p>
-        </div>
-
-        {canManage && (
+    <ResearchSectionCard
+      title="证据库"
+      note="实验记录、数据与阶段性成果"
+      actions={
+        canManage && (
           <button
             type="button"
             onClick={openCreateForm}
-            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-semibold text-white sm:self-auto"
+            className="glass-button glass-button-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white"
           >
-            <Plus className="h-4 w-4" />
             新增证据
           </button>
-        )}
-      </div>
-
+        )
+      }
+    >
       {!canManage && (
-        <div className="research-panel-soft mb-4 flex items-center gap-3 rounded-2xl px-4 py-3">
-          <AlertCircle className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
-          <p className="text-base leading-6 text-[var(--glass-text-muted)]">
-            只读浏览：新增和编辑证据仅对课题成员开放。
-          </p>
-        </div>
+        <p className="research-panel-soft mb-4 rounded-md px-4 py-3 text-base leading-6 text-[var(--glass-text-muted)]">
+          只读浏览：新增和编辑证据仅对课题成员开放。
+        </p>
       )}
 
       {isFormOpen && canManage && (
@@ -675,6 +664,6 @@ export function ProjectEvidenceSection({
         isPending={isDeleting}
         theme={theme}
       />
-    </section>
+    </ResearchSectionCard>
   );
 }

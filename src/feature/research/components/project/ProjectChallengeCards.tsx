@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Award, ClipboardCheck, Compass, Flag, Footprints, Gauge, Target, Users } from 'lucide-react';
 import { cn } from '@/utils/classNames';
 import { ProjectLifecycleBadges } from '../../projectLifecycle';
+import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 import {
   buildProjectChallengeCard,
   getProjectFirstStep,
@@ -85,30 +85,21 @@ function ChallengeRoleList({
 
 function ChallengeSection({
   title,
-  icon,
   children,
   accent = false,
 }: {
   title: string;
-  icon: ReactNode;
   children: ReactNode;
   accent?: boolean;
 }) {
   return (
     <section
       className={cn(
-        'rounded-2xl border p-4',
-        accent
-          ? 'research-tint-peach'
-          : 'border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)]'
+        'rounded-[0.625rem] border p-4',
+        accent ? 'research-tint-peach' : 'research-panel-soft'
       )}
     >
-      <div className="mb-3 flex items-center gap-2">
-        <span className="research-icon-chip">
-          {icon}
-        </span>
-        <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">{title}</h3>
-      </div>
+      <h3 className="mb-2.5 text-base font-bold text-[var(--paper-foreground)]">{title}</h3>
       {children}
     </section>
   );
@@ -166,75 +157,105 @@ export function ProjectChallengePreview({
 
 export function ProjectChallengeDetail({ project, className }: ProjectChallengeDetailProps) {
   const challenge = buildProjectChallengeCard(project);
+  const recruitmentRequirements = project.recruitment_requirements?.trim();
+  const requirementItems = (recruitmentRequirements ?? '')
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
   const specRows = [
-    { title: '挑战目标', icon: <Target className="h-4 w-4" />, text: challenge.objectives },
-    { title: '入门步骤', icon: <Footprints className="h-4 w-4" />, text: challenge.beginnerSteps },
-    { title: '最低交付物', icon: <ClipboardCheck className="h-4 w-4" />, text: challenge.minDeliverables },
-    { title: '评价标准', icon: <Award className="h-4 w-4" />, text: challenge.reviewCriteria },
-    { title: '时间节奏', icon: <Flag className="h-4 w-4" />, text: challenge.timeline },
+    { title: '入门步骤', text: challenge.beginnerSteps },
+    { title: '最低交付物', text: challenge.minDeliverables },
+    { title: '评价标准', text: challenge.reviewCriteria },
+    { title: '时间节奏', text: challenge.timeline },
   ];
 
   return (
-    <section className={cn("research-panel mb-8 rounded-3xl p-5 sm:p-6", className)}>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            挑战卡
-          </h2>
-          <p className="research-section-note mt-1">课题目标、当前缺口与协作需求一览</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
-          <ChallengeChip>{challenge.progress}</ChallengeChip>
-          <ChallengeChip>{challenge.recruitmentState}</ChallengeChip>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
-        <ChallengeSection title="挑战价值" icon={<Compass className="h-4 w-4" />} accent>
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--paper-foreground)]">
-            {challenge.value}
-          </p>
-        </ChallengeSection>
-
-        <div className="grid content-start gap-4">
-          <section className="research-tint-pink rounded-2xl border p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="research-icon-chip">
-                <Gauge className="h-4 w-4" />
-              </span>
-              <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">当前缺口</h3>
-            </div>
-            <ChallengeRoleList
-              options={challenge.missingRoleOptions}
-              fallbackItems={challenge.missingRoleItems}
-              fallback={challenge.missingRoles}
-            />
-          </section>
-
-          <ChallengeSection title="适合角色" icon={<Users className="h-4 w-4" />}>
-            <ChallengeList items={challenge.roleItems} fallback={challenge.roles} />
+    <div className={cn('flex flex-col gap-4.5', className)}>
+      <ResearchSectionCard
+        title="挑战卡"
+        note="课题目标、当前缺口与协作需求一览"
+        actions={
+          <>
+            <ChallengeChip accent>{challenge.difficultyLabel}</ChallengeChip>
+            <ChallengeChip>{challenge.progress}</ChallengeChip>
+            <ChallengeChip>{challenge.recruitmentState}</ChallengeChip>
+          </>
+        }
+      >
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(17rem,0.9fr)]">
+          <ChallengeSection title="挑战价值" accent>
+            <p className="whitespace-pre-wrap text-base leading-7 text-[var(--paper-foreground)]">
+              {challenge.value}
+            </p>
           </ChallengeSection>
-        </div>
-      </div>
 
-      <dl className="research-panel-soft mt-4 divide-y divide-[var(--glass-stroke)] rounded-2xl px-4 py-1 sm:px-5">
-        {specRows.map((row) => (
-          <div key={row.title} className="grid gap-1.5 py-3.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
-            <dt className="flex items-center gap-2 self-start text-base font-semibold text-[var(--paper-foreground)]">
-              <span className="text-[var(--paper-link)]">{row.icon}</span>
-              {row.title}
-            </dt>
-            <dd className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
-              {row.text}
-            </dd>
+          <div className="grid content-start gap-4">
+            <section className="research-tint-pink rounded-[0.625rem] border p-4">
+              <h3 className="mb-2.5 text-base font-bold text-[var(--paper-foreground)]">当前缺口</h3>
+              <ChallengeRoleList
+                options={challenge.missingRoleOptions}
+                fallbackItems={challenge.missingRoleItems}
+                fallback={challenge.missingRoles}
+              />
+            </section>
+
+            <ChallengeSection title="适合角色">
+              <ChallengeList items={challenge.roleItems} fallback={challenge.roles} />
+            </ChallengeSection>
           </div>
-        ))}
-      </dl>
-    </section>
+        </div>
+      </ResearchSectionCard>
+
+      <ResearchSectionCard title="研究目标">
+        <ol className="flex flex-col gap-3.5">
+          {challenge.objectiveItems.map((objective, index) => (
+            <li key={objective} className="flex items-start gap-3.5">
+              <span className="research-step-dot mt-0.5">{index + 1}</span>
+              <p className="flex-1 pt-1 text-base leading-6 text-[var(--paper-foreground)]">
+                {objective}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </ResearchSectionCard>
+
+      {requirementItems.length > 0 && (
+        <ResearchSectionCard
+          title="招募要求"
+          actions={
+            <ChallengeChip accent>
+              {challenge.recruitmentState}
+            </ChallengeChip>
+          }
+        >
+          <ul className="flex flex-col gap-2.5">
+            {requirementItems.map((item) => (
+              <li
+                key={item}
+                className="border-l-[3px] border-[var(--paper-accent)] pl-3 text-base leading-6 text-[var(--paper-foreground)]"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </ResearchSectionCard>
+      )}
+
+      <ResearchSectionCard title="参与方式" flush>
+        <dl className="divide-y divide-[var(--research-line)] px-5">
+          {specRows.map((row) => (
+            <div key={row.title} className="grid gap-1.5 py-3.5 sm:grid-cols-[9rem_1fr] sm:gap-4">
+              <dt className="self-start text-base font-bold text-[var(--paper-foreground)]">
+                {row.title}
+              </dt>
+              <dd className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+                {row.text}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </ResearchSectionCard>
+    </div>
   );
 }

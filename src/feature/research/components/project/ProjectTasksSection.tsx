@@ -8,20 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import {
-  AlertCircle,
-  CalendarDays,
-  Check,
-  CircleDashed,
-  ListTodo,
-  Loader2,
-  Play,
-  Plus,
-  RefreshCw,
-  RotateCcw,
-  Trash2,
-  Undo2,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/utils/classNames';
@@ -32,17 +19,15 @@ import {
   type ProjectTask,
   type ProjectTaskStatus,
 } from '@/lib/research.service';
+import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 const MAX_TASK_TITLE_LENGTH = 200;
 
-const TASK_STATUS_GROUPS: Array<{
-  status: ProjectTaskStatus;
-  label: string;
-}> = [
-  { status: 'todo', label: '待办' },
-  { status: 'doing', label: '进行中' },
-  { status: 'done', label: '已完成' },
-];
+const TASK_STATUS_LABELS: Record<ProjectTaskStatus, string> = {
+  todo: '待办',
+  doing: '进行中',
+  done: '已完成',
+};
 
 interface ProjectTasksSectionProps {
   projectId: string;
@@ -188,8 +173,8 @@ export function ProjectTasksSection({
 
   function renderMoveActions(task: ProjectTask) {
     const isBusy = busyTaskId === task.id;
-    const moveButtonClass =
-      'glass-button inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60';
+    const linkClass =
+      'inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-[var(--paper-foreground)] hover:bg-[var(--research-head)] disabled:cursor-not-allowed disabled:opacity-60';
 
     if (task.status === 'todo') {
       return (
@@ -197,9 +182,9 @@ export function ProjectTasksSection({
           type="button"
           onClick={() => void handleMoveTask(task, 'doing')}
           disabled={isBusy}
-          className={moveButtonClass}
+          className={linkClass}
         >
-          {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 text-[var(--paper-link)]" />}
+          {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           开始
         </button>
       );
@@ -212,18 +197,17 @@ export function ProjectTasksSection({
             type="button"
             onClick={() => void handleMoveTask(task, 'todo')}
             disabled={isBusy}
-            className={moveButtonClass}
+            className={linkClass}
           >
-            <Undo2 className="h-3.5 w-3.5 text-[var(--glass-text-muted)]" />
-            退回待办
+            退回
           </button>
           <button
             type="button"
             onClick={() => void handleMoveTask(task, 'done')}
             disabled={isBusy}
-            className="glass-button glass-button-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className={linkClass}
           >
-            {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+            {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             完成
           </button>
         </>
@@ -235,245 +219,214 @@ export function ProjectTasksSection({
         type="button"
         onClick={() => void handleMoveTask(task, 'doing')}
         disabled={isBusy}
-        className={moveButtonClass}
+        className={linkClass}
       >
-        {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 text-[var(--paper-link)]" />}
-        重新打开
+        {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        重开
       </button>
     );
   }
 
-  const doneCount = tasks.filter((task) => task.status === 'done').length;
+  const statusCounts = {
+    todo: tasks.filter((task) => task.status === 'todo').length,
+    doing: tasks.filter((task) => task.status === 'doing').length,
+    done: tasks.filter((task) => task.status === 'done').length,
+  };
 
   return (
-    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            任务分工
-          </h2>
-          <p className="research-section-note mt-1">课题任务与认领情况</p>
-        </div>
-
-        {tasks.length > 0 && (
-          <span className="research-chip inline-flex items-center gap-2 self-start rounded-full px-4 py-1.5 text-sm font-semibold sm:self-auto">
-            <ListTodo className="h-4 w-4 text-[var(--paper-link)]" />
-            已完成 {doneCount} / {tasks.length}
+    <ResearchSectionCard
+      title="任务分工"
+      note="课题任务与认领情况"
+      flush
+      actions={
+        tasks.length > 0 && (
+          <span className="research-chip rounded-md px-3 py-1 text-sm font-semibold tabular-nums">
+            {statusCounts.doing} 进行中 · {statusCounts.todo} 待办 · {statusCounts.done} 已完成
           </span>
-        )}
-      </div>
-
-      <form onSubmit={handleCreateTask} className="research-panel-soft mb-4 rounded-2xl p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(11rem,auto)_minmax(10rem,auto)_auto] lg:items-end">
-          <label className="grid gap-1.5 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--glass-text-muted)]">
-            任务标题
-            <input
-              value={newTitle}
-              onChange={(event) => setNewTitle(event.target.value)}
-              maxLength={MAX_TASK_TITLE_LENGTH}
-              placeholder="例如：整理第一轮偏振观察数据"
-              disabled={isCreating}
-              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--glass-text-muted)]">
-            负责人
-            <select
-              value={newAssigneeId}
-              onChange={(event) => setNewAssigneeId(event.target.value)}
-              disabled={isCreating}
-              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
-            >
-              <option value="">暂不指定</option>
-              {members.map((member) => (
-                <option key={member.user_id} value={member.user_id}>
-                  {formatUserIdentity(member, member.username || '成员')}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-semibold uppercase tracking-[0.08em] text-[var(--glass-text-muted)]">
-            截止日期（可选）
-            <input
-              type="date"
-              value={newDueDate}
-              onChange={(event) => setNewDueDate(event.target.value)}
-              disabled={isCreating}
-              className="research-input rounded-xl px-4 py-2.5 text-base normal-case tracking-normal"
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={isCreating}
-            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            添加任务
-          </button>
-        </div>
-      </form>
-
+        )
+      }
+    >
       {actionError && (
-        <div className="research-error mb-4 rounded-2xl px-4 py-3 text-base">
-          {actionError}
-        </div>
+        <div className="research-error mx-5 mt-4 rounded-md px-4 py-2.5 text-base">{actionError}</div>
       )}
 
       {isLoading && (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-2 p-5">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="research-panel-soft h-40 animate-pulse rounded-2xl" />
+            <div key={item} className="h-11 animate-pulse rounded-lg bg-[var(--research-head)]" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <div className="research-panel-soft rounded-2xl px-5 py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 text-[var(--color-destructive)]" />
-              <div>
-                <p className="text-base font-semibold text-[var(--paper-foreground)]">任务列表加载失败</p>
-                <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void loadTasks()}
-              className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium sm:self-auto"
-            >
-              <RefreshCw className="h-4 w-4 text-[var(--paper-link)]" />
-              重试
-            </button>
+        <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-base font-semibold text-[var(--paper-foreground)]">任务列表加载失败</p>
+            <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => void loadTasks()}
+            className="glass-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
+          >
+            重试
+          </button>
         </div>
       )}
 
       {!isLoading && !loadError && tasks.length === 0 && (
-        <div className="research-panel-soft rounded-2xl px-5 py-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--paper-link)]/10 text-[var(--paper-link)]">
-            <ListTodo className="h-5 w-5" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-[var(--paper-foreground)]">还没有任务</p>
-          <p className="mt-2 text-base text-[var(--glass-text-muted)]">在上方添加第一个任务，从最小的一步开始。</p>
+        <div className="px-5 py-8 text-center">
+          <p className="text-lg font-semibold text-[var(--paper-foreground)]">还没有任务</p>
+          <p className="mt-2 text-base text-[var(--glass-text-muted)]">
+            在下方添加第一个任务，从最小的一步开始。
+          </p>
         </div>
       )}
 
       {!isLoading && !loadError && tasks.length > 0 && (
-        <div className="grid items-start gap-3 lg:grid-cols-3">
-          {TASK_STATUS_GROUPS.map((group) => {
-            const groupTasks = tasks.filter((task) => task.status === group.status);
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[38rem] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[var(--research-line)] text-sm font-semibold text-[var(--glass-text-muted)]">
+                <th className="px-5 py-2.5 font-semibold">任务内容</th>
+                <th className="px-3 py-2.5 font-semibold">负责人</th>
+                <th className="px-3 py-2.5 font-semibold">截止日期</th>
+                <th className="px-3 py-2.5 font-semibold">状态</th>
+                <th className="px-5 py-2.5 text-right font-semibold">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task) => {
+                const overdue = isTaskOverdue(task, today);
+                const assigneeName = task.assignee_user_id
+                  ? formatUserIdentity(
+                      {
+                        username: task.assignee_username,
+                        nickname: task.assignee_nickname,
+                        real_name: task.assignee_real_name,
+                        show_real_name_publicly: task.assignee_show_real_name_publicly,
+                      },
+                      '成员'
+                    )
+                  : null;
 
-            return (
-              <div key={group.status} className="research-panel-soft rounded-2xl p-3">
-                <div className="mb-3 flex items-center justify-between gap-2 px-1">
-                  <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
-                    {group.status === 'done' ? (
-                      <Check className="h-4 w-4 text-[color-mix(in_srgb,var(--clay-teal)_72%,var(--paper-foreground))]" />
-                    ) : (
-                      <CircleDashed className="h-4 w-4 text-[var(--paper-link)]" />
-                    )}
-                    {group.label}
-                  </h3>
-                  <span className="research-chip rounded-full px-2.5 py-0.5 text-sm font-semibold">
-                    {groupTasks.length}
-                  </span>
-                </div>
-
-                {groupTasks.length === 0 ? (
-                  <p className="rounded-2xl px-3 py-4 text-center text-sm text-[var(--glass-text-muted)]">
-                    暂无任务
-                  </p>
-                ) : (
-                  <ul className="grid gap-2.5">
-                    {groupTasks.map((task) => {
-                      const overdue = isTaskOverdue(task, today);
-                      const assigneeName = task.assignee_user_id
-                        ? formatUserIdentity(
-                            {
-                              username: task.assignee_username,
-                              nickname: task.assignee_nickname,
-                              real_name: task.assignee_real_name,
-                              show_real_name_publicly: task.assignee_show_real_name_publicly,
-                            },
-                            '成员'
-                          )
-                        : null;
-
-                      return (
-                        <li
-                          key={task.id}
-                          className="rounded-2xl border border-[var(--glass-stroke)] bg-[var(--paper-surface)] p-3 shadow-sm"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p
-                              className={cn(
-                                'min-w-0 break-words text-base font-semibold leading-6',
-                                task.status === 'done'
-                                  ? 'text-[var(--glass-text-muted)]'
-                                  : 'text-[var(--paper-foreground)]'
-                              )}
-                            >
-                              {task.title}
-                            </p>
-                            {canDeleteTask(task) && (
-                              <button
-                                type="button"
-                                onClick={() => setDeleteTarget(task)}
-                                className="glass-button shrink-0 rounded-full p-1.5 text-[var(--color-destructive)]"
-                                aria-label={`删除任务 ${task.title}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-
-                          {(assigneeName || task.due_date) && (
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              {assigneeName && (
-                                <span className="research-chip inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-xs font-semibold text-[var(--paper-link)]">
-                                    {getUserIdentityInitial({ username: task.assignee_username }, '成')}
-                                  </span>
-                                  {assigneeName}
-                                </span>
-                              )}
-                              {task.due_date && (
-                                <span
-                                  className={cn(
-                                    'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium',
-                                    overdue
-                                      ? 'research-error font-semibold'
-                                      : 'research-chip'
-                                  )}
-                                >
-                                  <CalendarDays className="h-3.5 w-3.5" />
-                                  {formatDueDate(task.due_date)}
-                                  {overdue && ' · 已逾期'}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                            {renderMoveActions(task)}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
+                return (
+                  <tr
+                    key={task.id}
+                    className="border-b border-[var(--research-line)] last:border-b-0 hover:bg-[var(--research-head)]"
+                  >
+                    <td
+                      className={cn(
+                        'px-5 py-3 text-base font-medium leading-6',
+                        task.status === 'done'
+                          ? 'text-[var(--glass-text-muted)]'
+                          : 'text-[var(--paper-foreground)]'
+                      )}
+                    >
+                      {task.title}
+                    </td>
+                    <td className="px-3 py-3 text-base text-[var(--paper-foreground)]">
+                      {assigneeName ? (
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-xs font-semibold text-[var(--glass-text-muted)]">
+                            {getUserIdentityInitial({ username: task.assignee_username }, '成')}
+                          </span>
+                          {assigneeName}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--glass-text-muted)]">待认领</span>
+                      )}
+                    </td>
+                    <td
+                      className={cn(
+                        'whitespace-nowrap px-3 py-3 text-base tabular-nums',
+                        overdue
+                          ? 'font-semibold text-[var(--color-destructive)]'
+                          : 'text-[var(--glass-text-muted)]'
+                      )}
+                    >
+                      {task.due_date ? formatDueDate(task.due_date) : '—'}
+                      {overdue && ' · 逾期'}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={cn(
+                          'inline-flex whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold',
+                          task.status === 'doing' && 'research-chip research-chip-accent',
+                          task.status === 'done' && 'research-tint-mint border',
+                          task.status === 'todo' && 'research-chip'
+                        )}
+                      >
+                        {TASK_STATUS_LABELS[task.status]}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        {renderMoveActions(task)}
+                        {canDeleteTask(task) && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(task)}
+                            className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--glass-chip)]"
+                            aria-label={`删除任务 ${task.title}`}
+                          >
+                            删除
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <form
+        onSubmit={handleCreateTask}
+        className="flex flex-col gap-2.5 border-t border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4 lg:flex-row lg:items-center"
+      >
+        <input
+          value={newTitle}
+          onChange={(event) => setNewTitle(event.target.value)}
+          maxLength={MAX_TASK_TITLE_LENGTH}
+          placeholder="任务内容，如：整理第一轮偏振观察数据"
+          aria-label="任务标题"
+          disabled={isCreating}
+          className="research-input min-w-0 flex-1 rounded-md px-3.5 py-2.5 text-base"
+        />
+        <select
+          value={newAssigneeId}
+          onChange={(event) => setNewAssigneeId(event.target.value)}
+          aria-label="负责人"
+          disabled={isCreating}
+          className="research-input rounded-md px-3.5 py-2.5 text-base"
+        >
+          <option value="">暂不指定</option>
+          {members.map((member) => (
+            <option key={member.user_id} value={member.user_id}>
+              {formatUserIdentity(member, member.username || '成员')}
+            </option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={newDueDate}
+          onChange={(event) => setNewDueDate(event.target.value)}
+          aria-label="截止日期"
+          disabled={isCreating}
+          className="research-input rounded-md px-3.5 py-2.5 text-base"
+        />
+        <button
+          type="submit"
+          disabled={isCreating}
+          className="glass-button glass-button-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
+          添加任务
+        </button>
+      </form>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
@@ -490,6 +443,6 @@ export function ProjectTasksSection({
         isPending={isDeleting}
         theme={theme}
       />
-    </section>
+    </ResearchSectionCard>
   );
 }

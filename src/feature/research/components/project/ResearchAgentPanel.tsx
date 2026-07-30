@@ -1,5 +1,5 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import { AlertCircle, Bot, Loader2, Minus, Send, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/utils/classNames";
 import {
   researchApi,
@@ -114,21 +114,13 @@ export function ResearchAgentPanel({
           onClick={() => setIsOpen(true)}
           className={cn(
             "fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6",
-            "group inline-flex items-center gap-2.5",
-            "rounded-full px-5 py-3.5",
-            "bg-[#0a0a0a] text-sm font-semibold text-white",
-            "shadow-[0_8px_30px_rgba(10,10,10,0.25)]",
-            "transition-all duration-300 ease-out",
-            "hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(10,10,10,0.35)]",
-            "active:translate-y-0 active:shadow-[0_4px_16px_rgba(10,10,10,0.3)]",
-            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8a4ed]",
+            "inline-flex items-center gap-2 rounded-full px-5 py-3",
+            "border-[1.5px] border-[var(--research-edge)]",
+            "bg-[var(--paper-accent)] text-base font-semibold text-[var(--paper-bg)]",
+            "shadow-[var(--research-lift)]",
+            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--research-edge)]",
           )}
         >
-          <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#b8a4ed] to-[#a4d4c5]">
-            <Sparkles className="h-3.5 w-3.5 text-white" />
-            {/* Ping dot */}
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#22c55e] ring-2 ring-[#0a0a0a]" />
-          </span>
           AI 研究顾问
         </button>
       ) : (
@@ -137,11 +129,10 @@ export function ResearchAgentPanel({
           aria-label="AI 研究顾问"
           className={cn(
             "fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6",
-            "flex overflow-hidden rounded-2xl",
-            "border border-[var(--glass-stroke)]",
-            "bg-[var(--glass-panel-strong)] backdrop-blur-xl",
-            "text-[var(--paper-foreground)]",
-            "shadow-[0_24px_80px_-12px_rgba(10,10,10,0.22),0_0_0_1px_rgba(10,10,10,0.03)]",
+            "flex overflow-hidden rounded-xl",
+            "border-[1.5px] border-[var(--research-edge)]",
+            "bg-[var(--research-surface)] text-[var(--paper-foreground)]",
+            "shadow-[var(--research-lift)]",
             "animate-fade-in-up",
           )}
           style={{
@@ -152,39 +143,26 @@ export function ResearchAgentPanel({
         >
           <div className="flex min-h-0 w-full flex-col">
             {/* ── Header ── */}
-            <div className="relative overflow-hidden bg-[#0a0a0a] px-4 py-3.5 text-white">
-              {/* Subtle gradient accent line at top */}
-              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#b8a4ed] via-[#a4d4c5] to-[#ffb084]" />
-
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-[#b8a4ed] to-[#a4d4c5]">
-                      <Sparkles className="h-3 w-3 text-white" />
-                    </span>
-                    <h2 className="truncate text-[15px] font-semibold tracking-tight">AI 研究顾问</h2>
-                  </div>
-                  <p className="mt-1 pl-[34px] text-[11px] leading-4 text-white/50">当前标签页即时对话</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button
-                    type="button"
-                    aria-controls={bodyId}
-                    aria-expanded={isOpen}
-                    aria-label="收起 AI 研究顾问"
-                    onClick={() => setIsOpen(false)}
-                    className={cn(
-                      "inline-flex h-7 w-7 items-center justify-center rounded-lg",
-                      "bg-white/10 text-white/70",
-                      "transition-all duration-200",
-                      "hover:bg-white/20 hover:text-white",
-                      "active:scale-95",
-                    )}
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+            <div className="flex items-center gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <h2
+                  className="truncate text-base font-semibold text-[var(--paper-foreground)]"
+                  style={{ fontFamily: "var(--font-ui-display)" }}
+                >
+                  AI 研究顾问
+                </h2>
+                <p className="research-section-note mt-0.5">当前标签页即时对话</p>
               </div>
+              <button
+                type="button"
+                aria-controls={bodyId}
+                aria-expanded={isOpen}
+                aria-label="收起 AI 研究顾问"
+                onClick={() => setIsOpen(false)}
+                className="glass-button shrink-0 rounded-md px-2.5 py-1.5 text-sm font-semibold text-[var(--glass-text-muted)]"
+              >
+                收起
+              </button>
             </div>
 
             {/* ── Body ── */}
@@ -195,9 +173,9 @@ export function ResearchAgentPanel({
                   aria-label="载入顾问历史"
                   className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4"
                 >
-                  <div className="h-16 w-4/5 animate-pulse rounded-2xl bg-[var(--glass-chip)]" />
-                  <div className="ml-auto h-14 w-3/5 animate-pulse rounded-2xl bg-[var(--glass-panel-soft)]" />
-                  <div className="h-20 w-5/6 animate-pulse rounded-2xl bg-[var(--glass-chip)]" />
+                  <div className="h-16 w-4/5 animate-pulse rounded-lg bg-[var(--research-head)]" />
+                  <div className="ml-auto h-14 w-3/5 animate-pulse rounded-lg bg-[var(--research-head)]" />
+                  <div className="h-20 w-5/6 animate-pulse rounded-lg bg-[var(--research-head)]" />
                 </div>
               ) : (
                 <>
@@ -206,28 +184,19 @@ export function ResearchAgentPanel({
                     className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
                   >
                     {!isEnabled && (
-                      <div className="research-error flex items-start gap-2 rounded-xl p-3 text-sm leading-6">
-                        <AlertCircle className="mt-1 h-4 w-4 shrink-0" />
-                        <span>AI 顾问未配置，请在服务器环境变量中填写提供商地址、密钥和模型。</span>
+                      <div className="research-error rounded-md p-3 text-sm leading-6">
+                        AI 顾问未配置，请在服务器环境变量中填写提供商地址、密钥和模型。
                       </div>
                     )}
 
                     {error && (
-                      <div className="research-error flex items-start gap-2 rounded-xl p-3 text-sm leading-6">
-                        <AlertCircle className="mt-1 h-4 w-4 shrink-0" />
-                        <span>{error}</span>
-                      </div>
+                      <div className="research-error rounded-md p-3 text-sm leading-6">{error}</div>
                     )}
 
                     {messages.length === 0 && !isSending ? (
-                      <div className="flex flex-col items-center gap-3 py-8 text-center">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#b8a4ed]/20 to-[#a4d4c5]/20">
-                          <Bot className="h-5 w-5 text-[var(--glass-text-muted)]" />
-                        </span>
-                        <p className="text-sm text-[var(--glass-text-muted)]">
-                          还没有顾问消息。
-                        </p>
-                      </div>
+                      <p className="py-8 text-center text-sm text-[var(--glass-text-muted)]">
+                        还没有顾问消息。
+                      </p>
                     ) : (
                       <>
                         {messages.map((message) => {
@@ -236,17 +205,16 @@ export function ResearchAgentPanel({
                             <article
                               key={message.id}
                               className={cn(
-                                "max-w-[86%] rounded-2xl p-3 text-sm",
-                                "transition-all duration-200",
+                                "max-w-[86%] rounded-lg border p-3 text-sm",
                                 isAssistant
-                                  ? "mr-auto border border-[var(--glass-stroke)] bg-[var(--paper-surface)] text-[var(--paper-foreground)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-                                  : "ml-auto bg-[#0a0a0a] text-white shadow-[0_2px_8px_rgba(10,10,10,0.15)]"
+                                  ? "mr-auto border-[var(--research-line)] bg-[var(--research-head)] text-[var(--paper-foreground)]"
+                                  : "ml-auto border-[var(--research-edge)] bg-[var(--paper-accent)] text-[var(--paper-bg)]"
                               )}
                             >
                               <div
                                 className={cn(
-                                  "mb-1.5 flex items-center justify-between gap-3 text-[11px]",
-                                  isAssistant ? "text-[var(--glass-text-muted)]" : "text-white/50"
+                                  "mb-1.5 flex items-center justify-between gap-3 text-xs",
+                                  isAssistant ? "text-[var(--glass-text-muted)]" : "opacity-70"
                                 )}
                               >
                                 <span>{isAssistant ? "AI 顾问" : "你的即时提问"}</span>
@@ -264,10 +232,10 @@ export function ResearchAgentPanel({
                           );
                         })}
                         {isSending && (
-                          <article className="mr-auto max-w-[86%] rounded-2xl border border-[var(--glass-stroke)] bg-[var(--paper-surface)] p-3 text-sm text-[var(--paper-foreground)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                            <div className="mb-1.5 text-[11px] text-[var(--glass-text-muted)]">AI 顾问</div>
+                          <article className="mr-auto max-w-[86%] rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-3 text-sm">
+                            <div className="mb-1.5 text-xs text-[var(--glass-text-muted)]">AI 顾问</div>
                             <div className="inline-flex items-center gap-2 leading-6">
-                              <Loader2 className="h-4 w-4 animate-spin text-[#b8a4ed]" />
+                              <Loader2 className="h-4 w-4 animate-spin text-[var(--paper-accent)]" />
                               <span className="text-[var(--glass-text-muted)]">思考中...</span>
                             </div>
                           </article>
@@ -279,7 +247,7 @@ export function ResearchAgentPanel({
                   {/* ── Input Area ── */}
                   <form
                     onSubmit={handleSubmit}
-                    className="flex items-end gap-2 border-t border-[var(--glass-stroke)] px-3 py-3"
+                    className="flex items-end gap-2 border-t border-[var(--research-line)] bg-[var(--research-head)] px-3 py-3"
                   >
                     <label className="sr-only" htmlFor="research-agent-message">
                       AI 顾问消息
@@ -292,32 +260,22 @@ export function ResearchAgentPanel({
                       disabled={!isEnabled || isSending}
                       maxLength={MAX_AGENT_MESSAGE_LENGTH}
                       rows={2}
-                      className={cn(
-                        "min-h-11 flex-1 resize-none rounded-xl",
-                        "border border-[var(--glass-stroke-strong)] bg-[var(--paper-surface)]",
-                        "px-3 py-2 text-sm leading-6 text-[var(--paper-foreground)]",
-                        "outline-none transition-all duration-200",
-                        "placeholder:text-[var(--glass-text-muted)]",
-                        "focus:border-[#b8a4ed]/50 focus:shadow-[0_0_0_3px_rgba(184,164,237,0.12)]",
-                        "disabled:cursor-not-allowed disabled:opacity-50",
-                      )}
+                      className="research-input min-h-11 flex-1 resize-none rounded-md px-3 py-2 text-sm leading-6 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="输入研究问题、实验思路或需要总结的不确定性"
                     />
                     <button
                       type="submit"
-                      aria-label="发送"
                       disabled={!draft.trim() || !isEnabled || isSending}
                       className={cn(
-                        "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                        "bg-[#0a0a0a] text-white",
-                        "transition-all duration-200",
-                        "hover:bg-[#1f1f1f] hover:shadow-[0_4px_12px_rgba(10,10,10,0.2)]",
-                        "active:scale-95",
-                        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b8a4ed]",
-                        "disabled:cursor-not-allowed disabled:bg-[var(--glass-chip)] disabled:text-[var(--glass-text-muted)] disabled:shadow-none",
+                        "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md px-4",
+                        "border-[1.5px] border-[var(--research-edge)]",
+                        "bg-[var(--paper-accent)] text-sm font-semibold text-[var(--paper-bg)]",
+                        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--research-edge)]",
+                        "disabled:cursor-not-allowed disabled:border-[var(--research-line)] disabled:bg-[var(--glass-chip)] disabled:text-[var(--glass-text-muted)]",
                       )}
                     >
-                      {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      {isSending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      发送
                     </button>
                   </form>
                 </>

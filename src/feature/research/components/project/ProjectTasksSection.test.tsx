@@ -84,10 +84,10 @@ describe('ProjectTasksSection', () => {
     expect(await screen.findByText('整理第一轮观察数据')).toBeTruthy();
     expect(screen.getByText('搭建偏振演示装置')).toBeTruthy();
     expect(screen.getByText('撰写阶段小结')).toBeTruthy();
-    expect(screen.getByText('已完成 1 / 3')).toBeTruthy();
+    expect(screen.getByText('1 进行中 · 1 待办 · 1 已完成')).toBeTruthy();
     expect(screen.getByRole('button', { name: '开始' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '完成' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '重新打开' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '重开' })).toBeTruthy();
   });
 
   it('creates a task with assignee and due date', async () => {
@@ -104,7 +104,7 @@ describe('ProjectTasksSection', () => {
       target: { value: '整理第一轮观察数据' },
     });
     fireEvent.change(screen.getByLabelText('负责人'), { target: { value: 'member-a' } });
-    fireEvent.change(screen.getByLabelText('截止日期（可选）'), {
+    fireEvent.change(screen.getByLabelText('截止日期'), {
       target: { value: '2026-08-01' },
     });
     fireEvent.click(screen.getByRole('button', { name: '添加任务' }));
@@ -133,7 +133,7 @@ describe('ProjectTasksSection', () => {
     await waitFor(() => {
       expect(mockUpdateProjectTask).toHaveBeenCalledWith('task-1', { status: 'done' });
     });
-    expect(await screen.findByRole('button', { name: '重新打开' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '重开' })).toBeTruthy();
   });
 
   it('marks overdue tasks', async () => {
@@ -143,7 +143,7 @@ describe('ProjectTasksSection', () => {
       <ProjectTasksSection projectId="project-1" members={members} currentUserId="owner-1" canManage />
     );
 
-    expect(await screen.findByText(/已逾期/)).toBeTruthy();
+    expect(await screen.findByText(/逾期/)).toBeTruthy();
   });
 
   it('only offers deletion to the creator, owner, or admin and confirms first', async () => {

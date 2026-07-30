@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchSectionCard } from '@/feature/research/components/shared/ResearchSectionCard';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import {
@@ -194,27 +195,19 @@ export function ProjectPeerReviewSection({
   const quorumMet = receivedCount >= PROJECT_REVIEW_QUORUM;
 
   return (
-    <section className="research-panel mb-8 rounded-3xl p-5 sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2
-            className="text-2xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            同伴评审
-          </h2>
-          <p className="research-section-note mt-1">其他同学对课题的评审反馈</p>
-        </div>
-
-        {isReviewPending && (
-          <div className="research-panel-soft flex min-w-[12rem] flex-col gap-2 self-start rounded-2xl px-4 py-3 sm:self-auto">
+    <ResearchSectionCard
+      title="同伴评审"
+      note="其他同学对课题的评审反馈"
+      actions={
+        isReviewPending && (
+          <div className="research-panel-soft flex min-w-[11rem] flex-col gap-2 rounded-md px-3.5 py-2.5">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
                 评审进度
               </span>
               <span
                 className={cn(
-                  'text-base font-bold',
+                  'text-base font-bold tabular-nums',
                   quorumMet ? 'text-[color-mix(in_srgb,var(--clay-teal)_72%,var(--paper-foreground))]' : 'text-[var(--paper-foreground)]'
                 )}
               >
@@ -238,8 +231,9 @@ export function ProjectPeerReviewSection({
               </p>
             )}
           </div>
-        )}
-      </div>
+        )
+      }
+    >
 
       {reviewCriteria?.trim() && (
         <details className="group research-panel-soft mb-4 rounded-2xl px-4 py-3">
@@ -450,6 +444,6 @@ export function ProjectPeerReviewSection({
         isPending={isDeleting}
         theme={theme}
       />
-    </section>
+    </ResearchSectionCard>
   );
 }

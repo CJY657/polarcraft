@@ -8,15 +8,7 @@
 
 import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Settings,
-  Edit3,
-  Loader2,
-  Globe,
-  AlertCircle,
-  ImagePlus,
-} from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
@@ -120,7 +112,8 @@ export function ResearchProjectPage() {
   const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [discussionJumpRequest, setDiscussionJumpRequest] = useState<ProjectDiscussionJumpRequest | null>(null);
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [hasPeerReviewContent, setHasPeerReviewContent] = useState(false);
   const handlePeerReviewContentChange = useCallback((hasContent: boolean) => {
     setHasPeerReviewContent(hasContent);
@@ -165,44 +158,9 @@ export function ResearchProjectPage() {
 
   useEffect(() => {
     setDiscussionJumpRequest(null);
+    setActiveTab("overview");
+    setIsDescriptionExpanded(false);
   }, [projectId]);
-
-  // Highlight the section nav pill matching the section currently in view
-  useEffect(() => {
-    if (isLoading || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const sectionIds = [
-      "project-challenge",
-      "project-research-info",
-      "project-evidence",
-      "project-peer-review",
-      "project-tasks",
-      "project-members",
-      "project-discussion",
-    ];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) {
-          setActiveSectionId(visible[0].target.id);
-        }
-      },
-      { rootMargin: "-25% 0px -65% 0px" }
-    );
-
-    for (const id of sectionIds) {
-      const element = document.getElementById(id);
-      if (element) {
-        observer.observe(element);
-      }
-    }
-
-    return () => observer.disconnect();
-  }, [isLoading, projectId]);
 
   useEffect(() => {
     const commentHashPrefix = "#discussion-comment-";
@@ -219,6 +177,7 @@ export function ResearchProjectPage() {
       return;
     }
 
+    setActiveTab("discussion");
     setDiscussionJumpRequest((current) => ({
       section: "comments",
       commentId,
@@ -277,6 +236,7 @@ export function ResearchProjectPage() {
       return;
     }
 
+    setActiveTab("review");
     document.getElementById("project-peer-review")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
@@ -343,30 +303,23 @@ export function ResearchProjectPage() {
     return (
       <div className="research-page min-h-screen">
         <main className="research-shell py-6 md:py-8" aria-busy="true">
-          <section className="research-hero rounded-3xl p-5 sm:p-7 lg:p-8">
-            <div className="relative grid animate-pulse gap-8 motion-reduce:animate-none lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
-              <div>
-                <div className="h-7 w-52 rounded-full bg-[var(--glass-chip)]" />
-                <div className="mt-5 h-11 w-4/5 rounded-xl bg-[var(--glass-chip)]" />
-                <div className="mt-3 h-11 w-3/5 rounded-xl bg-[var(--glass-chip)]" />
-                <div className="mt-6 h-5 w-full rounded bg-[var(--glass-chip)]" />
-                <div className="mt-3 h-5 w-4/5 rounded bg-[var(--glass-chip)]" />
-                <div className="mt-7 flex gap-3">
-                  <div className="h-11 w-32 rounded-full bg-[var(--glass-chip)]" />
-                  <div className="h-11 w-28 rounded-full bg-[var(--glass-chip)]" />
-                </div>
+          <div className="grid animate-pulse gap-7 motion-reduce:animate-none lg:grid-cols-[minmax(0,1fr)_21rem]">
+            <div>
+              <div className="h-6 w-52 rounded-full bg-[var(--research-head)]" />
+              <div className="mt-5 h-9 w-4/5 rounded-lg bg-[var(--research-head)]" />
+              <div className="mt-3 h-9 w-3/5 rounded-lg bg-[var(--research-head)]" />
+              <div className="mt-6 h-5 w-full rounded bg-[var(--research-head)]" />
+              <div className="mt-3 h-5 w-4/5 rounded bg-[var(--research-head)]" />
+              <div className="mt-6 h-16 rounded-[0.625rem] bg-[var(--research-head)]" />
+              <div className="mt-6 flex gap-3">
+                <div className="h-11 w-32 rounded-md bg-[var(--research-head)]" />
+                <div className="h-11 w-28 rounded-md bg-[var(--research-head)]" />
               </div>
-              <div className="aspect-[16/9] rounded-2xl bg-[var(--glass-chip)]" />
             </div>
+            <div className="aspect-[16/9] rounded-xl bg-[var(--research-head)]" />
+          </div>
 
-            <div className="relative mt-6 grid animate-pulse gap-3 motion-reduce:animate-none sm:grid-cols-3">
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="research-metric h-20 rounded-2xl" />
-              ))}
-            </div>
-          </section>
-
-          <div className="mt-5 flex items-center justify-center gap-3 text-[var(--glass-text-muted)]" role="status">
+          <div className="mt-7 flex items-center justify-center gap-3 text-[var(--glass-text-muted)]" role="status">
             <Loader2 className="h-5 w-5 animate-spin text-[var(--paper-accent)] motion-reduce:animate-none" />
             <span className="text-base font-medium">正在加载课题详情...</span>
           </div>
@@ -379,11 +332,11 @@ export function ResearchProjectPage() {
   if (error && !isExampleProject) {
     return (
       <div className="research-page flex min-h-screen items-center justify-center px-6">
-        <div className="research-panel max-w-md rounded-3xl px-8 py-8 text-center">
-          <p className="research-error rounded-2xl px-4 py-3 text-lg">{error}</p>
+        <div className="research-card max-w-md px-8 py-8 text-center">
+          <p className="research-error rounded-lg px-4 py-3 text-lg">{error}</p>
           <Link
             to="/lab/projects"
-            className="glass-button glass-button-primary mt-5 inline-flex rounded-full px-5 py-2.5 text-base font-semibold text-white"
+            className="glass-button glass-button-primary mt-5 inline-flex rounded-md px-5 py-2.5 text-base font-semibold text-white"
           >
             返回课题列表
           </Link>
@@ -464,17 +417,19 @@ export function ResearchProjectPage() {
   };
   const showResearchInfo = hasResearchOutline(researchOutline);
   const showMembersRail = !isExampleProject && displayMembers.length > 0;
-  const projectSectionLinks = [
-    { href: "#project-challenge", label: "挑战概览" },
-    ...(showResearchInfo ? [{ href: "#project-research-info", label: "研究设计" }] : []),
-    ...(canShowDiscussionSection ? [{ href: "#project-discussion", label: "参与讨论" }] : []),
-    ...(canShowEvidenceSection ? [{ href: "#project-evidence", label: "课题证据" }] : []),
-    ...(canShowPeerReviewSection && hasPeerReviewContent
-      ? [{ href: "#project-peer-review", label: "同伴评审" }]
-      : []),
-    ...(canShowTasksSection ? [{ href: "#project-tasks", label: "任务分工" }] : []),
-    ...(showMembersRail ? [{ href: "#project-members", label: "团队成员" }] : []),
+  const projectTabs = [
+    { id: "overview", label: "挑战概览" },
+    ...(showResearchInfo ? [{ id: "design", label: "研究设计" }] : []),
+    ...(canShowEvidenceSection ? [{ id: "evidence", label: "课题证据" }] : []),
+    ...(canShowPeerReviewSection && hasPeerReviewContent ? [{ id: "review", label: "同伴评审" }] : []),
+    ...(canShowTasksSection ? [{ id: "tasks", label: "任务分工" }] : []),
+    ...(canShowDiscussionSection ? [{ id: "discussion", label: "参与讨论" }] : []),
   ];
+  // A tab can disappear when rights or content change; keep the selection valid.
+  const currentTab = projectTabs.some((tab) => tab.id === activeTab) ? activeTab : "overview";
+  const descriptionText = displayProject.description_zh || "这个课题还没有写摘要。";
+  // No measuring: past this length the four-line clamp reliably kicks in.
+  const isDescriptionClampable = descriptionText.length > 150;
 
   const handleApplyAction = () => {
     if (hasPendingApplication) {
@@ -520,95 +475,137 @@ export function ResearchProjectPage() {
       <main className="research-shell py-6 md:py-8">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div className="research-panel-soft mb-6 flex flex-col gap-4 rounded-3xl p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="research-chip flex h-10 w-10 items-center justify-center rounded-xl">
-                <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
-              </div>
-              <p className="text-base font-semibold text-[var(--paper-foreground)]">
-                {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
-              </p>
-            </div>
+          <div className="research-tint-ochre mb-7 flex flex-col gap-4 rounded-[0.625rem] border-[1.5px] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-base font-semibold text-[var(--paper-foreground)]">
+              {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
+            </p>
             <button
               onClick={handleApplyAction}
               disabled={applyButtonDisabled}
-              className="glass-button glass-button-primary w-full self-start rounded-full px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-auto"
+              className="glass-button glass-button-primary w-full self-start rounded-md px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-auto"
             >
               {applyBannerButtonLabel}
             </button>
           </div>
         )}
 
-        {/* Project Header */}
-        <section className="research-hero mb-6 rounded-3xl p-5 sm:p-7 lg:p-8">
-          <div className="relative z-[1] grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:items-center">
-            <div className="min-w-0 py-1">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="research-kicker">课题详情</span>
-                <ProjectLifecycleBadges
-                  status={displayProject.status}
-                  isDormant={displayProject.is_dormant}
-                />
-                {displayIsRecruiting && (
-                  <span className="research-chip research-chip-accent inline-flex rounded-full px-3 py-1 text-sm font-semibold">
-                    招募中
-                  </span>
-                )}
-                {displayProject.is_public && (
-                  <span className="research-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium">
-                    <Globe className="h-3.5 w-3.5" />
-                    公开课题
-                  </span>
-                )}
-              </div>
-
-              <h1
-                className="text-balance text-[clamp(2rem,4vw,3.3rem)] font-semibold leading-[1.06] text-[var(--paper-foreground)]"
-                style={{ fontFamily: "var(--font-ui-display)" }}
-              >
-                {displayProject.name_zh}
-              </h1>
-
-              {displayProject.name_en && (
-                <p className="mt-2 text-lg text-[var(--glass-text-muted)]">{displayProject.name_en}</p>
+        {/* Project Header — compact hero, cover demoted to the side column */}
+        <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="min-w-0">
+            <div className="mb-3.5 flex flex-wrap items-center gap-2">
+              <span className="research-kicker mr-1">课题详情</span>
+              <ProjectLifecycleBadges
+                status={displayProject.status}
+                isDormant={displayProject.is_dormant}
+              />
+              {displayIsRecruiting && (
+                <span className="research-chip research-chip-accent inline-flex rounded-md px-2.5 py-1 text-xs font-semibold">
+                  招募中
+                </span>
               )}
+              {displayProject.is_public && (
+                <span className="research-chip inline-flex rounded-md px-2.5 py-1 text-xs font-medium">
+                  公开课题
+                </span>
+              )}
+            </div>
 
-              <p className="mt-3 max-w-2xl text-lg leading-7 text-[var(--glass-text-muted)]">
-                {displayProject.description_zh || "这个课题还没有写摘要。"}
+            <h1
+              className="text-balance text-[clamp(1.6rem,2.6vw,2.15rem)] font-bold leading-[1.28] text-[var(--paper-foreground)]"
+              style={{ fontFamily: "var(--font-ui-display)" }}
+            >
+              {displayProject.name_zh}
+            </h1>
+
+            {displayProject.name_en && (
+              <p className="mt-2.5 text-base italic leading-6 text-[var(--glass-text-muted)]">
+                {displayProject.name_en}
               </p>
+            )}
 
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-                {isReadOnlyMode ? (
-                  <button
-                    onClick={handleApplyAction}
-                    disabled={applyButtonDisabled}
-                    className="glass-button glass-button-primary inline-flex w-full items-center justify-center rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                  >
-                    {applyButtonLabel}
-                  </button>
-                ) : (
-                  <>
+            <p
+              className={`mt-4 max-w-[62ch] text-base leading-7 text-[var(--paper-foreground)] ${
+                isDescriptionClampable && !isDescriptionExpanded ? "line-clamp-4" : ""
+              }`}
+            >
+              {descriptionText}
+            </p>
+            {isDescriptionClampable && (
+              <button
+                type="button"
+                onClick={() => setIsDescriptionExpanded((expanded) => !expanded)}
+                aria-expanded={isDescriptionExpanded}
+                className="mt-2 inline-flex items-center gap-1.5 border-b-[1.5px] border-[var(--paper-accent)] pb-0.5 text-sm font-semibold text-[var(--paper-foreground)]"
+              >
+                {isDescriptionExpanded ? "收起简介" : "展开完整简介"}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${isDescriptionExpanded ? "rotate-180" : ""}`}
+                />
+              </button>
+            )}
+
+            {/* 内联元信息（替代原三张大指标卡） */}
+            <dl className="research-meta mt-5.5">
+              <div className="flex items-baseline gap-2">
+                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">成员</dt>
+                <dd className="text-sm font-semibold text-[var(--paper-foreground)]">
+                  <span className="text-base font-extrabold tabular-nums text-[var(--clay-pink)]">
+                    {displayProject.member_count}
+                  </span>{" "}
+                  人
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">创建时间</dt>
+                <dd className="text-sm font-semibold tabular-nums text-[var(--paper-foreground)]">
+                  {formatDate(displayProject.created_at)}
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">协作方式</dt>
+                <dd className="text-sm font-semibold text-[var(--paper-foreground)]">
+                  {isPublicGuestMode
+                    ? "公开浏览"
+                    : isReadOnlyMode
+                      ? "访客浏览"
+                      : displayIsRecruiting
+                        ? `开放招募${displayRequireApproval ? " · 需审批" : ""}`
+                        : "组内协作"}
+                </dd>
+              </div>
+            </dl>
+
+            {/* 操作区：主 CTA 与管理操作分组 */}
+            <div className="mt-5.5 flex flex-wrap items-center gap-2.5">
+              {isReadOnlyMode ? (
+                <button
+                  onClick={handleApplyAction}
+                  disabled={applyButtonDisabled}
+                  className="glass-button glass-button-primary inline-flex w-full items-center justify-center rounded-md px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                >
+                  {applyButtonLabel}
+                </button>
+              ) : (
+                (canManageProject || canDeleteProject) && (
+                  <div className="flex flex-wrap items-center gap-2">
                     {canManageProject && (
                       <>
                         <button
                           onClick={() => setIsCoverDialogOpen(true)}
-                          className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium sm:w-auto"
+                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
-                          <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
                           管理封面
                         </button>
                         <button
                           onClick={() => openEditDialog()}
-                          className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium sm:w-auto"
+                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
-                          <Edit3 className="h-4 w-4 text-[var(--paper-link)]" />
                           编辑信息
                         </button>
                         <button
                           onClick={() => setIsSettingsDialogOpen(true)}
-                          className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-medium sm:w-auto"
+                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
-                          <Settings className="h-4 w-4 text-[var(--paper-link)]" />
                           协作设置
                         </button>
                       </>
@@ -620,81 +617,62 @@ export function ResearchProjectPage() {
                         isDeleting={isDeletingProject}
                       />
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              <div className="rounded-2xl border border-[var(--glass-stroke)] bg-[var(--glass-panel-soft)] p-2 shadow-[var(--glass-shadow)]">
-                <ProjectCoverImage
-                  src={displayProject.thumbnail || displayProject.cover_image}
-                  alt={displayProject.name_zh}
-                  className="aspect-[16/9] w-full rounded-xl"
-                />
-              </div>
+                  </div>
+                )
+              )}
             </div>
           </div>
 
-          <dl className="relative z-[1] mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
-              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">成员</dt>
-              <dd className="text-2xl font-bold tabular-nums text-[var(--paper-foreground)]">{displayProject.member_count}</dd>
-            </div>
-            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
-              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">创建时间</dt>
-              <dd className="text-base font-semibold tabular-nums text-[var(--paper-foreground)]">{formatDate(displayProject.created_at)}</dd>
-            </div>
-            <div className="research-metric flex min-h-20 flex-col justify-center gap-1 rounded-2xl px-5 py-3">
-              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">协作方式</dt>
-              <dd className="text-base font-semibold text-[var(--paper-foreground)]">
-                {isPublicGuestMode ? "公开浏览" : isReadOnlyMode ? "访客浏览" : displayIsRecruiting ? "开放招募" : "组内协作"}
-              </dd>
-            </div>
-          </dl>
-
-          <div
-            id="project-lifecycle"
-            className="relative z-[1] mt-4 scroll-mt-36 border-t border-[var(--glass-stroke)] pt-3"
-          >
-            <ProjectLifecycleJourney status={displayProject.status} variant="compact" />
-          </div>
+          <figure className="m-0 lg:max-w-none">
+            <ProjectCoverImage
+              src={displayProject.thumbnail || displayProject.cover_image}
+              alt={displayProject.name_zh}
+              className="aspect-[16/9] w-full rounded-xl border-[1.5px] border-[var(--research-edge)] shadow-[var(--research-lift)]"
+            />
+            <figcaption className="mt-2.5 text-center text-xs italic text-[var(--glass-text-muted)]">
+              课题封面
+            </figcaption>
+          </figure>
         </section>
 
-        <nav
-          aria-label="课题内容导航"
-          className="research-panel-soft sticky top-20 z-30 mb-6 overflow-x-auto rounded-3xl p-2 backdrop-blur-xl"
+        {/* 生命周期：独立一行的细长步骤条 */}
+        <section
+          id="project-lifecycle"
+          aria-label="课题生命周期"
+          className="research-card mt-7 scroll-mt-36 overflow-x-auto px-5 py-4"
         >
-          <div className="flex min-w-max items-center gap-1.5">
-            {projectSectionLinks.map((section) => {
-              const isActive = section.href === `#${activeSectionId}`;
-              return (
-                <a
-                  key={section.href}
-                  href={section.href}
-                  aria-current={isActive ? "true" : undefined}
-                  className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:bg-[var(--glass-chip)] hover:text-[var(--paper-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--paper-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)] ${
-                    isActive
-                      ? "bg-[var(--glass-chip)] text-[var(--paper-foreground)]"
-                      : "text-[var(--glass-text-muted)]"
-                  }`}
-                >
-                  {section.label}
-                </a>
-              );
-            })}
-          </div>
-        </nav>
+          <ProjectLifecycleJourney status={displayProject.status} variant="compact" />
+        </section>
 
-        <div
-          className={
-            showMembersRail
-              ? "lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-6"
-              : undefined
-          }
-        >
+        <div className="mt-7 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-7">
           <div className="min-w-0">
-            <div id="project-challenge" className="scroll-mt-36">
+            <div
+              role="tablist"
+              aria-label="课题内容导航"
+              className="research-tabbar sticky top-20 z-30 mb-5"
+            >
+              {projectTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  id={`project-tab-${tab.id}`}
+                  aria-selected={currentTab === tab.id}
+                  aria-controls={`project-panel-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="research-tab"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div
+              role="tabpanel"
+              id="project-panel-overview"
+              aria-labelledby="project-tab-overview"
+              hidden={currentTab !== "overview"}
+            >
               <ProjectChallengeDetail
                 project={{
                   ...displayProject,
@@ -705,7 +683,12 @@ export function ResearchProjectPage() {
             </div>
 
             {showResearchInfo && (
-              <div id="project-research-info" className="scroll-mt-36">
+              <div
+                role="tabpanel"
+                id="project-panel-design"
+                aria-labelledby="project-tab-design"
+                hidden={currentTab !== "design"}
+              >
                 <ResearchInfoSection
                   outline={researchOutline}
                   canManageQuestions={canManageProject}
@@ -714,21 +697,13 @@ export function ResearchProjectPage() {
               </div>
             )}
 
-            {canShowDiscussionSection && projectId && (
-              <div id="project-discussion" className="scroll-mt-36">
-                <ProjectDiscussionSection
-                  projectId={projectId}
-                  currentUserId={user?.id}
-                  canModerate={isOwner || isAdmin}
-                  canParticipate={canParticipateInDiscussion}
-                  outline={researchOutline}
-                  jumpRequest={discussionJumpRequest}
-                />
-              </div>
-            )}
-
             {canShowEvidenceSection && projectId && (
-              <div id="project-evidence" className="scroll-mt-36">
+              <div
+                role="tabpanel"
+                id="project-panel-evidence"
+                aria-labelledby="project-tab-evidence"
+                hidden={currentTab !== "evidence"}
+              >
                 <ProjectEvidenceSection
                   projectId={projectId}
                   canManage={canManageEvidence}
@@ -738,23 +713,36 @@ export function ResearchProjectPage() {
               </div>
             )}
 
+            {/* Always mounted: the section itself reports whether its tab is worth showing. */}
             {canShowPeerReviewSection && projectId && (
-              <div id="project-peer-review" className="scroll-mt-36">
-                <ProjectPeerReviewSection
-                  projectId={projectId}
-                  projectStatus={displayProject.status}
-                  reviewCriteria={displayProject.challenge_review_criteria_zh}
-                  currentUserId={user?.id}
-                  isActiveMember={isMember}
-                  usePublicEndpoint={Boolean(publicProject && !project)}
-                  theme={theme === "dark" ? "dark" : "light"}
-                  onContentChange={handlePeerReviewContentChange}
-                />
+              <div
+                role="tabpanel"
+                id="project-panel-review"
+                aria-labelledby="project-tab-review"
+                hidden={currentTab !== "review"}
+              >
+                <div id="project-peer-review" className="scroll-mt-36">
+                  <ProjectPeerReviewSection
+                    projectId={projectId}
+                    projectStatus={displayProject.status}
+                    reviewCriteria={displayProject.challenge_review_criteria_zh}
+                    currentUserId={user?.id}
+                    isActiveMember={isMember}
+                    usePublicEndpoint={Boolean(publicProject && !project)}
+                    theme={theme === "dark" ? "dark" : "light"}
+                    onContentChange={handlePeerReviewContentChange}
+                  />
+                </div>
               </div>
             )}
 
             {canShowTasksSection && projectId && project && (
-              <div id="project-tasks" className="scroll-mt-36">
+              <div
+                role="tabpanel"
+                id="project-panel-tasks"
+                aria-labelledby="project-tab-tasks"
+                hidden={currentTab !== "tasks"}
+              >
                 <ProjectTasksSection
                   projectId={projectId}
                   members={project.members}
@@ -765,20 +753,32 @@ export function ResearchProjectPage() {
               </div>
             )}
 
+            {canShowDiscussionSection && projectId && (
+              <div
+                role="tabpanel"
+                id="project-panel-discussion"
+                aria-labelledby="project-tab-discussion"
+                hidden={currentTab !== "discussion"}
+              >
+                <ProjectDiscussionSection
+                  projectId={projectId}
+                  currentUserId={user?.id}
+                  canModerate={isOwner || isAdmin}
+                  canParticipate={canParticipateInDiscussion}
+                  outline={researchOutline}
+                  jumpRequest={discussionJumpRequest}
+                />
+              </div>
+            )}
           </div>
 
           {showMembersRail && (
-            <aside
-              id="project-members"
-              className="scroll-mt-36 lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto"
-            >
+            <aside id="project-members" className="mt-6 flex flex-col gap-5 scroll-mt-36 lg:mt-0">
               <ProjectMembersSection
-                variant="rail"
                 members={displayMembers}
                 formerMembers={formerMembers}
                 hasProject={!!project}
                 currentUserId={user?.id}
-                theme={theme === "dark" ? "dark" : "light"}
                 isReadOnlyMode={isReadOnlyMode}
                 isOwner={isOwner}
                 isAdmin={isAdmin}

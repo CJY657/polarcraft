@@ -7,11 +7,12 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import { researchApi, type ProjectActivityItem } from '@/lib/research.service';
 import { getProjectStatusMeta } from '../../projectLifecycle';
+import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 const DEFAULT_ACTIVITY_LIMIT = 15;
 
@@ -107,54 +108,51 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
   }, [loadActivities]);
 
   return (
-    <section className="research-panel mb-6 rounded-3xl p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2
-          className="flex items-center gap-2 text-lg font-semibold text-[var(--paper-foreground)]"
-          style={{ fontFamily: 'var(--font-ui-display)' }}
-        >
-          <Activity className="h-5 w-5 text-[var(--paper-link)]" />
-          最近动态
-        </h2>
+    <ResearchSectionCard
+      title="最近动态"
+      actions={
         <button
           type="button"
           onClick={() => void loadActivities()}
           disabled={isLoading}
-          className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="glass-button rounded-md p-1.5 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="刷新最近动态"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
-      </div>
-
+      }
+    >
       {isLoading && (
-        <div className="grid gap-2.5">
+        <div className="grid gap-2">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="research-panel-soft h-14 animate-pulse rounded-2xl" />
+            <div key={item} className="h-12 animate-pulse rounded-lg bg-[var(--research-head)]" />
           ))}
         </div>
       )}
 
       {!isLoading && loadError && (
-        <p className="research-panel-soft rounded-2xl px-4 py-3 text-base text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-md px-3 py-2.5 text-base text-[var(--glass-text-muted)]">
           {loadError}
         </p>
       )}
 
       {!isLoading && !loadError && activities.length === 0 && (
-        <p className="research-panel-soft rounded-2xl px-4 py-4 text-base leading-6 text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-md px-3 py-3 text-base leading-6 text-[var(--glass-text-muted)]">
           还没有动态记录。
         </p>
       )}
 
       {!isLoading && !loadError && activities.length > 0 && (
-        <ol className="grid gap-2.5">
+        <ol className="grid gap-0.5">
           {activities.map((item) => {
             const actorName = formatUserIdentity(item, '成员');
 
             return (
-              <li key={item.id} className="research-panel-soft flex items-start gap-2.5 rounded-2xl px-3 py-2.5">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--paper-accent)]/15 text-sm font-semibold text-[var(--paper-link)]">
+              <li
+                key={item.id}
+                className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[var(--research-head)]"
+              >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
                   {getUserIdentityInitial(item, '员')}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -171,6 +169,6 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
           })}
         </ol>
       )}
-    </section>
+    </ResearchSectionCard>
   );
 }
