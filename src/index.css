@@ -361,13 +361,13 @@ html {
     color: var(--paper-foreground);
   }
 
-  /* Card shell: full-bleed head strip over a padded body */
+  /* Card shell: soft hairline edge over a padded body */
   .research-card {
     overflow: hidden;
-    border: 1.5px solid var(--research-edge);
+    border: 1px solid var(--research-line);
     border-radius: 0.75rem;
     background: var(--research-surface);
-    box-shadow: var(--research-lift);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--research-surface) 35%, white);
   }
 
   .research-card-head {
