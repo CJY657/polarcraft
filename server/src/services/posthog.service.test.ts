@@ -50,7 +50,6 @@ describe('PostHogService', () => {
       status: 'disabled',
       person: null,
       summary: null,
-      recent_events: [],
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -63,13 +62,12 @@ describe('PostHogService', () => {
       status: 'not_found',
       person: null,
       summary: null,
-      recent_events: [],
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('maps person, 30-day summary, and recent meaningful events from PostHog responses', async () => {
+  it('maps person and the current 10-calendar-day summary from PostHog responses', async () => {
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
@@ -85,15 +83,7 @@ describe('PostHogService', () => {
       )
       .mockResolvedValueOnce(
         jsonResponse({
-          results: [[42, 11]],
-        })
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          results: [
-            ['project_opened', '2026-05-14T12:00:00.000Z', '/projects/1', 'https://example.com/projects/1'],
-            ['$pageview', '2026-05-14T11:00:00.000Z', '/courses', 'https://example.com/courses'],
-          ],
+          results: [['2026-05-14T12:00:00.000Z', 42, 11, 7]],
         })
       );
 
@@ -106,26 +96,15 @@ describe('PostHogService', () => {
         last_seen_at: '2026-05-14T12:00:00.000Z',
       },
       summary: {
-        window_days: 30,
-        event_count_30d: 42,
-        pageview_count_30d: 11,
+        window_days: 10,
+        last_activity: '2026-05-14T12:00:00.000Z',
+        meaningful_events: 42,
+        pageviews: 11,
+        learning_actions: 7,
       },
-      recent_events: [
-        {
-          event: 'project_opened',
-          timestamp: '2026-05-14T12:00:00.000Z',
-          route: '/projects/1',
-          url: 'https://example.com/projects/1',
-        },
-        {
-          event: '$pageview',
-          timestamp: '2026-05-14T11:00:00.000Z',
-          route: '/courses',
-          url: 'https://example.com/courses',
-        },
-      ],
     });
 
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://us.posthog.com/api/environments/env-123/persons/?distinct_id=user-1&limit=1',
@@ -143,16 +122,48 @@ describe('PostHogService', () => {
     expect(summaryBody.name).toBe('admin user analytics summary');
     expect(summaryBody.query.kind).toBe('HogQLQuery');
     expect(summaryBody.query.query).toContain("distinct_id = 'user-1'");
-    expect(summaryBody.query.query).toContain("event NOT IN ('$autocapture', '$pageleave')");
+    expect(summaryBody.query.query).toContain(
+      'timestamp >= toStartOfDay(now()) - INTERVAL 9 DAY'
+    );
+    expect(summaryBody.query.query).toContain(
+      'timestamp < toStartOfDay(now()) + INTERVAL 1 DAY'
+    );
+    expect(summaryBody.query.query).toContain('properties.$is_identified = true');
+    expect(summaryBody.query.query).toContain(
+      "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"
+    );
+    expect(summaryBody.query.query).toContain(
+      "countIf(event IN ('experiment_opened', 'project_application_submitted'))"
+    );
+    expect(summaryBody.query.query).not.toContain('person.properties.role');
+    expect(summaryBody.query.query).not.toContain('INTERVAL 10 DAY');
+  });
 
-    const recentEventsBody = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body)) as {
-      query: { query: string };
-      name: string;
-    };
-    expect(recentEventsBody.name).toBe('admin user analytics recent events');
-    expect(recentEventsBody.query.query).toContain('ORDER BY timestamp DESC');
-    expect(recentEventsBody.query.query).toContain('LIMIT 10');
-    expect(recentEventsBody.query.query).toContain("event NOT IN ('$autocapture', '$pageleave')");
+  it('returns a null last activity when no filtered events exist in the window', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ results: [{ id: 'person-1' }] }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [['1970-01-01T00:00:00.000Z', 0, 0, 0]],
+        })
+      );
+
+    await expect(PostHogService.getUserAnalytics('user-1')).resolves.toEqual({
+      status: 'ok',
+      person: {
+        id: 'person-1',
+        uuid: null,
+        created_at: null,
+        last_seen_at: null,
+      },
+      summary: {
+        window_days: 10,
+        last_activity: null,
+        meaningful_events: 0,
+        pageviews: 0,
+        learning_actions: 0,
+      },
+    });
   });
 
   it('raises a sanitized upstream error without exposing the personal API key', async () => {

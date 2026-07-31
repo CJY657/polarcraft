@@ -105,7 +105,6 @@ describe('AdminUsersPage', () => {
       status: 'not_found',
       person: null,
       summary: null,
-      recent_events: [],
     });
   });
 
@@ -183,7 +182,7 @@ describe('AdminUsersPage', () => {
     });
   });
 
-  it('loads the user detail with educations and research involvement', async () => {
+  it('keeps the profile disclosure collapsed, resets it on reopen, and preserves section order', async () => {
     getDetail.mockResolvedValue({
       user: {
         id: 'user-1',
@@ -234,6 +233,22 @@ describe('AdminUsersPage', () => {
         ],
       },
     });
+    getPostHogAnalytics.mockResolvedValue({
+      status: 'ok',
+      person: {
+        id: 'person-1',
+        uuid: 'person-uuid',
+        created_at: '2026-04-01T00:00:00.000Z',
+        last_seen_at: '2020-01-01T00:00:00.000Z',
+      },
+      summary: {
+        window_days: 10,
+        last_activity: '2026-07-30T12:30:00.000Z',
+        meaningful_events: 42,
+        pageviews: 11,
+        learning_actions: 7,
+      },
+    });
 
     render(
       <MemoryRouter>
@@ -246,16 +261,78 @@ describe('AdminUsersPage', () => {
     expect(getDetail).toHaveBeenCalledWith('user-1');
     expect(getPostHogAnalytics).toHaveBeenCalledWith('user-1');
 
+    const profileLabel = await screen.findByText('个人档案');
+    const profileSummary = profileLabel.closest('summary');
+    const profileDetails = profileLabel.closest('details');
+    expect(profileSummary?.getAttribute('aria-expanded')).toBe('false');
+    expect(profileSummary?.getAttribute('aria-controls')).toBe('admin-user-profile-content');
+    expect(profileDetails?.open).toBe(false);
+    expect(screen.getByText('教育经历 1 条')).toBeDefined();
+
+    const activityHeading = screen.getByRole('heading', { name: '近 10 天活动概览' });
+    const researchHeading = await screen.findByRole('heading', { name: '课题组参与' });
+    expect(
+      profileLabel.compareDocumentPosition(activityHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      activityHeading.compareDocumentPosition(researchHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    fireEvent.click(profileSummary!);
+    expect(profileSummary?.getAttribute('aria-expanded')).toBe('true');
+    expect(profileDetails?.open).toBe(true);
     expect(await screen.findByText('某某大学')).toBeDefined();
     expect(screen.getByText('物理学')).toBeDefined();
     expect(screen.getByText('本科')).toBeDefined();
+    expect(screen.getByText('2024年9月 - 至今')).toBeDefined();
     expect(screen.getByText('偏振光课题')).toBeDefined();
     expect(screen.getByText('负责人')).toBeDefined();
     expect(screen.getByText('另一个课题')).toBeDefined();
     expect(screen.getByText('待审核')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看 alice 的详情' }));
+
+    const reopenedProfileSummary = (await screen.findByText('个人档案')).closest('summary');
+    expect(reopenedProfileSummary?.getAttribute('aria-expanded')).toBe('false');
+    expect(reopenedProfileSummary?.closest('details')?.open).toBe(false);
   });
 
-  it('shows empty hints when a user has no educations or research involvement', async () => {
+  it('shows profile, activity, and research empty states without individual logs', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
+    fireEvent.click((await screen.findByText('个人档案')).closest('summary')!);
+
+    expect(await screen.findByText('该用户还没有填写教育经历')).toBeDefined();
+    expect(screen.getByText('近 10 天暂无活动数据')).toBeDefined();
+    expect(screen.getByText('该用户尚未加入或申请任何课题组')).toBeDefined();
+    expect(screen.queryByText('最近 10 条行为')).toBeNull();
+  });
+
+  it('renders four 10-day KPI cards for an admin and uses summary last activity', async () => {
+    getPostHogAnalytics.mockResolvedValue({
+      status: 'ok',
+      person: {
+        id: 'person-1',
+        uuid: 'person-uuid',
+        created_at: '2026-04-01T00:00:00.000Z',
+        last_seen_at: '2020-01-01T00:00:00.000Z',
+      },
+      summary: {
+        window_days: 10,
+        last_activity: '2026-07-30T12:30:00.000Z',
+        meaningful_events: 42,
+        pageviews: 11,
+        learning_actions: 7,
+      },
+    });
+
     render(
       <MemoryRouter>
         <AdminUsersPage />
@@ -264,171 +341,119 @@ describe('AdminUsersPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
 
-    expect(await screen.findByText('该用户还没有填写教育经历')).toBeDefined();
-    expect(screen.getByText('该用户尚未加入或申请任何课题组')).toBeDefined();
+    expect(await screen.findByText('最近活跃')).toBeDefined();
+    expect(screen.getByText('有效活动')).toBeDefined();
+    expect(screen.getByText('页面访问')).toBeDefined();
+    expect(screen.getByText('学习行为')).toBeDefined();
+    expect(screen.getByText('42')).toBeDefined();
+    expect(screen.getByText('11')).toBeDefined();
+    expect(screen.getByText('7')).toBeDefined();
+    expect(screen.getByText(/2026.*07.*30/)).toBeDefined();
+    expect(screen.queryByText(/2020.*01.*01/)).toBeNull();
+    expect(screen.queryByText('查看页面')).toBeNull();
+    expect(screen.queryByText('最近 10 条行为')).toBeNull();
+    expect(screen.queryByText('PostHog')).toBeNull();
   });
 
-  it('loads and renders analytics in the detail dialog, sorting recent events newest first', async () => {
-    let resolveAnalytics:
-      | ((value: {
-          status: 'ok';
-          person: {
-            id: string;
-            uuid: string;
-            created_at: string;
-            last_seen_at: string;
-          };
-          summary: {
-            window_days: 30;
-            event_count_30d: number;
-            pageview_count_30d: number;
-          };
-          recent_events: Array<{
-            event: string;
-            timestamp: string;
-            route: string | null;
-            url: string | null;
-          }>;
-        }) => void)
-      | undefined;
+  it('loads profile and analytics independently with KPI-shaped analytics skeletons', async () => {
+    let resolveDetail: ((value: Awaited<ReturnType<typeof getDetail>>) => void) | undefined;
 
+    getDetail.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDetail = resolve;
+        })
+    );
+    getPostHogAnalytics.mockResolvedValue({
+      status: 'ok',
+      person: null,
+      summary: {
+        window_days: 10,
+        last_activity: null,
+        meaningful_events: 5,
+        pageviews: 3,
+        learning_actions: 2,
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
+
+    expect(screen.getByText('教育经历加载中')).toBeDefined();
+    expect(await screen.findByText('有效活动')).toBeDefined();
+    expect(screen.getByText('5')).toBeDefined();
+
+    resolveDetail?.({
+      user: {
+        id: 'user-1',
+        username: 'alice',
+        nickname: null,
+        real_name: null,
+        email: 'alice@example.com',
+        role: 'admin',
+        avatar_url: null,
+        email_verified: true,
+        is_active: true,
+        created_at: '2026-05-01T00:00:00.000Z',
+        last_login_at: '2026-05-03T00:00:00.000Z',
+      },
+      educations: [],
+      research: {
+        memberships: [],
+        applications: [],
+      },
+    });
+
+    expect(await screen.findByText('教育经历 0 条')).toBeDefined();
+
+    let resolveAnalytics: ((value: unknown) => void) | undefined;
     getPostHogAnalytics.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveAnalytics = resolve;
         })
     );
-
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
-
-    expect(screen.getByText('正在加载行为数据...')).toBeDefined();
-    expect(getPostHogAnalytics).toHaveBeenCalledWith('user-1');
+    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
+    expect(screen.getByLabelText('正在加载近 10 天活动概览')).toBeDefined();
+    expect(screen.queryByText('正在加载行为数据...')).toBeNull();
 
     resolveAnalytics?.({
-      status: 'ok',
-      person: {
-        id: '123',
-        uuid: 'person-uuid',
-        created_at: '2026-04-01T00:00:00.000Z',
-        last_seen_at: '2026-05-14T12:00:00.000Z',
-      },
-      summary: {
-        window_days: 30,
-        event_count_30d: 42,
-        pageview_count_30d: 11,
-      },
-      recent_events: [
-        {
-          event: '$pageview',
-          timestamp: '2026-05-14T10:00:00.000Z',
-          route: '/earlier',
-          url: 'https://example.com/earlier',
-        },
-        {
-          event: 'profile_edit',
-          timestamp: '2026-05-14T12:00:00.000Z',
-          route: '/later',
-          url: 'https://example.com/later',
-        },
-      ],
+      status: 'not_found',
+      person: null,
+      summary: null,
     });
-
-    expect(await screen.findByText('最近活跃时间')).toBeDefined();
-    expect(screen.getByText('42')).toBeDefined();
-    expect(screen.getByText('11')).toBeDefined();
-
-    const laterEvent = screen.getByText('Profile Edit');
-    const earlierEvent = screen.getByText('查看页面');
-    expect(
-      laterEvent.compareDocumentPosition(earlierEvent) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    expect(await screen.findByText('近 10 天暂无活动数据')).toBeDefined();
   });
 
-  it('renders common analytics events in teacher-friendly language', async () => {
-    getPostHogAnalytics.mockResolvedValue({
-      status: 'ok',
-      person: {
-        id: 'teacher-person',
-        uuid: 'teacher-uuid',
-        created_at: '2026-04-01T00:00:00.000Z',
-        last_seen_at: '2026-05-14T12:00:00.000Z',
-      },
-      summary: {
-        window_days: 30,
-        event_count_30d: 8,
-        pageview_count_30d: 5,
-      },
-      recent_events: [
-        {
-          event: '$pageview',
-          timestamp: '2026-05-14T15:00:00.000Z',
-          route: '/home',
-          url: 'https://example.com/home',
-        },
-        {
-          event: 'auth_login_success',
-          timestamp: '2026-05-14T14:00:00.000Z',
-          route: '/login',
-          url: 'https://example.com/login',
-        },
-        {
-          event: 'auth_register_success',
-          timestamp: '2026-05-14T13:00:00.000Z',
-          route: '/register',
-          url: 'https://example.com/register',
-        },
-        {
-          event: 'project_application_submitted',
-          timestamp: '2026-05-14T12:00:00.000Z',
-          route: '/projects/1',
-          url: 'https://example.com/projects/1',
-        },
-        {
-          event: 'experiment_opened',
-          timestamp: '2026-05-14T11:00:00.000Z',
-          route: '/courses/1',
-          url: 'https://example.com/courses/1',
-        },
-      ],
-    });
-
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
-
-    expect(await screen.findByText('查看页面')).toBeDefined();
-    expect(screen.getByText('登录成功')).toBeDefined();
-    expect(screen.getByText('注册成功')).toBeDefined();
-    expect(screen.getByText('提交课题申请')).toBeDefined();
-    expect(screen.getByText('进入实验')).toBeDefined();
-    expect(screen.queryByText('PostHog')).toBeNull();
-  });
-
-  it('shows disabled, not found, and failed analytics states explicitly', async () => {
+  it('shows disabled, missing, failed, and zero-summary analytics states explicitly', async () => {
     getPostHogAnalytics
       .mockResolvedValueOnce({
         status: 'disabled',
         person: null,
         summary: null,
-        recent_events: [],
       })
       .mockResolvedValueOnce({
         status: 'not_found',
         person: null,
         summary: null,
-        recent_events: [],
       })
-      .mockRejectedValueOnce(new Error('行为数据查询失败，请稍后重试'));
+      .mockRejectedValueOnce(new Error('行为数据查询失败，请稍后重试'))
+      .mockResolvedValueOnce({
+        status: 'ok',
+        person: null,
+        summary: {
+          window_days: 10,
+          last_activity: null,
+          meaningful_events: 0,
+          pageviews: 0,
+          learning_actions: 0,
+        },
+      });
 
     render(
       <MemoryRouter>
@@ -441,34 +466,29 @@ describe('AdminUsersPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
     fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
-    expect(await screen.findByText('该用户暂无行为记录')).toBeDefined();
+    expect(await screen.findByText('近 10 天暂无活动数据')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
     fireEvent.click(screen.getByRole('button', { name: '查看 alice 的详情' }));
     expect(await screen.findByText('行为数据查询失败，请稍后重试')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭用户详情' }));
+    fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
+    expect(await screen.findByText('近 10 天暂无活动数据')).toBeDefined();
   });
 
   it('clears the previous analytics result when switching users', async () => {
     let resolveBob:
       | ((value: {
           status: 'ok';
-          person: {
-            id: string;
-            uuid: string;
-            created_at: string;
-            last_seen_at: string;
-          };
+          person: null;
           summary: {
-            window_days: 30;
-            event_count_30d: number;
-            pageview_count_30d: number;
+            window_days: 10;
+            last_activity: string | null;
+            meaningful_events: number;
+            pageviews: number;
+            learning_actions: number;
           };
-          recent_events: Array<{
-            event: string;
-            timestamp: string;
-            route: string | null;
-            url: string | null;
-          }>;
         }) => void)
       | undefined;
 
@@ -482,18 +502,12 @@ describe('AdminUsersPage', () => {
           last_seen_at: '2026-05-14T12:00:00.000Z',
         },
         summary: {
-          window_days: 30,
-          event_count_30d: 5,
-          pageview_count_30d: 2,
+          window_days: 10,
+          last_activity: '2026-05-14T12:00:00.000Z',
+          meaningful_events: 105,
+          pageviews: 102,
+          learning_actions: 101,
         },
-        recent_events: [
-          {
-            event: 'alice_event',
-            timestamp: '2026-05-14T12:00:00.000Z',
-            route: '/alice',
-            url: 'https://example.com/alice',
-          },
-        ],
       })
       .mockImplementationOnce(
         () =>
@@ -509,36 +523,25 @@ describe('AdminUsersPage', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
-    expect(await screen.findByText('Alice Event')).toBeDefined();
+    expect(await screen.findByText('105')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: '查看 bob 的详情' }));
-    expect(screen.queryByText('Alice Event')).toBeNull();
-    expect(screen.getByText('正在加载行为数据...')).toBeDefined();
+    expect(screen.queryByText('105')).toBeNull();
+    expect(screen.getByLabelText('正在加载近 10 天活动概览')).toBeDefined();
 
     resolveBob?.({
       status: 'ok',
-      person: {
-        id: 'bob-person',
-        uuid: 'bob-uuid',
-        created_at: '2026-04-02T00:00:00.000Z',
-        last_seen_at: '2026-05-13T12:00:00.000Z',
-      },
+      person: null,
       summary: {
-        window_days: 30,
-        event_count_30d: 7,
-        pageview_count_30d: 3,
+        window_days: 10,
+        last_activity: '2026-05-13T12:00:00.000Z',
+        meaningful_events: 207,
+        pageviews: 203,
+        learning_actions: 201,
       },
-      recent_events: [
-        {
-          event: 'bob_event',
-          timestamp: '2026-05-13T12:00:00.000Z',
-          route: '/bob',
-          url: 'https://example.com/bob',
-        },
-      ],
     });
 
-    expect(await screen.findByText('Bob Event')).toBeDefined();
+    expect(await screen.findByText('207')).toBeDefined();
   });
 
   it('does not offer CSV export from the user list', async () => {

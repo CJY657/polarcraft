@@ -4,7 +4,6 @@ import {
   AdminUserActivityModuleBreakdown,
   AdminUserPostHogAnalyticsResponse,
   AdminUserPostHogPerson,
-  AdminUserPostHogRecentEvent,
   AdminUserPostHogSummary,
 } from '../types/user.types.js';
 import { logger } from '../utils/logger.js';
@@ -65,7 +64,7 @@ export class PostHogAnalyticsError extends Error {
 }
 
 export class PostHogService {
-  private static readonly SUMMARY_WINDOW_DAYS = 30;
+  private static readonly SUMMARY_WINDOW_DAYS = 10;
 
   static async getUserAnalytics(
     userId: string
@@ -75,7 +74,6 @@ export class PostHogService {
         status: 'disabled',
         person: null,
         summary: null,
-        recent_events: [],
       };
     }
 
@@ -85,20 +83,15 @@ export class PostHogService {
         status: 'not_found',
         person: null,
         summary: null,
-        recent_events: [],
       };
     }
 
-    const [summary, recentEvents] = await Promise.all([
-      this.getSummary(userId),
-      this.getRecentEvents(userId),
-    ]);
+    const summary = await this.getSummary(userId);
 
     return {
       status: 'ok',
       person,
       summary,
-      recent_events: recentEvents,
     };
   }
 
@@ -406,50 +399,28 @@ export class PostHogService {
   private static async getSummary(userId: string): Promise<AdminUserPostHogSummary> {
     const query = `
       SELECT
-        count() AS event_count_30d,
-        countIf(event = '$pageview') AS pageview_count_30d
+        toString(max(timestamp)) AS last_activity,
+        count() AS meaningful_events,
+        countIf(event = '$pageview') AS pageviews,
+        countIf(event IN ('experiment_opened', 'project_application_submitted')) AS learning_actions
       FROM events
       WHERE distinct_id = ${this.quoteLiteral(userId)}
-        AND timestamp >= now() - INTERVAL ${this.SUMMARY_WINDOW_DAYS} DAY
-        AND event NOT IN ('$autocapture', '$pageleave')
+        AND timestamp >= toStartOfDay(now()) - INTERVAL ${this.SUMMARY_WINDOW_DAYS - 1} DAY
+        AND timestamp < toStartOfDay(now()) + INTERVAL 1 DAY
+        AND properties.$is_identified = true
+        AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
     `;
     const response = await this.runQuery(query, 'admin user analytics summary');
     const row = this.extractRows(response)[0] ?? [];
+    const meaningfulEvents = this.numberOrZero(row[1]);
 
     return {
       window_days: this.SUMMARY_WINDOW_DAYS,
-      event_count_30d: this.numberOrZero(row[0]),
-      pageview_count_30d: this.numberOrZero(row[1]),
+      last_activity: meaningfulEvents === 0 ? null : this.stringOrNull(row[0]),
+      meaningful_events: meaningfulEvents,
+      pageviews: this.numberOrZero(row[2]),
+      learning_actions: this.numberOrZero(row[3]),
     };
-  }
-
-  private static async getRecentEvents(
-    userId: string
-  ): Promise<AdminUserPostHogRecentEvent[]> {
-    const query = `
-      SELECT
-        event,
-        toString(timestamp),
-        properties.route,
-        properties.$current_url
-      FROM events
-      WHERE distinct_id = ${this.quoteLiteral(userId)}
-        AND event NOT IN ('$autocapture', '$pageleave')
-      ORDER BY timestamp DESC
-      LIMIT 10
-    `;
-    const response = await this.runQuery(query, 'admin user analytics recent events');
-
-    return this.extractRows(response)
-      .filter((row): row is [string, string, unknown, unknown] => {
-        return typeof row[0] === 'string' && typeof row[1] === 'string';
-      })
-      .map((row) => ({
-        event: row[0],
-        timestamp: row[1],
-        route: this.stringOrNull(row[2]),
-        url: this.stringOrNull(row[3]),
-      }));
   }
 
   private static async runQuery(

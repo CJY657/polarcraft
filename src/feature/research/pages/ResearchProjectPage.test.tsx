@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectWithMembers } from "@/lib/research.service";
@@ -580,12 +580,25 @@ describe("ResearchProjectPage", () => {
       state: { readOnly: true },
     }]);
 
+    expect(await screen.findByTestId("project-peer-review-section")).toBeTruthy();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    const reviewPanel = document.getElementById("project-panel-review");
+    expect(reviewPanel?.hidden).toBe(true);
+
+    const peerReviewProps = mockProjectPeerReviewSection.mock.calls.at(-1)?.[0] as
+      | { onContentChange: (hasContent: boolean) => void }
+      | undefined;
+    act(() => peerReviewProps?.onContentChange(true));
+
     await waitFor(() => {
       expect(scrollIntoView).toHaveBeenCalledWith({
         behavior: "smooth",
         block: "start",
       });
     });
+    expect(reviewPanel?.hidden).toBe(false);
+    expect(screen.getByRole("tab", { name: "同伴评审" }).getAttribute("aria-selected")).toBe("true");
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("project-peer-review"));
   });
 

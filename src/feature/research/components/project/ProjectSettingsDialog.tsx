@@ -67,7 +67,12 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      showCloseButton={false}
+      containerClassName="research-project-detail"
+    >
       <div className="research-panel max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.9rem] p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-3">

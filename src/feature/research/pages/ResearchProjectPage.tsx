@@ -237,11 +237,37 @@ export function ResearchProjectPage() {
     }
 
     setActiveTab("review");
-    document.getElementById("project-peer-review")?.scrollIntoView({
+  }, [isLoading, location.hash, location.key, projectId]);
+
+  useEffect(() => {
+    if (
+      isLoading
+      || location.hash !== "#project-peer-review"
+      || activeTab !== "review"
+      || !hasPeerReviewContent
+    ) {
+      return;
+    }
+
+    const reviewPanel = document.getElementById("project-panel-review");
+    const reviewSection = document.getElementById("project-peer-review");
+
+    if (!reviewPanel || reviewPanel.hidden || !reviewSection) {
+      return;
+    }
+
+    reviewSection.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
-  }, [isLoading, location.hash, location.key, projectId]);
+  }, [
+    activeTab,
+    hasPeerReviewContent,
+    isLoading,
+    location.hash,
+    location.key,
+    projectId,
+  ]);
 
   const isOwner = currentUserRole === "owner";
   const isMember = currentUserRole === "member" || isOwner;
@@ -301,7 +327,7 @@ export function ResearchProjectPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="research-page min-h-screen">
+      <div className="research-page research-project-detail min-h-screen">
         <main className="research-shell py-6 md:py-8" aria-busy="true">
           <div className="grid animate-pulse gap-7 motion-reduce:animate-none lg:grid-cols-[minmax(0,1fr)_21rem]">
             <div>
@@ -331,7 +357,7 @@ export function ResearchProjectPage() {
   // Error state
   if (error && !isExampleProject) {
     return (
-      <div className="research-page flex min-h-screen items-center justify-center px-6">
+      <div className="research-page research-project-detail flex min-h-screen items-center justify-center px-6">
         <div className="research-card max-w-md px-8 py-8 text-center">
           <p className="research-error rounded-lg px-4 py-3 text-lg">{error}</p>
           <Link
@@ -455,7 +481,7 @@ export function ResearchProjectPage() {
   };
 
   return (
-    <div className="research-page min-h-screen">
+    <div className="research-page research-project-detail min-h-screen">
       <PersistentHeader
         moduleKey="labGroup"
         variant="glass"

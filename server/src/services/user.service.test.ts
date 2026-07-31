@@ -73,14 +73,12 @@ describe('UserService.getPostHogAnalyticsForAdmin', () => {
       status: 'not_found',
       person: null,
       summary: null,
-      recent_events: [],
     });
 
     await expect(UserService.getPostHogAnalyticsForAdmin('inactive-user')).resolves.toEqual({
       status: 'not_found',
       person: null,
       summary: null,
-      recent_events: [],
     });
 
     expect(findByIdForAdmin).toHaveBeenCalledWith('inactive-user');

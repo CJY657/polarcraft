@@ -1,16 +1,20 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import {
   Activity,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
   Check,
+  ChevronDown,
   ChevronLeft,
+  Clock3,
   Copy,
+  Eye,
   FlaskConical,
   GraduationCap,
   LogIn,
   MailWarning,
+  MousePointerClick,
   RefreshCw,
   Search,
   UserPlus,
@@ -28,7 +32,6 @@ import {
   type AdminUserDetail,
   type AdminUserListItem,
   type AdminUserPostHogAnalyticsResponse,
-  type AdminUserPostHogRecentEvent,
   type AdminUserRoleFilter,
   type AdminUserSortField,
   type AdminUserSortOrder,
@@ -107,17 +110,6 @@ function formatOptionalDateTime(value: string | null | undefined): string {
   return value ? formatDateTime(value) : '暂无记录';
 }
 
-const ANALYTICS_EVENT_LABELS: Record<string, string> = {
-  $pageview: '查看页面',
-  $identify: '识别用户',
-  $autocapture: '自动采集',
-  $pageleave: '离开页面',
-  auth_login_success: '登录成功',
-  auth_register_success: '注册成功',
-  project_application_submitted: '提交课题申请',
-  experiment_opened: '进入实验',
-};
-
 const APPLICATION_STATUS_LABELS: Record<
   AdminUserDetail['research']['applications'][number]['status'],
   { label: string; tone: BadgeTone }
@@ -127,27 +119,6 @@ const APPLICATION_STATUS_LABELS: Record<
   rejected: { label: '未通过', tone: 'red' },
   withdrawn: { label: '已撤回', tone: 'slate' },
 };
-
-function formatAnalyticsEventName(eventName: string): string {
-  const mappedLabel = ANALYTICS_EVENT_LABELS[eventName];
-  if (mappedLabel) {
-    return mappedLabel;
-  }
-
-  const cleanedLabel = eventName
-    .replace(/^\$/, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .replace(/[_./:-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!cleanedLabel) {
-    return '未知行为';
-  }
-
-  return cleanedLabel.replace(/\b[a-z]/g, (character) => character.toUpperCase());
-}
 
 export default function AdminUsersPage() {
   const navigate = useNavigate();
@@ -282,12 +253,6 @@ export default function AdminUsersPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page + 1, totalPages);
 
-  const recentAnalyticsEvents = useMemo(() => {
-    return [...(analyticsResult?.recent_events ?? [])].sort((left, right) =>
-      right.timestamp.localeCompare(left.timestamp)
-    );
-  }, [analyticsResult]);
-
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPage(0);
@@ -365,7 +330,7 @@ export default function AdminUsersPage() {
                 theme === 'dark' ? 'text-slate-300' : 'text-slate-600'
               )}
             >
-              查看平台账号规模与基础资料，点击任意用户可查看教育经历、课题组参与和最近行为。
+              查看平台账号规模与基础资料，点击任意用户可查看个人档案、近 10 天活动概览和课题组参与。
               当前版本仅提供只读查询，不会在这里修改账号权限或状态。
             </p>
           </div>
@@ -734,7 +699,6 @@ export default function AdminUsersPage() {
         isLoadingDetail={isLoadingDetail}
         detailError={detailError}
         analytics={analyticsResult}
-        recentEvents={recentAnalyticsEvents}
         isLoadingAnalytics={isLoadingAnalytics}
         analyticsError={analyticsError}
         onClose={() => setSelectedUser(null)}
@@ -768,7 +732,7 @@ function SummaryCard({
         <Icon className={cn('h-5 w-5', theme === 'dark' ? 'text-cyan-300' : 'text-cyan-600')} />
       </div>
       <p className={cn('mt-2 text-3xl font-semibold', theme === 'dark' ? 'text-white' : 'text-slate-900')}>
-        {value ?? '—'}
+        {value ?? '-'}
       </p>
       <p className={cn('mt-2 text-sm leading-6', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
         {hint}
@@ -879,7 +843,6 @@ function UserDetailDialog({
   isLoadingDetail,
   detailError,
   analytics,
-  recentEvents,
   isLoadingAnalytics,
   analyticsError,
   onClose,
@@ -890,15 +853,16 @@ function UserDetailDialog({
   isLoadingDetail: boolean;
   detailError: string | null;
   analytics: AdminUserPostHogAnalyticsResponse | null;
-  recentEvents: AdminUserPostHogRecentEvent[];
   isLoadingAnalytics: boolean;
   analyticsError: string | null;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
 
   useEffect(() => {
     setCopied(false);
+    setIsProfileExpanded(false);
   }, [user?.id]);
 
   const handleCopyId = async () => {
@@ -910,7 +874,7 @@ function UserDetailDialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard access denied — nothing actionable for the teacher here
+      // Clipboard access denied, nothing actionable for the teacher here
     }
   };
 
@@ -918,6 +882,20 @@ function UserDetailDialog({
   const strongText = theme === 'dark' ? 'text-white' : 'text-slate-900';
   const panelClass =
     theme === 'dark' ? 'border-slate-800 bg-slate-950/60' : 'border-slate-200 bg-slate-50';
+  const isProfileLoading = isLoadingDetail || (!detail && !detailError);
+  const educationPreview = isProfileLoading
+    ? '教育经历加载中'
+    : detailError
+      ? '教育经历加载失败'
+      : `教育经历 ${detail?.educations.length ?? 0} 条`;
+  const analyticsSummary = analytics?.summary;
+  const hasAnalyticsActivity = Boolean(
+    analyticsSummary &&
+      (analyticsSummary.last_activity ||
+        analyticsSummary.meaningful_events ||
+        analyticsSummary.pageviews ||
+        analyticsSummary.learning_actions)
+  );
 
   return (
     <Dialog
@@ -997,48 +975,99 @@ function UserDetailDialog({
           </button>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <InfoCard theme={theme} label="邮箱" value={user?.email || '未填写'} />
-          <InfoCard theme={theme} label="注册时间" value={user ? formatDateTime(user.created_at) : ''} />
-          <InfoCard
-            theme={theme}
-            label="最后登录"
-            value={user?.last_login_at ? formatDateTime(user.last_login_at) : '从未登录'}
-          />
-        </div>
-
-        {isLoadingDetail ? (
-          <div
+        <details
+          open={isProfileExpanded}
+          className={cn('mt-6 overflow-hidden rounded-2xl border', panelClass)}
+        >
+          <summary
+            aria-controls="admin-user-profile-content"
+            aria-expanded={isProfileExpanded}
+            onClick={(event) => {
+              event.preventDefault();
+              setIsProfileExpanded((current) => !current);
+            }}
             className={cn(
-              'mt-6 flex items-center gap-3 rounded-2xl border px-4 py-4 text-sm',
-              panelClass,
-              mutedText
+              'flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset [&::-webkit-details-marker]:hidden',
+              theme === 'dark' ? 'focus-visible:ring-cyan-300' : 'focus-visible:ring-cyan-600'
             )}
           >
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            正在加载用户资料...
-          </div>
-        ) : null}
+            <div className="min-w-0">
+              <div className={cn('flex items-center gap-2 font-semibold', strongText)}>
+                <GraduationCap
+                  aria-hidden="true"
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    theme === 'dark' ? 'text-cyan-300' : 'text-cyan-600'
+                  )}
+                />
+                个人档案
+              </div>
+              <div className={cn('mt-2 flex flex-col gap-1 text-sm sm:flex-row sm:gap-4', mutedText)}>
+                <span className="truncate">{user?.email || '未填写邮箱'}</span>
+                <span>{educationPreview}</span>
+              </div>
+            </div>
+            <ChevronDown
+              aria-hidden="true"
+              className={cn(
+                'h-5 w-5 shrink-0 transition-transform duration-200 motion-reduce:transition-none',
+                mutedText,
+                isProfileExpanded && 'rotate-180'
+              )}
+            />
+          </summary>
 
-        {!isLoadingDetail && detailError ? (
           <div
+            id="admin-user-profile-content"
             className={cn(
-              'mt-6 rounded-2xl border px-4 py-4 text-sm',
-              theme === 'dark'
-                ? 'border-red-400/20 bg-red-500/10 text-red-200'
-                : 'border-red-200 bg-red-50 text-red-700'
+              'border-t px-4 py-4',
+              theme === 'dark' ? 'border-slate-800' : 'border-slate-200'
             )}
           >
-            {detailError}
-          </div>
-        ) : null}
+            <dl className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt className={cn('text-sm', mutedText)}>邮箱</dt>
+                <dd className={cn('mt-1 break-all text-base font-medium', strongText)}>
+                  {user?.email || '未填写邮箱'}
+                </dd>
+              </div>
+              <div>
+                <dt className={cn('text-sm', mutedText)}>注册时间</dt>
+                <dd className={cn('mt-1 text-base font-medium', strongText)}>
+                  {user ? formatDateTime(user.created_at) : '暂无记录'}
+                </dd>
+              </div>
+              <div>
+                <dt className={cn('text-sm', mutedText)}>最后登录</dt>
+                <dd className={cn('mt-1 text-base font-medium', strongText)}>
+                  {user?.last_login_at ? formatDateTime(user.last_login_at) : '从未登录'}
+                </dd>
+              </div>
+            </dl>
 
-        {!isLoadingDetail && detail ? (
-          <>
-            <DetailSection theme={theme} icon={GraduationCap} title="教育经历">
-              {detail.educations.length === 0 ? (
+            <div className="mt-5">
+              <h4 className={cn('mb-3 text-sm font-semibold', strongText)}>教育经历</h4>
+              {isProfileLoading ? (
+                <div className={cn('rounded-2xl border px-4 py-4 text-sm', panelClass, mutedText)}>
+                  正在加载教育经历...
+                </div>
+              ) : null}
+              {!isProfileLoading && detailError ? (
+                <div
+                  className={cn(
+                    'rounded-2xl border px-4 py-4 text-sm',
+                    theme === 'dark'
+                      ? 'border-red-400/20 bg-red-500/10 text-red-200'
+                      : 'border-red-200 bg-red-50 text-red-700'
+                  )}
+                >
+                  {detailError}
+                </div>
+              ) : null}
+              {!isProfileLoading && !detailError && detail?.educations.length === 0 ? (
                 <EmptyHint theme={theme}>该用户还没有填写教育经历</EmptyHint>
-              ) : (
+              ) : null}
+              {!isProfileLoading && !detailError && detail && detail.educations.length > 0 ? (
                 <ul className="space-y-2">
                   {detail.educations.map((education) => (
                     <li
@@ -1057,16 +1086,154 @@ function UserDetailDialog({
                         ) : null}
                       </div>
                       <div className={cn('mt-1 text-sm', mutedText)}>
-                        {formatMonth(education.start_date)} –{' '}
+                        {formatMonth(education.start_date)} -{' '}
                         {education.end_date ? formatMonth(education.end_date) : '至今'}
                       </div>
                     </li>
                   ))}
                 </ul>
-              )}
-            </DetailSection>
+              ) : null}
+            </div>
+          </div>
+        </details>
 
-            <DetailSection theme={theme} icon={FlaskConical} title="课题组参与">
+        <DetailSection theme={theme} icon={Activity} title="近 10 天活动概览">
+          {isLoadingAnalytics || (!analytics && !analyticsError) ? (
+            <div
+              aria-label="正在加载近 10 天活动概览"
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              {Array.from({ length: 4 }, (_, index) => (
+                <div
+                  key={index}
+                  aria-hidden="true"
+                  className={cn(
+                    'relative h-28 overflow-hidden rounded-2xl border p-4',
+                    panelClass
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'absolute inset-x-0 top-0 h-1 animate-pulse motion-reduce:animate-none',
+                      theme === 'dark' ? 'bg-slate-700' : 'bg-slate-200'
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'h-4 w-20 animate-pulse rounded motion-reduce:animate-none',
+                      theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      'mt-5 h-7 w-28 animate-pulse rounded motion-reduce:animate-none',
+                      theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {!isLoadingAnalytics && analyticsError ? (
+            <div
+              className={cn(
+                'rounded-2xl border px-4 py-4 text-sm',
+                theme === 'dark'
+                  ? 'border-red-400/20 bg-red-500/10 text-red-200'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              )}
+            >
+              {analyticsError}
+            </div>
+          ) : null}
+
+          {!isLoadingAnalytics && !analyticsError && analytics?.status === 'disabled' ? (
+            <div
+              className={cn(
+                'rounded-2xl border px-4 py-4 text-sm',
+                theme === 'dark'
+                  ? 'border-amber-400/20 bg-amber-500/10 text-amber-100'
+                  : 'border-amber-200 bg-amber-50 text-amber-800'
+              )}
+            >
+              行为统计尚未启用
+            </div>
+          ) : null}
+
+          {!isLoadingAnalytics &&
+          !analyticsError &&
+          (analytics?.status === 'not_found' ||
+            (analytics?.status === 'ok' && !hasAnalyticsActivity)) ? (
+            <EmptyHint theme={theme}>近 10 天暂无活动数据</EmptyHint>
+          ) : null}
+
+          {!isLoadingAnalytics &&
+          !analyticsError &&
+          analytics?.status === 'ok' &&
+          analyticsSummary &&
+          hasAnalyticsActivity ? (
+            <div className="grid gap-3 sm:grid-cols-2" aria-label="用户近 10 天活动指标">
+              {[
+                {
+                  label: '最近活跃',
+                  value: formatOptionalDateTime(analyticsSummary.last_activity),
+                  icon: Clock3,
+                  accent: '#ff4d8b',
+                },
+                {
+                  label: '有效活动',
+                  value: analyticsSummary.meaningful_events.toLocaleString('zh-CN'),
+                  icon: Activity,
+                  accent: '#2f8f83',
+                },
+                {
+                  label: '页面访问',
+                  value: analyticsSummary.pageviews.toLocaleString('zh-CN'),
+                  icon: Eye,
+                  accent: '#9b87d9',
+                },
+                {
+                  label: '学习行为',
+                  value: analyticsSummary.learning_actions.toLocaleString('zh-CN'),
+                  icon: MousePointerClick,
+                  accent: '#d4a72c',
+                },
+              ].map((metric) => {
+                const Icon = metric.icon;
+                return (
+                  <div
+                    key={metric.label}
+                    className={cn(
+                      'relative min-h-28 overflow-hidden rounded-2xl border p-4',
+                      panelClass
+                    )}
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-0 top-0 h-1"
+                      style={{ backgroundColor: metric.accent }}
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                      <p className={cn('text-sm font-medium', mutedText)}>{metric.label}</p>
+                      <Icon
+                        aria-hidden="true"
+                        className="h-5 w-5"
+                        style={{ color: metric.accent }}
+                      />
+                    </div>
+                    <p className={cn('mt-4 break-words text-xl font-semibold tabular-nums', strongText)}>
+                      {metric.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </DetailSection>
+
+        {!isLoadingDetail && detail ? (
+          <DetailSection theme={theme} icon={FlaskConical} title="课题组参与">
               {detail.research.memberships.length === 0 &&
               detail.research.applications.length === 0 ? (
                 <EmptyHint theme={theme}>该用户尚未加入或申请任何课题组</EmptyHint>
@@ -1136,125 +1303,8 @@ function UserDetailDialog({
                   ) : null}
                 </div>
               )}
-            </DetailSection>
-          </>
+          </DetailSection>
         ) : null}
-
-        <DetailSection theme={theme} icon={Activity} title="行为记录">
-          {isLoadingAnalytics ? (
-            <div
-              className={cn(
-                'flex items-center gap-3 rounded-2xl border px-4 py-4 text-sm',
-                panelClass,
-                mutedText
-              )}
-            >
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              正在加载行为数据...
-            </div>
-          ) : null}
-
-          {!isLoadingAnalytics && analyticsError ? (
-            <div
-              className={cn(
-                'rounded-2xl border px-4 py-4 text-sm',
-                theme === 'dark'
-                  ? 'border-red-400/20 bg-red-500/10 text-red-200'
-                  : 'border-red-200 bg-red-50 text-red-700'
-              )}
-            >
-              {analyticsError}
-            </div>
-          ) : null}
-
-          {!isLoadingAnalytics && !analyticsError && analytics?.status === 'disabled' ? (
-            <div
-              className={cn(
-                'rounded-2xl border px-4 py-4 text-sm',
-                theme === 'dark'
-                  ? 'border-amber-400/20 bg-amber-500/10 text-amber-100'
-                  : 'border-amber-200 bg-amber-50 text-amber-800'
-              )}
-            >
-              行为统计尚未启用
-            </div>
-          ) : null}
-
-          {!isLoadingAnalytics && !analyticsError && analytics?.status === 'not_found' ? (
-            <EmptyHint theme={theme}>该用户暂无行为记录</EmptyHint>
-          ) : null}
-
-          {!isLoadingAnalytics && !analyticsError && analytics?.status === 'ok' ? (
-            <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <InfoCard
-                  theme={theme}
-                  label="最近活跃时间"
-                  value={formatOptionalDateTime(analytics.person?.last_seen_at)}
-                />
-                <InfoCard
-                  theme={theme}
-                  label="近 30 天行为数"
-                  value={String(analytics.summary?.event_count_30d ?? 0)}
-                />
-                <InfoCard
-                  theme={theme}
-                  label="近 30 天页面访问数"
-                  value={String(analytics.summary?.pageview_count_30d ?? 0)}
-                />
-              </div>
-
-              <div className="mt-4">
-                <h4
-                  className={cn(
-                    'text-sm font-medium',
-                    theme === 'dark' ? 'text-slate-200' : 'text-slate-700'
-                  )}
-                >
-                  最近 10 条行为
-                </h4>
-                {recentEvents.length === 0 ? (
-                  <div className="mt-3">
-                    <EmptyHint theme={theme}>暂无最近行为</EmptyHint>
-                  </div>
-                ) : (
-                  <div
-                    className={cn(
-                      'mt-3 overflow-hidden rounded-2xl border',
-                      theme === 'dark' ? 'border-slate-800' : 'border-slate-200'
-                    )}
-                  >
-                    <ul
-                      className={cn(
-                        'divide-y',
-                        theme === 'dark' ? 'divide-slate-800' : 'divide-slate-200'
-                      )}
-                    >
-                      {recentEvents.map((event) => (
-                        <li
-                          key={`${event.timestamp}-${event.event}-${event.route ?? event.url ?? ''}`}
-                          className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"
-                        >
-                          <div>
-                            <div className={cn('text-base font-medium', strongText)}>
-                              {formatAnalyticsEventName(event.event)}
-                            </div>
-                            <div className={cn('mt-1 text-sm', mutedText)}>
-                              {event.route || event.url || '无路由上下文'}
-                            </div>
-                          </div>
-                          <div className={cn('text-sm', mutedText)}>
-                            {formatDateTime(event.timestamp)}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : null}
-        </DetailSection>
       </div>
     </Dialog>
   );
@@ -1298,29 +1348,6 @@ function EmptyHint({ theme, children }: { theme: string; children: string }) {
       )}
     >
       {children}
-    </div>
-  );
-}
-
-function InfoCard({ theme, label, value }: { theme: string; label: string; value: string }) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border px-4 py-4',
-        theme === 'dark' ? 'border-slate-800 bg-slate-950/60' : 'border-slate-200 bg-slate-50'
-      )}
-    >
-      <div className={cn('text-sm', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
-        {label}
-      </div>
-      <div
-        className={cn(
-          'mt-2 break-all text-base font-semibold',
-          theme === 'dark' ? 'text-white' : 'text-slate-900'
-        )}
-      >
-        {value}
-      </div>
     </div>
   );
 }

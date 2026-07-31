@@ -101,7 +101,6 @@ describe('adminUserApi', () => {
         status: 'not_found',
         person: null,
         summary: null,
-        recent_events: [],
       },
     });
 
@@ -109,7 +108,6 @@ describe('adminUserApi', () => {
       status: 'not_found',
       person: null,
       summary: null,
-      recent_events: [],
     });
 
     expect(get).toHaveBeenCalledWith('/api/users/user-1/posthog-analytics');

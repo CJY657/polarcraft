@@ -385,9 +385,22 @@ html {
   }
 
   .research-panel {
+    border: 1px solid var(--glass-stroke);
+    background: linear-gradient(
+      180deg,
+      var(--glass-panel),
+      color-mix(in srgb, var(--glass-panel-soft) 62%, transparent)
+    );
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .research-project-detail .research-panel {
     border: 1px solid var(--research-line);
     border-radius: 0.75rem;
     background: var(--research-surface);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .research-panel-soft {

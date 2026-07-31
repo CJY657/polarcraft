@@ -194,7 +194,13 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
   }
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false} className="max-w-2xl border-0 bg-transparent shadow-none">
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      showCloseButton={false}
+      className="max-w-2xl border-0 bg-transparent shadow-none"
+      containerClassName="research-project-detail"
+    >
       <div className="research-panel max-h-[88vh] overflow-y-auto rounded-[1.65rem] p-5 sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>

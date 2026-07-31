@@ -80,23 +80,17 @@ export interface AdminUserPostHogPerson {
 }
 
 export interface AdminUserPostHogSummary {
-  window_days: 30;
-  event_count_30d: number;
-  pageview_count_30d: number;
-}
-
-export interface AdminUserPostHogRecentEvent {
-  event: string;
-  timestamp: string;
-  route: string | null;
-  url: string | null;
+  window_days: 10;
+  last_activity: string | null;
+  meaningful_events: number;
+  pageviews: number;
+  learning_actions: number;
 }
 
 export interface AdminUserPostHogAnalyticsResponse {
   status: 'ok' | 'not_found' | 'disabled';
   person: AdminUserPostHogPerson | null;
   summary: AdminUserPostHogSummary | null;
-  recent_events: AdminUserPostHogRecentEvent[];
 }
 
 export type AdminActivityLimit = 10 | 50 | 100 | 'all';
