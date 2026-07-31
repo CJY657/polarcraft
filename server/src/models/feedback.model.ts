@@ -47,6 +47,11 @@ export class FeedbackModel {
     );
   }
 
+  static async deleteById(id: string): Promise<boolean> {
+    const result = await feedbackCollection().deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
   static async list(options: {
     category?: FeedbackCategory;
     limit: number;

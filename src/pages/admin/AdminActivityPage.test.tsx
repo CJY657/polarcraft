@@ -112,6 +112,15 @@ describe('AdminActivityPage', () => {
     expect(screen.getByText('146')).toBeDefined();
     expect(screen.getByText('62')).toBeDefined();
     expect(screen.getByText('84')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；已识别普通学生进入实验和提交课题申请的合计次数。')).toBeDefined();
+    expect(screen.getByText('每个日期分别显示当天的学生去重人数、页面访问次数和学习行为次数。')).toBeDefined();
+    expect(screen.getByText('按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。')).toBeDefined();
+    expect(screen.getByText('按现有页面路径前缀归类并汇总页面访问次数。')).toBeDefined();
+    expect(screen.getByText('展示次数最多的前 10 类活动；占比按当前展示的次数计算。')).toBeDefined();
+    expect(screen.getByText('按纳入统计的有效活动次数排序；显示人数只影响排行行数。')).toBeDefined();
     expect(screen.getByRole('img', { name: '每日活动趋势' })).toBeDefined();
     expect(screen.getByRole('table', { name: '每日活动趋势数据' })).toBeDefined();
     expect(screen.getByText('实验内容 · 课程详情')).toBeDefined();

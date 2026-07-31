@@ -374,7 +374,7 @@ export default function AdminUsersPage() {
             icon={LogIn}
             label="近 7 天登录"
             value={stats?.recent_logins_7d}
-            hint="最近一周有登录记录的账号"
+            hint="最近一次登录发生在过去 7 个 24 小时内，每个账号只计一次"
           />
           <SummaryCard
             theme={theme}
@@ -1170,6 +1170,9 @@ function UserDetailDialog({
               {analyticsDaily.length > 1 ? (
                 <div className={cn('mb-3 rounded-2xl border p-4', panelClass)}>
                   <p className={cn('text-sm font-medium', mutedText)}>每日有效活动</p>
+                  <p className={cn('mt-1 text-xs leading-5', mutedText)}>
+                    每个趋势点表示当天纳入统计的有效活动次数。
+                  </p>
                   <ActivityTrendChart daily={analyticsDaily} theme={theme} />
                 </div>
               ) : null}
@@ -1178,24 +1181,28 @@ function UserDetailDialog({
                 {
                   label: '最近活跃',
                   value: formatOptionalDateTime(analyticsSummary.last_activity),
+                  description: '纳入统计的活动中，时间最晚的一次。',
                   icon: Clock3,
                   accent: '#ff4d8b',
                 },
                 {
                   label: '有效活动',
                   value: analyticsSummary.meaningful_events.toLocaleString('zh-CN'),
+                  description: '已识别账号的活动，排除自动采集、离开、身份识别和属性设置等事件。',
                   icon: Activity,
                   accent: '#2f8f83',
                 },
                 {
                   label: '页面访问',
                   value: analyticsSummary.pageviews.toLocaleString('zh-CN'),
+                  description: '纳入统计的页面访问次数。',
                   icon: Eye,
                   accent: '#9b87d9',
                 },
                 {
                   label: '学习行为',
                   value: analyticsSummary.learning_actions.toLocaleString('zh-CN'),
+                  description: '进入实验和提交课题申请的合计次数。',
                   icon: MousePointerClick,
                   accent: '#d4a72c',
                 },
@@ -1224,6 +1231,9 @@ function UserDetailDialog({
                     </div>
                     <p className={cn('mt-4 break-words text-xl font-semibold tabular-nums', strongText)}>
                       {metric.value}
+                    </p>
+                    <p className={cn('mt-2 text-xs leading-5', mutedText)}>
+                      {metric.description}
                     </p>
                   </div>
                 );

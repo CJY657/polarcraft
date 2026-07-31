@@ -121,6 +121,10 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('4')).toBeDefined();
     expect(screen.getByText('6')).toBeDefined();
     expect(screen.getByText('3')).toBeDefined();
+    expect(screen.getByText('9 个可用 · 3 个停用')).toBeDefined();
+    expect(screen.getByText('最近一周新加入的账号')).toBeDefined();
+    expect(screen.getByText('最近一次登录发生在过去 7 个 24 小时内，每个账号只计一次')).toBeDefined();
+    expect(screen.getByText('可用账号中尚未完成邮箱验证')).toBeDefined();
     expect(screen.getByText('alice')).toBeDefined();
     expect(screen.getByText('alice@example.com')).toBeDefined();
     expect(screen.getByText('从未登录')).toBeDefined();
@@ -360,6 +364,10 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('42')).toBeDefined();
     expect(screen.getByText('11')).toBeDefined();
     expect(screen.getByText('7')).toBeDefined();
+    expect(screen.getByText('纳入统计的活动中，时间最晚的一次。')).toBeDefined();
+    expect(screen.getByText('已识别账号的活动，排除自动采集、离开、身份识别和属性设置等事件。')).toBeDefined();
+    expect(screen.getByText('纳入统计的页面访问次数。')).toBeDefined();
+    expect(screen.getByText('进入实验和提交课题申请的合计次数。')).toBeDefined();
     expect(screen.getAllByText(/2026.*07.*30/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/2020.*01.*01/)).toBeNull();
     expect(screen.queryByText('查看页面')).toBeNull();
@@ -367,6 +375,7 @@ describe('AdminUsersPage', () => {
     expect(screen.queryByText('PostHog')).toBeNull();
 
     expect(screen.getByText('每日有效活动')).toBeDefined();
+    expect(screen.getByText('每个趋势点表示当天纳入统计的有效活动次数。')).toBeDefined();
     expect(screen.getByRole('img', { name: /近 10 天每日有效活动趋势/ })).toBeDefined();
     expect(screen.getByText('7/21')).toBeDefined();
     expect(screen.getByText('7/30')).toBeDefined();

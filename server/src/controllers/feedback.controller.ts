@@ -60,4 +60,20 @@ export class FeedbackController {
       res.error('获取反馈列表失败，请稍后再试', 'SERVER_ERROR', 500);
     }
   }
+
+  static async remove(req: Request, res: Response): Promise<void> {
+    try {
+      const deleted = await FeedbackService.deleteFeedback(req.params.id);
+
+      if (!deleted) {
+        res.error('反馈记录不存在', 'FEEDBACK_NOT_FOUND', 404);
+        return;
+      }
+
+      res.success(null, '反馈已永久删除', 200);
+    } catch (error) {
+      logger.error('Delete feedback error:', error);
+      res.error('删除反馈失败，请稍后再试', 'SERVER_ERROR', 500);
+    }
+  }
 }

@@ -59,4 +59,14 @@ export class FeedbackService {
       total,
     };
   }
+
+  static async deleteFeedback(id: string): Promise<boolean> {
+    const deleted = await FeedbackModel.deleteById(id);
+
+    if (deleted) {
+      logger.info(`Feedback deleted: ${id}`);
+    }
+
+    return deleted;
+  }
 }

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, FlaskConical, Lightbulb, Mail, RefreshCw, User } from "lucide-react";
+import { ChevronLeft, FlaskConical, Lightbulb, Mail, RefreshCw, Trash2, User } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   feedbackApi,
@@ -39,6 +40,8 @@ export default function AdminFeedbackPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<FeedbackAdminItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadFeedback = async (nextFilter: FilterValue, refresh = false) => {
     if (refresh) {
@@ -67,6 +70,27 @@ export default function AdminFeedbackPage() {
   useEffect(() => {
     void loadFeedback(filter);
   }, [filter]);
+
+  const handleDeleteFeedback = async () => {
+    if (!feedbackToDelete || deletingId !== null) {
+      return;
+    }
+
+    const target = feedbackToDelete;
+    setDeletingId(target.id);
+    setError(null);
+
+    try {
+      await feedbackApi.deleteFeedback(target.id);
+      setFeedbackToDelete(null);
+      await loadFeedback(filter, true);
+    } catch (deleteError) {
+      setFeedbackToDelete(null);
+      setError(deleteError instanceof Error ? deleteError.message : "删除反馈失败");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const summary = useMemo(() => {
     const experimentCount = items.filter((item) => item.category === "experiment").length;
@@ -236,11 +260,33 @@ export default function AdminFeedbackPage() {
         {!isLoading && items.length > 0 ? (
           <div className="mt-6 space-y-4">
             {items.map((item) => (
-              <FeedbackCard key={item.id} item={item} theme={theme} />
+              <FeedbackCard
+                key={item.id}
+                item={item}
+                theme={theme}
+                isDeleteDisabled={deletingId !== null}
+                onDelete={() => setFeedbackToDelete(item)}
+              />
             ))}
           </div>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={feedbackToDelete !== null}
+        title="永久删除反馈？"
+        description={
+          feedbackToDelete
+            ? `反馈主题“${feedbackToDelete.subject}”将被永久删除，此操作无法撤销。`
+            : undefined
+        }
+        confirmLabel="永久删除"
+        cancelLabel="取消"
+        onConfirm={() => void handleDeleteFeedback()}
+        onCancel={() => setFeedbackToDelete(null)}
+        isPending={deletingId !== null}
+        theme={theme === "dark" ? "dark" : "light"}
+      />
     </div>
   );
 }
@@ -274,7 +320,17 @@ function SummaryCard({
   );
 }
 
-function FeedbackCard({ item, theme }: { item: FeedbackAdminItem; theme: string }) {
+function FeedbackCard({
+  item,
+  theme,
+  isDeleteDisabled,
+  onDelete,
+}: {
+  item: FeedbackAdminItem;
+  theme: string;
+  isDeleteDisabled: boolean;
+  onDelete: () => void;
+}) {
   const meta = getCategoryMeta(item.category);
   const CategoryIcon = meta.icon;
 
@@ -287,17 +343,34 @@ function FeedbackCard({ item, theme }: { item: FeedbackAdminItem; theme: string 
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium", meta.chipClassName)}>
-              <CategoryIcon className="h-3.5 w-3.5" />
-              {meta.label}
-            </span>
-            <span className={cn("text-xs", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
-              {formatDateTime(item.created_at)}
-            </span>
-            <span className={cn("text-xs", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
-              ID: {item.id}
-            </span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium", meta.chipClassName)}>
+                <CategoryIcon className="h-3.5 w-3.5" />
+                {meta.label}
+              </span>
+              <span className={cn("text-xs", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
+                {formatDateTime(item.created_at)}
+              </span>
+              <span className={cn("text-xs", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
+                ID: {item.id}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isDeleteDisabled}
+              aria-label={`删除反馈“${item.subject}”`}
+              title="删除反馈"
+              className={cn(
+                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                theme === "dark"
+                  ? "border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                  : "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+              )}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
 
           <h2 className={cn("mt-3 text-xl font-semibold", theme === "dark" ? "text-white" : "text-slate-900")}>

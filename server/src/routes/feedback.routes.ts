@@ -17,5 +17,6 @@ router.post('/', feedbackRateLimiter, optionalAuth, validateCreateFeedback, Feed
 router.use(authenticate);
 
 router.get('/', requireAdmin, FeedbackController.list);
+router.delete('/:id', requireAdmin, FeedbackController.remove);
 
 export default router;

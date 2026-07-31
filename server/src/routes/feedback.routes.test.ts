@@ -29,6 +29,9 @@ const doubles = vi.hoisted(() => {
     list: vi.fn((_req, res) => {
       res.status(200).json({ route: 'list' });
     }),
+    remove: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'remove' });
+    }),
   };
 });
 
@@ -36,6 +39,7 @@ vi.mock('../controllers/feedback.controller.js', () => ({
   FeedbackController: {
     create: doubles.create,
     list: doubles.list,
+    remove: doubles.remove,
   },
 }));
 
@@ -58,7 +62,7 @@ vi.mock('../middleware/validation.middleware.js', () => ({
 
 import feedbackRoutes from './feedback.routes.js';
 
-function getRoute(method: 'get' | 'post') {
+function getRoute(method: 'delete' | 'get' | 'post') {
   return feedbackRoutes.stack
     .map((layer) => (layer as MockedLayer).route)
     .find((route) => Boolean(route?.methods?.[method])) as MockedRoute | undefined;
@@ -94,5 +98,23 @@ describe('feedback.routes', () => {
     expect(authIndex).toBeGreaterThan(-1);
     expect(getIndex).toBeGreaterThan(-1);
     expect(authIndex).toBeLessThan(getIndex);
+  });
+
+  it('keeps feedback deletion behind auth plus admin checks', () => {
+    const deleteRoute = getRoute('delete');
+
+    expect(deleteRoute?.path).toBe('/:id');
+
+    const handlers = deleteRoute?.stack.map((layer) => layer.handle) ?? [];
+    expect(handlers).toContain(doubles.requireAdmin);
+    expect(handlers.at(-1)).toBe(doubles.remove);
+
+    const layers = feedbackRoutes.stack as MockedLayer[];
+    const authIndex = layers.findIndex((layer) => layer.handle === doubles.authenticate);
+    const deleteIndex = layers.findIndex((layer) => layer.route === deleteRoute);
+
+    expect(authIndex).toBeGreaterThan(-1);
+    expect(deleteIndex).toBeGreaterThan(-1);
+    expect(authIndex).toBeLessThan(deleteIndex);
   });
 });

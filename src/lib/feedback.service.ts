@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ensureApiSuccess } from "./api";
 
 export type FeedbackCategory = "experiment" | "product";
 
@@ -73,5 +73,10 @@ export const feedbackApi = {
     }
 
     throw new Error(response.error?.message || "获取反馈列表失败");
+  },
+
+  async deleteFeedback(id: string): Promise<void> {
+    const response = await api.delete(`/api/feedback/${encodeURIComponent(id)}`);
+    ensureApiSuccess(response, "删除反馈失败");
   },
 };

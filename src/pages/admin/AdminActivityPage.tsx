@@ -279,10 +279,34 @@ function Dashboard({
 }) {
   const summary = result.summary!;
   const metrics = [
-    { label: '活跃学生', value: summary.active_learners, icon: Users, color: '#ff4d8b' },
-    { label: '有效活动', value: summary.meaningful_events, icon: Activity, color: '#1a3a3a' },
-    { label: '页面访问', value: summary.pageviews, icon: Eye, color: '#b8a4ed' },
-    { label: '学习行为', value: summary.learning_actions, icon: MousePointerClick, color: '#e8b94a' },
+    {
+      label: '活跃学生',
+      value: summary.active_learners,
+      description: '所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。',
+      icon: Users,
+      color: '#ff4d8b',
+    },
+    {
+      label: '有效活动',
+      value: summary.meaningful_events,
+      description: '所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。',
+      icon: Activity,
+      color: '#1a3a3a',
+    },
+    {
+      label: '页面访问',
+      value: summary.pageviews,
+      description: '所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。',
+      icon: Eye,
+      color: '#b8a4ed',
+    },
+    {
+      label: '学习行为',
+      value: summary.learning_actions,
+      description: '所选起止日期均计入；已识别普通学生进入实验和提交课题申请的合计次数。',
+      icon: MousePointerClick,
+      color: '#e8b94a',
+    },
   ];
 
   return (
@@ -313,33 +337,53 @@ function Dashboard({
               >
                 {metric.value.toLocaleString('zh-CN')}
               </p>
+              <p className={cn('mt-2 text-xs leading-5', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
+                {metric.description}
+              </p>
             </div>
           );
         })}
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
-        <Panel isDark={isDark} title="每日活动趋势">
+        <Panel
+          isDark={isDark}
+          title="每日活动趋势"
+          description="每个日期分别显示当天的学生去重人数、页面访问次数和学习行为次数。"
+        >
           <DailyTrend daily={result.daily} isDark={isDark} />
         </Panel>
-        <Panel isDark={isDark} title="热门页面">
+        <Panel
+          isDark={isDark}
+          title="热门页面"
+          description="按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。"
+        >
           <TopPages pages={result.top_pages} isDark={isDark} />
         </Panel>
       </div>
 
       <div className="mt-6">
-        <Panel isDark={isDark} title="模块热度">
+        <Panel
+          isDark={isDark}
+          title="模块热度"
+          description="按现有页面路径前缀归类并汇总页面访问次数。"
+        >
           <ModuleBreakdown modules={result.module_breakdown} isDark={isDark} />
         </Panel>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
-        <Panel isDark={isDark} title="活动构成">
+        <Panel
+          isDark={isDark}
+          title="活动构成"
+          description="展示次数最多的前 10 类活动；占比按当前展示的次数计算。"
+        >
           <ActivityMix items={result.activity_breakdown} isDark={isDark} />
         </Panel>
         <Panel
           isDark={isDark}
           title="活跃学生排行"
+          description="按纳入统计的有效活动次数排序；显示人数只影响排行行数。"
           action={
             <label
               className={cn(
@@ -387,11 +431,13 @@ function Dashboard({
 function Panel({
   isDark,
   title,
+  description,
   action,
   children,
 }: {
   isDark: boolean;
   title: string;
+  description?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
@@ -402,10 +448,17 @@ function Panel({
         isDark ? 'border-slate-800 bg-slate-900' : 'border-[#e5e5e5] bg-white'
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className={cn('text-lg font-semibold', isDark ? 'text-slate-100' : 'text-[#0a0a0a]')}>
-          {title}
-        </h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className={cn('text-lg font-semibold', isDark ? 'text-slate-100' : 'text-[#0a0a0a]')}>
+            {title}
+          </h2>
+          {description ? (
+            <p className={cn('mt-1 text-xs leading-5', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
+              {description}
+            </p>
+          ) : null}
+        </div>
         {action}
       </div>
       <div className="mt-5">{children}</div>
