@@ -253,7 +253,7 @@ describe('UserModel admin queries', () => {
     });
   });
 
-  it('creates users with legacy nickname unset', async () => {
+  it('creates users with legacy nickname unset and registration recorded as the first login', async () => {
     usersFindOne.mockResolvedValueOnce(null);
     usersInsertOne.mockResolvedValueOnce({ acknowledged: true });
 
@@ -273,6 +273,8 @@ describe('UserModel admin queries', () => {
       show_real_name_publicly: false,
       email: 'new@example.com',
     });
+    expect(result.created_at).toBeInstanceOf(Date);
+    expect(result.last_login_at).toBe(result.created_at);
     expect(usersInsertOne).toHaveBeenCalledWith(
       expect.objectContaining({
         username: 'new-user',
@@ -280,6 +282,8 @@ describe('UserModel admin queries', () => {
         real_name: 'New User',
         show_real_name_publicly: false,
         password_hash: 'hashed-client-hash',
+        created_at: result.created_at,
+        last_login_at: result.created_at,
       })
     );
   });
