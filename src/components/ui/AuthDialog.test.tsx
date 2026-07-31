@@ -51,15 +51,17 @@ describe('AuthDialog registration', () => {
     openRegisterDialog();
   });
 
-  it('renders username and real-name fields', () => {
+  it('renders required identity and recovery-email fields', () => {
     renderDialog();
 
     expect(screen.getByLabelText('用户名 *')).toHaveProperty('required', true);
     expect(screen.getByLabelText('真实姓名 *')).toHaveProperty('required', true);
+    expect(screen.getByLabelText('邮箱 *')).toHaveProperty('required', true);
+    expect(screen.getByText('用于接收密码重置链接')).toBeDefined();
     expect(screen.queryByLabelText('昵称 *')).toBeNull();
   });
 
-  it('submits username and real name during registration', async () => {
+  it('submits trimmed registration fields', async () => {
     renderDialog();
 
     fireEvent.change(screen.getByLabelText('用户名 *'), {
@@ -67,6 +69,9 @@ describe('AuthDialog registration', () => {
     });
     fireEvent.change(screen.getByLabelText('真实姓名 *'), {
       target: { value: ' Lin Chen ' },
+    });
+    fireEvent.change(screen.getByLabelText('邮箱 *'), {
+      target: { value: ' student@example.com ' },
     });
     fireEvent.change(screen.getByLabelText('密码 *'), {
       target: { value: 'Password1!' },
@@ -81,8 +86,32 @@ describe('AuthDialog registration', () => {
         'student-1',
         'Lin Chen',
         'Password1!',
-        undefined
+        'student@example.com'
       );
     });
+  });
+
+  it('rejects malformed email before registration', async () => {
+    renderDialog();
+
+    fireEvent.change(screen.getByLabelText('用户名 *'), {
+      target: { value: 'student-1' },
+    });
+    fireEvent.change(screen.getByLabelText('真实姓名 *'), {
+      target: { value: 'Lin Chen' },
+    });
+    fireEvent.change(screen.getByLabelText('邮箱 *'), {
+      target: { value: 'not-an-email' },
+    });
+    fireEvent.change(screen.getByLabelText('密码 *'), {
+      target: { value: 'Password1!' },
+    });
+    fireEvent.change(screen.getByLabelText('确认密码 *'), {
+      target: { value: 'Password1!' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: '注册' }).closest('form')!);
+
+    expect(await screen.findByText('邮箱格式不正确')).toBeDefined();
+    expect(mocks.register).not.toHaveBeenCalled();
   });
 });

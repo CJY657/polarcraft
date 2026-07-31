@@ -261,7 +261,7 @@ export class UserModel {
       role: 'user',
       avatar_url: null,
       is_active: true,
-      email: input.email || null,
+      email: input.email,
       email_verified: false,
       created_at: now,
       updated_at: now,

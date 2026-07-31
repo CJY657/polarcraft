@@ -6,15 +6,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/lib/auth.service';
 import { Dialog } from '@/components/ui/dialog';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function ProfileCompletionModal() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [realName, setRealName] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const shouldCompleteProfile = Boolean(
+  const needsRealName = Boolean(
     user && user.role !== 'admin' && !user.real_name?.trim()
   );
+  const needsEmail = Boolean(user && !user.email?.trim());
+  const shouldCompleteProfile = needsRealName || needsEmail;
 
   if (!shouldCompleteProfile) {
     return null;
@@ -23,20 +28,40 @@ export function ProfileCompletionModal() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedRealName = realName.trim();
+    const trimmedEmail = email.trim();
     setError('');
 
-    if (!trimmedRealName) {
+    if (needsRealName && !trimmedRealName) {
       setError('请输入真实姓名');
       return;
     }
 
+    if (needsEmail && !trimmedEmail) {
+      setError('请输入邮箱');
+      return;
+    }
+
+    if (needsEmail && !EMAIL_PATTERN.test(trimmedEmail)) {
+      setError('邮箱格式不正确');
+      return;
+    }
+
+    const updates: { real_name?: string; email?: string } = {};
+    if (needsRealName) {
+      updates.real_name = trimmedRealName;
+    }
+    if (needsEmail) {
+      updates.email = trimmedEmail;
+    }
+
     try {
       setIsSaving(true);
-      await authApi.updateProfile({ real_name: trimmedRealName });
+      await authApi.updateProfile(updates);
       await refreshUser();
       setRealName('');
+      setEmail('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存真实姓名失败，请稍后重试');
+      setError(err instanceof Error ? err.message : '保存身份信息失败，请稍后重试');
     } finally {
       setIsSaving(false);
     }
@@ -45,8 +70,15 @@ export function ProfileCompletionModal() {
   const handleLogout = async () => {
     await logout();
     setRealName('');
+    setEmail('');
     navigate('/');
   };
+
+  const completionMessage = needsRealName && needsEmail
+    ? '继续使用 PolariScope 前，请补充真实姓名和邮箱。邮箱用于接收密码重置链接。'
+    : needsEmail
+      ? '继续使用 PolariScope 前，请绑定邮箱，用于接收密码重置链接。'
+      : '继续使用 PolariScope 前，请补充真实姓名。用户名将作为公开名称显示。';
 
   return (
     <Dialog
@@ -65,30 +97,54 @@ export function ProfileCompletionModal() {
           <div>
             <h2 className="text-xl font-semibold text-clay-ink">完善身份信息</h2>
             <p className="mt-1 text-sm leading-6 text-clay-body">
-              继续使用 PolariScope 前，请补充真实姓名。用户名将作为公开名称显示。
+              {completionMessage}
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="profile-completion-real-name" className="mb-2 block text-sm font-semibold text-clay-ink">
-              真实姓名 *
-            </label>
-            <input
-              id="profile-completion-real-name"
-              type="text"
-              value={realName}
-              onChange={(event) => {
-                setRealName(event.target.value);
-                setError('');
-              }}
-              required
-              autoFocus
-              className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
-              placeholder="请输入真实姓名"
-            />
-          </div>
+          {needsRealName && (
+            <div>
+              <label htmlFor="profile-completion-real-name" className="mb-2 block text-sm font-semibold text-clay-ink">
+                真实姓名 *
+              </label>
+              <input
+                id="profile-completion-real-name"
+                type="text"
+                value={realName}
+                onChange={(event) => {
+                  setRealName(event.target.value);
+                  setError('');
+                }}
+                required
+                autoFocus
+                className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
+                placeholder="请输入真实姓名"
+              />
+            </div>
+          )}
+
+          {needsEmail && (
+            <div>
+              <label htmlFor="profile-completion-email" className="mb-2 block text-sm font-semibold text-clay-ink">
+                邮箱 *
+              </label>
+              <input
+                id="profile-completion-email"
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError('');
+                }}
+                required
+                autoFocus={!needsRealName}
+                className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
+                placeholder="请输入邮箱"
+              />
+              <p className="mt-2 text-xs text-clay-muted">用于接收密码重置链接</p>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-xl border border-clay-coral/40 bg-clay-coral/10 px-4 py-3 text-sm text-clay-coral">

@@ -399,6 +399,7 @@ export class PostHogService {
   private static async getSummary(userId: string): Promise<AdminUserPostHogSummary> {
     const query = `
       SELECT
+        toDate(timestamp) AS day,
         toString(max(timestamp)) AS last_activity,
         count() AS meaningful_events,
         countIf(event = '$pageview') AS pageviews,
@@ -409,17 +410,48 @@ export class PostHogService {
         AND timestamp < toStartOfDay(now()) + INTERVAL 1 DAY
         AND properties.$is_identified = true
         AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
+      GROUP BY day
+      ORDER BY day
     `;
     const response = await this.runQuery(query, 'admin user analytics summary');
-    const row = this.extractRows(response)[0] ?? [];
-    const meaningfulEvents = this.numberOrZero(row[1]);
+    const rows = this.extractRows(response).filter(
+      (row): row is unknown[] => typeof row[0] === 'string'
+    );
+
+    const eventsByDate = new Map<string, number>();
+    let lastActivity: string | null = null;
+    let meaningfulEvents = 0;
+    let pageviews = 0;
+    let learningActions = 0;
+    for (const row of rows) {
+      eventsByDate.set(row[0] as string, this.numberOrZero(row[2]));
+      // rows are ordered by day, so the last row carries the newest timestamp
+      lastActivity = this.stringOrNull(row[1]) ?? lastActivity;
+      meaningfulEvents += this.numberOrZero(row[2]);
+      pageviews += this.numberOrZero(row[3]);
+      learningActions += this.numberOrZero(row[4]);
+    }
+
+    // Fill every day of the window so the trend chart gets a dense series.
+    // Day boundaries follow the PostHog project timezone; if that runs ahead of
+    // the server's UTC date, extend the window so returned days stay visible.
+    const lastRowDate = rows.length > 0 ? (rows[rows.length - 1][0] as string) : null;
+    const todayUtc = new Date().toISOString().slice(0, 10);
+    const endDate = lastRowDate && lastRowDate > todayUtc ? lastRowDate : todayUtc;
+    const endTimestamp = Date.parse(`${endDate}T00:00:00Z`);
+    const daily: AdminUserPostHogSummary['daily'] = [];
+    for (let offset = this.SUMMARY_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
+      const date = new Date(endTimestamp - offset * 86_400_000).toISOString().slice(0, 10);
+      daily.push({ date, events: eventsByDate.get(date) ?? 0 });
+    }
 
     return {
       window_days: this.SUMMARY_WINDOW_DAYS,
-      last_activity: meaningfulEvents === 0 ? null : this.stringOrNull(row[0]),
+      last_activity: meaningfulEvents === 0 ? null : lastActivity,
       meaningful_events: meaningfulEvents,
-      pageviews: this.numberOrZero(row[2]),
-      learning_actions: this.numberOrZero(row[3]),
+      pageviews,
+      learning_actions: learningActions,
+      daily,
     };
   }
 

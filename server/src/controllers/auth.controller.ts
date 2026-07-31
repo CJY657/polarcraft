@@ -145,8 +145,8 @@ export class AuthController {
  * 忘记密码
    */
   static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-    const { username, email } = req.body;
-    const result = await AuthService.forgotPassword({ username, email });
+    const { username } = req.body;
+    const result = await AuthService.forgotPassword({ username });
 
     logger.info(`Password reset requested for: ${username}`);
     res.success(result);

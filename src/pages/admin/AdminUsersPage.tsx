@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { FormEvent, KeyboardEvent, PointerEvent, ReactNode, useEffect, useId, useState } from 'react';
 import {
   Activity,
   ArrowDown,
@@ -32,6 +32,7 @@ import {
   type AdminUserDetail,
   type AdminUserListItem,
   type AdminUserPostHogAnalyticsResponse,
+  type AdminUserPostHogDailyActivity,
   type AdminUserRoleFilter,
   type AdminUserSortField,
   type AdminUserSortOrder,
@@ -889,6 +890,7 @@ function UserDetailDialog({
       ? '教育经历加载失败'
       : `教育经历 ${detail?.educations.length ?? 0} 条`;
   const analyticsSummary = analytics?.summary;
+  const analyticsDaily = analyticsSummary?.daily ?? [];
   const hasAnalyticsActivity = Boolean(
     analyticsSummary &&
       (analyticsSummary.last_activity ||
@@ -1173,7 +1175,14 @@ function UserDetailDialog({
           analytics?.status === 'ok' &&
           analyticsSummary &&
           hasAnalyticsActivity ? (
-            <div className="grid gap-3 sm:grid-cols-2" aria-label="用户近 10 天活动指标">
+            <>
+              {analyticsDaily.length > 1 ? (
+                <div className={cn('mb-3 rounded-2xl border p-4', panelClass)}>
+                  <p className={cn('text-sm font-medium', mutedText)}>每日有效活动</p>
+                  <ActivityTrendChart daily={analyticsDaily} theme={theme} />
+                </div>
+              ) : null}
+              <div className="grid gap-3 sm:grid-cols-2" aria-label="用户近 10 天活动指标">
               {[
                 {
                   label: '最近活跃',
@@ -1228,7 +1237,8 @@ function UserDetailDialog({
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           ) : null}
         </DetailSection>
 
@@ -1307,6 +1317,222 @@ function UserDetailDialog({
         ) : null}
       </div>
     </Dialog>
+  );
+}
+
+const TREND_WIDTH = 600;
+const TREND_HEIGHT = 150;
+const TREND_TOP = 28;
+const TREND_BOTTOM = 6;
+const TREND_SIDE = 8;
+
+function formatDayTick(date: string): string {
+  const [, month, day] = date.split('-');
+  return `${Number(month)}/${Number(day)}`;
+}
+
+function formatDayFull(date: string): string {
+  const [, month, day] = date.split('-');
+  return `${Number(month)}月${Number(day)}日`;
+}
+
+function ActivityTrendChart({
+  daily,
+  theme,
+}: {
+  daily: AdminUserPostHogDailyActivity[];
+  theme: string;
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const gradientId = useId();
+  const tableId = useId();
+
+  if (daily.length < 2) {
+    return null;
+  }
+
+  const lineColor = theme === 'dark' ? '#2ba18f' : '#0d9488';
+  const surfaceColor = theme === 'dark' ? '#070d1f' : '#f8fafc';
+  const hairlineColor = theme === 'dark' ? '#334155' : '#e2e8f0';
+  const crosshairColor = theme === 'dark' ? '#475569' : '#cbd5e1';
+
+  const plotHeight = TREND_HEIGHT - TREND_TOP - TREND_BOTTOM;
+  const baseline = TREND_TOP + plotHeight;
+  const maxValue = Math.max(...daily.map((day) => day.events));
+  const peakIndex = daily.findIndex((day) => day.events === maxValue);
+  const lastIndex = daily.length - 1;
+  const x = (index: number) => TREND_SIDE + (index * (TREND_WIDTH - TREND_SIDE * 2)) / lastIndex;
+  const y = (value: number) =>
+    baseline - (maxValue === 0 ? 0 : (value / maxValue) * plotHeight);
+  const points = daily.map((day, index) => `${x(index)},${y(day.events)}`).join(' ');
+  const areaPath = [
+    `M ${x(0)} ${baseline}`,
+    ...daily.map((day, index) => `L ${x(index)} ${y(day.events)}`),
+    `L ${x(lastIndex)} ${baseline}`,
+    'Z',
+  ].join(' ');
+  const leftPercent = (index: number) =>
+    Math.min(90, Math.max(10, (x(index) / TREND_WIDTH) * 100));
+  const active = activeIndex === null ? null : daily[activeIndex];
+
+  const indexFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    return Math.min(lastIndex, Math.max(0, Math.round(ratio * lastIndex)));
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      const step = event.key === 'ArrowLeft' ? -1 : 1;
+      setActiveIndex((current) =>
+        Math.min(lastIndex, Math.max(0, (current ?? lastIndex) + step))
+      );
+    } else if (event.key === 'Escape') {
+      setActiveIndex(null);
+    }
+  };
+
+  return (
+    <div>
+      <div
+        role="img"
+        aria-label={`近 ${daily.length} 天每日有效活动趋势，按左右方向键查看单日数值`}
+        aria-describedby={tableId}
+        tabIndex={0}
+        onPointerMove={(event) => setActiveIndex(indexFromPointer(event))}
+        onPointerLeave={() => setActiveIndex(null)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setActiveIndex(null)}
+        className={cn(
+          'relative mt-2 rounded-xl outline-none focus-visible:ring-2',
+          theme === 'dark' ? 'focus-visible:ring-cyan-300' : 'focus-visible:ring-cyan-600'
+        )}
+      >
+        <svg
+          viewBox={`0 0 ${TREND_WIDTH} ${TREND_HEIGHT}`}
+          className="h-auto w-full overflow-visible"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <line
+            x1={TREND_SIDE}
+            x2={TREND_WIDTH - TREND_SIDE}
+            y1={baseline}
+            y2={baseline}
+            stroke={hairlineColor}
+            strokeWidth="1"
+          />
+          <path d={areaPath} fill={`url(#${gradientId})`} />
+          <polyline
+            points={points}
+            fill="none"
+            stroke={lineColor}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {activeIndex !== null ? (
+            <line
+              x1={x(activeIndex)}
+              x2={x(activeIndex)}
+              y1={TREND_TOP - 6}
+              y2={baseline}
+              stroke={crosshairColor}
+              strokeWidth="1"
+            />
+          ) : null}
+          <circle cx={x(lastIndex)} cy={y(daily[lastIndex].events)} r="6" fill={surfaceColor} />
+          <circle cx={x(lastIndex)} cy={y(daily[lastIndex].events)} r="4" fill={lineColor} />
+          {activeIndex !== null ? (
+            <>
+              <circle
+                cx={x(activeIndex)}
+                cy={y(daily[activeIndex].events)}
+                r="6"
+                fill={surfaceColor}
+              />
+              <circle
+                cx={x(activeIndex)}
+                cy={y(daily[activeIndex].events)}
+                r="4"
+                fill={lineColor}
+              />
+            </>
+          ) : null}
+        </svg>
+
+        {maxValue > 0 && activeIndex === null ? (
+          <span
+            className={cn(
+              'absolute -translate-x-1/2 -translate-y-full text-xs font-medium tabular-nums',
+              theme === 'dark' ? 'text-slate-200' : 'text-slate-700'
+            )}
+            style={{
+              left: `${leftPercent(peakIndex)}%`,
+              top: `${(TREND_TOP / TREND_HEIGHT) * 100}%`,
+            }}
+          >
+            {maxValue.toLocaleString('zh-CN')}
+          </span>
+        ) : null}
+
+        {active ? (
+          <div
+            className={cn(
+              'pointer-events-none absolute top-0 -translate-x-1/2 rounded-lg border px-2.5 py-1.5 text-center shadow-sm',
+              theme === 'dark' ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'
+            )}
+            style={{ left: `${leftPercent(activeIndex ?? 0)}%` }}
+          >
+            <div
+              className={cn(
+                'text-sm font-semibold tabular-nums',
+                theme === 'dark' ? 'text-white' : 'text-slate-900'
+              )}
+            >
+              {active.events.toLocaleString('zh-CN')}
+            </div>
+            <div className={cn('text-xs', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
+              {formatDayFull(active.date)}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        className={cn(
+          'mt-1 flex justify-between text-xs',
+          theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+        )}
+      >
+        <span>{formatDayTick(daily[0].date)}</span>
+        <span>{formatDayTick(daily[lastIndex].date)}</span>
+      </div>
+
+      <table id={tableId} className="sr-only">
+        <caption>近 {daily.length} 天每日有效活动数据</caption>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>有效活动</th>
+          </tr>
+        </thead>
+        <tbody>
+          {daily.map((day) => (
+            <tr key={day.date}>
+              <td>{day.date}</td>
+              <td>{day.events}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

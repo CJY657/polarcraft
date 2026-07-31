@@ -79,12 +79,19 @@ export interface AdminUserPostHogPerson {
   last_seen_at: string | null;
 }
 
+export interface AdminUserPostHogDailyActivity {
+  date: string;
+  events: number;
+}
+
 export interface AdminUserPostHogSummary {
   window_days: 10;
   last_activity: string | null;
   meaningful_events: number;
   pageviews: number;
   learning_actions: number;
+  /** Dense day-by-day series for the summary window (absent on older payloads). */
+  daily?: AdminUserPostHogDailyActivity[];
 }
 
 export interface AdminUserPostHogAnalyticsResponse {

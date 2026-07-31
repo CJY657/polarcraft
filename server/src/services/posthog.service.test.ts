@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedConfig = vi.hoisted(() => ({
   posthog: {
@@ -43,6 +43,10 @@ describe('PostHogService', () => {
     mockedConfig.posthog.personalApiKey = 'phx_secret';
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns disabled when the backend PostHog configuration is incomplete', async () => {
     mockedConfig.posthog.personalApiKey = '';
 
@@ -68,6 +72,8 @@ describe('PostHogService', () => {
   });
 
   it('maps person and the current 10-calendar-day summary from PostHog responses', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-14T15:00:00Z'));
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
@@ -83,7 +89,10 @@ describe('PostHogService', () => {
       )
       .mockResolvedValueOnce(
         jsonResponse({
-          results: [['2026-05-14T12:00:00.000Z', 42, 11, 7]],
+          results: [
+            ['2026-05-13', '2026-05-13T09:00:00.000Z', 12, 3, 2],
+            ['2026-05-14', '2026-05-14T12:00:00.000Z', 30, 8, 5],
+          ],
         })
       );
 
@@ -101,6 +110,18 @@ describe('PostHogService', () => {
         meaningful_events: 42,
         pageviews: 11,
         learning_actions: 7,
+        daily: [
+          { date: '2026-05-05', events: 0 },
+          { date: '2026-05-06', events: 0 },
+          { date: '2026-05-07', events: 0 },
+          { date: '2026-05-08', events: 0 },
+          { date: '2026-05-09', events: 0 },
+          { date: '2026-05-10', events: 0 },
+          { date: '2026-05-11', events: 0 },
+          { date: '2026-05-12', events: 0 },
+          { date: '2026-05-13', events: 12 },
+          { date: '2026-05-14', events: 30 },
+        ],
       },
     });
 
@@ -128,6 +149,7 @@ describe('PostHogService', () => {
     expect(summaryBody.query.query).toContain(
       'timestamp < toStartOfDay(now()) + INTERVAL 1 DAY'
     );
+    expect(summaryBody.query.query).toContain('GROUP BY day');
     expect(summaryBody.query.query).toContain('properties.$is_identified = true');
     expect(summaryBody.query.query).toContain(
       "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"
@@ -139,14 +161,12 @@ describe('PostHogService', () => {
     expect(summaryBody.query.query).not.toContain('INTERVAL 10 DAY');
   });
 
-  it('returns a null last activity when no filtered events exist in the window', async () => {
+  it('returns a null last activity and a zero-filled daily series when no filtered events exist', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-14T15:00:00Z'));
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ results: [{ id: 'person-1' }] }))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          results: [['1970-01-01T00:00:00.000Z', 0, 0, 0]],
-        })
-      );
+      .mockResolvedValueOnce(jsonResponse({ results: [] }));
 
     await expect(PostHogService.getUserAnalytics('user-1')).resolves.toEqual({
       status: 'ok',
@@ -162,8 +182,30 @@ describe('PostHogService', () => {
         meaningful_events: 0,
         pageviews: 0,
         learning_actions: 0,
+        daily: Array.from({ length: 10 }, (_, index) => ({
+          date: new Date(Date.UTC(2026, 4, 5 + index)).toISOString().slice(0, 10),
+          events: 0,
+        })),
       },
     });
+  });
+
+  it('extends the daily window when PostHog reports a day ahead of the server clock', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-14T20:00:00Z'));
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ results: [{ id: 'person-1' }] }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [['2026-05-15', '2026-05-15T02:00:00.000Z', 4, 1, 0]],
+        })
+      );
+
+    const result = await PostHogService.getUserAnalytics('user-1');
+    expect(result.summary?.daily).toHaveLength(10);
+    expect(result.summary?.daily.at(-1)).toEqual({ date: '2026-05-15', events: 4 });
+    expect(result.summary?.daily.at(0)).toEqual({ date: '2026-05-06', events: 0 });
+    expect(result.summary?.meaningful_events).toBe(4);
   });
 
   it('raises a sanitized upstream error without exposing the personal API key', async () => {

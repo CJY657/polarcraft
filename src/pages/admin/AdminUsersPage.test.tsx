@@ -330,6 +330,18 @@ describe('AdminUsersPage', () => {
         meaningful_events: 42,
         pageviews: 11,
         learning_actions: 7,
+        daily: [
+          { date: '2026-07-21', events: 0 },
+          { date: '2026-07-22', events: 2 },
+          { date: '2026-07-23', events: 5 },
+          { date: '2026-07-24', events: 0 },
+          { date: '2026-07-25', events: 9 },
+          { date: '2026-07-26', events: 3 },
+          { date: '2026-07-27', events: 6 },
+          { date: '2026-07-28', events: 8 },
+          { date: '2026-07-29', events: 4 },
+          { date: '2026-07-30', events: 5 },
+        ],
       },
     });
 
@@ -342,17 +354,23 @@ describe('AdminUsersPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
 
     expect(await screen.findByText('最近活跃')).toBeDefined();
-    expect(screen.getByText('有效活动')).toBeDefined();
+    expect(screen.getAllByText('有效活动').length).toBeGreaterThan(0);
     expect(screen.getByText('页面访问')).toBeDefined();
     expect(screen.getByText('学习行为')).toBeDefined();
     expect(screen.getByText('42')).toBeDefined();
     expect(screen.getByText('11')).toBeDefined();
     expect(screen.getByText('7')).toBeDefined();
-    expect(screen.getByText(/2026.*07.*30/)).toBeDefined();
+    expect(screen.getAllByText(/2026.*07.*30/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/2020.*01.*01/)).toBeNull();
     expect(screen.queryByText('查看页面')).toBeNull();
     expect(screen.queryByText('最近 10 条行为')).toBeNull();
     expect(screen.queryByText('PostHog')).toBeNull();
+
+    expect(screen.getByText('每日有效活动')).toBeDefined();
+    expect(screen.getByRole('img', { name: /近 10 天每日有效活动趋势/ })).toBeDefined();
+    expect(screen.getByText('7/21')).toBeDefined();
+    expect(screen.getByText('7/30')).toBeDefined();
+    expect(screen.getByText('近 10 天每日有效活动数据')).toBeDefined();
   });
 
   it('loads profile and analytics independently with KPI-shaped analytics skeletons', async () => {

@@ -65,7 +65,7 @@ export interface RegisterInput {
   username: string;
   real_name: string;
   password: string;
-  email?: string;
+  email: string;
 }
 
 export interface UpdateProfileInput {
@@ -84,7 +84,6 @@ export interface ChangePasswordInput {
 
 export interface ForgotPasswordInput {
   username: string;
-  email?: string;
 }
 
 export interface ResetPasswordTokenValidation {
@@ -125,7 +124,7 @@ export const authApi = {
       username: input.username,
       real_name: input.real_name,
       password: hashedPassword,
-      email: input.email,
+      email: input.email.trim(),
       clientSalt: salt,
     });
     if (response.success && response.data) {

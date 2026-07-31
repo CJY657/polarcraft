@@ -141,12 +141,19 @@ export interface AdminUserPostHogPerson {
 }
 
 /** Admin PostHog 10-day summary / 管理员可见的 PostHog 10 天摘要 */
+/** One day of meaningful events inside the summary window / 概览窗口内单日有效活动 */
+export interface AdminUserPostHogDailyActivity {
+  date: string;
+  events: number;
+}
+
 export interface AdminUserPostHogSummary {
   window_days: 10;
   last_activity: string | null;
   meaningful_events: number;
   pageviews: number;
   learning_actions: number;
+  daily: AdminUserPostHogDailyActivity[];
 }
 
 /** Admin user PostHog analytics response / 管理员用户 PostHog 行为响应 */

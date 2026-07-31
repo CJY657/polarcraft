@@ -62,8 +62,10 @@ export const realNameValidation = body('real_name')
   .withMessage('真实姓名长度必须在 1-50 个字符之间');
 
 export const emailValidation = body('email')
-  .optional()
   .trim()
+  .notEmpty()
+  .withMessage('请输入邮箱')
+  .bail()
   .isEmail()
   .withMessage('邮箱格式不正确')
   .normalizeEmail();
@@ -147,16 +149,7 @@ export const validateChangePassword = validate(
 );
 
 export const validateForgotPassword = validate(
-  body('username')
-    .trim()
-    .notEmpty()
-    .withMessage('请提供用户名或邮箱'),
-  body('email')
-    .optional({ values: 'falsy' })
-    .trim()
-    .isEmail()
-    .withMessage('邮箱格式不正确')
-    .normalizeEmail(),
+  usernameValidation,
 );
 
 export const validateResetPassword = validate(

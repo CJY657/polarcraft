@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     nickname: string | null;
     real_name: string | null;
     role: 'user' | 'admin';
+    email: string | null;
   },
   logout: vi.fn(),
   refreshUser: vi.fn(),
@@ -53,6 +54,7 @@ describe('ProfileCompletionModal', () => {
       nickname: null,
       real_name: null,
       role: 'user',
+      email: 'alice@example.com',
     };
   });
 
@@ -69,11 +71,28 @@ describe('ProfileCompletionModal', () => {
       nickname: null,
       real_name: null,
       role: 'admin',
+      email: 'admin@example.com',
     };
 
     renderModal();
 
     expect(screen.queryByText('完善身份信息')).toBeNull();
+  });
+
+  it('appears for email-less administrators without requiring real name', () => {
+    mocks.user = {
+      id: 'admin-1',
+      username: 'admin',
+      nickname: null,
+      real_name: null,
+      role: 'admin',
+      email: null,
+    };
+
+    renderModal();
+
+    expect(screen.getByLabelText('邮箱 *')).toBeDefined();
+    expect(screen.queryByLabelText('真实姓名 *')).toBeNull();
   });
 
   it('saves real name and refreshes auth state', async () => {
@@ -88,5 +107,60 @@ describe('ProfileCompletionModal', () => {
       expect(mocks.updateProfile).toHaveBeenCalledWith({ real_name: 'Lin Chen' });
     });
     expect(mocks.refreshUser).toHaveBeenCalled();
+  });
+
+  it('validates and saves a trimmed email for an email-less user', async () => {
+    mocks.user = {
+      id: 'user-1',
+      username: 'alice',
+      nickname: null,
+      real_name: 'Alice Chen',
+      role: 'user',
+      email: null,
+    };
+    renderModal();
+
+    fireEvent.change(screen.getByLabelText('邮箱 *'), {
+      target: { value: 'not-an-email' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: '保存并继续' }).closest('form')!);
+
+    expect(await screen.findByText('邮箱格式不正确')).toBeDefined();
+    expect(mocks.updateProfile).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('邮箱 *'), {
+      target: { value: ' alice@example.com ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存并继续' }));
+
+    await waitFor(() => {
+      expect(mocks.updateProfile).toHaveBeenCalledWith({
+        email: 'alice@example.com',
+      });
+    });
+    expect(mocks.refreshUser).toHaveBeenCalled();
+  });
+
+  it('disappears after refreshed user data includes all required fields', async () => {
+    mocks.user = {
+      id: 'user-1',
+      username: 'alice',
+      nickname: null,
+      real_name: 'Alice Chen',
+      role: 'user',
+      email: null,
+    };
+    const view = renderModal();
+
+    expect(screen.getByText('完善身份信息')).toBeDefined();
+
+    mocks.user = { ...mocks.user, email: 'alice@example.com' };
+    view.rerender(
+      <MemoryRouter>
+        <ProfileCompletionModal />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText('完善身份信息')).toBeNull();
   });
 });

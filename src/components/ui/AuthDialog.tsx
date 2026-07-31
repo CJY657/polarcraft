@@ -48,6 +48,8 @@ const formVariants = {
   })
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Login Form Component
 function LoginForm({ onSwitchToRegister }: { onSwitchToRegister: () => void }) {
   const { t } = useTranslation();
@@ -209,6 +211,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    const trimmedEmail = email.trim();
 
     if (password !== confirmPassword) {
       setError('两次输入的密码不一致');
@@ -217,6 +220,16 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
     if (!realName.trim()) {
       setError('请输入真实姓名');
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setError('请输入邮箱');
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError('邮箱格式不正确');
       return;
     }
 
@@ -232,7 +245,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         username.trim(),
         realName.trim(),
         password,
-        email || undefined
+        trimmedEmail
       );
       const returnTo = consumeReturnTo();
       closeDialog();
@@ -310,16 +323,18 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
         <div>
           <label htmlFor="register-email" className="mb-2 block text-sm font-semibold text-clay-ink">
-            {t('auth.email', '邮箱')} <span className="text-clay-muted font-normal">({t('auth.optional', '可选')})</span>
+            {t('auth.email', '邮箱')} *
           </label>
           <input
             id="register-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
             className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
             placeholder={t('auth.emailPlaceholder', '请输入邮箱')}
           />
+          <p className="mt-2 text-xs text-clay-muted">用于接收密码重置链接</p>
         </div>
 
         <div>

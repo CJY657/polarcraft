@@ -31,7 +31,7 @@ interface AuthContextType {
     username: string,
     realName: string,
     password: string,
-    email?: string
+    email: string
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     realName: string,
     password: string,
-    email?: string
+    email: string
   ) => {
     const response = await authApi.register({
       username,
