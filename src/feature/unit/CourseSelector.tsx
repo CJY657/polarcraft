@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/classNames";
-import { preloadCourseViewerRoute } from "@/lib/routePreload";
+import { loadCourseViewerModule } from "@/lib/routePreload";
 import { BookOpen, Play, FileText, ChevronRight } from "lucide-react";
 import type { UnitCourse } from "@/lib/unit.service";
 import { getKnowledgeTagLabel } from "@/lib/course.service";
@@ -181,9 +181,9 @@ export function CourseSelector({
               <Link
                 key={course.id}
                 to={getCourseHref(course.id)}
-                onPointerEnter={preloadCourseViewerRoute}
-                onFocus={preloadCourseViewerRoute}
-                onTouchStart={preloadCourseViewerRoute}
+                onPointerEnter={loadCourseViewerModule}
+                onFocus={loadCourseViewerModule}
+                onTouchStart={loadCourseViewerModule}
                 className={cn(
                   "group block px-3.5 py-3 transition-all sm:px-4",
                   isClay

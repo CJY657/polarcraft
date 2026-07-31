@@ -21,6 +21,7 @@ import {
 } from '@/lib/admin-user.service';
 import { formatEventName, formatPagePath } from '@/pages/admin/activity-labels';
 import { cn } from '@/utils/classNames';
+import { formatShortDateTime } from '@/lib/datetime.util';
 
 const RANGES: Array<{ days: number; label: string }> = [
   { days: 7, label: '近 7 天' },
@@ -50,15 +51,6 @@ function formatDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString('zh-CN', {
     month: 'numeric',
     day: 'numeric',
-  });
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
   });
 }
 
@@ -386,7 +378,7 @@ function Dashboard({
       </div>
 
       <p className={cn('mt-4 text-right text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-        数据更新时间：{formatDateTime(result.generated_at)}
+        数据更新时间：{formatShortDateTime(result.generated_at)}
       </p>
     </>
   );
@@ -717,7 +709,7 @@ function TopLearners({
               <td className="hidden py-3 pr-4 text-right tabular-nums md:table-cell">{learner.pageviews}</td>
               <td className="py-3 pr-4 text-right tabular-nums">{learner.learning_actions}</td>
               <td className={cn('py-3 text-right text-xs', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-                {learner.last_activity ? formatDateTime(learner.last_activity) : '暂无记录'}
+                {learner.last_activity ? formatShortDateTime(learner.last_activity) : '暂无记录'}
               </td>
             </tr>
           ))}

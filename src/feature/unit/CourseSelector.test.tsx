@@ -16,7 +16,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/lib/routePreload", () => ({
-  preloadCourseViewerRoute: vi.fn(),
+  loadCourseViewerModule: vi.fn(),
 }));
 
 describe("CourseSelector", () => {

@@ -27,21 +27,11 @@ import {
 } from '@/lib/quiz.service';
 import { tierLabelZh, tierStyle } from '@/feature/quiz/quizTiers';
 import { cn } from '@/utils/classNames';
+import { formatDateTimeOrDash } from '@/lib/datetime.util';
 
 const PAGE_SIZE = 20;
 
 type SortBy = 'best_percent' | 'latest_at' | 'attempts';
-
-function formatDateTime(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function AdminQuizPage() {
   const { theme } = useTheme();
@@ -309,7 +299,7 @@ export default function AdminQuizPage() {
                     </td>
                     <td className={cn('py-3 pr-4 tabular-nums', mutedText)}>{row.attempts}</td>
                     <td className={cn('py-3 tabular-nums', mutedText)}>
-                      {formatDateTime(row.latest_at)}
+                      {formatDateTimeOrDash(row.latest_at)}
                     </td>
                   </tr>
                 ))}

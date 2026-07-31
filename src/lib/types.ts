@@ -23,9 +23,8 @@ export interface LightPacket {
  * 方块类型 - 扩展版
  *
  * ⚠️ SCIENTIFIC NOTE: This game uses SIMPLIFIED physics models for some components.
- * For scientifically accurate simulations, use the Jones Calculus engine in WaveOptics.ts.
  *
- * Key simplifications in the game engine (LightPhysics.ts):
+ * Key simplifications in the game engine:
  * - quarterWave: Acts as 45° rotator, NOT true QWP (no circular polarization)
  * - halfWave: Acts as 90° rotator, NOT true HWP (no fast-axis dependent rotation)
  * - splitter: 90° separation like PBS/Wollaston, NOT natural calcite (~6° walk-off)

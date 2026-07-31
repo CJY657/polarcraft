@@ -10,7 +10,7 @@
  * 3D组件来自: @/feature/demos/components/Birefringence3D | 3D components from: @/feature/demos/components/Birefringence3D
  * 物理计算来自: @/lib/physics/GeometricOptics | Physics calculations from: @/lib/physics/GeometricOptics
  * 
- * 优化方向：Add Jones calculus (lib/math) for polarization state visualization (future feature)
+ * 优化方向：Add Jones calculus for polarization state visualization (future feature)
  */
 
 import { useState, useRef, useMemo } from "react";

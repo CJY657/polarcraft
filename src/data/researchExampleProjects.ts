@@ -6,11 +6,13 @@
  * 预配置的研究课题，用于展示系统功能
  */
 
-import { Node, Edge } from "reactflow";
-
 // ============================================================
 // Types - 类型定义
 // ============================================================
+
+// ponytail: 画布数据已废弃（前端不再渲染 nodes/edges），保留原始 payload 但不再依赖 reactflow 的类型
+type Node = Record<string, unknown>;
+type Edge = Record<string, unknown>;
 
 export interface ExampleProject {
   id: string;

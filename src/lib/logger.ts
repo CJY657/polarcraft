@@ -30,12 +30,6 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 export const logger = {
-  debug: (message: string, ...args: unknown[]) => {
-    if (shouldLog("debug")) {
-      console.debug(`[DEBUG] ${message}`, ...args);
-    }
-  },
-
   info: (message: string, ...args: unknown[]) => {
     if (shouldLog("info")) {
       console.info(`[INFO] ${message}`, ...args);
@@ -52,16 +46,6 @@ export const logger = {
     if (shouldLog("error")) {
       console.error(`[ERROR] ${message}`, ...args);
     }
-  },
-
-  /** Configure logger settings */
-  configure: (newConfig: Partial<LoggerConfig>) => {
-    Object.assign(config, newConfig);
-  },
-
-  /** Enable/disable logging */
-  setEnabled: (enabled: boolean) => {
-    config.enabled = enabled;
   },
 };
 

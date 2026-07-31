@@ -4,12 +4,7 @@
  */
 
 export * from './SearchFilter'
-// export * from './DataCard'
-// export * from './ExportUtils'
-// export * from './PolarizationArt'
-// export * from './ModuleTabs'
 export * from './PersistentHeader'
 export * from './LearningSectionNav'
 export * from './SecureVideoPlayer'
-// export * from './ExperimentModule'
 export * from './Footer'

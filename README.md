@@ -68,8 +68,7 @@ PolariScope 是一款由零一学院开发的偏振光学习与研究平台。�
 - **样式**：Tailwind CSS v4
 - **构建工具**：Vite
 - **3D渲染**：Three.js + @react-three/fiber + @react-three/drei
-- **实时协作**：Yjs + y-websocket
-- **数学/物理**：自研数学库（复数、矩阵、向量）+ 光学计算库（Jones矢阵、几何光学、波动光学）
+- **数学/物理**：光学计算库（几何光学、菲涅尔公式、旋光计算）
 - **动画**：Framer Motion
 - **公式渲染**：KaTeX
 - **文档**：react-markdown + remark-gfm
@@ -89,7 +88,8 @@ pnpm dev:all              # 前后端一起启动
 pnpm build                # 前端生产构建 → dist/
 pnpm build:api            # 后端 TypeScript 编译 → server/dist/
 pnpm test:run             # 前端测试（单次）
-pnpm test:api             # 后端测试
+pnpm --filter polariscope-server test:run   # 后端测试（单次）
+# 注意：pnpm test / pnpm test:api 是 watch 模式，非交互终端会一直挂起
 pnpm typecheck            # 前端类型检查
 pnpm typecheck:api        # 后端类型检查
 
@@ -981,16 +981,17 @@ polariscope/
 |--server/       # 后端服务器
 |--src/          # 前端源码
 |--docs/         # 项目文档
+|--resources/    # 课程/实验原始素材
+|--scripts/      # 本地开发脚本（dev-all.mjs）
 |--README.md
+|--CLAUDE.md     # Claude Code 项目说明
+|--DESIGN.md     # 设计语言说明
 |--components.json
 |--eslint.config.js
 |--index.html
-|--package-lock.json
 |--package.json
 |--pnpm-lock.yaml
 |--pnpm-workspace.yaml
-|--postcss.config.js
-|--tailwind.config.js
 |--tsconfig.json
 |--tsconfig.node.json
 |--tsconfig.app.json
@@ -1003,91 +1004,82 @@ polariscope/
 
 ```txt
 src/
-|--__test__/           # 测试配置
+|--__tests__/          # 测试配置（vitest setup）
 |--assets/             # 静态资源（字体、图标等）
 |--components/         # 通用可复用组件
+|   |--admin/         # 管理后台组件
+|   |--auth/          # 登录/注册/路由守卫
+|   |--discussion/    # 讨论区组件
 |   |--icons/         # 自定义 SVG 图标
 |   |--shared/        # 跨模块共享的 UI 组件
 |   `--ui/            # 基础 UI 组件
 |--contexts/           # React Context
 |   |--AuthContext.tsx    # 认证状态管理
+|   |--SystemContext.tsx  # 系统级配置
 |   `--ThemeContext.tsx   # 主题切换
 |--data/               # 静态数据文件
 |   |--courses.ts           # 课程结构数据
 |   |--gallery.ts           # 画廊作品数据
 |   |--chronicles-*.ts      # 历史事件数据
 |   |--timeline-events.ts   # 时间线数据
+|   |--concept-network.ts   # 概念网络数据
 |   `--scientist-network.ts # 科学家网络数据
 |--feature/            # 功能模块（按业务模块组织）
+|   |--admin/         # 管理后台业务逻辑
 |   |--course/        # 课程学习模块
-|   |   |--chronicles/   # 光学史时间线组件
+|   |   |--chronicles/       # 光学史时间线组件
 |   |   |--CourseViewer.tsx  # 课程查看器
 |   |   `--PdfViewer.tsx     # PDF查看器
 |   |--demos/         # 理论模拟模块
 |   |   |--components/ # 演示控件和UI
-|   |   `--unit0-3/    # 各单元演示实现
-|   |--devices/       # 光学器件模块
+|   |   `--unit0-1/    # 各单元演示实现
+|   |--feedback/      # 用户反馈模块
 |   |--gallery/       # 成果展示模块
 |   |   |--card/      # 作品卡片
 |   |   |--detail/    # 作品详情页
 |   |   |--media/     # 媒体画廊
 |   |   |--record/    # 成就记录
 |   |   `--WorksGrid.tsx
-|   |--games/         # 游戏挑战模块
-|   |   |--EscapePage.tsx    # 密室逃脱
-|   |   `--MinecraftPage.tsx # 体素游戏
-|   |--lab/           # 虚拟实验室模块
-|   `--research/      # 虚拟课题组模块
-|       |--components/
-|       |   |--canvas/    # 研究画布（React Flow）
-|       |   |--edges/     # 自定义边组件
-|       |   |--nodes/     # 节点类型（6种）
-|       |   |--panels/    # 详情面板
-|       |   |--project/   # 项目管理
-|       |   `--shared/    # Markdown编辑器
-|       |--stores/        # 画布状态管理
-|       `--pages/         # 研究页面
+|   |--profile/       # 个人主页模块
+|   |--quiz/          # 随堂测验模块
+|   |--research/      # 虚拟课题组模块
+|   |   |--components/
+|   |   |   |--project/   # 项目详情、讨论区、证据链
+|   |   |   `--shared/    # Markdown 渲染/编辑器
+|   |   `--pages/         # 研究页面
+|   `--unit/          # 单元与课程选择
 |--hooks/              # 自定义 React Hooks
-|   |--useHapticAudio.ts
-|   |--useIsMobile.ts
-|   `--usePolarizationSimulation.ts
-|--i18n/               # 国际化配置
+|   `--useIsMobile.ts
+|--i18n/               # 国际化配置（仅 zh-cn）
 |--lib/                # 核心工具库
-|   |--math/          # 数学库
-|   |   |--Complex.ts      # 复数运算（已测试）
-|   |   |--Matrix2x2.ts    # 2x2矩阵（已测试）
-|   |   `--Vector3.ts      # 3D向量（已测试）
 |   |--physics/       # 物理计算库
-|   |   |--GeoOptics.ts      # 几何光学
-|   |   |--JonesCalculus.ts  # Jones矢阵
-|   |   |--Saccharimetry.ts  # 旋光计算
-|   |   |--WaveOptics.ts     # 波动光学
-|   |   `--unified/          # 统一物理接口
-|   |--api.ts           # API 客户端
-|   |--auth.service.ts  # 认证工具
-|   |--logger.ts        # 日志工具
-|   `--storage.ts       # 本地存储
+|   |   |--GeometricOptics.ts # 几何光学
+|   |   |--Fresnel.ts         # 菲涅尔公式
+|   |   |--OpticsConstants.ts # 光学常量
+|   |   `--Saccharimetry.ts   # 旋光计算
+|   |--api.ts            # API 客户端
+|   |--auth.service.ts   # 认证工具
+|   |--datetime.util.ts  # 日期时间格式化
+|   |--logger.ts         # 日志工具
+|   `--storage.ts        # 本地存储
 |--pages/              # 主页面组件（路由层）
-|   |--HomePage.tsx       # 首页（六个模块入口）
-|   |--CoursesPage.tsx    # 模块一：课程历史
-|   |--DevicesPage.tsx    # 模块二：光学器件
-|   |--DemosPage.tsx      # 模块三：理论模拟
-|   |--GamesPage.tsx      # 模块四：游戏挑战
-|   |--GalleryPage.tsx    # 模块五：成果展示
-|   |--LabPage.tsx        # 模块六：虚拟课题组
-|   |--AboutPage.tsx
-|   |--LoginPage.tsx
-|   `--RegisterPage.tsx
+|   |--admin/             # 管理后台页面
+|   |--HomePage.tsx       # 首页（模块入口）
+|   |--CoursesPage.tsx    # 课程历史
+|   |--DevicesPage.tsx    # 光学器件
+|   |--DemosPage.tsx      # 理论模拟
+|   |--GamesPage.tsx      # 游戏挑战
+|   |--GalleryPage.tsx    # 成果展示
+|   |--QuizPage.tsx       # 随堂测验
+|   |--ProfilePage.tsx    # 个人中心
+|   |--InboxPage.tsx      # 收件箱
+|   `--AboutPage.tsx
 |--stores/             # Zustand 状态管理
-|   `--game/          # 游戏状态存储
-|--test/               # 测试文件
 |--types/              # TypeScript 类型定义
-|   |--i18n.d.ts
-|   `--research.ts    # 研究画布类型
+|   `--i18n.d.ts
 |--utils/              # 工具函数
 |--App.tsx             # 应用入口（路由配置）
-|--APP.css
-|--index.css           # 全局样式
+|--index.css           # 全局样式与设计令牌
 |--main.tsx            # React 入口
 `--vite-env.d.ts
 ```

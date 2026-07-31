@@ -10,18 +10,9 @@ import {
   type FeedbackCategory,
 } from "@/lib/feedback.service";
 import { cn } from "@/utils/classNames";
+import { formatDateTime } from "@/lib/datetime.util";
 
 type FilterValue = "all" | FeedbackCategory;
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function getCategoryMeta(category: FeedbackCategory) {
   if (category === "experiment") {
