@@ -69,7 +69,7 @@ describe('ProjectEvidenceSection', () => {
     mockUploadProjectEvidenceAttachment.mockResolvedValue({
       url: '/uploads/courses/project-evidence-project-1/image/new.png',
       filename: 'new.png',
-      originalName: 'new.png',
+      originalName: '中文证据.png',
       size: 256,
       mimeType: 'image/png',
       category: 'image',
@@ -104,14 +104,19 @@ describe('ProjectEvidenceSection', () => {
   it('creates evidence with an uploaded attachment and refreshes the list', async () => {
     mockGetProjectEvidence
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([createEvidence({ title: '新证据' })]);
+      .mockResolvedValueOnce([
+        createEvidence({
+          title: '新证据',
+          attachment_original_name: '中文证据.png',
+        }),
+      ]);
     const { container } = render(<ProjectEvidenceSection projectId="project-1" canManage />);
 
     fireEvent.click(await screen.findByRole('button', { name: '上传第一条研究证据' }));
     fireEvent.change(screen.getByLabelText('标题'), { target: { value: '新证据' } });
     fireEvent.change(screen.getByLabelText('过程说明'), { target: { value: '新的观察说明' } });
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['image-bytes'], 'new.png', { type: 'image/png' });
+    const file = new File(['image-bytes'], '中文证据.png', { type: 'image/png' });
     fireEvent.change(fileInput, { target: { files: [file] } });
     fireEvent.click(screen.getByRole('button', { name: '保存证据' }));
 
@@ -124,10 +129,11 @@ describe('ProjectEvidenceSection', () => {
         title: '新证据',
         description: '新的观察说明',
         attachment_url: '/uploads/courses/project-evidence-project-1/image/new.png',
-        attachment_original_name: 'new.png',
+        attachment_original_name: '中文证据.png',
       })
     );
     expect(await screen.findByText('新证据')).toBeTruthy();
+    expect(screen.getByText('中文证据.png')).toBeTruthy();
   });
 
   it('edits existing evidence without requiring a new attachment', async () => {

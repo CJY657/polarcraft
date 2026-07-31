@@ -14,6 +14,7 @@
     "prune:legacy": "tsx src/scripts/prune-legacy-data.ts",
     "backfill:knowledge-tags": "tsx src/scripts/backfill-course-knowledge-tags.ts",
     "backfill:research-phase0": "tsx src/scripts/backfill-research-phase0.ts",
+    "repair:evidence-filenames": "tsx src/scripts/repair-evidence-filenames.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"

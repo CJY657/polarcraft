@@ -83,9 +83,10 @@ export const createUploadMiddleware = (category: FileCategory) => {
   return multer({
     storage: createStorage(category),
     fileFilter: createFileFilter(category),
+    defParamCharset: 'utf8',
     limits: {
-    fileSize: maxSize,
-  },
+      fileSize: maxSize,
+    },
   });
 };
 
@@ -139,4 +140,3 @@ export const handleUploadError = (err: any, req: Request, res: any, next: any) =
 
   next();
 };
-
