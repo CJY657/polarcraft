@@ -140,9 +140,9 @@ describe('HomePage', () => {
     expect(screen.queryByRole('button', { name: /去测验/ })).toBeNull();
 
     const pulseEntry = screen.getByTestId('home-pulse-teaser');
-    expect(pulseEntry.textContent).toContain('平台学习热度');
+    expect(pulseEntry.textContent).toContain('平台热度');
     expect(pulseEntry.textContent).toContain('数据每 10 分钟更新一次');
-    expect(pulseEntry.className).toContain('bg-[#264653]');
+    expect(pulseEntry.className).toContain('bg-clay-surface-card');
 
     fireEvent.click(pulseEntry);
     expect(mockNavigate).toHaveBeenCalledWith('/pulse');
