@@ -29,7 +29,6 @@ import { formatShortDateTime } from '@/lib/datetime.util';
 const RANGES: Array<{ days: number; label: string }> = [
   { days: 7, label: '近 7 天' },
   { days: 30, label: '近 30 天' },
-  { days: 90, label: '近 90 天' },
 ];
 
 const LIMIT_OPTIONS: AdminActivityLimit[] = [10, 50, 100, 'all'];
@@ -60,7 +59,7 @@ function formatDate(value: string): string {
 export default function AdminActivityPage() {
   const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [range, setRange] = useState(() => presetRange(30));
+  const [range, setRange] = useState(() => presetRange(7));
   const [limit, setLimit] = useState<AdminActivityLimit>(10);
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<AdminActivityResponse | null>(null);
@@ -367,7 +366,7 @@ function Dashboard({
       label: '学习行为',
       value: summary.learning_actions,
       previous: previous?.learning_actions,
-      description: '所选起止日期均计入；已识别普通学生进入实验和提交课题申请的合计次数。',
+      description: '所选起止日期均计入；已识别普通学生进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。',
       icon: MousePointerClick,
       color: '#e8b94a',
     },

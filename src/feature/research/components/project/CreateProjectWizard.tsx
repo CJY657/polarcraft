@@ -13,6 +13,7 @@ import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
+import { capturePostHogEvent } from '@/lib/posthog';
 import {
   ProjectChallengeFieldsEditor,
   emptyProjectChallengeFields,
@@ -158,6 +159,11 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
           grade: creatorData.grade || undefined,
         },
         settings,
+      });
+
+      capturePostHogEvent('research_project_created', {
+        project_id: result.id,
+        project_name_zh: projectData.name_zh,
       });
 
       onClose();

@@ -39,7 +39,7 @@ function presetRange(days: number): { start: string; end: string } {
 
 const activity = {
   status: 'ok' as const,
-  range: { ...presetRange(30), days: 30 },
+  range: { ...presetRange(7), days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
   summary: {
     active_learners: 18,
@@ -96,7 +96,7 @@ const activity = {
 
 const learnerDetail = {
   status: 'ok' as const,
-  range: { ...presetRange(30), days: 30 },
+  range: { ...presetRange(7), days: 30 },
   previous_range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
   last_activity: '2026-07-10T07:30:00.000Z',
@@ -126,11 +126,11 @@ describe('AdminActivityPage', () => {
     getActivityDetail.mockResolvedValue(learnerDetail);
   });
 
-  it('loads the last 30 days by default and renders the dashboard data', async () => {
+  it('loads the last 7 days by default and renders the dashboard data', async () => {
     renderPage();
 
     await waitFor(() =>
-      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(30), limit: 10 })
+      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(7), limit: 10 })
     );
     expect(await screen.findByRole('heading', { name: '用户活动' })).toBeDefined();
     expect(screen.getAllByText('活跃学生').length).toBeGreaterThanOrEqual(2);
@@ -141,7 +141,7 @@ describe('AdminActivityPage', () => {
     expect(screen.getByText('所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。')).toBeDefined();
     expect(screen.getByText('所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。')).toBeDefined();
     expect(screen.getByText('所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。')).toBeDefined();
-    expect(screen.getByText('所选起止日期均计入；已识别普通学生进入实验和提交课题申请的合计次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；已识别普通学生进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。')).toBeDefined();
     expect(screen.getByText('每个日期分别显示当天的学生去重人数、页面访问次数和学习行为次数。')).toBeDefined();
     expect(screen.getByText('按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。')).toBeDefined();
     expect(screen.getByText('按现有页面路径前缀归类并汇总页面访问次数。')).toBeDefined();
@@ -185,15 +185,15 @@ describe('AdminActivityPage', () => {
   it('reloads when a preset range is selected', async () => {
     renderPage();
     await waitFor(() =>
-      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(30), limit: 10 })
+      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(7), limit: 10 })
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '近 7 天' }));
+    fireEvent.click(screen.getByRole('button', { name: '近 30 天' }));
 
     await waitFor(() =>
-      expect(getActivity).toHaveBeenLastCalledWith({ ...presetRange(7), limit: 10 })
+      expect(getActivity).toHaveBeenLastCalledWith({ ...presetRange(30), limit: 10 })
     );
-    expect(screen.getByRole('button', { name: '近 7 天' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: '近 30 天' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
   });
@@ -286,7 +286,7 @@ describe('AdminActivityPage', () => {
   it('shows a teacher-friendly disabled state', async () => {
     getActivity.mockResolvedValue({
       status: 'disabled',
-      range: { ...presetRange(30), days: 30 },
+      range: { ...presetRange(7), days: 30 },
       generated_at: '2026-07-10T08:00:00.000Z',
       summary: null,
       daily: [],
@@ -366,7 +366,7 @@ describe('AdminActivityPage', () => {
 
     const drawer = await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
     await waitFor(() =>
-      expect(getActivityDetail).toHaveBeenCalledWith('learner-1', presetRange(30))
+      expect(getActivityDetail).toHaveBeenCalledWith('learner-1', presetRange(7))
     );
     expect(within(drawer).getByText('32')).toBeDefined();
     expect(within(drawer).getByText(/较上期 \+100%/)).toBeDefined();
@@ -379,7 +379,7 @@ describe('AdminActivityPage', () => {
 
     expect(await screen.findByRole('dialog', { name: '王小雨 的活动详情' })).toBeDefined();
     await waitFor(() =>
-      expect(getActivityDetail).toHaveBeenCalledWith('learner-2', presetRange(30))
+      expect(getActivityDetail).toHaveBeenCalledWith('learner-2', presetRange(7))
     );
   });
 

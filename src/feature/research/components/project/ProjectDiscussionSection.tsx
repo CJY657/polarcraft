@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
+import { capturePostHogEvent } from '@/lib/posthog';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
 import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
@@ -813,6 +814,11 @@ export function ProjectDiscussionSection({
           : {}),
       });
       clearNewCommentComposer();
+      capturePostHogEvent('research_discussion_posted', {
+        project_id: projectId,
+        kind: 'comment',
+        has_attachment: imageUrls.length > 0 || videoUrls.length > 0,
+      });
       await loadComments();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '发布留言失败');
@@ -841,6 +847,11 @@ export function ProjectDiscussionSection({
         videoUrls,
       });
       clearReplyDraft(parentCommentId);
+      capturePostHogEvent('research_discussion_posted', {
+        project_id: projectId,
+        kind: 'reply',
+        has_attachment: imageUrls.length > 0 || videoUrls.length > 0,
+      });
       setReplyTargetId(null);
       setExpandedCommentIds((current) => ({
         ...current,

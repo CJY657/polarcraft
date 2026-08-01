@@ -25,6 +25,7 @@ import {
 } from '@/lib/research.service';
 import { profileApi } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
+import { capturePostHogEvent } from '@/lib/posthog';
 import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 interface ProjectEvidenceSectionProps {
@@ -275,6 +276,10 @@ export function ProjectEvidenceSection({
         await researchApi.updateProjectEvidence(projectId, editingEvidence.id, payload);
       } else {
         await researchApi.createProjectEvidence(projectId, payload);
+        capturePostHogEvent('research_evidence_submitted', {
+          project_id: projectId,
+          has_attachment: Boolean(payload.attachment_url),
+        });
       }
 
       await loadEvidence();

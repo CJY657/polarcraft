@@ -34,6 +34,12 @@ function jsonResponse(body: unknown, ok = true, status = 200): Response {
   } as unknown as Response;
 }
 
+/** 学习行为 = 进入实验 + 虚拟课题组的主动参与 */
+const LEARNING_ACTIONS_COUNT =
+  "countIf(event IN ('experiment_opened', 'project_application_submitted', " +
+  "'research_project_created', 'research_discussion_posted', " +
+  "'research_evidence_submitted', 'research_task_completed'))";
+
 describe('PostHogService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -155,7 +161,7 @@ describe('PostHogService', () => {
       "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"
     );
     expect(summaryBody.query.query).toContain(
-      "countIf(event IN ('experiment_opened', 'project_application_submitted'))"
+      LEARNING_ACTIONS_COUNT
     );
     expect(summaryBody.query.query).not.toContain('person.properties.role');
     expect(summaryBody.query.query).not.toContain('INTERVAL 10 DAY');
@@ -396,7 +402,7 @@ describe('PostHogService', () => {
     expect(queryBodies[3]?.query.query).toContain('LIMIT 10');
     for (const index of [0, 1, 4]) {
       expect(queryBodies[index]?.query.query).toContain(
-        "countIf(event IN ('experiment_opened', 'project_application_submitted'))"
+        LEARNING_ACTIONS_COUNT
       );
     }
     expect(queryBodies[4]?.query.query).toContain('LIMIT 10');

@@ -3,9 +3,6 @@
  * 公开学习热度 API 类型定义
  */
 
-/** Supported public windows / 公开热度支持的时间窗口 */
-export type PublicActivityWindow = '7d' | '30d';
-
 /** One day of the public activity series / 公开热度的单日数据 */
 export interface PublicActivityDaily {
   date: string;
@@ -59,7 +56,6 @@ export interface PublicActivityLearner {
 /** Public activity response / 公开学习热度响应 */
 export interface PublicActivityResponse {
   status: 'ok' | 'disabled';
-  window: PublicActivityWindow;
   range: { start: string; end: string; days: number };
   generated_at: string;
   summary: PublicActivitySummary | null;

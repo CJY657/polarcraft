@@ -1,7 +1,5 @@
 import { api, unwrapApiData } from './api';
 
-export type PublicActivityWindow = '7d' | '30d';
-
 export interface PublicActivitySummary {
   active_learners: number;
   pageviews: number;
@@ -25,7 +23,6 @@ export interface PublicActivityLearner {
 
 export interface PublicActivityResponse {
   status: 'ok' | 'disabled';
-  window: PublicActivityWindow;
   range: {
     start: string;
     end: string;
@@ -48,9 +45,10 @@ export interface PublicActivityResponse {
 }
 
 export const publicStatsApi = {
-  async getActivity(window: PublicActivityWindow): Promise<PublicActivityResponse> {
+  async getActivity(range: { start: string; end: string }): Promise<PublicActivityResponse> {
+    const search = new URLSearchParams({ start: range.start, end: range.end });
     const response = await api.get<PublicActivityResponse>(
-      `/api/stats/activity?window=${window}`
+      `/api/stats/activity?${search.toString()}`
     );
     return unwrapApiData(response, '获取学习热度失败');
   },

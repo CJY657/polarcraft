@@ -1202,7 +1202,7 @@ function UserDetailDialog({
                 {
                   label: '学习行为',
                   value: analyticsSummary.learning_actions.toLocaleString('zh-CN'),
-                  description: '进入实验和提交课题申请的合计次数。',
+                  description: '进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。',
                   icon: MousePointerClick,
                   accent: '#d4a72c',
                 },

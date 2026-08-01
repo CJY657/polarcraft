@@ -52,7 +52,7 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     vi.clearAllMocks();
   });
 
-  it('uses a 30-day range ending today when days is omitted', async () => {
+  it('uses a 7-day range ending today when no dates are given', async () => {
     const dashboard = { status: 'disabled' };
     getActivityDashboardForAdmin.mockResolvedValue(dashboard);
     const res = { success: vi.fn(), error: vi.fn() };
@@ -65,29 +65,11 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const today = new Date().toISOString().slice(0, 10);
-    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86_400_000)
+    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 6 * 86_400_000)
       .toISOString()
       .slice(0, 10);
     expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(expectedStart, today, 10);
     expect(res.success).toHaveBeenCalledWith(dashboard);
-  });
-
-  it('passes an allowed preset range to the service', async () => {
-    getActivityDashboardForAdmin.mockResolvedValue({ status: 'ok' });
-    const res = { success: vi.fn(), error: vi.fn() };
-
-    UserController.getActivityDashboardForAdmin(
-      { query: { days: '90' } } as never,
-      res as never,
-      vi.fn() as never
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const today = new Date().toISOString().slice(0, 10);
-    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 89 * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
-    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(expectedStart, today, 10);
   });
 
   it('passes an explicit custom date range and learner limit to the service', async () => {
@@ -145,24 +127,6 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     expect(res.error).toHaveBeenCalledWith(
       '名单人数仅支持 10、50、100 或 all',
       'INVALID_ACTIVITY_LIMIT',
-      400
-    );
-    expect(getActivityDashboardForAdmin).not.toHaveBeenCalled();
-  });
-
-  it('rejects a present unsupported range without querying analytics', async () => {
-    const res = { success: vi.fn(), error: vi.fn() };
-
-    UserController.getActivityDashboardForAdmin(
-      { query: { days: '31' } } as never,
-      res as never,
-      vi.fn() as never
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(res.error).toHaveBeenCalledWith(
-      '时间范围仅支持 7、30 或 90 天',
-      'INVALID_ACTIVITY_RANGE',
       400
     );
     expect(getActivityDashboardForAdmin).not.toHaveBeenCalled();

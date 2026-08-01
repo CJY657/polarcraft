@@ -13,30 +13,45 @@ import {
   BarChart3,
   Eye,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
 import { formatPagePath } from "@/lib/activity-labels";
-import {
-  publicStatsApi,
-  type PublicActivityResponse,
-  type PublicActivityWindow,
-} from "@/lib/stats.service";
+import { publicStatsApi, type PublicActivityResponse } from "@/lib/stats.service";
 import { cn } from "@/utils/classNames";
 
-const WINDOWS: Array<{ value: PublicActivityWindow; label: string }> = [
-  { value: "7d", label: "近 7 天" },
-  { value: "30d", label: "近 30 天" },
-];
+/** Matches the server-side cap on /api/stats/activity. */
+const MAX_RANGE_DAYS = 90;
 
 const MEDAL_STYLE = [
   "bg-clay-ochre text-[#10201f]",
   "bg-clay-surface-strong text-clay-ink",
   "bg-clay-peach text-[#10201f]",
 ];
+
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function lastDays(days: number): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { start: toDateInput(start), end: toDateInput(end) };
+}
+
+function spanDays(start: string, end: string): number {
+  return (
+    Math.round(
+      (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000,
+    ) + 1
+  );
+}
 
 function formatDay(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString("zh-CN", {
@@ -46,19 +61,30 @@ function formatDay(value: string): string {
 }
 
 export function PulsePage() {
-  const [window, setWindow] = useState<PublicActivityWindow>("7d");
+  const [range, setRange] = useState(() => lastDays(7));
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<PublicActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const today = toDateInput(new Date());
+  const rangeError =
+    range.start > range.end
+      ? "开始日期不能晚于结束日期"
+      : spanDays(range.start, range.end) > MAX_RANGE_DAYS
+        ? `时间跨度不能超过 ${MAX_RANGE_DAYS} 天`
+        : null;
+
   useEffect(() => {
+    if (rangeError) {
+      return;
+    }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
 
     void publicStatsApi
-      .getActivity(window)
+      .getActivity(range)
       .then((data) => {
         if (!cancelled) setResult(data);
       })
@@ -74,7 +100,7 @@ export function PulsePage() {
     return () => {
       cancelled = true;
     };
-  }, [window, retryKey]);
+  }, [range, retryKey, rangeError]);
 
   const summary = result?.summary;
   const isEmpty =
@@ -95,28 +121,48 @@ export function PulsePage() {
 
           <div
             aria-label="统计时间范围"
-            className="mt-6 inline-flex gap-1 rounded-2xl border border-clay-surface-strong bg-clay-surface-card p-1"
+            className="mt-6 flex flex-wrap items-center gap-2 text-base text-clay-body"
           >
-            {WINDOWS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={window === option.value}
-                onClick={() => setWindow(option.value)}
-                className={cn(
-                  "h-11 rounded-xl px-5 text-sm font-semibold transition-colors active:scale-[0.98]",
-                  window === option.value
-                    ? "bg-clay-ink text-white"
-                    : "text-clay-body hover:bg-clay-surface-soft",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+            <label className="inline-flex items-center gap-2">
+              <span>统计区间</span>
+              <input
+                type="date"
+                value={range.start}
+                max={today}
+                onChange={(event) =>
+                  setRange((current) => ({ ...current, start: event.target.value }))
+                }
+                aria-label="开始日期"
+                className="h-11 rounded-xl border border-clay-surface-strong bg-clay-surface-card px-3 text-clay-ink"
+              />
+            </label>
+            <span aria-hidden="true">至</span>
+            <input
+              type="date"
+              value={range.end}
+              max={today}
+              onChange={(event) =>
+                setRange((current) => ({ ...current, end: event.target.value }))
+              }
+              aria-label="结束日期"
+              className="h-11 rounded-xl border border-clay-surface-strong bg-clay-surface-card px-3 text-clay-ink"
+            />
+            <button
+              type="button"
+              onClick={() => setRange(lastDays(7))}
+              className="h-11 rounded-xl px-4 text-sm font-semibold text-clay-body underline-offset-4 hover:underline"
+            >
+              重置为近 7 天
+            </button>
+            {rangeError ? (
+              <span role="alert" className="text-sm font-semibold text-clay-ink">
+                {rangeError}
+              </span>
+            ) : null}
           </div>
         </header>
 
-        {isLoading ? (
+        {rangeError ? null : isLoading ? (
           <PulseSkeleton />
         ) : error ? (
           <StatePanel
@@ -180,7 +226,7 @@ function PulseDashboard({ result }: { result: PublicActivityResponse }) {
       label: "学习行为",
       value: summary.learning_actions,
       unit: "次",
-      description: "进入实验和提交课题申请的合计次数。",
+      description: "进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。",
       Icon: Activity,
     },
   ];

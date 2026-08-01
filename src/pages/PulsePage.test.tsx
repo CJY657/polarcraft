@@ -20,7 +20,6 @@ import PulsePage from './PulsePage';
 
 const activity = {
   status: 'ok' as const,
-  window: '7d' as const,
   range: { start: '2026-07-26', end: '2026-08-01', days: 7 },
   generated_at: '2026-08-01T02:00:00.000Z',
   summary: { active_learners: 18, pageviews: 240, learning_actions: 36 },
@@ -40,6 +39,17 @@ const activity = {
   viewer: null as { code: string; rank: number; events: number } | null,
 };
 
+function lastDays(days: number): { start: string; end: string } {
+  const toInput = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate()
+    ).padStart(2, '0')}`;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { start: toInput(start), end: toInput(end) };
+}
+
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -54,21 +64,18 @@ describe('PulsePage', () => {
     getActivity.mockResolvedValue(activity);
   });
 
-  it('loads the 7-day window by default and renders anonymous learner codes', async () => {
+  it('loads the last 7 days by default and renders anonymous learner codes', async () => {
     renderPage();
 
-    await waitFor(() => expect(getActivity).toHaveBeenCalledWith('7d'));
+    await waitFor(() => expect(getActivity).toHaveBeenCalledWith(lastDays(7)));
     expect(await screen.findByRole('heading', { name: '平台学习热度' })).toBeDefined();
     expect(screen.getByText('18')).toBeDefined();
     expect(screen.getByText('240')).toBeDefined();
     expect(screen.getByText('36')).toBeDefined();
-    expect(screen.getByText(/学员 #3FA2C1/)).toBeDefined();
-    expect(screen.getByText(/学员 #B71D04/)).toBeDefined();
+    expect(screen.getByText(/用户 #3FA2C1/)).toBeDefined();
+    expect(screen.getByText(/用户 #B71D04/)).toBeDefined();
     expect(screen.getByText('实验内容 · 课程详情')).toBeDefined();
     expect(screen.getByText('理论模拟 · 模拟列表')).toBeDefined();
-    expect(
-      screen.getByText('榜单使用匿名编号，不展示用户名或昵称。编号无法反查到具体同学。')
-    ).toBeDefined();
   });
 
   it('never renders identifying fields even if the payload carries them', async () => {
@@ -86,7 +93,7 @@ describe('PulsePage', () => {
 
     renderPage();
 
-    await screen.findByText(/学员 #3FA2C1/);
+    await screen.findByText(/用户 #3FA2C1/);
     expect(screen.queryByText('林晓光')).toBeNull();
     expect(screen.queryByText('learner-account')).toBeNull();
     expect(screen.queryByText(/learner-1/)).toBeNull();
@@ -100,7 +107,7 @@ describe('PulsePage', () => {
 
     renderPage();
 
-    const row = (await screen.findByText(/学员 #B71D04/)).closest('li');
+    const row = (await screen.findByText(/用户 #B71D04/)).closest('li');
     expect(row).not.toBeNull();
     expect(within(row!).getByText('你')).toBeDefined();
     expect(screen.queryByText(/你的排名/)).toBeNull();
@@ -118,16 +125,44 @@ describe('PulsePage', () => {
     expect(screen.queryByText('你')).toBeNull();
   });
 
-  it('reloads when the 30-day window is selected', async () => {
+  it('reloads with a custom range picked from the date inputs', async () => {
     renderPage();
-    await waitFor(() => expect(getActivity).toHaveBeenCalledWith('7d'));
+    await waitFor(() => expect(getActivity).toHaveBeenCalledWith(lastDays(7)));
 
-    fireEvent.click(screen.getByRole('button', { name: '近 30 天' }));
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: lastDays(14).start },
+    });
 
-    await waitFor(() => expect(getActivity).toHaveBeenLastCalledWith('30d'));
-    expect(screen.getByRole('button', { name: '近 30 天' }).getAttribute('aria-pressed')).toBe(
-      'true'
+    await waitFor(() =>
+      expect(getActivity).toHaveBeenLastCalledWith({
+        start: lastDays(14).start,
+        end: lastDays(7).end,
+      })
     );
+  });
+
+  it('blocks an inverted range client-side instead of querying', async () => {
+    renderPage();
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: '2999-01-01' },
+    });
+
+    expect(await screen.findByRole('alert')).toBeDefined();
+    expect(getActivity).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks a range wider than 90 days client-side', async () => {
+    renderPage();
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: lastDays(120).start },
+    });
+
+    expect(await screen.findByText('时间跨度不能超过 90 天')).toBeDefined();
+    expect(getActivity).toHaveBeenCalledTimes(1);
   });
 
   it('shows a loading skeleton before the first payload arrives', () => {
@@ -179,6 +214,6 @@ describe('PulsePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
 
     await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText(/学员 #3FA2C1/)).toBeDefined();
+    expect(await screen.findByText(/用户 #3FA2C1/)).toBeDefined();
   });
 });

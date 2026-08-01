@@ -47,6 +47,9 @@ async function loadService(): Promise<typeof PublicStatsServiceType> {
   return (await import('./public-stats.service.js')).PublicStatsService;
 }
 
+const range7 = { start: '2026-07-26', end: '2026-08-01' };
+const range30 = { start: '2026-07-03', end: '2026-08-01' };
+
 describe('PublicStatsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -59,10 +62,10 @@ describe('PublicStatsService', () => {
     vi.useRealTimers();
   });
 
-  it('queries the window that the caller asked for', async () => {
+  it('queries the range that the caller asked for', async () => {
     const service = await loadService();
 
-    await service.getPublicActivity('30d', null);
+    await service.getPublicActivity(range30, null);
 
     expect(getPublicActivitySnapshot).toHaveBeenCalledWith('2026-07-03', '2026-08-01');
   });
@@ -70,7 +73,7 @@ describe('PublicStatsService', () => {
   it('publishes only the top 10 learners, as stable anonymous codes', async () => {
     const service = await loadService();
 
-    const result = await service.getPublicActivity('7d', null);
+    const result = await service.getPublicActivity(range7, null);
     const serialized = JSON.stringify(result);
 
     expect(result.top_learners).toHaveLength(10);
@@ -90,8 +93,8 @@ describe('PublicStatsService', () => {
   it('gives every learner a distinct code that is stable across requests', async () => {
     const service = await loadService();
 
-    const first = await service.getPublicActivity('7d', null);
-    const second = await service.getPublicActivity('7d', null);
+    const first = await service.getPublicActivity(range7, null);
+    const second = await service.getPublicActivity(range7, null);
     const codes = first.top_learners.map((learner) => learner.code);
 
     expect(new Set(codes).size).toBe(codes.length);
@@ -101,7 +104,7 @@ describe('PublicStatsService', () => {
   it('reports a signed-in student their own rank even outside the top 10', async () => {
     const service = await loadService();
 
-    const result = await service.getPublicActivity('7d', 'user-12');
+    const result = await service.getPublicActivity(range7, 'user-12');
 
     expect(result.viewer).toEqual({
       code: expect.stringMatching(/^[0-9A-F]{6}$/),
@@ -116,7 +119,7 @@ describe('PublicStatsService', () => {
   it('matches the viewer code against the leaderboard code for a ranked student', async () => {
     const service = await loadService();
 
-    const result = await service.getPublicActivity('7d', 'user-2');
+    const result = await service.getPublicActivity(range7, 'user-2');
 
     expect(result.viewer?.rank).toBe(2);
     expect(result.top_learners[1].code).toBe(result.viewer?.code);
@@ -125,39 +128,58 @@ describe('PublicStatsService', () => {
   it('returns no viewer block for anonymous visitors or unseen students', async () => {
     const service = await loadService();
 
-    expect((await service.getPublicActivity('7d', null)).viewer).toBeNull();
-    expect((await service.getPublicActivity('7d', 'nobody')).viewer).toBeNull();
+    expect((await service.getPublicActivity(range7, null)).viewer).toBeNull();
+    expect((await service.getPublicActivity(range7, 'nobody')).viewer).toBeNull();
   });
 
   it('serves the cached snapshot until the TTL expires', async () => {
     const service = await loadService();
 
-    await service.getPublicActivity('7d', null);
+    await service.getPublicActivity(range7, null);
     vi.setSystemTime(new Date('2026-08-01T09:09:00Z'));
-    await service.getPublicActivity('7d', null);
+    await service.getPublicActivity(range7, null);
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(1);
 
     vi.setSystemTime(new Date('2026-08-01T09:11:00Z'));
-    await service.getPublicActivity('7d', null);
+    await service.getPublicActivity(range7, null);
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(2);
   });
 
-  it('caches each window separately', async () => {
+  it('caches each range separately', async () => {
     const service = await loadService();
 
-    await service.getPublicActivity('7d', null);
-    await service.getPublicActivity('30d', null);
+    await service.getPublicActivity(range7, null);
+    await service.getPublicActivity(range30, null);
 
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('evicts the oldest range once the cache is full, so callers cannot grow it forever', async () => {
+    const service = await loadService();
+    const day = (index: number) =>
+      new Date(Date.UTC(2026, 0, 1) + index * 86_400_000).toISOString().slice(0, 10);
+
+    // 33 distinct ranges against a 32-entry cache: the first one is evicted.
+    for (let index = 0; index < 33; index += 1) {
+      await service.getPublicActivity({ start: day(index), end: '2026-08-01' }, null);
+    }
+    expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(33);
+
+    await service.getPublicActivity({ start: day(0), end: '2026-08-01' }, null);
+    expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(34);
+
+    // ...while a range still in the cache is served without another upstream hit.
+    await service.getPublicActivity({ start: day(32), end: '2026-08-01' }, null);
+    expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(34);
   });
 
   it('collapses concurrent misses into a single upstream refresh', async () => {
     const service = await loadService();
 
     await Promise.all([
-      service.getPublicActivity('7d', null),
-      service.getPublicActivity('7d', null),
-      service.getPublicActivity('7d', 'user-1'),
+      service.getPublicActivity(range7, null),
+      service.getPublicActivity(range7, null),
+      service.getPublicActivity(range7, 'user-1'),
     ]);
 
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(1);
@@ -165,12 +187,12 @@ describe('PublicStatsService', () => {
 
   it('serves the stale snapshot when a refresh fails', async () => {
     const service = await loadService();
-    await service.getPublicActivity('7d', null);
+    await service.getPublicActivity(range7, null);
 
     getPublicActivitySnapshot.mockRejectedValue(new Error('upstream down'));
     vi.setSystemTime(new Date('2026-08-01T09:11:00Z'));
 
-    const result = await service.getPublicActivity('7d', null);
+    const result = await service.getPublicActivity(range7, null);
     expect(result.summary).toEqual({
       active_learners: 12,
       pageviews: 240,
@@ -182,7 +204,7 @@ describe('PublicStatsService', () => {
     const service = await loadService();
     getPublicActivitySnapshot.mockRejectedValue(new Error('upstream down'));
 
-    await expect(service.getPublicActivity('7d', null)).rejects.toThrow('upstream down');
+    await expect(service.getPublicActivity(range7, null)).rejects.toThrow('upstream down');
   });
 
   it('passes the disabled status through with an empty payload', async () => {
@@ -197,7 +219,7 @@ describe('PublicStatsService', () => {
       })
     );
 
-    const result = await service.getPublicActivity('7d', 'user-1');
+    const result = await service.getPublicActivity(range7, 'user-1');
 
     expect(result.status).toBe('disabled');
     expect(result.top_learners).toEqual([]);

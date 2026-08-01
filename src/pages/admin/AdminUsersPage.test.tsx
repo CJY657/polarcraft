@@ -367,7 +367,7 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('纳入统计的活动中，时间最晚的一次。')).toBeDefined();
     expect(screen.getByText('已识别账号的活动，排除自动采集、离开、身份识别和属性设置等事件。')).toBeDefined();
     expect(screen.getByText('纳入统计的页面访问次数。')).toBeDefined();
-    expect(screen.getByText('进入实验和提交课题申请的合计次数。')).toBeDefined();
+    expect(screen.getByText('进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。')).toBeDefined();
     expect(screen.getAllByText(/2026.*07.*30/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/2020.*01.*01/)).toBeNull();
     expect(screen.queryByText('查看页面')).toBeNull();

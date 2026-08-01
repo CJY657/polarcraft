@@ -14,7 +14,11 @@ export const EVENT_LABELS: Record<string, string> = {
   feedback_submitted: '提交反馈',
   gallery_work_opened: '查看学习成果',
   project_application_submitted: '提交课题申请',
+  research_discussion_posted: '课题讨论发言',
+  research_evidence_submitted: '提交研究证据',
+  research_project_created: '创建虚拟课题',
   research_project_opened: '查看研究课题',
+  research_task_completed: '完成课题任务',
   simulation_opened: '使用计算模拟',
   unit_opened: '进入学习单元',
 };

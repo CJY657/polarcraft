@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
+import { capturePostHogEvent } from '@/lib/posthog';
 import {
   researchApi,
   type ProjectMember,
@@ -139,6 +140,13 @@ export function ProjectTasksSection({
 
     try {
       await researchApi.updateProjectTask(task.id, { status: nextStatus });
+      // Only completion counts as a 学习行为; todo↔doing is bookkeeping.
+      if (nextStatus === 'done' && task.status !== 'done') {
+        capturePostHogEvent('research_task_completed', {
+          project_id: projectId,
+          task_id: task.id,
+        });
+      }
       await loadTasks();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : '更新任务失败');

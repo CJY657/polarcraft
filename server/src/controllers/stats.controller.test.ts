@@ -32,28 +32,42 @@ describe('StatsController.getPublicActivity', () => {
     getPublicActivity.mockResolvedValue({ status: 'ok' });
   });
 
-  it('defaults to the 7-day window for anonymous visitors', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const daysAgo = (days: number) =>
+    new Date(Date.parse(`${today}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10);
+
+  it('defaults to the last 7 days for anonymous visitors', async () => {
     const { res } = invoke({ query: {} });
     await flush();
 
-    expect(getPublicActivity).toHaveBeenCalledWith('7d', null);
+    expect(getPublicActivity).toHaveBeenCalledWith({ start: daysAgo(6), end: today }, null);
     expect(res.success).toHaveBeenCalledWith({ status: 'ok' });
   });
 
-  it('accepts the 30-day window', async () => {
-    invoke({ query: { window: '30d' } });
+  it('accepts a custom start/end range', async () => {
+    invoke({ query: { start: '2026-01-01', end: '2026-01-31' } });
     await flush();
 
-    expect(getPublicActivity).toHaveBeenCalledWith('30d', null);
+    expect(getPublicActivity).toHaveBeenCalledWith(
+      { start: '2026-01-01', end: '2026-01-31' },
+      null
+    );
   });
 
-  it('rejects an unsupported window without querying', async () => {
-    const { res } = invoke({ query: { window: '90d' } });
+  it.each([
+    [{ start: '2026-01-31', end: '2026-01-01' }],
+    [{ start: '2026-01-01' }],
+    [{ start: '01/01/2026', end: '2026-01-31' }],
+    [{ start: '2026-01-01', end: '2999-01-01' }],
+    // 92 days — past the tighter public cap.
+    [{ start: '2026-01-01', end: '2026-04-02' }],
+  ])('rejects an invalid range %j without querying', async (query) => {
+    const { res } = invoke({ query });
     await flush();
 
     expect(res.error).toHaveBeenCalledWith(
-      '时间范围仅支持 7d 或 30d',
-      'INVALID_STATS_WINDOW',
+      expect.any(String),
+      'INVALID_STATS_RANGE',
       400
     );
     expect(getPublicActivity).not.toHaveBeenCalled();
@@ -63,14 +77,17 @@ describe('StatsController.getPublicActivity', () => {
     invoke({ query: {}, user: { sub: 'user-1', role: 'user' } });
     await flush();
 
-    expect(getPublicActivity).toHaveBeenCalledWith('7d', 'user-1');
+    expect(getPublicActivity).toHaveBeenCalledWith(
+      { start: daysAgo(6), end: today },
+      'user-1'
+    );
   });
 
   it('does not rank administrators, who are excluded from the stats', async () => {
     invoke({ query: {}, user: { sub: 'admin-1', role: 'admin' } });
     await flush();
 
-    expect(getPublicActivity).toHaveBeenCalledWith('7d', null);
+    expect(getPublicActivity).toHaveBeenCalledWith({ start: daysAgo(6), end: today }, null);
   });
 
   it('returns a sanitized gateway error when the upstream query fails', async () => {

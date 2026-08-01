@@ -27,6 +27,21 @@ const MODULE_ROUTE_PREFIXES: Array<{ module: string; label: string; prefixes: st
 
 const OTHER_MODULE = { module: 'other', label: '其他页面' };
 
+/**
+ * 学习行为 = 进入实验 + 虚拟课题组的主动参与（创建课题、提交申请、讨论发言、
+ * 提交研究证据、完成任务）。浏览类动作不计入，它们已经算在页面访问里。
+ */
+const LEARNING_EVENTS = [
+  'experiment_opened',
+  'project_application_submitted',
+  'research_project_created',
+  'research_discussion_posted',
+  'research_evidence_submitted',
+  'research_task_completed',
+];
+
+const LEARNING_EVENT_PREDICATE = `event IN (${LEARNING_EVENTS.map((event) => `'${event}'`).join(', ')})`;
+
 function classifyModule(path: string): { module: string; label: string } {
   for (const entry of MODULE_ROUTE_PREFIXES) {
     if (
@@ -69,8 +84,7 @@ export class PostHogAnalyticsError extends Error {
 export class PostHogService {
   private static readonly SUMMARY_WINDOW_DAYS = 10;
 
-  private static readonly LEARNING_EVENT_PREDICATE =
-    "event IN ('experiment_opened', 'project_application_submitted')";
+  private static readonly LEARNING_EVENT_PREDICATE = LEARNING_EVENT_PREDICATE;
 
   /** Prefer the SPA-reported path, fall back to the raw URL. */
   private static readonly PATH_EXPRESSION = `
@@ -745,7 +759,7 @@ export class PostHogService {
         toString(max(timestamp)) AS last_activity,
         count() AS meaningful_events,
         countIf(event = '$pageview') AS pageviews,
-        countIf(event IN ('experiment_opened', 'project_application_submitted')) AS learning_actions
+        countIf(${LEARNING_EVENT_PREDICATE}) AS learning_actions
       FROM events
       WHERE distinct_id = ${this.quoteLiteral(userId)}
         AND timestamp >= toStartOfDay(now()) - INTERVAL ${this.SUMMARY_WINDOW_DAYS - 1} DAY

@@ -12,18 +12,22 @@ import { PostHogService } from './posthog.service.js';
 import {
   PublicActivityResponse,
   PublicActivitySnapshot,
-  PublicActivityWindow,
 } from '../types/stats.types.js';
+import type { ActivityDateRange } from '../utils/activity-range.util.js';
 import { logger } from '../utils/logger.js';
 
-const WINDOW_DAYS: Record<PublicActivityWindow, number> = { '7d': 7, '30d': 30 };
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const PUBLIC_LEADERBOARD_SIZE = 10;
+/**
+ * Ranges are caller-chosen now, so the cache needs a ceiling.
+ * ponytail: insertion-order eviction, not true LRU — swap if 32 ever thrashes.
+ */
+const MAX_CACHED_RANGES = 32;
 
 type CacheEntry = { expiresAt: number; snapshot: PublicActivitySnapshot };
 
-const cache = new Map<PublicActivityWindow, CacheEntry>();
-const inFlight = new Map<PublicActivityWindow, Promise<PublicActivitySnapshot>>();
+const cache = new Map<string, CacheEntry>();
+const inFlight = new Map<string, Promise<PublicActivitySnapshot>>();
 
 /**
  * Stable, non-reversible display code for a learner (学员 #3FA2C1).
@@ -39,37 +43,30 @@ function anonymousCode(userId: string): string {
     .toUpperCase();
 }
 
-function windowRange(window: PublicActivityWindow): { start: string; end: string } {
-  const todayTimestamp = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
-  return {
-    start: new Date(todayTimestamp - (WINDOW_DAYS[window] - 1) * 86_400_000)
-      .toISOString()
-      .slice(0, 10),
-    end: new Date(todayTimestamp).toISOString().slice(0, 10),
-  };
-}
-
-async function refresh(window: PublicActivityWindow): Promise<PublicActivitySnapshot> {
+async function refresh(key: string, range: ActivityDateRange): Promise<PublicActivitySnapshot> {
   try {
-    const { start, end } = windowRange(window);
-    const snapshot = await PostHogService.getPublicActivitySnapshot(start, end);
-    cache.set(window, { expiresAt: Date.now() + CACHE_TTL_MS, snapshot });
+    const snapshot = await PostHogService.getPublicActivitySnapshot(range.start, range.end);
+    cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, snapshot });
+    if (cache.size > MAX_CACHED_RANGES) {
+      cache.delete(cache.keys().next().value as string);
+    }
     return snapshot;
   } finally {
-    inFlight.delete(window);
+    inFlight.delete(key);
   }
 }
 
-async function loadSnapshot(window: PublicActivityWindow): Promise<PublicActivitySnapshot> {
-  const cached = cache.get(window);
+async function loadSnapshot(range: ActivityDateRange): Promise<PublicActivitySnapshot> {
+  const key = `${range.start}:${range.end}`;
+  const cached = cache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.snapshot;
   }
 
-  let request = inFlight.get(window);
+  let request = inFlight.get(key);
   if (!request) {
-    request = refresh(window);
-    inFlight.set(window, request);
+    request = refresh(key, range);
+    inFlight.set(key, request);
     // The shared promise may be awaited by nobody else; keep Node quiet.
     void request.catch(() => undefined);
   }
@@ -81,7 +78,7 @@ async function loadSnapshot(window: PublicActivityWindow): Promise<PublicActivit
       throw error;
     }
     logger.warn('Public activity refresh failed, serving the previous snapshot', {
-      window,
+      range: key,
       error: error instanceof Error ? error.message : String(error),
     });
     return cached.snapshot;
@@ -94,17 +91,16 @@ export class PublicStatsService {
    * their own code and rank (which may sit outside the top 10).
    */
   static async getPublicActivity(
-    window: PublicActivityWindow,
+    range: ActivityDateRange,
     viewerUserId: string | null
   ): Promise<PublicActivityResponse> {
-    const snapshot = await loadSnapshot(window);
+    const snapshot = await loadSnapshot(range);
     const viewerIndex = viewerUserId
       ? snapshot.learners.findIndex((learner) => learner.user_id === viewerUserId)
       : -1;
 
     return {
       status: snapshot.status,
-      window,
       range: snapshot.range,
       generated_at: snapshot.generated_at,
       summary: snapshot.summary,
