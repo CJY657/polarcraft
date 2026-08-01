@@ -27,6 +27,9 @@ const doubles = vi.hoisted(() => {
     getActivityDashboardForAdmin: vi.fn((_req, res) => {
       res.status(200).json({ route: 'activity' });
     }),
+    getLearnerActivityForAdmin: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'learner-activity' });
+    }),
     getUserDetailForAdmin: vi.fn((_req, res) => {
       res.status(200).json({ route: 'details' });
     }),
@@ -45,6 +48,7 @@ vi.mock('../controllers/user.controller.js', () => ({
     listUsersForAdmin: doubles.listUsersForAdmin,
     getPostHogAnalyticsForAdmin: doubles.getPostHogAnalyticsForAdmin,
     getActivityDashboardForAdmin: doubles.getActivityDashboardForAdmin,
+    getLearnerActivityForAdmin: doubles.getLearnerActivityForAdmin,
     getUserDetailForAdmin: doubles.getUserDetailForAdmin,
   },
 }));
@@ -98,5 +102,17 @@ describe('user.routes admin endpoints', () => {
     expect(detailRoute?.methods.get).toBe(true);
     expect(detailRoute?.stack.map((layer) => layer.handle)).toContain(doubles.requireAdmin);
     expect(detailRoute?.stack.at(-1)?.handle).toBe(doubles.getUserDetailForAdmin);
+  });
+
+  it('protects the single-learner activity route with admin authorization', () => {
+    const learnerActivityRoute = getRoute('/:userId/activity');
+
+    expect(learnerActivityRoute?.methods.get).toBe(true);
+    expect(learnerActivityRoute?.stack.map((layer) => layer.handle)).toContain(
+      doubles.requireAdmin
+    );
+    expect(learnerActivityRoute?.stack.at(-1)?.handle).toBe(
+      doubles.getLearnerActivityForAdmin
+    );
   });
 });

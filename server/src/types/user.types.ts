@@ -194,6 +194,14 @@ export interface AdminUserActivityDashboardResponse {
     pageviews: number;
     learning_actions: number;
   } | null;
+  /** Same totals over the preceding equal-length window / 上一周期同长度窗口的同类汇总 */
+  previous_summary: {
+    range: AdminUserActivityDateRange;
+    active_learners: number;
+    meaningful_events: number;
+    pageviews: number;
+    learning_actions: number;
+  } | null;
   daily: Array<{
     date: string;
     active_learners: number;
@@ -222,10 +230,48 @@ export interface AdminUserActivityDashboardResponse {
   }>;
 }
 
+/** Totals for a single learner over one window / 单个学生在某窗口内的汇总 */
+export interface AdminUserActivityDetailSummary {
+  meaningful_events: number;
+  pageviews: number;
+  learning_actions: number;
+}
+
+/** Single-learner activity detail / 管理员查看的单个学生活动详情 */
+export interface AdminUserActivityDetailResponse {
+  status: 'ok' | 'disabled';
+  range: AdminUserActivityDateRange;
+  previous_range: AdminUserActivityDateRange;
+  generated_at: string;
+  last_activity: string | null;
+  summary: AdminUserActivityDetailSummary | null;
+  previous_summary: AdminUserActivityDetailSummary | null;
+  daily: Array<{
+    date: string;
+    events: number;
+    pageviews: number;
+    learning_actions: number;
+  }>;
+  top_pages: Array<{
+    path: string;
+    pageviews: number;
+  }>;
+  module_breakdown: Array<{
+    module: string;
+    label: string;
+    pageviews: number;
+  }>;
+  /** weekday: 1 = Monday … 7 = Sunday, hour: 0-23, both in Asia/Shanghai. */
+  hourly: Array<{
+    weekday: number;
+    hour: number;
+    count: number;
+  }>;
+}
+
 // =====================================================
 // Session Management Types / 会话管理类型
 // =====================================================
-
 /** Session list response / 会话列表响应 */
 export interface SessionsResponse {
   sessions: Array<{

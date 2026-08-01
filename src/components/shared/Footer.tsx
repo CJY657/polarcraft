@@ -26,6 +26,7 @@ const LEARN_LINKS: FooterLink[] = [
 const EXPLORE_LINKS: FooterLink[] = [
   { label: "成果展示", path: "/gallery" },
   { label: "研究协作", path: "/lab/explore" },
+  { label: "学习热度", path: "/pulse" },
   { label: "平台说明", path: "/about" },
 ];
 

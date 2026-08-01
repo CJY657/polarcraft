@@ -210,6 +210,33 @@ export class UserController {
     }
   );
 
+  /** Get one learner's activity detail for administrators. */
+  static getLearnerActivityForAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+      const range = resolveActivityDateRange(req.query.start, req.query.end, req.query.days);
+      if ('error' in range) {
+        res.error(range.error, 'INVALID_ACTIVITY_RANGE', 400);
+        return;
+      }
+
+      try {
+        const result = await UserService.getLearnerActivityForAdmin(
+          req.params.userId,
+          range.start,
+          range.end
+        );
+        res.success(result);
+      } catch (error) {
+        if (error instanceof PostHogAnalyticsError) {
+          res.error(error.message, error.code, error.statusCode);
+          return;
+        }
+
+        throw error;
+      }
+    }
+  );
+
   /**
    * Get user profile
    * 获取用户资料

@@ -17,6 +17,7 @@ import uploadRoutes from './upload.routes.js';
 import notificationRoutes from './notification.routes.js';
 import feedbackRoutes from './feedback.routes.js';
 import quizRoutes from './quiz.routes.js';
+import statsRoutes from './stats.routes.js';
 import { setupResponseHelpers } from '../utils/response.util.js';
 import { csrfToken } from '../middleware/csrf.middleware.js';
 import { testConnection } from '../database/connection.js';
@@ -99,5 +100,6 @@ router.use('/upload', uploadRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/quiz', quizRoutes);
+router.use('/stats', statsRoutes);
 
 export default router;

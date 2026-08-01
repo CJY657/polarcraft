@@ -109,6 +109,7 @@ function LegacyAdminCourseEditorRedirect() {
 
 // About Page - 关于页面
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const PulsePage = lazy(() => import("@/pages/PulsePage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
@@ -402,6 +403,12 @@ function AppRouterContent() {
           <Route
             path="/about"
             element={<AboutPage />}
+          />
+
+          {/* 平台学习热度（公开） */}
+          <Route
+            path="/pulse"
+            element={<PulsePage />}
           />
 
           {/* Admin - 管理后台 */}

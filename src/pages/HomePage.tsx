@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   BookOpenText,
+  Flame,
   Globe,
   Library,
   LockKeyhole,
@@ -216,24 +217,34 @@ export function HomePage() {
     <div className="clay-canvas min-h-screen">
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
-      {/* ============ NOTIFICATION BANNER ============ */}
+      {/* ============ LEARNING PULSE BANNER ============ */}
+      {/* 静态入口，不在首页拉取统计数据，保持首屏轻量 */}
       <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-fit items-center justify-center rounded-full border border-clay-surface-strong bg-clay-surface-card px-4 py-2 text-sm shadow-sm transition-transform hover:-translate-y-0.5">
-          <span className="mr-3 flex items-center justify-center rounded-full bg-clay-pink px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white uppercase">
-            New
+        <button
+          type="button"
+          data-testid="home-pulse-teaser"
+          onClick={() => navigate("/pulse")}
+          className="group flex w-full flex-col items-stretch gap-5 rounded-[1.5rem] border border-white/15 bg-[#264653] px-6 py-6 text-left text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:flex-row sm:items-center sm:px-8 sm:py-7"
+        >
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9c46a] text-[#10201f] shadow-sm">
+            <Flame className="h-7 w-7" />
           </span>
-          <span className="text-clay-body">
-            全新功能现已上线<strong className="mx-1.5 font-semibold text-clay-ink">偏振光学知识测验</strong>
+          <span className="min-w-0 flex-1">
+            <span
+              className="block text-2xl font-semibold sm:text-3xl"
+              style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
+            >
+              平台学习热度
+            </span>
+            <span className="mt-2 block max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+              查看近 7 天活跃同学、学习行为和热门内容，数据每 10 分钟更新一次。
+            </span>
           </span>
-          <button 
-            type="button"
-            onClick={() => navigate('/quiz')}
-            className="group ml-3 flex items-center gap-1 font-semibold text-clay-ink hover:underline"
-          >
-            去测验
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </button>
-        </div>
+          <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#264653] transition-transform group-hover:translate-x-1 sm:self-auto">
+            查看学习热度
+            <ArrowRight className="h-4 w-4" />
+          </span>
+        </button>
       </div>
 
       <main className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:gap-14 lg:px-8 lg:pb-20 lg:pt-8">

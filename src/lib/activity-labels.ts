@@ -1,6 +1,6 @@
 /**
- * Friendly labels for the admin activity dashboard.
- * 管理员用户活动页的友好名称映射（模块与页面类型）。
+ * Friendly labels for activity statistics.
+ * 活动统计的友好名称映射（模块与页面类型），管理端与公开热度页共用。
  *
  * 模块划分与 src/App.tsx 中的「六大核心模块」保持一致。
  */
@@ -21,6 +21,35 @@ export const EVENT_LABELS: Record<string, string> = {
 
 export function formatEventName(event: string): string {
   return EVENT_LABELS[event] ?? '其他学习行为';
+}
+
+/**
+ * 「较上期 +12%」文案。上期为 0 时不编造百分比，直接说明新增量。
+ * 返回 null 表示没有可比较的上期数据。
+ */
+export function formatActivityDelta(
+  current: number,
+  previous: number | null | undefined
+): { text: string; direction: 'up' | 'down' | 'flat' } | null {
+  if (previous === null || previous === undefined) {
+    return null;
+  }
+
+  if (previous === 0) {
+    return current === 0
+      ? { text: '较上期持平', direction: 'flat' }
+      : { text: `较上期新增 ${current.toLocaleString('zh-CN')}`, direction: 'up' };
+  }
+
+  const change = Math.round(((current - previous) / previous) * 100);
+  if (change === 0) {
+    return { text: '较上期持平', direction: 'flat' };
+  }
+
+  return {
+    text: `较上期 ${change > 0 ? '+' : ''}${change}%`,
+    direction: change > 0 ? 'up' : 'down',
+  };
 }
 
 interface PageRule {
@@ -62,6 +91,7 @@ const PAGE_RULES: PageRule[] = [
   { pattern: /^\/lab(\/|$)/, module: '虚拟课题', page: '虚拟课题组' },
   // 其他常用页面
   { pattern: /^\/$/, module: '首页', page: '' },
+  { pattern: /^\/pulse$/, module: '学习热度', page: '' },
   { pattern: /^\/profile$/, module: '个人中心', page: '' },
   { pattern: /^\/inbox$/, module: '消息中心', page: '' },
   { pattern: /^\/feedback$/, module: '反馈', page: '' },

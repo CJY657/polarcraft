@@ -133,6 +133,21 @@ describe('HomePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/applications');
   });
 
+  it('replaces the quiz reminder with the prominent learning pulse entry', () => {
+    render(<HomePage />);
+
+    expect(screen.queryByText('偏振光学知识测验')).toBeNull();
+    expect(screen.queryByRole('button', { name: /去测验/ })).toBeNull();
+
+    const pulseEntry = screen.getByTestId('home-pulse-teaser');
+    expect(pulseEntry.textContent).toContain('平台学习热度');
+    expect(pulseEntry.textContent).toContain('数据每 10 分钟更新一次');
+    expect(pulseEntry.className).toContain('bg-[#264653]');
+
+    fireEvent.click(pulseEntry);
+    expect(mockNavigate).toHaveBeenCalledWith('/pulse');
+  });
+
   it('offers one clear first-step action from the CTA band', () => {
     render(<HomePage />);
 

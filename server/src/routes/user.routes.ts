@@ -52,6 +52,13 @@ router.get(
 );
 
 /**
+ * @route   GET /api/users/:userId/activity
+ * @desc    Get a single learner's activity detail
+ * @access  Admin only
+ */
+router.get('/:userId/activity', requireAdmin, UserController.getLearnerActivityForAdmin);
+
+/**
  * @route   GET /api/users/:userId/details
  * @desc    Get a single user's detail (profile + educations + research involvement)
  * @access  Admin only

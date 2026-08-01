@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getPostHogAnalyticsForAdmin, getActivityDashboardForAdmin } = vi.hoisted(() => ({
-  getPostHogAnalyticsForAdmin: vi.fn(),
-  getActivityDashboardForAdmin: vi.fn(),
-}));
+const { getPostHogAnalyticsForAdmin, getActivityDashboardForAdmin, getLearnerActivityForAdmin } =
+  vi.hoisted(() => ({
+    getPostHogAnalyticsForAdmin: vi.fn(),
+    getActivityDashboardForAdmin: vi.fn(),
+    getLearnerActivityForAdmin: vi.fn(),
+  }));
 
 vi.mock('../services/user.service.js', () => ({
   UserService: {
     getPostHogAnalyticsForAdmin,
     getActivityDashboardForAdmin,
+    getLearnerActivityForAdmin,
   },
 }));
 
@@ -171,6 +174,74 @@ describe('UserController.getActivityDashboardForAdmin', () => {
 
     UserController.getActivityDashboardForAdmin(
       { query: {} } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      '行为数据查询失败，请稍后重试',
+      'POSTHOG_QUERY_FAILED',
+      502
+    );
+  });
+});
+
+describe('UserController.getLearnerActivityForAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes the requested learner and custom range to the service', async () => {
+    const detail = { status: 'ok' };
+    getLearnerActivityForAdmin.mockResolvedValue(detail);
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      {
+        params: { userId: 'user-1' },
+        query: { start: '2026-01-01', end: '2026-01-31' },
+      } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getLearnerActivityForAdmin).toHaveBeenCalledWith(
+      'user-1',
+      '2026-01-01',
+      '2026-01-31'
+    );
+    expect(res.success).toHaveBeenCalledWith(detail);
+  });
+
+  it('rejects an inverted range without querying analytics', async () => {
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      {
+        params: { userId: 'user-1' },
+        query: { start: '2026-01-31', end: '2026-01-01' },
+      } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      expect.any(String),
+      'INVALID_ACTIVITY_RANGE',
+      400
+    );
+    expect(getLearnerActivityForAdmin).not.toHaveBeenCalled();
+  });
+
+  it('returns a sanitized gateway error when the learner query fails', async () => {
+    getLearnerActivityForAdmin.mockRejectedValue(new PostHogAnalyticsError());
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      { params: { userId: 'user-1' }, query: {} } as never,
       res as never,
       vi.fn() as never
     );

@@ -4,12 +4,13 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getActivity } = vi.hoisted(() => ({
+const { getActivity, getActivityDetail } = vi.hoisted(() => ({
   getActivity: vi.fn(),
+  getActivityDetail: vi.fn(),
 }));
 
 vi.mock('@/lib/admin-user.service', () => ({
-  adminUserApi: { getActivity },
+  adminUserApi: { getActivity, getActivityDetail },
 }));
 
 vi.mock('@/contexts/ThemeContext', () => ({
@@ -45,6 +46,13 @@ const activity = {
     meaningful_events: 146,
     pageviews: 62,
     learning_actions: 84,
+  },
+  previous_summary: {
+    range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
+    active_learners: 12,
+    meaningful_events: 146,
+    pageviews: 124,
+    learning_actions: 0,
   },
   daily: [
     { date: '2026-07-09', active_learners: 7, pageviews: 24, learning_actions: 31 },
@@ -86,9 +94,26 @@ const activity = {
   ],
 };
 
-function renderPage() {
+const learnerDetail = {
+  status: 'ok' as const,
+  range: { ...presetRange(30), days: 30 },
+  previous_range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
+  generated_at: '2026-07-10T08:00:00.000Z',
+  last_activity: '2026-07-10T07:30:00.000Z',
+  summary: { meaningful_events: 32, pageviews: 12, learning_actions: 20 },
+  previous_summary: { meaningful_events: 16, pageviews: 10, learning_actions: 20 },
+  daily: [
+    { date: '2026-07-09', events: 12, pageviews: 5, learning_actions: 7 },
+    { date: '2026-07-10', events: 20, pageviews: 7, learning_actions: 13 },
+  ],
+  top_pages: [{ path: '/experiments/calcite', pageviews: 9 }],
+  module_breakdown: [{ module: 'module1', label: '实验内容', pageviews: 9 }],
+  hourly: [{ weekday: 4, hour: 20, count: 6 }],
+};
+
+function renderPage(initialPath = '/admin/activity') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialPath]}>
       <AdminActivityPage />
     </MemoryRouter>
   );
@@ -98,6 +123,7 @@ describe('AdminActivityPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getActivity.mockResolvedValue(activity);
+    getActivityDetail.mockResolvedValue(learnerDetail);
   });
 
   it('loads the last 30 days by default and renders the dashboard data', async () => {
@@ -120,7 +146,7 @@ describe('AdminActivityPage', () => {
     expect(screen.getByText('按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。')).toBeDefined();
     expect(screen.getByText('按现有页面路径前缀归类并汇总页面访问次数。')).toBeDefined();
     expect(screen.getByText('展示次数最多的前 10 类活动；占比按当前展示的次数计算。')).toBeDefined();
-    expect(screen.getByText('按纳入统计的有效活动次数排序；显示人数只影响排行行数。')).toBeDefined();
+    expect(screen.getByText('按纳入统计的有效活动次数排序；显示人数只影响排行行数。点击任意学生查看完整活动分析。')).toBeDefined();
     expect(screen.getByRole('img', { name: '每日活动趋势' })).toBeDefined();
     expect(screen.getByRole('table', { name: '每日活动趋势数据' })).toBeDefined();
     expect(screen.getByText('实验内容 · 课程详情')).toBeDefined();
@@ -311,5 +337,68 @@ describe('AdminActivityPage', () => {
 
     await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(2));
     expect((await screen.findAllByText('林晓光')).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('compares each metric against the preceding window', async () => {
+    renderPage();
+
+    const overview = (await screen.findByLabelText('活动概览')) as HTMLElement;
+    // 18 vs 12 学生, 146 vs 146 活动, 62 vs 124 访问, 84 vs 0 行为
+    expect(within(overview).getByText(/较上期 \+50%/)).toBeDefined();
+    expect(within(overview).getByText(/较上期持平/)).toBeDefined();
+    expect(within(overview).getByText(/较上期 -50%/)).toBeDefined();
+    expect(within(overview).getByText(/较上期新增 84/)).toBeDefined();
+  });
+
+  it('omits the comparison when the payload has no previous window', async () => {
+    getActivity.mockResolvedValue({ ...activity, previous_summary: null });
+
+    renderPage();
+
+    const overview = (await screen.findByLabelText('活动概览')) as HTMLElement;
+    expect(within(overview).queryByText(/较上期/)).toBeNull();
+  });
+
+  it('opens the learner drawer from a ranking row', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
+
+    const drawer = await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
+    await waitFor(() =>
+      expect(getActivityDetail).toHaveBeenCalledWith('learner-1', presetRange(30))
+    );
+    expect(within(drawer).getByText('32')).toBeDefined();
+    expect(within(drawer).getByText(/较上期 \+100%/)).toBeDefined();
+    expect(within(drawer).getByText('实验内容 · 课程详情')).toBeDefined();
+    expect(within(drawer).getByRole('table', { name: /按星期与时段统计的活动次数/ })).toBeDefined();
+  });
+
+  it('opens the learner drawer straight from a bookmarked link', async () => {
+    renderPage('/admin/activity?user=learner-2');
+
+    expect(await screen.findByRole('dialog', { name: '王小雨 的活动详情' })).toBeDefined();
+    await waitFor(() =>
+      expect(getActivityDetail).toHaveBeenCalledWith('learner-2', presetRange(30))
+    );
+  });
+
+  it('closes the learner drawer without losing the dashboard', async () => {
+    renderPage('/admin/activity?user=learner-1');
+
+    await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
+    fireEvent.click(screen.getByRole('button', { name: '关闭学生活动详情' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('heading', { name: '用户活动' })).toBeDefined();
+  });
+
+  it('surfaces a drawer-level failure without breaking the dashboard', async () => {
+    getActivityDetail.mockRejectedValue(new Error('行为数据查询失败，请稍后重试'));
+
+    renderPage('/admin/activity?user=learner-1');
+
+    expect(await screen.findByText('加载学生活动详情失败')).toBeDefined();
+    expect(screen.getByRole('heading', { name: '用户活动' })).toBeDefined();
   });
 });

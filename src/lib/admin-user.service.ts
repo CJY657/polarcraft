@@ -134,6 +134,18 @@ export interface AdminActivityResponse {
     pageviews: number;
     learning_actions: number;
   } | null;
+  /** Same totals over the preceding equal-length window (absent on older payloads). */
+  previous_summary?: {
+    range: {
+      start: string;
+      end: string;
+      days: number;
+    };
+    active_learners: number;
+    meaningful_events: number;
+    pageviews: number;
+    learning_actions: number;
+  } | null;
   daily: Array<{
     date: string;
     active_learners: number;
@@ -159,6 +171,51 @@ export interface AdminActivityResponse {
     pageviews: number;
     learning_actions: number;
     last_activity: string | null;
+  }>;
+}
+
+export interface AdminLearnerActivitySummary {
+  meaningful_events: number;
+  pageviews: number;
+  learning_actions: number;
+}
+
+export interface AdminLearnerActivityResponse {
+  status: 'ok' | 'disabled';
+  range: {
+    start: string;
+    end: string;
+    days: number;
+  };
+  previous_range: {
+    start: string;
+    end: string;
+    days: number;
+  };
+  generated_at: string;
+  last_activity: string | null;
+  summary: AdminLearnerActivitySummary | null;
+  previous_summary: AdminLearnerActivitySummary | null;
+  daily: Array<{
+    date: string;
+    events: number;
+    pageviews: number;
+    learning_actions: number;
+  }>;
+  top_pages: Array<{
+    path: string;
+    pageviews: number;
+  }>;
+  module_breakdown: Array<{
+    module: string;
+    label: string;
+    pageviews: number;
+  }>;
+  /** weekday: 1 = 周一 … 7 = 周日, hour: 0-23，均为中国时区。 */
+  hourly: Array<{
+    weekday: number;
+    hour: number;
+    count: number;
   }>;
 }
 
@@ -258,5 +315,20 @@ export const adminUserApi = {
     }
 
     throw new Error(response.error?.message || '获取用户活动失败');
+  },
+
+  async getActivityDetail(
+    userId: string,
+    range: { start: string; end: string }
+  ): Promise<AdminLearnerActivityResponse> {
+    const search = new URLSearchParams({ start: range.start, end: range.end });
+    const response = await api.get<AdminLearnerActivityResponse>(
+      `/api/users/${userId}/activity?${search.toString()}`
+    );
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || '获取学生活动详情失败');
   },
 };

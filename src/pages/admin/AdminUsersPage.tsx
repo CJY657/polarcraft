@@ -22,7 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { PersistentHeader } from '@/components/shared/PersistentHeader';
 import { Dialog } from '@/components/ui/dialog';
@@ -1240,6 +1240,21 @@ function UserDetailDialog({
               })}
               </div>
             </>
+          ) : null}
+
+          {user ? (
+            <Link
+              to={`/admin/activity?user=${encodeURIComponent(user.id)}`}
+              className={cn(
+                'mt-3 inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-colors',
+                theme === 'dark'
+                  ? 'border-slate-700 text-slate-100 hover:bg-slate-800'
+                  : 'border-slate-200 text-slate-900 hover:bg-slate-50'
+              )}
+            >
+              <Activity className="h-4 w-4" aria-hidden="true" />
+              查看完整活动分析
+            </Link>
           ) : null}
         </DetailSection>
 

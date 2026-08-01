@@ -1,11 +1,14 @@
 import { config } from '../config/index.js';
 import {
   AdminUserActivityDashboardResponse,
+  AdminUserActivityDateRange,
+  AdminUserActivityDetailResponse,
   AdminUserActivityModuleBreakdown,
   AdminUserPostHogAnalyticsResponse,
   AdminUserPostHogPerson,
   AdminUserPostHogSummary,
 } from '../types/user.types.js';
+import { PublicActivitySnapshot } from '../types/stats.types.js';
 import { logger } from '../utils/logger.js';
 
 /** 六大核心模块的路由前缀映射（与 src/App.tsx 保持一致） */
@@ -66,6 +69,20 @@ export class PostHogAnalyticsError extends Error {
 export class PostHogService {
   private static readonly SUMMARY_WINDOW_DAYS = 10;
 
+  private static readonly LEARNING_EVENT_PREDICATE =
+    "event IN ('experiment_opened', 'project_application_submitted')";
+
+  /** Prefer the SPA-reported path, fall back to the raw URL. */
+  private static readonly PATH_EXPRESSION = `
+      coalesce(
+        nullIf(toString(properties.pathname), ''),
+        nullIf(toString(properties.route), ''),
+        toString(properties.$current_url)
+      )
+    `;
+
+  private static readonly TIMEZONE = 'Asia/Shanghai';
+
   static async getUserAnalytics(
     userId: string
   ): Promise<AdminUserPostHogAnalyticsResponse> {
@@ -101,18 +118,15 @@ export class PostHogService {
     learnerLimit: number | null
   ): Promise<AdminUserActivityDashboardResponse> {
     const generatedAt = new Date().toISOString();
-    const rangeDays =
-      Math.round(
-        (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) /
-          86_400_000
-      ) + 1;
-    const range = { start, end, days: rangeDays };
+    const range = this.computeRange(start, end);
+    const rangeDays = range.days;
     if (!this.isEnabled()) {
       return {
         status: 'disabled',
         range,
         generated_at: generatedAt,
         summary: null,
+        previous_summary: null,
         daily: [],
         top_pages: [],
         activity_breakdown: [],
@@ -121,37 +135,20 @@ export class PostHogService {
       };
     }
 
-    const learningEventPredicate =
-      "event IN ('experiment_opened', 'project_application_submitted')";
-    // start/end are validated as YYYY-MM-DD literals by the controller.
-    const filter = `
-      timestamp >= toDate('${start}')
-      AND timestamp < toDate('${end}') + INTERVAL 1 DAY
-      AND person_id IS NOT NULL
-      AND person.properties.role = 'user'
-      AND properties.$is_identified = true
-      AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
-    `;
-    const pathExpression = `
-      coalesce(
-        nullIf(toString(properties.pathname), ''),
-        nullIf(toString(properties.route), ''),
-        toString(properties.$current_url)
-      )
-    `;
-    const [summaryResponse, dailyResponse, pagesResponse] = await Promise.all([
-      this.runQuery(
-        `
+    const learningEventPredicate = this.LEARNING_EVENT_PREDICATE;
+    const filter = this.activityFilter(start, end);
+    const pathExpression = this.PATH_EXPRESSION;
+    const summaryQuery = (windowFilter: string) => `
             SELECT
               count(DISTINCT person_id),
               count(),
               countIf(event = '$pageview'),
               countIf(${learningEventPredicate})
             FROM events
-            WHERE ${filter}
-        `,
-        'admin learner activity summary'
-      ),
+            WHERE ${windowFilter}
+        `;
+    const [summaryResponse, dailyResponse, pagesResponse] = await Promise.all([
+      this.runQuery(summaryQuery(filter), 'admin learner activity summary'),
       this.runQuery(
         `
             SELECT
@@ -230,6 +227,17 @@ export class PostHogService {
 
     const summaryRow = this.extractRows(summaryResponse)[0] ?? [];
 
+    // Run last and alone: PostHog throttles bursts, and the batches above
+    // already saturate the concurrency the upstream tolerates.
+    const previousRange = this.previousRange(range);
+    const previousRow =
+      this.extractRows(
+        await this.runQuery(
+          summaryQuery(this.activityFilter(previousRange.start, previousRange.end)),
+          'admin learner activity previous summary'
+        )
+      )[0] ?? [];
+
     return {
       status: 'ok',
       range,
@@ -239,6 +247,13 @@ export class PostHogService {
         meaningful_events: this.numberOrZero(summaryRow[1]),
         pageviews: this.numberOrZero(summaryRow[2]),
         learning_actions: this.numberOrZero(summaryRow[3]),
+      },
+      previous_summary: {
+        range: previousRange,
+        active_learners: this.numberOrZero(previousRow[0]),
+        meaningful_events: this.numberOrZero(previousRow[1]),
+        pageviews: this.numberOrZero(previousRow[2]),
+        learning_actions: this.numberOrZero(previousRow[3]),
       },
       daily: this.buildDailySeries(start, end, this.extractRows(dailyResponse)),
       top_pages: this.extractRows(pagesResponse)
@@ -268,6 +283,284 @@ export class PostHogService {
           last_activity: this.stringOrNull(row[5]),
         })),
     };
+  }
+
+  /**
+   * Snapshot behind the public 学习热度 page. Uses the same learner-only,
+   * meaningful-event filter as the admin dashboard, and returns the *full*
+   * learner list keyed by user id — the caller anonymizes before responding.
+   */
+  static async getPublicActivitySnapshot(
+    start: string,
+    end: string
+  ): Promise<PublicActivitySnapshot> {
+    const generatedAt = new Date().toISOString();
+    const range = this.computeRange(start, end);
+    if (!this.isEnabled()) {
+      return {
+        status: 'disabled',
+        range,
+        generated_at: generatedAt,
+        summary: null,
+        daily: [],
+        top_pages: [],
+        learners: [],
+      };
+    }
+
+    const filter = this.activityFilter(start, end);
+    const [dailyResponse, pagesResponse, learnersResponse] = await Promise.all([
+      this.runQuery(
+        `
+            SELECT
+              toDate(timestamp) AS day,
+              count(DISTINCT person_id),
+              countIf(event = '$pageview'),
+              countIf(${this.LEARNING_EVENT_PREDICATE})
+            FROM events
+            WHERE ${filter}
+            GROUP BY day
+            ORDER BY day
+            LIMIT ${range.days}
+        `,
+        'public activity daily'
+      ),
+      this.runQuery(
+        `
+            SELECT
+              ${this.PATH_EXPRESSION},
+              count()
+            FROM events
+            WHERE ${filter}
+              AND event = '$pageview'
+            GROUP BY 1
+            ORDER BY count() DESC
+            LIMIT 10
+        `,
+        'public activity top pages'
+      ),
+      this.runQuery(
+        `
+            SELECT
+              argMax(distinct_id, timestamp),
+              count(),
+              countIf(event = '$pageview'),
+              countIf(${this.LEARNING_EVENT_PREDICATE})
+            FROM events
+            WHERE ${filter}
+            GROUP BY person_id
+            ORDER BY count() DESC
+        `,
+        'public activity learners'
+      ),
+    ]);
+
+    const learners = this.extractRows(learnersResponse)
+      .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
+      .map((row) => ({
+        user_id: row[0] as string,
+        events: this.numberOrZero(row[1]),
+        pageviews: this.numberOrZero(row[2]),
+        learning_actions: this.numberOrZero(row[3]),
+      }));
+
+    return {
+      status: 'ok',
+      range,
+      generated_at: generatedAt,
+      // Derived from the learner rows so the window needs no extra query:
+      // one row per distinct learner already means one count per learner.
+      summary: {
+        active_learners: learners.length,
+        pageviews: learners.reduce((total, learner) => total + learner.pageviews, 0),
+        learning_actions: learners.reduce(
+          (total, learner) => total + learner.learning_actions,
+          0
+        ),
+      },
+      daily: this.buildDailySeries(start, end, this.extractRows(dailyResponse)),
+      top_pages: this.extractRows(pagesResponse)
+        .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
+        .map((row) => ({
+          path: this.pathFrom(row[0] as string),
+          pageviews: this.numberOrZero(row[1]),
+        })),
+      learners,
+    };
+  }
+
+  /**
+   * One learner's activity over a range, plus the preceding equal-length
+   * window for deltas. Scoped by distinct_id, so — like the 10-day drawer
+   * summary — it deliberately skips the `role = 'user'` filter.
+   */
+  static async getLearnerActivityDetail(
+    userId: string,
+    start: string,
+    end: string
+  ): Promise<AdminUserActivityDetailResponse> {
+    const generatedAt = new Date().toISOString();
+    const range = this.computeRange(start, end);
+    const previousRange = this.previousRange(range);
+    if (!this.isEnabled()) {
+      return {
+        status: 'disabled',
+        range,
+        previous_range: previousRange,
+        generated_at: generatedAt,
+        last_activity: null,
+        summary: null,
+        previous_summary: null,
+        daily: [],
+        top_pages: [],
+        module_breakdown: [],
+        hourly: [],
+      };
+    }
+
+    const filter = this.learnerFilter(userId, start, end);
+    const [dailyResponse, pagesResponse, hourlyResponse] = await Promise.all([
+      this.runQuery(
+        `
+            SELECT
+              toDate(timestamp) AS day,
+              toString(max(timestamp)),
+              count(),
+              countIf(event = '$pageview'),
+              countIf(${this.LEARNING_EVENT_PREDICATE})
+            FROM events
+            WHERE ${filter}
+            GROUP BY day
+            ORDER BY day
+            LIMIT ${range.days}
+        `,
+        'admin learner detail daily'
+      ),
+      this.runQuery(
+        `
+            SELECT
+              ${this.PATH_EXPRESSION},
+              count()
+            FROM events
+            WHERE ${filter}
+              AND event = '$pageview'
+            GROUP BY 1
+            ORDER BY count() DESC
+            LIMIT 200
+        `,
+        'admin learner detail pages'
+      ),
+      this.runQuery(
+        `
+            SELECT
+              toDayOfWeek(toTimeZone(timestamp, '${this.TIMEZONE}')),
+              toHour(toTimeZone(timestamp, '${this.TIMEZONE}')),
+              count()
+            FROM events
+            WHERE ${filter}
+            GROUP BY 1, 2
+        `,
+        'admin learner detail hourly'
+      ),
+    ]);
+
+    const previousRow =
+      this.extractRows(
+        await this.runQuery(
+          `
+            SELECT
+              count(),
+              countIf(event = '$pageview'),
+              countIf(${this.LEARNING_EVENT_PREDICATE})
+            FROM events
+            WHERE ${this.learnerFilter(userId, previousRange.start, previousRange.end)}
+        `,
+          'admin learner detail previous summary'
+        )
+      )[0] ?? [];
+
+    const dailyRows = this.extractRows(dailyResponse).filter(
+      (row) => typeof row[0] === 'string'
+    );
+    const byDate = new Map(
+      dailyRows.map((row) => [
+        row[0] as string,
+        {
+          date: row[0] as string,
+          events: this.numberOrZero(row[2]),
+          pageviews: this.numberOrZero(row[3]),
+          learning_actions: this.numberOrZero(row[4]),
+        },
+      ])
+    );
+    const daily = this.denseDates(start, end).map(
+      (date) =>
+        byDate.get(date) ?? { date, events: 0, pageviews: 0, learning_actions: 0 }
+    );
+    const summary = daily.reduce(
+      (totals, day) => ({
+        meaningful_events: totals.meaningful_events + day.events,
+        pageviews: totals.pageviews + day.pageviews,
+        learning_actions: totals.learning_actions + day.learning_actions,
+      }),
+      { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
+    );
+    // rows are ordered by day, so the last one carries the newest timestamp
+    const lastActivity =
+      summary.meaningful_events === 0
+        ? null
+        : this.stringOrNull(dailyRows[dailyRows.length - 1]?.[1]);
+
+    const pageRows = this.extractRows(pagesResponse)
+      .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
+      .map((row) => ({
+        path: this.pathFrom(row[0] as string),
+        pageviews: this.numberOrZero(row[1]),
+      }));
+
+    return {
+      status: 'ok',
+      range,
+      previous_range: previousRange,
+      generated_at: generatedAt,
+      last_activity: lastActivity,
+      summary,
+      previous_summary: {
+        meaningful_events: this.numberOrZero(previousRow[0]),
+        pageviews: this.numberOrZero(previousRow[1]),
+        learning_actions: this.numberOrZero(previousRow[2]),
+      },
+      daily,
+      top_pages: pageRows.slice(0, 10),
+      module_breakdown: this.buildLearnerModules(pageRows),
+      hourly: this.extractRows(hourlyResponse)
+        .map((row) => ({
+          weekday: this.numberOrZero(row[0]),
+          hour: this.numberOrZero(row[1]),
+          count: this.numberOrZero(row[2]),
+        }))
+        .filter((cell) => cell.weekday >= 1 && cell.weekday <= 7 && cell.count > 0),
+    };
+  }
+
+  /** Roll one learner's per-path pageviews up into the six core modules. */
+  private static buildLearnerModules(
+    pages: Array<{ path: string; pageviews: number }>
+  ): AdminUserActivityDetailResponse['module_breakdown'] {
+    const totals = new Map<string, { module: string; label: string; pageviews: number }>();
+    for (const page of pages) {
+      const { module, label } = classifyModule(page.path);
+      const entry = totals.get(module);
+      if (entry) {
+        entry.pageviews += page.pageviews;
+      } else {
+        totals.set(module, { module, label, pageviews: page.pageviews });
+      }
+    }
+
+    return [...MODULE_ROUTE_PREFIXES.map((entry) => entry.module), OTHER_MODULE.module]
+      .map((moduleKey) => totals.get(moduleKey))
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
   }
 
   /**
@@ -346,13 +639,7 @@ export class PostHogService {
     }
 
     const daily: AdminUserActivityDashboardResponse['daily'] = [];
-    const endTimestamp = Date.parse(`${end}T00:00:00Z`);
-    for (
-      let timestamp = Date.parse(`${start}T00:00:00Z`);
-      timestamp <= endTimestamp;
-      timestamp += 86_400_000
-    ) {
-      const date = new Date(timestamp).toISOString().slice(0, 10);
+    for (const date of this.denseDates(start, end)) {
       daily.push(
         valuesByDate.get(date) ?? {
           date,
@@ -364,6 +651,61 @@ export class PostHogService {
     }
 
     return daily;
+  }
+
+  /** Every YYYY-MM-DD from start to end, inclusive. */
+  private static denseDates(start: string, end: string): string[] {
+    const dates: string[] = [];
+    const endTimestamp = Date.parse(`${end}T00:00:00Z`);
+    for (
+      let timestamp = Date.parse(`${start}T00:00:00Z`);
+      timestamp <= endTimestamp;
+      timestamp += 86_400_000
+    ) {
+      dates.push(new Date(timestamp).toISOString().slice(0, 10));
+    }
+    return dates;
+  }
+
+  private static computeRange(start: string, end: string): AdminUserActivityDateRange {
+    const days =
+      Math.round(
+        (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000
+      ) + 1;
+    return { start, end, days };
+  }
+
+  /** The equal-length window immediately before `range`. */
+  private static previousRange(range: AdminUserActivityDateRange): AdminUserActivityDateRange {
+    const startTimestamp = Date.parse(`${range.start}T00:00:00Z`);
+    return {
+      start: new Date(startTimestamp - range.days * 86_400_000).toISOString().slice(0, 10),
+      end: new Date(startTimestamp - 86_400_000).toISOString().slice(0, 10),
+      days: range.days,
+    };
+  }
+
+  /** Aggregate filter: identified students only. start/end are YYYY-MM-DD literals. */
+  private static activityFilter(start: string, end: string): string {
+    return `
+      timestamp >= toDate('${start}')
+      AND timestamp < toDate('${end}') + INTERVAL 1 DAY
+      AND person_id IS NOT NULL
+      AND person.properties.role = 'user'
+      AND properties.$is_identified = true
+      AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
+    `;
+  }
+
+  /** Single-learner filter. No role check: admins inspect any account here. */
+  private static learnerFilter(userId: string, start: string, end: string): string {
+    return `
+      timestamp >= toDate('${start}')
+      AND timestamp < toDate('${end}') + INTERVAL 1 DAY
+      AND distinct_id = ${this.quoteLiteral(userId)}
+      AND properties.$is_identified = true
+      AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
+    `;
   }
 
   private static isEnabled(): boolean {

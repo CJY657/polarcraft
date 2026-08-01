@@ -17,6 +17,7 @@ import {
 } from '../types/auth.types.js';
 import {
   AdminUserActivityDashboardResponse,
+  AdminUserActivityDetailResponse,
   AdminUserDetailResponse,
   AdminUserListResponse,
   AdminUserPostHogAnalyticsResponse,
@@ -164,6 +165,20 @@ export class UserService {
         };
       }),
     };
+  }
+
+  /** Get one learner's activity detail for the administrator drawer. */
+  static async getLearnerActivityForAdmin(
+    userId: string,
+    start: string,
+    end: string
+  ): Promise<AdminUserActivityDetailResponse> {
+    const user = await UserModel.findByIdForAdmin(userId);
+    if (!user) {
+      throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
+    }
+
+    return PostHogService.getLearnerActivityDetail(user.id, start, end);
   }
 
   /**

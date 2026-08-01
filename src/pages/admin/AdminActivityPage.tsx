@@ -1,10 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
   BarChart3,
   BookOpenCheck,
   ChevronDown,
+  ChevronRight,
   Eye,
   LayoutGrid,
   MousePointerClick,
@@ -19,7 +21,8 @@ import {
   type AdminActivityLimit,
   type AdminActivityResponse,
 } from '@/lib/admin-user.service';
-import { formatEventName, formatPagePath } from '@/pages/admin/activity-labels';
+import { formatActivityDelta, formatEventName, formatPagePath } from '@/lib/activity-labels';
+import AdminLearnerActivityDrawer from '@/pages/admin/AdminLearnerActivityDrawer';
 import { cn } from '@/utils/classNames';
 import { formatShortDateTime } from '@/lib/datetime.util';
 
@@ -56,6 +59,7 @@ function formatDate(value: string): string {
 
 export default function AdminActivityPage() {
   const { theme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [range, setRange] = useState(() => presetRange(30));
   const [limit, setLimit] = useState<AdminActivityLimit>(10);
   const [retryKey, setRetryKey] = useState(0);
@@ -64,6 +68,43 @@ export default function AdminActivityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const isDark = theme === 'dark';
   const rangeInvalid = range.start > range.end;
+  // Bookmarkable: /admin/activity?user=<id> opens the learner drawer directly.
+  const selectedLearnerId = searchParams.get('user');
+
+  const openLearner = (userId: string) => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set('user', userId);
+        return next;
+      },
+      { replace: false }
+    );
+  };
+
+  const closeLearner = () => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('user');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const selectedLearnerName = useMemo(() => {
+    if (!selectedLearnerId) return '';
+    const ranked = result?.top_learners.find(
+      (learner) => learner.user_id === selectedLearnerId
+    );
+    if (ranked) return ranked.display_name;
+    for (const entry of result?.module_breakdown ?? []) {
+      const learner = entry.learners.find((item) => item.user_id === selectedLearnerId);
+      if (learner) return learner.username;
+    }
+    return '学生';
+  }, [selectedLearnerId, result]);
 
   useEffect(() => {
     if (rangeInvalid) {
@@ -258,10 +299,26 @@ export default function AdminActivityPage() {
               description={`${range.start} 至 ${range.end} 还没有已登录学生的学习活动。`}
             />
           ) : result?.summary ? (
-            <Dashboard result={result} isDark={isDark} limit={limit} onLimitChange={setLimit} />
+            <Dashboard
+              result={result}
+              isDark={isDark}
+              limit={limit}
+              onLimitChange={setLimit}
+              onLearnerSelect={openLearner}
+            />
           ) : null}
         </div>
       </main>
+
+      {selectedLearnerId ? (
+        <AdminLearnerActivityDrawer
+          userId={selectedLearnerId}
+          learnerName={selectedLearnerName}
+          range={range}
+          isDark={isDark}
+          onClose={closeLearner}
+        />
+      ) : null}
     </div>
   );
 }
@@ -271,17 +328,21 @@ function Dashboard({
   isDark,
   limit,
   onLimitChange,
+  onLearnerSelect,
 }: {
   result: AdminActivityResponse;
   isDark: boolean;
   limit: AdminActivityLimit;
   onLimitChange: (limit: AdminActivityLimit) => void;
+  onLearnerSelect: (userId: string) => void;
 }) {
   const summary = result.summary!;
+  const previous = result.previous_summary;
   const metrics = [
     {
       label: '活跃学生',
       value: summary.active_learners,
+      previous: previous?.active_learners,
       description: '所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。',
       icon: Users,
       color: '#ff4d8b',
@@ -289,6 +350,7 @@ function Dashboard({
     {
       label: '有效活动',
       value: summary.meaningful_events,
+      previous: previous?.meaningful_events,
       description: '所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。',
       icon: Activity,
       color: '#1a3a3a',
@@ -296,6 +358,7 @@ function Dashboard({
     {
       label: '页面访问',
       value: summary.pageviews,
+      previous: previous?.pageviews,
       description: '所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。',
       icon: Eye,
       color: '#b8a4ed',
@@ -303,6 +366,7 @@ function Dashboard({
     {
       label: '学习行为',
       value: summary.learning_actions,
+      previous: previous?.learning_actions,
       description: '所选起止日期均计入；已识别普通学生进入实验和提交课题申请的合计次数。',
       icon: MousePointerClick,
       color: '#e8b94a',
@@ -314,6 +378,7 @@ function Dashboard({
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="活动概览">
         {metrics.map((metric) => {
           const Icon = metric.icon;
+          const delta = formatActivityDelta(metric.value, metric.previous);
           return (
             <div
               key={metric.label}
@@ -337,6 +402,27 @@ function Dashboard({
               >
                 {metric.value.toLocaleString('zh-CN')}
               </p>
+              {delta ? (
+                <p
+                  className={cn(
+                    'mt-1 text-sm font-medium',
+                    delta.direction === 'up'
+                      ? isDark
+                        ? 'text-emerald-300'
+                        : 'text-[#1f7a5a]'
+                      : delta.direction === 'down'
+                        ? isDark
+                          ? 'text-rose-300'
+                          : 'text-[#d23f63]'
+                        : isDark
+                          ? 'text-slate-400'
+                          : 'text-[#6a6a6a]'
+                  )}
+                >
+                  {delta.direction === 'up' ? '↑ ' : delta.direction === 'down' ? '↓ ' : ''}
+                  {delta.text}
+                </p>
+              ) : null}
               <p className={cn('mt-2 text-xs leading-5', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
                 {metric.description}
               </p>
@@ -368,7 +454,11 @@ function Dashboard({
           title="模块热度"
           description="按现有页面路径前缀归类并汇总页面访问次数。"
         >
-          <ModuleBreakdown modules={result.module_breakdown} isDark={isDark} />
+          <ModuleBreakdown
+            modules={result.module_breakdown}
+            isDark={isDark}
+            onLearnerSelect={onLearnerSelect}
+          />
         </Panel>
       </div>
 
@@ -383,7 +473,7 @@ function Dashboard({
         <Panel
           isDark={isDark}
           title="活跃学生排行"
-          description="按纳入统计的有效活动次数排序；显示人数只影响排行行数。"
+          description="按纳入统计的有效活动次数排序；显示人数只影响排行行数。点击任意学生查看完整活动分析。"
           action={
             <label
               className={cn(
@@ -417,7 +507,11 @@ function Dashboard({
             </label>
           }
         >
-          <TopLearners learners={result.top_learners} isDark={isDark} />
+          <TopLearners
+            learners={result.top_learners}
+            isDark={isDark}
+            onLearnerSelect={onLearnerSelect}
+          />
         </Panel>
       </div>
 
@@ -601,9 +695,11 @@ function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']
 function ModuleBreakdown({
   modules,
   isDark,
+  onLearnerSelect,
 }: {
   modules: AdminActivityResponse['module_breakdown'];
   isDark: boolean;
+  onLearnerSelect: (userId: string) => void;
 }) {
   if (modules.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无模块访问数据</InlineEmpty>;
@@ -666,17 +762,22 @@ function ModuleBreakdown({
             ) : (
               <ul className="space-y-2">
                 {entry.learners.map((learner) => (
-                  <li
-                    key={learner.user_id}
-                    className={cn(
-                      'flex items-center justify-between gap-3 text-sm',
-                      isDark ? 'text-slate-300' : 'text-[#3a3a3a]'
-                    )}
-                  >
-                    <span className="min-w-0 truncate">{learner.username}</span>
-                    <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-                      {learner.pageviews} 次
-                    </span>
+                  <li key={learner.user_id}>
+                    <button
+                      type="button"
+                      onClick={() => onLearnerSelect(learner.user_id)}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-left text-sm transition-colors',
+                        isDark
+                          ? 'text-slate-300 hover:bg-slate-800'
+                          : 'text-[#3a3a3a] hover:bg-[#faf5e8]'
+                      )}
+                    >
+                      <span className="min-w-0 truncate">{learner.username}</span>
+                      <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
+                        {learner.pageviews} 次
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -734,9 +835,11 @@ function ActivityMix({
 function TopLearners({
   learners,
   isDark,
+  onLearnerSelect,
 }: {
   learners: AdminActivityResponse['top_learners'];
   isDark: boolean;
+  onLearnerSelect: (userId: string) => void;
 }) {
   if (learners.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无活跃学生</InlineEmpty>;
@@ -756,8 +859,34 @@ function TopLearners({
         </thead>
         <tbody className={isDark ? 'text-slate-200' : 'text-[#1a1a1a]'}>
           {learners.map((learner) => (
-            <tr key={learner.user_id} className={cn('border-t', isDark ? 'border-slate-800' : 'border-[#f0f0f0]')}>
-              <td className="py-3 pr-4 font-medium">{learner.display_name}</td>
+            <tr
+              key={learner.user_id}
+              tabIndex={0}
+              role="button"
+              aria-label={`查看 ${learner.display_name} 的活动详情`}
+              onClick={() => onLearnerSelect(learner.user_id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onLearnerSelect(learner.user_id);
+                }
+              }}
+              className={cn(
+                'cursor-pointer border-t transition-colors',
+                isDark
+                  ? 'border-slate-800 hover:bg-slate-800'
+                  : 'border-[#f0f0f0] hover:bg-[#faf5e8]'
+              )}
+            >
+              <td className="py-3 pr-4 font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  {learner.display_name}
+                  <ChevronRight
+                    aria-hidden="true"
+                    className={cn('h-4 w-4', isDark ? 'text-slate-500' : 'text-[#a9a9a9]')}
+                  />
+                </span>
+              </td>
               <td className="hidden py-3 pr-4 text-right tabular-nums sm:table-cell">{learner.events}</td>
               <td className="hidden py-3 pr-4 text-right tabular-nums md:table-cell">{learner.pageviews}</td>
               <td className="py-3 pr-4 text-right tabular-nums">{learner.learning_actions}</td>
