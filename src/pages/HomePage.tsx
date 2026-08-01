@@ -224,24 +224,24 @@ export function HomePage() {
           type="button"
           data-testid="home-pulse-teaser"
           onClick={() => navigate("/pulse")}
-          className="group flex w-full flex-col items-stretch gap-5 rounded-[1.5rem] border border-white/15 bg-[#264653] px-6 py-6 text-left text-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:flex-row sm:items-center sm:px-8 sm:py-7"
+          className="group flex w-full flex-col items-stretch gap-4 rounded-[1.25rem] border border-clay-surface-strong bg-clay-surface-card px-5 py-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:flex-row sm:items-center sm:px-6 lg:px-8 lg:py-5"
         >
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#e9c46a] text-[#10201f] shadow-sm">
-            <Flame className="h-7 w-7" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e76f51]/10 text-[#e76f51] transition-colors group-hover:bg-[#e76f51]/15">
+            <Flame className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block text-2xl font-semibold sm:text-3xl"
-              style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.02em" }}
+              className="block text-lg font-semibold text-clay-ink sm:text-xl"
+              style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
             >
-              平台学习热度
+              平台热度
             </span>
-            <span className="mt-2 block max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+            <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-clay-body">
               查看近 7 天活跃同学、学习行为和热门内容，数据每 10 分钟更新一次。
             </span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#264653] transition-transform group-hover:translate-x-1 sm:self-auto">
-            查看学习热度
+          <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-clay-surface-strong bg-clay-surface-soft px-4 py-2 text-sm font-medium text-clay-ink transition-transform group-hover:translate-x-1 sm:self-auto">
+            查看热度
             <ArrowRight className="h-4 w-4" />
           </span>
         </button>

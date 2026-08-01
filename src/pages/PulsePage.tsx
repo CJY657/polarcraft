@@ -89,12 +89,8 @@ export function PulsePage() {
           <span className="clay-caption">Learning Pulse</span>
           <h1 className="clay-display-lg mt-3">平台学习热度</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-clay-body">
-            这里汇总了全平台已登录同学的学习活动：每天有多少人在做实验、看模拟、参与课题。
+            汇总了全平台已登用户的学习活动：每天有多少人在做实验、看模拟、参与课题。
             数据每 10 分钟更新一次。
-          </p>
-          <p className="mt-4 inline-flex items-start gap-2 rounded-2xl bg-clay-surface-soft px-4 py-3 text-sm leading-6 text-clay-body">
-            <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-clay-ink" />
-            榜单使用匿名编号，不展示用户名或昵称。编号无法反查到具体同学。
           </p>
 
           <div
@@ -167,10 +163,10 @@ function PulseDashboard({ result }: { result: PublicActivityResponse }) {
 
   const metrics = [
     {
-      label: "活跃同学",
+      label: "活跃用户",
       value: summary.active_learners,
       unit: "人",
-      description: "这段时间里至少学习过一次的同学人数。",
+      description: "这段时间里至少学习过一次的用户人数。",
       Icon: Users,
     },
     {
@@ -217,19 +213,19 @@ function PulseDashboard({ result }: { result: PublicActivityResponse }) {
 
       <section className="rounded-[1.25rem] border border-clay-surface-strong bg-clay-surface-card p-6">
         <h2 className="text-xl font-semibold text-clay-ink">每日活跃人数</h2>
-        <p className="mt-1 text-sm text-clay-body">每根柱子表示当天有多少同学在平台上学习。</p>
+        <p className="mt-1 text-sm text-clay-body">每根柱子表示当天有多少用户在平台上学习。</p>
         <DailyBars daily={result.daily} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-[1.25rem] border border-clay-surface-strong bg-clay-surface-card p-6">
-          <h2 className="text-xl font-semibold text-clay-ink">活跃学员榜</h2>
+          <h2 className="text-xl font-semibold text-clay-ink">活跃用户榜</h2>
           <p className="mt-1 text-sm text-clay-body">
             按有效活动次数排名，只展示前 10 位的匿名编号。
           </p>
 
           {result.top_learners.length === 0 ? (
-            <InlineEmpty>暂时还没有上榜的同学</InlineEmpty>
+            <InlineEmpty>暂时还没有上榜的用户</InlineEmpty>
           ) : (
             <ol className="mt-5 space-y-2">
               {result.top_learners.map((learner, index) => {
@@ -253,7 +249,7 @@ function PulseDashboard({ result }: { result: PublicActivityResponse }) {
                       {index + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-base font-semibold text-clay-ink">
-                      学员 #{learner.code}
+                      用户 #{learner.code}
                       {isViewer ? (
                         <span className="ml-2 rounded-full bg-clay-ink px-2 py-0.5 text-xs font-bold text-white">
                           你
@@ -275,7 +271,7 @@ function PulseDashboard({ result }: { result: PublicActivityResponse }) {
                 你的排名：第 {viewer.rank} 名
               </p>
               <p className="mt-1 text-sm text-clay-ink/80">
-                学员 #{viewer.code} · {viewer.events.toLocaleString("zh-CN")} 次有效活动，
+                用户 #{viewer.code} · {viewer.events.toLocaleString("zh-CN")} 次有效活动，
                 继续加油就能进入榜单。
               </p>
             </div>
@@ -329,7 +325,7 @@ function DailyBars({ daily }: { daily: PublicActivityResponse["daily"] }) {
         <thead>
           <tr>
             <th>日期</th>
-            <th>活跃同学</th>
+            <th>活跃用户</th>
           </tr>
         </thead>
         <tbody>

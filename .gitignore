@@ -34,6 +34,7 @@ dist-ssr
 server/.env
 
 uploads
+/deploy-production.sh
 
 .codex
 /vite
