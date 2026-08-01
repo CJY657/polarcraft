@@ -325,6 +325,41 @@ describe('AdminActivityPage', () => {
     expect(chart.outerHTML).not.toContain('NaN');
   });
 
+  it('marks both trend axes with scale ticks and units', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('img', { name: '每日活动趋势' });
+    // 数据峰值 53 → 纵轴取整到 0/20/40/60。
+    for (const tick of ['0', '20', '40', '60']) {
+      expect(within(chart).getByText(tick)).toBeDefined();
+    }
+    // 横轴标出日期刻度（两天全标）。
+    expect(within(chart).getAllByText(/月|\//).length).toBeGreaterThanOrEqual(2);
+    expect(
+      screen.getByText(/纵轴：当日数量（活跃学生按人计，页面访问与学习行为按次计）· 横轴：日期/)
+    ).toBeDefined();
+  });
+
+  it('labels the learner drawer trend axes as well', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
+
+    const drawer = await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
+    expect(
+      within(drawer).getByText(/纵轴：当日有效活动次数（次）· 横轴：日期（月\/日）/)
+    ).toBeDefined();
+    // 数据峰值 20 → 纵轴取整到 0/5/10/15/20。
+    const caption = within(drawer).getByText(/纵轴：当日有效活动次数/);
+    const plot = caption.closest('figure')?.querySelector('[aria-hidden="true"]');
+    expect(plot).not.toBeNull();
+    for (const tick of ['0', '5', '10', '15', '20']) {
+      expect(within(plot as HTMLElement).getByText(tick)).toBeDefined();
+    }
+    expect(within(plot as HTMLElement).getByText('7/9')).toBeDefined();
+    expect(within(plot as HTMLElement).getByText('7/10')).toBeDefined();
+  });
+
   it('retries after an upstream error', async () => {
     getActivity
       .mockRejectedValueOnce(new Error('行为统计服务暂时不可用'))

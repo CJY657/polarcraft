@@ -19,6 +19,7 @@ import {
 
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
 import { formatPagePath } from "@/lib/activity-labels";
+import { buildValueAxis, formatAxisValue, pickTickIndices } from "@/lib/chart-axis";
 import { publicStatsApi, type PublicActivityResponse } from "@/lib/stats.service";
 import { cn } from "@/utils/classNames";
 
@@ -348,24 +349,75 @@ function DailyBars({ daily }: { daily: PublicActivityResponse["daily"] }) {
     return <InlineEmpty>暂无每日数据</InlineEmpty>;
   }
 
-  const max = Math.max(1, ...daily.map((day) => day.active_learners));
+  const axis = buildValueAxis(Math.max(...daily.map((day) => day.active_learners)));
+  const labelled = new Set(pickTickIndices(daily.length, 6));
 
   return (
-    <div className="mt-6">
-      <div className="flex h-40 items-end gap-1" aria-hidden="true">
-        {daily.map((day) => (
-          <div
-            key={day.date}
-            title={`${day.date} · ${day.active_learners} 人`}
-            className="flex-1 rounded-t-lg bg-clay-teal"
-            style={{ height: `${Math.max(4, (day.active_learners / max) * 100)}%` }}
-          />
-        ))}
+    <figure className="mt-6">
+      <div className="flex gap-2" aria-hidden="true">
+        {/* 纵轴刻度：人数 */}
+        <div className="relative h-40 w-10 shrink-0">
+          {axis.ticks.map((tick) => (
+            <span
+              key={tick}
+              className="absolute right-0 translate-y-1/2 text-xs tabular-nums text-clay-muted"
+              style={{ bottom: `${(tick / axis.max) * 100}%` }}
+            >
+              {formatAxisValue(tick)}
+            </span>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="relative h-40 border-b border-l border-clay-surface-strong">
+            {axis.ticks.map((tick) =>
+              tick === 0 ? null : (
+                <div
+                  key={tick}
+                  className="absolute inset-x-0 border-t border-dashed border-clay-surface-strong"
+                  style={{ bottom: `${(tick / axis.max) * 100}%` }}
+                />
+              ),
+            )}
+            <div className="absolute inset-0 flex items-end gap-1">
+              {daily.map((day) => (
+                <div
+                  key={day.date}
+                  title={`${day.date} · ${day.active_learners} 人`}
+                  className="flex h-full flex-1 items-end"
+                >
+                  <div
+                    className="w-full rounded-t-lg bg-clay-teal"
+                    style={{
+                      height:
+                        day.active_learners === 0
+                          ? "0%"
+                          : `${Math.max(2, (day.active_learners / axis.max) * 100)}%`,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 横轴刻度：日期 */}
+          <div className="mt-2 flex gap-1">
+            {daily.map((day, index) => (
+              <span
+                key={day.date}
+                className="min-w-0 flex-1 whitespace-nowrap text-center text-xs tabular-nums text-clay-muted"
+              >
+                {labelled.has(index) ? formatDay(day.date) : ""}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="mt-2 flex justify-between text-xs text-clay-muted">
-        <span>{formatDay(daily[0].date)}</span>
-        {daily.length > 1 ? <span>{formatDay(daily[daily.length - 1].date)}</span> : null}
-      </div>
+
+      <figcaption className="mt-3 text-xs text-clay-muted">
+        纵轴：当日活跃人数（人）· 横轴：日期 · 虚线为刻度参考线
+      </figcaption>
+
       <table className="sr-only">
         <caption>每日活跃人数</caption>
         <thead>
@@ -383,7 +435,7 @@ function DailyBars({ daily }: { daily: PublicActivityResponse["daily"] }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </figure>
   );
 }
 

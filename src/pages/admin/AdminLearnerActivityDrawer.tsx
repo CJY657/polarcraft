@@ -19,6 +19,7 @@ import {
   adminUserApi,
   type AdminLearnerActivityResponse,
 } from '@/lib/admin-user.service';
+import { buildValueAxis, formatAxisDay, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import { formatShortDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
 
@@ -353,29 +354,85 @@ function LearnerTrend({
   if (daily.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无每日趋势</InlineEmpty>;
   }
-  const max = Math.max(1, ...daily.map((day) => day.events));
+
+  const axis = buildValueAxis(Math.max(...daily.map((day) => day.events)));
+  const labelled = new Set(pickTickIndices(daily.length, 6));
+  const tickText = isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
+  const gridLine = isDark ? 'border-slate-700' : 'border-[#e5ddc8]';
+  const axisLine = isDark ? 'border-slate-600' : 'border-[#cdc5ae]';
 
   return (
-    <div>
-      <div className="flex h-32 items-end gap-1" aria-hidden="true">
-        {daily.map((day) => (
-          <div
-            key={day.date}
-            title={`${day.date} · ${day.events} 次`}
-            className="flex-1 rounded-t bg-[#2f8f83]"
-            style={{ height: `${Math.max(3, (day.events / max) * 100)}%` }}
-          />
-        ))}
+    <figure>
+      <div className="flex gap-2" aria-hidden="true">
+        {/* 纵轴刻度：次数 */}
+        <div className="relative h-36 w-10 shrink-0">
+          {axis.ticks.map((tick) => (
+            <span
+              key={tick}
+              className={cn(
+                'absolute right-0 translate-y-1/2 text-xs tabular-nums',
+                tickText
+              )}
+              style={{ bottom: `${(tick / axis.max) * 100}%` }}
+            >
+              {formatAxisValue(tick)}
+            </span>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className={cn('relative h-36 border-b border-l', axisLine)}>
+            {axis.ticks.map((tick) =>
+              tick === 0 ? null : (
+                <div
+                  key={tick}
+                  className={cn('absolute inset-x-0 border-t border-dashed', gridLine)}
+                  style={{ bottom: `${(tick / axis.max) * 100}%` }}
+                />
+              )
+            )}
+            <div className="absolute inset-0 flex items-end gap-1">
+              {daily.map((day) => (
+                <div
+                  key={day.date}
+                  title={`${day.date} · ${day.events} 次`}
+                  className="flex h-full flex-1 items-end"
+                >
+                  <div
+                    className="w-full rounded-t bg-[#2f8f83]"
+                    style={{
+                      height:
+                        day.events === 0
+                          ? '0%'
+                          : `${Math.max(2, (day.events / axis.max) * 100)}%`,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 横轴刻度：日期 */}
+          <div className="mt-2 flex gap-1">
+            {daily.map((day, index) => (
+              <span
+                key={day.date}
+                className={cn(
+                  'min-w-0 flex-1 whitespace-nowrap text-center text-xs tabular-nums',
+                  tickText
+                )}
+              >
+                {labelled.has(index) ? formatAxisDay(day.date) : ''}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
-      <div
-        className={cn(
-          'mt-2 flex justify-between text-xs',
-          isDark ? 'text-slate-500' : 'text-[#6a6a6a]'
-        )}
-      >
-        <span>{daily[0].date}</span>
-        {daily.length > 1 ? <span>{daily[daily.length - 1].date}</span> : null}
-      </div>
+
+      <figcaption className={cn('mt-3 text-xs', tickText)}>
+        纵轴：当日有效活动次数（次）· 横轴：日期（月/日）· 虚线为刻度参考线
+      </figcaption>
+
       <table className="sr-only">
         <caption>每日活动数据</caption>
         <thead>
@@ -397,7 +454,7 @@ function LearnerTrend({
           ))}
         </tbody>
       </table>
-    </div>
+    </figure>
   );
 }
 

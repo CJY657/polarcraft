@@ -22,6 +22,7 @@ import {
   type AdminActivityResponse,
 } from '@/lib/admin-user.service';
 import { formatActivityDelta, formatEventName, formatPagePath } from '@/lib/activity-labels';
+import { buildValueAxis, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import AdminLearnerActivityDrawer from '@/pages/admin/AdminLearnerActivityDrawer';
 import { cn } from '@/utils/classNames';
 import { formatShortDateTime } from '@/lib/datetime.util';
@@ -565,17 +566,24 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
   }
 
   const width = 720;
-  const height = 220;
-  const padding = 22;
-  const maxValue = Math.max(
-    1,
-    ...daily.flatMap((day) => [day.active_learners, day.pageviews, day.learning_actions])
+  const height = 250;
+  // 左边留给纵轴刻度文字，底部留给日期刻度。
+  const marginLeft = 52;
+  const marginRight = 14;
+  const marginTop = 14;
+  const marginBottom = 40;
+  const plotWidth = width - marginLeft - marginRight;
+  const plotHeight = height - marginTop - marginBottom;
+  const baseline = marginTop + plotHeight;
+
+  const axis = buildValueAxis(
+    Math.max(
+      ...daily.flatMap((day) => [day.active_learners, day.pageviews, day.learning_actions])
+    )
   );
   const x = (index: number) =>
-    daily.length === 1
-      ? width / 2
-      : padding + (index * (width - padding * 2)) / (daily.length - 1);
-  const y = (value: number) => height - padding - (value / maxValue) * (height - padding * 2);
+    daily.length === 1 ? marginLeft + plotWidth / 2 : marginLeft + (index * plotWidth) / (daily.length - 1);
+  const y = (value: number) => baseline - (value / axis.max) * plotHeight;
   const points = (key: 'active_learners' | 'pageviews' | 'learning_actions') =>
     daily.map((day, index) => `${x(index)},${y(day[key])}`).join(' ');
   const series = [
@@ -584,6 +592,12 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
     { key: 'learning_actions', label: '学习行为', color: '#e8b94a', dash: '3 6' },
   ] as const;
   const outlineColor = isDark ? '#f8fafc' : '#3a3a3a';
+  const gridColor = isDark ? '#334155' : '#ebe6d6';
+  const axisColor = isDark ? '#64748b' : '#c9c2ad';
+  const tickColor = isDark ? '#94a3b8' : '#6a6a6a';
+  const dayTicks = pickTickIndices(daily.length, 7);
+  // 点太密时不再画标记点，否则折线会糊成一片。
+  const showDots = daily.length <= 14;
   const dataTableId = 'admin-activity-daily-data';
 
   return (
@@ -606,16 +620,47 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
         viewBox={`0 0 ${width} ${height}`}
         className="mt-4 h-auto w-full overflow-visible"
       >
-        {[0.25, 0.5, 0.75].map((position) => (
-          <line
-            key={position}
-            x1={padding}
-            x2={width - padding}
-            y1={padding + (height - padding * 2) * position}
-            y2={padding + (height - padding * 2) * position}
-            stroke={isDark ? '#334155' : '#ebe6d6'}
-            strokeWidth="1"
-          />
+        {/* 纵轴刻度线与数值 */}
+        {axis.ticks.map((tick) => (
+          <g key={tick}>
+            <line
+              x1={marginLeft}
+              x2={width - marginRight}
+              y1={y(tick)}
+              y2={y(tick)}
+              stroke={tick === 0 ? axisColor : gridColor}
+              strokeWidth="1"
+              strokeDasharray={tick === 0 ? undefined : '4 4'}
+            />
+            <line x1={marginLeft - 5} x2={marginLeft} y1={y(tick)} y2={y(tick)} stroke={axisColor} strokeWidth="1" />
+            <text
+              x={marginLeft - 10}
+              y={y(tick)}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill={tickColor}
+              fontSize="13"
+            >
+              {formatAxisValue(tick)}
+            </text>
+          </g>
+        ))}
+        {/* 纵轴 */}
+        <line x1={marginLeft} x2={marginLeft} y1={marginTop} y2={baseline} stroke={axisColor} strokeWidth="1" />
+        {/* 横轴刻度：日期 */}
+        {dayTicks.map((index) => (
+          <g key={daily[index].date}>
+            <line x1={x(index)} x2={x(index)} y1={baseline} y2={baseline + 5} stroke={axisColor} strokeWidth="1" />
+            <text
+              x={x(index)}
+              y={baseline + 22}
+              textAnchor={index === 0 ? 'start' : index === daily.length - 1 ? 'end' : 'middle'}
+              fill={tickColor}
+              fontSize="13"
+            >
+              {formatDate(daily[index].date)}
+            </text>
+          </g>
         ))}
         {series.map((item) => (
           <g key={item.key}>
@@ -623,19 +668,21 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
             <polyline points={points(item.key)} fill="none" stroke={item.color} strokeWidth="3" strokeDasharray={item.dash} strokeLinecap="round" strokeLinejoin="round" />
           </g>
         ))}
-        {daily.length === 1 && (
+        {showDots &&
           series.map((item) => (
-            <g key={item.key}>
-              <circle cx={x(0)} cy={y(daily[0][item.key])} r="7" fill={outlineColor} />
-              <circle cx={x(0)} cy={y(daily[0][item.key])} r="5" fill={item.color} />
+            <g key={`${item.key}-dots`}>
+              {daily.map((day, index) => (
+                <g key={day.date}>
+                  <circle cx={x(index)} cy={y(day[item.key])} r="5" fill={outlineColor} />
+                  <circle cx={x(index)} cy={y(day[item.key])} r="3" fill={item.color} />
+                </g>
+              ))}
             </g>
-          ))
-        )}
+          ))}
       </svg>
-      <div className={cn('mt-2 flex justify-between text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-        <span>{formatDate(daily[0].date)}</span>
-        {daily.length > 1 && <span>{formatDate(daily[daily.length - 1].date)}</span>}
-      </div>
+      <p className={cn('mt-2 text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
+        纵轴：当日数量（活跃学生按人计，页面访问与学习行为按次计）· 横轴：日期
+      </p>
       <table id={dataTableId} className="sr-only">
         <caption>每日活动趋势数据</caption>
         <thead>

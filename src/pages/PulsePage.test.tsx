@@ -78,8 +78,23 @@ describe('PulsePage', () => {
     expect(screen.getByText('理论模拟 · 模拟列表')).toBeDefined();
   });
 
-  it('never renders identifying fields even if the payload carries them', async () => {
-    getActivity.mockResolvedValue({
+  it('labels both chart axes with readable scale ticks', async () => {
+    renderPage();
+
+    const caption = await screen.findByText(/纵轴：当日活跃人数（人）/);
+    const plot = caption.closest('figure')?.querySelector('[aria-hidden="true"]');
+    expect(plot).not.toBeNull();
+
+    // 数据峰值 11 人 → 纵轴取整到 0/5/10/15。
+    for (const tick of ['0', '5', '10', '15']) {
+      expect(within(plot as HTMLElement).getByText(tick)).toBeDefined();
+    }
+    // 横轴标出每个日期。
+    expect(within(plot as HTMLElement).getByText('7/31')).toBeDefined();
+    expect(within(plot as HTMLElement).getByText('8/1')).toBeDefined();
+  });
+
+  it('never renders identifying fields even if the payload carries them', async () => {    getActivity.mockResolvedValue({
       ...activity,
       top_learners: [
         {

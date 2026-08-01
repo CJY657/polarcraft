@@ -40,6 +40,7 @@ import {
   type AdminUserStatusFilter,
 } from '@/lib/admin-user.service';
 import { formatUserIdentity } from '@/lib/identity';
+import { buildValueAxis, formatAxisDay, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import { formatDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
 
@@ -1337,15 +1338,12 @@ function UserDetailDialog({
 }
 
 const TREND_WIDTH = 600;
-const TREND_HEIGHT = 150;
-const TREND_TOP = 28;
-const TREND_BOTTOM = 6;
-const TREND_SIDE = 8;
-
-function formatDayTick(date: string): string {
-  const [, month, day] = date.split('-');
-  return `${Number(month)}/${Number(day)}`;
-}
+const TREND_HEIGHT = 172;
+const TREND_TOP = 26;
+const TREND_BOTTOM = 30;
+/** 左侧留给纵轴刻度文字。 */
+const TREND_LEFT = 44;
+const TREND_RIGHT = 12;
 
 function formatDayFull(date: string): string {
   const [, month, day] = date.split('-');
@@ -1370,16 +1368,19 @@ function ActivityTrendChart({
   const lineColor = theme === 'dark' ? '#2ba18f' : '#0d9488';
   const surfaceColor = theme === 'dark' ? '#070d1f' : '#f8fafc';
   const hairlineColor = theme === 'dark' ? '#334155' : '#e2e8f0';
+  const axisColor = theme === 'dark' ? '#64748b' : '#cbd5e1';
+  const tickColor = theme === 'dark' ? '#94a3b8' : '#64748b';
   const crosshairColor = theme === 'dark' ? '#475569' : '#cbd5e1';
 
   const plotHeight = TREND_HEIGHT - TREND_TOP - TREND_BOTTOM;
+  const plotWidth = TREND_WIDTH - TREND_LEFT - TREND_RIGHT;
   const baseline = TREND_TOP + plotHeight;
   const maxValue = Math.max(...daily.map((day) => day.events));
+  const axis = buildValueAxis(maxValue, 3);
   const peakIndex = daily.findIndex((day) => day.events === maxValue);
   const lastIndex = daily.length - 1;
-  const x = (index: number) => TREND_SIDE + (index * (TREND_WIDTH - TREND_SIDE * 2)) / lastIndex;
-  const y = (value: number) =>
-    baseline - (maxValue === 0 ? 0 : (value / maxValue) * plotHeight);
+  const x = (index: number) => TREND_LEFT + (index * plotWidth) / lastIndex;
+  const y = (value: number) => baseline - (value / axis.max) * plotHeight;
   const points = daily.map((day, index) => `${x(index)},${y(day.events)}`).join(' ');
   const areaPath = [
     `M ${x(0)} ${baseline}`,
@@ -1387,13 +1388,17 @@ function ActivityTrendChart({
     `L ${x(lastIndex)} ${baseline}`,
     'Z',
   ].join(' ');
+  const dayTicks = pickTickIndices(daily.length, 5);
   const leftPercent = (index: number) =>
-    Math.min(90, Math.max(10, (x(index) / TREND_WIDTH) * 100));
+    Math.min(90, Math.max(12, (x(index) / TREND_WIDTH) * 100));
   const active = activeIndex === null ? null : daily[activeIndex];
 
   const indexFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const ratio = (event.clientX - rect.left) / rect.width;
+    // 指针位置换算成数据下标时要扣掉纵轴刻度占的左边距。
+    const plotLeft = rect.left + (TREND_LEFT / TREND_WIDTH) * rect.width;
+    const plotSpan = (plotWidth / TREND_WIDTH) * rect.width;
+    const ratio = plotSpan === 0 ? 0 : (event.clientX - plotLeft) / plotSpan;
     return Math.min(lastIndex, Math.max(0, Math.round(ratio * lastIndex)));
   };
 
@@ -1436,14 +1441,60 @@ function ActivityTrendChart({
               <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
             </linearGradient>
           </defs>
+          {/* 纵轴刻度：次数 */}
+          {axis.ticks.map((tick) => (
+            <g key={tick}>
+              <line
+                x1={TREND_LEFT}
+                x2={TREND_WIDTH - TREND_RIGHT}
+                y1={y(tick)}
+                y2={y(tick)}
+                stroke={tick === 0 ? axisColor : hairlineColor}
+                strokeWidth="1"
+                strokeDasharray={tick === 0 ? undefined : '4 4'}
+              />
+              <text
+                x={TREND_LEFT - 8}
+                y={y(tick)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill={tickColor}
+                fontSize="12"
+              >
+                {formatAxisValue(tick)}
+              </text>
+            </g>
+          ))}
           <line
-            x1={TREND_SIDE}
-            x2={TREND_WIDTH - TREND_SIDE}
-            y1={baseline}
+            x1={TREND_LEFT}
+            x2={TREND_LEFT}
+            y1={TREND_TOP}
             y2={baseline}
-            stroke={hairlineColor}
+            stroke={axisColor}
             strokeWidth="1"
           />
+          {/* 横轴刻度：日期 */}
+          {dayTicks.map((index) => (
+            <g key={daily[index].date}>
+              <line
+                x1={x(index)}
+                x2={x(index)}
+                y1={baseline}
+                y2={baseline + 4}
+                stroke={axisColor}
+                strokeWidth="1"
+              />
+              <text
+                x={x(index)}
+                y={baseline + 18}
+                textAnchor={index === 0 ? 'start' : index === lastIndex ? 'end' : 'middle'}
+                fill={tickColor}
+                fontSize="12"
+              >
+                {formatAxisDay(daily[index].date)}
+              </text>
+            </g>
+          ))}
           <path d={areaPath} fill={`url(#${gradientId})`} />
           <polyline
             points={points}
@@ -1453,6 +1504,9 @@ function ActivityTrendChart({
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          {daily.map((day, index) => (
+            <circle key={day.date} cx={x(index)} cy={y(day.events)} r="2.5" fill={lineColor} />
+          ))}
           {activeIndex !== null ? (
             <line
               x1={x(activeIndex)}
@@ -1491,7 +1545,7 @@ function ActivityTrendChart({
             )}
             style={{
               left: `${leftPercent(peakIndex)}%`,
-              top: `${(TREND_TOP / TREND_HEIGHT) * 100}%`,
+              top: `${(y(maxValue) / TREND_HEIGHT) * 100}%`,
             }}
           >
             {maxValue.toLocaleString('zh-CN')}
@@ -1521,15 +1575,14 @@ function ActivityTrendChart({
         ) : null}
       </div>
 
-      <div
+      <p
         className={cn(
-          'mt-1 flex justify-between text-xs',
+          'mt-1 text-xs',
           theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
         )}
       >
-        <span>{formatDayTick(daily[0].date)}</span>
-        <span>{formatDayTick(daily[lastIndex].date)}</span>
-      </div>
+        纵轴：当日有效活动次数（次）· 横轴：日期（月/日）
+      </p>
 
       <table id={tableId} className="sr-only">
         <caption>近 {daily.length} 天每日有效活动数据</caption>

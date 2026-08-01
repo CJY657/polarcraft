@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -380,6 +380,13 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('7/21')).toBeDefined();
     expect(screen.getByText('7/30')).toBeDefined();
     expect(screen.getByText('近 10 天每日有效活动数据')).toBeDefined();
+
+    // 纵轴刻度：峰值 9 → 0/5/10，并标注单位。
+    const trend = screen.getByRole('img', { name: /近 10 天每日有效活动趋势/ });
+    for (const tick of ['0', '5', '10']) {
+      expect(within(trend).getByText(tick)).toBeDefined();
+    }
+    expect(screen.getByText('纵轴：当日有效活动次数（次）· 横轴：日期（月/日）')).toBeDefined();
   });
 
   it('loads profile and analytics independently with KPI-shaped analytics skeletons', async () => {
