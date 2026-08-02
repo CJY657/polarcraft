@@ -125,19 +125,6 @@ export interface UpdateResearchProjectTaskInput {
   due_date?: string | null;
 }
 
-export interface ResearchProjectAccess {
-  project: any | null;
-  membership: any | null;
-  role: ResearchProjectRole | null;
-  isAdmin: boolean;
-  isMember: boolean;
-  canRead: boolean;
-  canWrite: boolean;
-  canManage: boolean;
-  canAccessDiscussion: boolean;
-  canModerate: boolean;
-}
-
 export interface ResearchDiscussionDigestItem {
   username: string;
   content: string;
@@ -271,62 +258,15 @@ export class ResearchModel {
     });
   }
 
-  static async getProjectDiscussionAccess(
-    projectId: string,
-    userId: string,
-    userRole?: 'user' | 'admin'
-  ): Promise<{ project: any | null; isMember: boolean; canParticipate: boolean }> {
-    const access = await this.getProjectAccess(projectId, userId, userRole);
-    return {
-      project: access.project,
-      isMember: access.isMember,
-      canParticipate: access.canAccessDiscussion,
-    };
-  }
-
-  static async getProjectAccess(
-    projectId: string,
-    userId?: string,
-    userRole: 'user' | 'admin' = 'user'
-  ): Promise<ResearchProjectAccess> {
-    const project = await this.getProjectById(projectId);
-    if (!project) {
-      return {
-        project: null,
-        membership: null,
-        role: null,
-        isAdmin: false,
-        isMember: false,
-        canRead: false,
-        canWrite: false,
-        canManage: false,
-        canAccessDiscussion: false,
-        canModerate: false,
-      };
-    }
-
-    const membership = userId
-      ? normalizeDocument<any>(
-          await projectMembersCollection().findOne(buildActiveMembershipFilter({ project_id: projectId, user_id: userId }))
-        )
-      : null;
-    const normalizedMembership = membership ? normalizeMembershipRecord(membership) : null;
-    const role = normalizedMembership?.role ?? null;
-    const isMember = Boolean(normalizedMembership);
-    const isAdmin = userRole === 'admin';
-
-    return {
-      project,
-      membership: normalizedMembership,
-      role,
-      isAdmin,
-      isMember,
-      canRead: isAdmin || isMember || project.visibility === 'public',
-      canWrite: isAdmin || isMember,
-      canManage: isAdmin || role === 'owner',
-      canAccessDiscussion: isAdmin || isMember,
-      canModerate: isAdmin || role === 'owner',
-    };
+  /**
+   * Get the user's active membership record (normalized role), if any.
+   * 读取用户在课题中的有效成员记录；访问策略统一见 ProjectAccessService。
+   */
+  static async getActiveProjectMembership(projectId: string, userId: string): Promise<any | null> {
+    const membership = normalizeDocument<any>(
+      await projectMembersCollection().findOne(buildActiveMembershipFilter({ project_id: projectId, user_id: userId }))
+    );
+    return membership ? normalizeMembershipRecord(membership) : null;
   }
 
   /**

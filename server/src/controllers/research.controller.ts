@@ -24,6 +24,10 @@ import { ProfileModel } from '../models/profile.model.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
 import {
+  ProjectAccessService,
+  type ProjectAccessLevel,
+} from '../services/project-access.service.js';
+import {
   RESEARCH_AGENT_SYSTEM_PROMPT,
   ResearchAgentDisabledError,
   ResearchAgentService,
@@ -416,8 +420,11 @@ async function notifyApplicationResult({
   });
 }
 
-type ProjectAccessLevel = 'read' | 'write' | 'manage' | 'discussion';
-
+/**
+ * HTTP adapter over ProjectAccessService: resolves the access decision and
+ * maps a denial onto the matching response. The policy itself lives in the
+ * service; this only translates it into HTTP.
+ */
 async function ensureProjectAccess(
   res: Response,
   projectId: string,
@@ -426,21 +433,14 @@ async function ensureProjectAccess(
   level: ProjectAccessLevel,
   forbiddenMessage = '权限不足'
 ) {
-  const access = await ResearchModel.getProjectAccess(projectId, userId, userRole);
+  const access = await ProjectAccessService.getProjectAccess(projectId, userId, userRole);
 
   if (!access.project) {
     res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
     return null;
   }
 
-  const allowed = {
-    read: access.canRead,
-    write: access.canWrite,
-    manage: access.canManage,
-    discussion: access.canAccessDiscussion,
-  }[level];
-
-  if (!allowed) {
+  if (!ProjectAccessService.hasPermission(access, level)) {
     res.error(forbiddenMessage, 'FORBIDDEN', 403);
     return null;
   }
@@ -688,7 +688,7 @@ export class ResearchController {
       },
       req.user!.sub
     );
-    await ProfileModel.createProjectSettings(projectId, { visibility });
+    await ProjectAccessService.initializeProjectSettings(projectId, { visibility });
 
     const project = await ResearchModel.getProjectById(projectId);
     logger.info(`Project created by user ${req.user!.username}: ${projectId}`);
@@ -773,8 +773,7 @@ export class ResearchController {
     }
 
     if (req.body.is_public !== undefined) {
-      await ProfileModel.updateProjectSettings(id, { visibility: requestedVisibility });
-      await ResearchModel.setLegacyProjectVisibility(id, requestedVisibility === 'public');
+      await ProjectAccessService.setProjectVisibility(id, requestedVisibility);
     }
 
     if (statusChanged) {
@@ -1041,7 +1040,7 @@ export class ResearchController {
       );
     }
 
-    const access = await ResearchModel.getProjectAccess(projectId, reviewerId, req.user!.role);
+    const access = await ProjectAccessService.getProjectAccess(projectId, reviewerId, req.user!.role);
     if (!access.project) {
       return res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
     }
@@ -2189,7 +2188,7 @@ export class ResearchController {
       return res.error('评论内容、图片和视频至少填写一项', 'INVALID_COMMENT_CONTENT', 400);
     }
 
-    const access = await ResearchModel.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
+    const access = await ProjectAccessService.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
     if (!access.canAccessDiscussion) {
       return res.error('只有课题成员可以编辑讨论留言', 'FORBIDDEN', 403);
     }
@@ -2212,7 +2211,7 @@ export class ResearchController {
       return res.error('评论未找到', 'COMMENT_NOT_FOUND', 404);
     }
 
-    const access = await ResearchModel.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
+    const access = await ProjectAccessService.getProjectAccess(comment.project_id, currentUserId, req.user!.role);
     const canModerate = access.canModerate;
 
     if (comment.user_id !== currentUserId && !canModerate) {
@@ -2372,10 +2371,7 @@ export class ResearchController {
     if (!access) {
       return;
     }
-    const currentSettings = await ProfileModel.getOrCreateProjectSettings(id);
-    const nextVisibility = req.body.visibility ?? currentSettings.visibility;
-    await ProfileModel.updateProjectSettings(id, req.body);
-    await ResearchModel.setLegacyProjectVisibility(id, nextVisibility === 'public');
+    await ProjectAccessService.applyProjectSettings(id, req.body);
     const settings = await ProfileModel.getProjectSettings(id);
     logger.info(`Project settings updated by user ${req.user!.username}: ${id}`);
     res.success(settings, '设置更新成功');
@@ -2658,9 +2654,9 @@ export class ResearchController {
 
     // Create project settings
     if (settings) {
-      await ProfileModel.createProjectSettings(projectId, { ...settings, visibility });
+      await ProjectAccessService.initializeProjectSettings(projectId, { ...settings, visibility });
     } else {
-      await ProfileModel.createProjectSettings(projectId, { visibility });
+      await ProjectAccessService.initializeProjectSettings(projectId, { visibility });
     }
 
     const result = await ResearchModel.getProjectById(projectId);

@@ -232,6 +232,8 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1 }, unique: true, name: 'unique_project_id' },
+      // visibility 的权威写入方是 services/project-access.service.ts，
+      // 它同时负责同步遗留的 research_projects.is_public 字段。
       { key: { visibility: 1, is_recruiting: 1 }, name: 'idx_visibility_recruiting' },
     ],
   },

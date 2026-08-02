@@ -6,7 +6,7 @@
  * 显示单个研究课题及其成员和设置
  */
 
-import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { useParams, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -23,9 +23,7 @@ import {
   profileApi,
   type ProjectSettings,
   type ProjectApplication,
-  type PublicProject,
   type PublicProjectDetail,
-  type PublicProjectMember,
 } from "@/lib/profile.service";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
@@ -35,7 +33,6 @@ import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
 import { ProjectActivityFeed } from "../components/project/ProjectActivityFeed";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
-  hasResearchOutline,
   ResearchInfoSection,
 } from "../components/project/ResearchInfoSection";
 import { ProjectMembersSection } from "../components/project/ProjectMembersSection";
@@ -44,15 +41,12 @@ import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import {
   ProjectDiscussionSection,
   type ProjectDiscussionJumpRequest,
-  type ProjectDiscussionOutline,
 } from "../components/project/ProjectDiscussionSection";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectLifecycleBadges, ProjectLifecycleJourney } from "../projectLifecycle";
 import {
-  buildApplicationProjectFromProject,
+  buildResearchProjectViewModel,
   formatProjectDate,
-  getApplyButtonState,
-  splitResearchItems,
 } from "./researchProjectViewModel";
 
 const ApplicationManagementDialog = lazy(() =>
@@ -82,7 +76,7 @@ export function ResearchProjectPage() {
   const openDialog = useAuthDialogStore((state) => state.openDialog);
 
   // Check if this is an example project
-  const isExampleProject = projectId?.startsWith("example-");
+  const isExampleProject = projectId?.startsWith("example-") ?? false;
   const exampleId = projectId?.replace("example-", "");
   const exampleProject = exampleId ? getExampleProjectById(exampleId) : undefined;
 
@@ -119,18 +113,6 @@ export function ResearchProjectPage() {
     setHasPeerReviewContent(hasContent);
   }, []);
 
-  const isPublicGuestMode = !isExampleProject && !authLoading && !isAuthenticated;
-  const isAdmin = user?.role === "admin";
-  const currentUserRole = useMemo(() => {
-    if (!project || !user) return null;
-    const member = project.members.find((m) => m.user_id === user.id);
-    return member?.role || null;
-  }, [project, user]);
-  const isReadOnlyMode =
-    !projectId?.startsWith("example-")
-    && !isAdmin
-    && (location.state?.readOnly === true || isPublicGuestMode || (!!project && isAuthenticated && !currentUserRole));
-  const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
   const loadAuthenticatedProjectData = useCallback(async (targetProjectId: string) => {
     const [projectData, settingsData, applicationsData] = await Promise.all([
       researchApi.getProject(targetProjectId),
@@ -269,11 +251,6 @@ export function ResearchProjectPage() {
     projectId,
   ]);
 
-  const isOwner = currentUserRole === "owner";
-  const isMember = currentUserRole === "member" || isOwner;
-
-  const formatDate = formatProjectDate;
-
   // Handle member removal
   const handleRemoveMember = async () => {
     if (!memberToRemove || !projectId) return;
@@ -371,91 +348,62 @@ export function ResearchProjectPage() {
     );
   }
 
+  const projectViewModel = buildResearchProjectViewModel({
+    projectId,
+    isExampleProject,
+    exampleProject,
+    project,
+    publicProject,
+    settings,
+    user,
+    isAuthenticated,
+    isAuthLoading: authLoading,
+    isReadOnlyRoute: location.state?.readOnly === true,
+    activeTab,
+    hasPeerReviewContent,
+  });
+  const displayProject = projectViewModel.displayProject;
+
   // Not found state
-  if (!isExampleProject && !project && !publicProject) {
-    return <Navigate to={backHref} replace />;
+  if (!displayProject) {
+    return <Navigate to={projectViewModel.backHref} replace />;
   }
 
-  // Get display data
-  const displayProject = isExampleProject
-    ? {
-        id: projectId!,
-        name_zh: exampleProject?.title["zh-CN"] || "示例课题",
-        name_en: exampleProject?.title.en || null,
-        description_zh: exampleProject?.description["zh-CN"] || "",
-        description_en: null,
-        research_questions_zh: null,
-        research_hypotheses_zh: null,
-        basic_plan_zh: null,
-        extended_plan_zh: null,
-        challenge_review_criteria_zh: null,
-        status: "active" as const,
-        is_public: true,
-        thumbnail: exampleProject?.coverImage || null,
-        member_count: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        allow_guest_comments: false,
-        enable_task_board: false,
-        members: [],
-      }
-    : publicProject || project!;
-
-  const displayMembers: Array<ProjectMember | PublicProjectMember> = project?.members || publicProject?.members || [];
-  const formerMembers = project?.former_members ?? [];
-  const displayIsRecruiting = settings?.is_recruiting ?? publicProject?.is_recruiting ?? false;
-  const displayRequireApproval = settings?.require_approval ?? publicProject?.require_approval ?? true;
-  const displayRecruitmentRequirements =
-    settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
-  const hasPendingApplication = project?.has_pending_application ?? publicProject?.has_pending_application ?? false;
-  const isRecruitmentClosed = settings?.is_recruiting === false || publicProject?.is_recruiting === false;
-  const applicationProject: PublicProject | null =
-    publicProject
-    ?? (project
-      ? buildApplicationProjectFromProject(project, {
-          requireApproval: displayRequireApproval,
-          recruitmentRequirements: displayRecruitmentRequirements,
-          isRecruitmentClosed,
-          maxMembers: settings?.max_members ?? null,
-        })
-      : null);
   const {
-    buttonLabel: applyButtonLabel,
-    bannerButtonLabel: applyBannerButtonLabel,
-    disabled: applyButtonDisabled,
-  } = getApplyButtonState({ isPublicGuestMode, hasPendingApplication, isRecruitmentClosed });
-
-  const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
-  const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
-  const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
-  const canShowDiscussionSection = !isExampleProject && Boolean(projectId && project && isAuthenticated && canParticipateInDiscussion);
-  const canShowAgentPanel = canShowDiscussionSection;
-  const canManageEvidence = !isExampleProject && Boolean(projectId && project && !isReadOnlyMode && (isMember || isAdmin));
-  const canShowEvidenceSection = !isExampleProject && Boolean(projectId && (project || publicProject));
-  const canShowPeerReviewSection = canShowEvidenceSection;
-  const canShowTasksSection = canShowDiscussionSection;
-  const researchOutline: ProjectDiscussionOutline = {
-    topicSummary: displayProject.description_zh || "",
-    questions: splitResearchItems(displayProject.research_questions_zh),
-    hypotheses: splitResearchItems(displayProject.research_hypotheses_zh),
-    basicPlan: displayProject.basic_plan_zh || "",
-    extendedPlan: displayProject.extended_plan_zh || "",
-  };
-  const showResearchInfo = hasResearchOutline(researchOutline);
-  const showMembersRail = !isExampleProject && displayMembers.length > 0;
-  const projectTabs = [
-    { id: "overview", label: "挑战概览" },
-    ...(showResearchInfo ? [{ id: "design", label: "研究设计" }] : []),
-    ...(canShowEvidenceSection ? [{ id: "evidence", label: "课题证据" }] : []),
-    ...(canShowPeerReviewSection && hasPeerReviewContent ? [{ id: "review", label: "同伴评审" }] : []),
-    ...(canShowTasksSection ? [{ id: "tasks", label: "任务分工" }] : []),
-    ...(canShowDiscussionSection ? [{ id: "discussion", label: "参与讨论" }] : []),
-  ];
-  // A tab can disappear when rights or content change; keep the selection valid.
-  const currentTab = projectTabs.some((tab) => tab.id === activeTab) ? activeTab : "overview";
-  const descriptionText = displayProject.description_zh || "这个课题还没有写摘要。";
-  // No measuring: past this length the four-line clamp reliably kicks in.
-  const isDescriptionClampable = descriptionText.length > 150;
+    displayMembers,
+    formerMembers,
+    displayIsRecruiting,
+    displayRequireApproval,
+    displayRecruitmentRequirements,
+    hasPendingApplication,
+    applicationProject,
+    applyButtonLabel,
+    applyBannerButtonLabel,
+    applyButtonDisabled,
+    isPublicGuestMode,
+    isAdmin,
+    isReadOnlyMode,
+    backHref,
+    isOwner,
+    isMember,
+    canManageProject,
+    canDeleteProject,
+    canParticipateInDiscussion,
+    canShowDiscussionSection,
+    canShowAgentPanel,
+    canManageEvidence,
+    canShowEvidenceSection,
+    canShowPeerReviewSection,
+    canShowTasksSection,
+    researchOutline,
+    showResearchInfo,
+    showMembersRail,
+    projectTabs,
+    currentTab,
+    descriptionText,
+    isDescriptionClampable,
+    usePublicEndpoint,
+  } = projectViewModel;
 
   const handleApplyAction = () => {
     if (hasPendingApplication) {
@@ -584,7 +532,7 @@ export function ResearchProjectPage() {
               <div className="flex items-baseline gap-2">
                 <dt className="text-sm font-medium text-[var(--glass-text-muted)]">创建时间</dt>
                 <dd className="text-sm font-semibold tabular-nums text-[var(--paper-foreground)]">
-                  {formatDate(displayProject.created_at)}
+                  {formatProjectDate(displayProject.created_at)}
                 </dd>
               </div>
               <div className="flex items-baseline gap-2">
@@ -733,7 +681,7 @@ export function ResearchProjectPage() {
                 <ProjectEvidenceSection
                   projectId={projectId}
                   canManage={canManageEvidence}
-                  usePublicEndpoint={Boolean(publicProject && !project)}
+                  usePublicEndpoint={usePublicEndpoint}
                   theme={theme === "dark" ? "dark" : "light"}
                 />
               </div>
@@ -754,7 +702,7 @@ export function ResearchProjectPage() {
                     reviewCriteria={displayProject.challenge_review_criteria_zh}
                     currentUserId={user?.id}
                     isActiveMember={isMember}
-                    usePublicEndpoint={Boolean(publicProject && !project)}
+                    usePublicEndpoint={usePublicEndpoint}
                     theme={theme === "dark" ? "dark" : "light"}
                     onContentChange={handlePeerReviewContentChange}
                   />

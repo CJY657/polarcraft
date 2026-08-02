@@ -6,9 +6,9 @@ const {
   mockProfileModel,
   mockManagedUploadCleanupService,
   mockResearchAgentService,
+  mockProjectAccessService,
 } = vi.hoisted(() => ({
   mockResearchModel: {
-    getProjectAccess: vi.fn(),
     getUserProjects: vi.fn(),
     getProjectById: vi.fn(),
     getProjectMembers: vi.fn(),
@@ -36,7 +36,6 @@ const {
     updateProject: vi.fn(),
     getDiscussedProjectQuestionIndexes: vi.fn(),
     touchProjectActivity: vi.fn(),
-    setLegacyProjectVisibility: vi.fn(),
     deleteProjectDiscussionComment: vi.fn(),
     deleteProject: vi.fn(),
     ensureCurrentProjectCycle: vi.fn(),
@@ -63,7 +62,6 @@ const {
     createApplication: vi.fn(),
     getApplicationById: vi.fn(),
     updateApplicationStatus: vi.fn(),
-    createProjectSettings: vi.fn(),
     getProjectSettings: vi.fn(),
     updateProjectSettings: vi.fn(),
   },
@@ -73,6 +71,20 @@ const {
   mockResearchAgentService: {
     isEnabled: vi.fn(),
     createChatCompletion: vi.fn(),
+  },
+  mockProjectAccessService: {
+    getProjectAccess: vi.fn(),
+    // The level → capability mapping is policy the controller relies on, so the
+    // real implementation is kept here rather than stubbed.
+    hasPermission: vi.fn((access: any, level: string) => ({
+      read: access.canRead,
+      write: access.canWrite,
+      manage: access.canManage,
+      discussion: access.canAccessDiscussion,
+    }[level])),
+    initializeProjectSettings: vi.fn(),
+    setProjectVisibility: vi.fn(),
+    applyProjectSettings: vi.fn(),
   },
 }));
 
@@ -90,6 +102,10 @@ vi.mock('../models/profile.model.js', () => ({
 
 vi.mock('../services/managed-upload-cleanup.service.js', () => ({
   ManagedUploadCleanupService: mockManagedUploadCleanupService,
+}));
+
+vi.mock('../services/project-access.service.js', () => ({
+  ProjectAccessService: mockProjectAccessService,
 }));
 
 vi.mock('../services/research-agent.service.js', () => ({
@@ -139,7 +155,7 @@ describe('ResearchController member management', () => {
   });
 
   it('includes former_members when the requester is the owner', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', name_zh: '课题', member_count: 1 },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -174,7 +190,7 @@ describe('ResearchController member management', () => {
   });
 
   it('includes former_members when the requester is an admin without membership', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', name_zh: '课题', member_count: 1 },
       membership: null,
       role: null,
@@ -209,7 +225,7 @@ describe('ResearchController member management', () => {
   });
 
   it('includes pending-application state for non-members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', name_zh: '课题', member_count: 1 },
       membership: null,
       role: null,
@@ -240,7 +256,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects addProjectMember when the requester is not the owner', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -266,7 +282,7 @@ describe('ResearchController member management', () => {
   });
 
   it('reactivates a former member as member when the requester is the owner', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -327,7 +343,7 @@ describe('ResearchController member management', () => {
   });
 
   it('allows restoring a legacy former member without an existing membership row', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -365,7 +381,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects restoring a former member when the project member limit is reached', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -405,7 +421,7 @@ describe('ResearchController member management', () => {
   });
 
   it('requires owner role to view project applications', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -430,7 +446,7 @@ describe('ResearchController member management', () => {
   });
 
   it('allows an admin to view project applications without owner membership', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -473,7 +489,7 @@ describe('ResearchController member management', () => {
   });
 
   it('allows an admin to delete a project without owner membership', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/cover.png' },
       membership: null,
       role: null,
@@ -505,7 +521,7 @@ describe('ResearchController member management', () => {
   });
 
   it('cleans up evidence attachments when deleting a project', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/cover.png' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -541,7 +557,7 @@ describe('ResearchController member management', () => {
   });
 
   it('lists project evidence for users with read access', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -571,7 +587,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects evidence creation for users without write access', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -597,7 +613,7 @@ describe('ResearchController member management', () => {
   });
 
   it('creates project evidence for members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -651,7 +667,7 @@ describe('ResearchController member management', () => {
   });
 
   it('cleans up the previous attachment when replacing project evidence attachment', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -702,7 +718,7 @@ describe('ResearchController member management', () => {
   });
 
   it('deletes project evidence and cleans up its attachment', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -737,7 +753,7 @@ describe('ResearchController member management', () => {
   });
 
   it('cleans up the previous project thumbnail after changing the cover', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', thumbnail: '/uploads/courses/project-cover-project-1/image/old-cover.png' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -776,7 +792,7 @@ describe('ResearchController member management', () => {
   });
 
   it('requires DELETE confirmation text before deleting a project', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -807,7 +823,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects project deletion for non-owner non-admin users', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -833,7 +849,7 @@ describe('ResearchController member management', () => {
   });
 
   it('allows an admin to remove a non-owner member without membership', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -864,7 +880,7 @@ describe('ResearchController member management', () => {
   });
 
   it('does not allow an admin to remove the project owner', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -893,7 +909,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects member removal by non-owner users', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -929,7 +945,7 @@ describe('ResearchController member management', () => {
       user_id: 'member-1',
       image_urls: ['/uploads/project-discussion-project-1/comment.png'],
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -969,7 +985,7 @@ describe('ResearchController member management', () => {
       desired_role: '数据整理',
       project_name: '偏振课题',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -1026,7 +1042,7 @@ describe('ResearchController member management', () => {
       status: 'pending',
       project_name: '偏振课题',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', name_zh: '偏振课题' },
       canManage: true,
     });
@@ -1061,7 +1077,7 @@ describe('ResearchController member management', () => {
       user_id: 'candidate-1',
       status: 'pending',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       canManage: true,
     });
@@ -1088,7 +1104,7 @@ describe('ResearchController member management', () => {
       status: 'pending',
       desired_role: '记录表达',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -1133,7 +1149,7 @@ describe('ResearchController member management', () => {
       status: 'pending',
       desired_role: '记录表达',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -1180,7 +1196,7 @@ describe('ResearchController member management', () => {
       user_id: 'candidate-1',
       status: 'pending',
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -1324,7 +1340,7 @@ describe('ResearchController member management', () => {
   });
 
   it('returns an empty AI advisor history and disabled state for project members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -1355,7 +1371,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects AI advisor reads for public non-members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', is_public: true },
       membership: null,
       role: null,
@@ -1382,7 +1398,7 @@ describe('ResearchController member management', () => {
   });
 
   it('clears AI advisor history for project owners', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -1409,7 +1425,7 @@ describe('ResearchController member management', () => {
   });
 
   it('clears AI advisor history for system admins', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: null,
       role: null,
@@ -1436,7 +1452,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects AI advisor history clearing for regular members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -1462,7 +1478,7 @@ describe('ResearchController member management', () => {
   });
 
   it('rejects AI advisor history clearing for public non-members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1', is_public: true },
       membership: null,
       role: null,
@@ -1488,7 +1504,7 @@ describe('ResearchController member management', () => {
   });
 
   it('uses live AI advisor history without storing messages for project members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: {
         id: 'project-1',
         name_zh: '偏振课题',
@@ -1594,7 +1610,7 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.sendProjectAgentMessage, req, res);
 
     expect(res.error).toHaveBeenCalledWith('AI 顾问上下文格式无效', 'INVALID_AGENT_HISTORY', 400);
-    expect(mockResearchModel.getProjectAccess).not.toHaveBeenCalled();
+    expect(mockProjectAccessService.getProjectAccess).not.toHaveBeenCalled();
     expect(mockResearchAgentService.createChatCompletion).not.toHaveBeenCalled();
   });
 
@@ -1616,7 +1632,7 @@ describe('ResearchController member management', () => {
   });
 
   it('returns a clean disabled error when AI advisor config is missing', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
@@ -1663,7 +1679,7 @@ describe('ResearchController Phase 0 project policy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'private' });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: completeProject,
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -1732,8 +1748,8 @@ describe('ResearchController Phase 0 project policy', () => {
   });
 
   it('allows an admin to roll the lifecycle back to any earlier state', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
-      ...(await mockResearchModel.getProjectAccess()),
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      ...(await mockProjectAccessService.getProjectAccess()),
       isAdmin: true,
     });
     const res = createResponse();
@@ -1752,8 +1768,8 @@ describe('ResearchController Phase 0 project policy', () => {
   });
 
   it('allows an admin to advance directly to any later state', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
-      ...(await mockResearchModel.getProjectAccess()),
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      ...(await mockProjectAccessService.getProjectAccess()),
       isAdmin: true,
     });
     const res = createResponse();
@@ -1796,8 +1812,7 @@ describe('ResearchController Phase 0 project policy', () => {
     }, res);
 
     expect(mockResearchModel.updateProject).not.toHaveBeenCalled();
-    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
-    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+    expect(mockProjectAccessService.setProjectVisibility).toHaveBeenCalledWith('project-1', 'public');
     expect(res.error).not.toHaveBeenCalled();
   });
 
@@ -1814,8 +1829,7 @@ describe('ResearchController Phase 0 project policy', () => {
       { name_zh: '更新后的课题' },
       undefined
     );
-    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
-    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+    expect(mockProjectAccessService.setProjectVisibility).toHaveBeenCalledWith('project-1', 'public');
   });
 
   it.each([
@@ -1877,8 +1891,7 @@ describe('ResearchController Phase 0 project policy', () => {
       { challenge_roles_zh: '  ' },
       undefined
     );
-    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'private' });
-    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', false);
+    expect(mockProjectAccessService.setProjectVisibility).toHaveBeenCalledWith('project-1', 'private');
   });
 
   it.each(['showcased', 'unknown'])('rejects invalid transition to %s', async (status) => {
@@ -1898,8 +1911,8 @@ describe('ResearchController Phase 0 project policy', () => {
   });
 
   it('rejects lifecycle rollback after archival for ordinary users', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
-      ...(await mockResearchModel.getProjectAccess()),
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      ...(await mockProjectAccessService.getProjectAccess()),
       project: { ...completeProject, status: 'archived' },
     });
     const res = createResponse();
@@ -1931,7 +1944,7 @@ describe('ResearchController Phase 0 project policy', () => {
   });
 
   it('rejects project updates without owner or admin access', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: completeProject,
       canManage: false,
     });
@@ -1963,7 +1976,7 @@ describe('ResearchController Phase 0 project policy', () => {
       expect.objectContaining({ name_zh: '公开课题', is_public: true }),
       'owner-1'
     );
-    expect(mockProfileModel.createProjectSettings).toHaveBeenCalledWith(
+    expect(mockProjectAccessService.initializeProjectSettings).toHaveBeenCalledWith(
       'project-new',
       expect.objectContaining({ visibility: 'public' })
     );
@@ -1988,8 +2001,8 @@ describe('ResearchController Phase 0 project policy', () => {
 
   it('allows incomplete projects to transition to public and synchronizes legacy visibility', async () => {
     mockProfileModel.getProjectSettings.mockResolvedValue({ visibility: 'public' });
-    const incompleteAccess = await mockResearchModel.getProjectAccess();
-    mockResearchModel.getProjectAccess.mockResolvedValueOnce({
+    const incompleteAccess = await mockProjectAccessService.getProjectAccess();
+    mockProjectAccessService.getProjectAccess.mockResolvedValueOnce({
       ...incompleteAccess,
       project: { ...completeProject, challenge_timeline_zh: '  ' },
     });
@@ -2000,8 +2013,7 @@ describe('ResearchController Phase 0 project policy', () => {
       user: { sub: 'owner-1', username: 'owner', role: 'user' },
     }, res);
     expect(res.error).not.toHaveBeenCalled();
-    expect(mockProfileModel.updateProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
-    expect(mockResearchModel.setLegacyProjectVisibility).toHaveBeenCalledWith('project-1', true);
+    expect(mockProjectAccessService.applyProjectSettings).toHaveBeenCalledWith('project-1', { visibility: 'public' });
   });
 });
 
@@ -2024,7 +2036,7 @@ function projectAccess(overrides: Record<string, unknown> = {}) {
 describe('ResearchController project discussion comments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess());
     mockResearchModel.addProjectDiscussionComment.mockResolvedValue('comment-1');
     mockResearchModel.logActivity.mockResolvedValue(undefined);
     mockResearchModel.getActiveProjectMemberUserIds.mockResolvedValue(['member-1', 'member-2', 'owner-1']);
@@ -2063,7 +2075,7 @@ describe('ResearchController project discussion comments', () => {
   });
 
   it('sends a valid current question index for a top-level answer', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess({
       project: {
         id: 'project-1',
         name_zh: '偏振课题',
@@ -2091,7 +2103,7 @@ describe('ResearchController project discussion comments', () => {
   });
 
   it.each([-1, 0.5, 2, '1'])('rejects invalid question index %s', async (questionIndex) => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess({
       project: {
         id: 'project-1',
         name_zh: '偏振课题',
@@ -2111,7 +2123,7 @@ describe('ResearchController project discussion comments', () => {
   });
 
   it('rejects combining a question index with a reply target', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess({
       project: {
         id: 'project-1',
         name_zh: '偏振课题',
@@ -2211,7 +2223,7 @@ describe('ResearchController peer review quorum gate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'public' });
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: reviewPendingProject,
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -2285,7 +2297,7 @@ describe('ResearchController peer review quorum gate', () => {
   });
 
   it('does not consult the quorum for other transitions', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { ...reviewPendingProject, status: 'active' },
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
@@ -2329,7 +2341,7 @@ describe('ResearchController peer reviews', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess());
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(nonMemberAccess());
     mockResearchModel.ensureCurrentProjectCycle.mockResolvedValue({ id: 'cycle-1', cycle_number: 1 });
     mockResearchModel.upsertProjectReview.mockResolvedValue({ id: 'review-1', created: true });
     mockResearchModel.getProjectReviews.mockResolvedValue([
@@ -2376,7 +2388,7 @@ describe('ResearchController peer reviews', () => {
   });
 
   it('blocks active members from reviewing their own project', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(nonMemberAccess({
       membership: { user_id: 'member-1', role: 'member' },
       role: 'member',
       isMember: true,
@@ -2396,7 +2408,7 @@ describe('ResearchController peer reviews', () => {
   });
 
   it('rejects reviews when the project is not review_pending', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(nonMemberAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(nonMemberAccess({
       project: { id: 'project-1', name_zh: '偏振课题', status: 'active' },
     }));
     const res = createResponse();
@@ -2444,7 +2456,7 @@ describe('ResearchController peer reviews', () => {
     }, emptyRes);
     expect(emptyRes.error).toHaveBeenCalledWith('请填写评审意见', 'INVALID_REVIEW_CONTENT', 400);
 
-    expect(mockResearchModel.getProjectAccess).not.toHaveBeenCalled();
+    expect(mockProjectAccessService.getProjectAccess).not.toHaveBeenCalled();
     expect(mockResearchModel.upsertProjectReview).not.toHaveBeenCalled();
   });
 
@@ -2472,7 +2484,7 @@ describe('ResearchController peer reviews', () => {
 describe('ResearchController project tasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess());
     mockResearchModel.ensureCurrentProjectCycle.mockResolvedValue({ id: 'cycle-1', cycle_number: 1 });
     mockResearchModel.createProjectTask.mockResolvedValue('task-1');
     mockResearchModel.getProjectTasks.mockResolvedValue([
@@ -2514,7 +2526,7 @@ describe('ResearchController project tasks', () => {
   });
 
   it('rejects task creation by non-members', async () => {
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess({
       membership: null,
       role: null,
       isMember: false,
@@ -2614,7 +2626,7 @@ describe('ResearchController project tasks', () => {
     );
     expect(mockResearchModel.deleteProjectTask).not.toHaveBeenCalled();
 
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess({
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess({
       membership: { user_id: 'owner-1', role: 'owner' },
       role: 'owner',
       canManage: true,
@@ -2642,7 +2654,7 @@ describe('ResearchController discussion comment editing', () => {
       video_urls: [],
       is_deleted: false,
     });
-    mockResearchModel.getProjectAccess.mockResolvedValue(projectAccess());
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(projectAccess());
     mockResearchModel.updateProjectDiscussionComment.mockResolvedValue(true);
   });
 

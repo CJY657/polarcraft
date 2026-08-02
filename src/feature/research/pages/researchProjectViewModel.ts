@@ -6,8 +6,15 @@
  * page component stays focused on orchestration and the logic stays unit-testable.
  */
 
+import type { ExampleProject } from "@/data/researchExampleProjects";
+import type { UserProfile } from "@/lib/auth.service";
 import type { ProjectMember, ProjectWithMembers } from "@/lib/research.service";
-import type { PublicProject, PublicProjectMember } from "@/lib/profile.service";
+import type {
+  ProjectSettings,
+  PublicProject,
+  PublicProjectDetail,
+  PublicProjectMember,
+} from "@/lib/profile.service";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "组长",
@@ -141,5 +148,200 @@ export function buildApplicationProjectFromProject(
     })),
     created_at: project.created_at,
     updated_at: project.updated_at,
+  };
+}
+
+type ResearchProjectOutline = {
+  topicSummary: string;
+  questions: string[];
+  hypotheses: string[];
+  basicPlan?: string;
+  extendedPlan?: string;
+};
+
+export interface ResearchProjectViewModelInput {
+  projectId?: string;
+  isExampleProject: boolean;
+  exampleProject?: ExampleProject;
+  project: ProjectWithMembers | null;
+  publicProject: PublicProjectDetail | null;
+  settings: ProjectSettings | null;
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  isReadOnlyRoute: boolean;
+  activeTab: string;
+  hasPeerReviewContent: boolean;
+}
+
+function buildExampleProjectDisplay(
+  projectId: string | undefined,
+  exampleProject: ExampleProject | undefined
+) {
+  return {
+    id: projectId ?? "",
+    name_zh: exampleProject?.title["zh-CN"] || "示例课题",
+    name_en: exampleProject?.title.en || null,
+    description_zh: exampleProject?.description["zh-CN"] || "",
+    description_en: null,
+    research_questions_zh: null,
+    research_hypotheses_zh: null,
+    basic_plan_zh: null,
+    extended_plan_zh: null,
+    challenge_review_criteria_zh: null,
+    status: "active" as const,
+    is_dormant: undefined,
+    is_public: true,
+    thumbnail: exampleProject?.coverImage || null,
+    cover_image: undefined,
+    member_count: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    allow_guest_comments: false,
+    enable_task_board: false,
+    members: [],
+  };
+}
+
+/** Whether a research outline contains any content worth rendering. */
+export function hasResearchOutline(outline: ResearchProjectOutline): boolean {
+  return Boolean(
+    outline.topicSummary.trim()
+      || outline.basicPlan?.trim()
+      || outline.extendedPlan?.trim()
+      || outline.questions.length > 0
+      || outline.hypotheses.length > 0
+  );
+}
+
+/**
+ * Projects arrive as authenticated, public, or example DTOs. Resolve that
+ * transport detail once so the page can render one presentation projection.
+ */
+export function buildResearchProjectViewModel({
+  projectId,
+  isExampleProject,
+  exampleProject,
+  project,
+  publicProject,
+  settings,
+  user,
+  isAuthenticated,
+  isAuthLoading,
+  isReadOnlyRoute,
+  activeTab,
+  hasPeerReviewContent,
+}: ResearchProjectViewModelInput) {
+  const displayProject = isExampleProject
+    ? buildExampleProjectDisplay(projectId, exampleProject)
+    : publicProject ?? project;
+  const displayMembers = project?.members ?? publicProject?.members ?? [];
+  const formerMembers = project?.former_members ?? [];
+  const displayIsRecruiting = settings?.is_recruiting ?? publicProject?.is_recruiting ?? false;
+  const displayRequireApproval = settings?.require_approval ?? publicProject?.require_approval ?? true;
+  const displayRecruitmentRequirements =
+    settings?.recruitment_requirements ?? publicProject?.recruitment_requirements ?? null;
+  const hasPendingApplication =
+    project?.has_pending_application ?? publicProject?.has_pending_application ?? false;
+  const isRecruitmentClosed =
+    settings?.is_recruiting === false || publicProject?.is_recruiting === false;
+  const isPublicGuestMode = !isExampleProject && !isAuthLoading && !isAuthenticated;
+  const isAdmin = user?.role === "admin";
+  const currentUserRole =
+    project && user
+      ? project.members.find((member) => member.user_id === user.id)?.role ?? null
+      : null;
+  const isReadOnlyMode =
+    !isExampleProject
+    && !isAdmin
+    && (isReadOnlyRoute || isPublicGuestMode || Boolean(project && isAuthenticated && !currentUserRole));
+  const backHref = isReadOnlyMode || isPublicGuestMode ? "/lab/explore" : "/lab/projects";
+  const isOwner = currentUserRole === "owner";
+  const isMember = currentUserRole === "member" || isOwner;
+  const applicationProject = publicProject
+    ?? (project
+      ? buildApplicationProjectFromProject(project, {
+          requireApproval: displayRequireApproval,
+          recruitmentRequirements: displayRecruitmentRequirements,
+          isRecruitmentClosed,
+          maxMembers: settings?.max_members ?? null,
+        })
+      : null);
+  const {
+    buttonLabel: applyButtonLabel,
+    bannerButtonLabel: applyBannerButtonLabel,
+    disabled: applyButtonDisabled,
+  } = getApplyButtonState({ isPublicGuestMode, hasPendingApplication, isRecruitmentClosed });
+  const canManageProject = !isExampleProject && (isOwner || isAdmin) && !isReadOnlyMode;
+  const canDeleteProject = !isExampleProject && !isReadOnlyMode && Boolean(project) && (isOwner || isAdmin);
+  const canParticipateInDiscussion = !isExampleProject && Boolean(user && (isMember || isAdmin));
+  const canShowDiscussionSection = Boolean(
+    !isExampleProject && projectId && project && isAuthenticated && canParticipateInDiscussion
+  );
+  const canShowAgentPanel = canShowDiscussionSection;
+  const canManageEvidence = Boolean(
+    !isExampleProject && projectId && project && !isReadOnlyMode && (isMember || isAdmin)
+  );
+  const canShowEvidenceSection = Boolean(!isExampleProject && projectId && (project || publicProject));
+  const canShowPeerReviewSection = canShowEvidenceSection;
+  const canShowTasksSection = canShowDiscussionSection;
+  const researchOutline: ResearchProjectOutline = {
+    topicSummary: displayProject?.description_zh || "",
+    questions: splitResearchItems(displayProject?.research_questions_zh),
+    hypotheses: splitResearchItems(displayProject?.research_hypotheses_zh),
+    basicPlan: displayProject?.basic_plan_zh || "",
+    extendedPlan: displayProject?.extended_plan_zh || "",
+  };
+  const showResearchInfo = hasResearchOutline(researchOutline);
+  const showMembersRail = !isExampleProject && displayMembers.length > 0;
+  const projectTabs = [
+    { id: "overview", label: "挑战概览" },
+    ...(showResearchInfo ? [{ id: "design", label: "研究设计" }] : []),
+    ...(canShowEvidenceSection ? [{ id: "evidence", label: "课题证据" }] : []),
+    ...(canShowPeerReviewSection && hasPeerReviewContent
+      ? [{ id: "review", label: "同伴评审" }]
+      : []),
+    ...(canShowTasksSection ? [{ id: "tasks", label: "任务分工" }] : []),
+    ...(canShowDiscussionSection ? [{ id: "discussion", label: "参与讨论" }] : []),
+  ];
+  const currentTab = projectTabs.find((tab) => tab.id === activeTab)?.id ?? "overview";
+  const descriptionText = displayProject?.description_zh || "这个课题还没有写摘要。";
+  const isDescriptionClampable = descriptionText.length > 150;
+
+  return {
+    displayProject,
+    displayMembers,
+    formerMembers,
+    displayIsRecruiting,
+    displayRequireApproval,
+    displayRecruitmentRequirements,
+    hasPendingApplication,
+    applicationProject,
+    applyButtonLabel,
+    applyBannerButtonLabel,
+    applyButtonDisabled,
+    isPublicGuestMode,
+    isAdmin,
+    isReadOnlyMode,
+    backHref,
+    isOwner,
+    isMember,
+    canManageProject,
+    canDeleteProject,
+    canParticipateInDiscussion,
+    canShowDiscussionSection,
+    canShowAgentPanel,
+    canManageEvidence,
+    canShowEvidenceSection,
+    canShowPeerReviewSection,
+    canShowTasksSection,
+    researchOutline,
+    showResearchInfo,
+    showMembersRail,
+    projectTabs,
+    currentTab,
+    descriptionText,
+    isDescriptionClampable,
+    usePublicEndpoint: Boolean(publicProject && !project),
   };
 }

@@ -459,60 +459,31 @@ describe('ResearchModel.getFormerProjectMembers', () => {
   });
 });
 
-describe('ResearchModel.getProjectAccess', () => {
+describe('ResearchModel.getActiveProjectMembership', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    projectsFindOne.mockResolvedValue({
-      id: 'project-1',
-      name_zh: '私有课题',
-      is_public: false,
-    });
+  });
+
+  it('returns null when the user has no active membership', async () => {
     membersFindOne.mockResolvedValue(null);
-    membersCountDocuments.mockResolvedValue(1);
-    canvasesCountDocuments.mockResolvedValue(0);
+
+    expect(await ResearchModel.getActiveProjectMembership('project-1', 'candidate-1')).toBeNull();
   });
 
-  it('grants admin full project capabilities without creating membership state', async () => {
-    const access = await ResearchModel.getProjectAccess('project-1', 'admin-1', 'admin');
+  it('coerces an unrecognized stored role to member', async () => {
+    membersFindOne.mockResolvedValue({ project_id: 'project-1', user_id: 'member-1', role: 'guest' });
 
-    expect(access).toEqual(
-      expect.objectContaining({
-        membership: null,
-        role: null,
-        isAdmin: true,
-        isMember: false,
-        canRead: true,
-        canWrite: true,
-        canManage: true,
-        canAccessDiscussion: true,
-        canModerate: true,
-      })
-    );
+    const membership = await ResearchModel.getActiveProjectMembership('project-1', 'member-1');
+
+    expect(membership).toEqual(expect.objectContaining({ user_id: 'member-1', role: 'member' }));
   });
 
-  it('keeps ordinary non-members limited to public read access', async () => {
-    projectsFindOne.mockResolvedValue({
-      id: 'project-1',
-      name_zh: '公开课题',
-      is_public: true,
-    });
-    projectSettingsFindOne.mockResolvedValue({ project_id: 'project-1', visibility: 'public' });
+  it('preserves the owner role', async () => {
+    membersFindOne.mockResolvedValue({ project_id: 'project-1', user_id: 'owner-1', role: 'owner' });
 
-    const access = await ResearchModel.getProjectAccess('project-1', 'candidate-1', 'user');
+    const membership = await ResearchModel.getActiveProjectMembership('project-1', 'owner-1');
 
-    expect(access).toEqual(
-      expect.objectContaining({
-        membership: null,
-        role: null,
-        isAdmin: false,
-        isMember: false,
-        canRead: true,
-        canWrite: false,
-        canManage: false,
-        canAccessDiscussion: false,
-        canModerate: false,
-      })
-    );
+    expect(membership).toEqual(expect.objectContaining({ role: 'owner' }));
   });
 });
 

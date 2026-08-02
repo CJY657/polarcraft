@@ -6,17 +6,8 @@
  */
 
 import { ResearchSectionCard } from "../shared/ResearchSectionCard";
+import { hasResearchOutline } from "../../pages/researchProjectViewModel";
 import type { ProjectDiscussionOutline } from "./ProjectDiscussionSection";
-
-export function hasResearchOutline(outline: ProjectDiscussionOutline): boolean {
-  return Boolean(
-    outline.topicSummary.trim()
-      || outline.basicPlan?.trim()
-      || outline.extendedPlan?.trim()
-      || outline.questions.length > 0
-      || outline.hypotheses.length > 0
-  );
-}
 
 export function ResearchInfoSection({
   outline,

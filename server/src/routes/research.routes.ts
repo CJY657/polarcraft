@@ -10,7 +10,7 @@ import type { FileCategory } from '../config/upload.config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { researchAgentRateLimiter } from '../middleware/rate-limit.middleware.js';
 import { createUploadMiddleware, handleUploadError } from '../middleware/upload.middleware.js';
-import { ResearchModel, type ResearchProjectAccess } from '../models/research.model.js';
+import { ProjectAccessService, type ResearchProjectAccess } from '../services/project-access.service.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -57,7 +57,7 @@ function createProjectUploadAuthorizer(options: {
         return;
       }
 
-      const access = await ResearchModel.getProjectAccess(projectId, req.user!.sub, req.user!.role);
+      const access = await ProjectAccessService.getProjectAccess(projectId, req.user!.sub, req.user!.role);
 
       if (!access.project) {
         res.error('课题未找到', 'PROJECT_NOT_FOUND', 404);
