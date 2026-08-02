@@ -35,7 +35,6 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // ============================================================
 // Module 1: 实验内容
 // 科学原理 × 历史故事
-const CoursesPage = lazy(() => import("@/pages/CoursesPage"));
 const ApplicationsPage = lazy(() => import("@/pages/ApplicationsPage"));
 const TimelinePage = lazy(() => import("@/pages/TimelinePage"));
 
@@ -213,7 +212,8 @@ function AnalyticsBridge() {
 
 export function shouldHideGlobalFooter(pathname: string) {
   return Boolean(
-    matchPath("/experiments/:experimentId", pathname) ||
+    pathname === "/experiments" ||
+      matchPath("/experiments/:experimentId", pathname) ||
       matchPath("/applications/:applicationId", pathname) ||
       matchPath("/courses/:courseId", pathname)
   );
@@ -233,6 +233,7 @@ export function shouldRequireStudentAuth(pathname: string) {
       matchPath("/units/:unitId/courses/:courseId", pathname) ||
       pathname === "/profile" ||
       pathname === "/inbox" ||
+      pathname === "/pulse" ||
       (!isPublicResearchRoute && (pathname === "/lab" || pathname.startsWith("/lab/")))
   );
 }
@@ -274,10 +275,10 @@ function AppRouterContent() {
           />
 
           <Route element={<ProtectedRoute />}>
-            {/* Module 1: 实验内容 */}
+            {/* Module 1: 实验内容（层级工作台，/experiments 落位到第一个实验） */}
             <Route
               path="/experiments"
-              element={<CoursesPage />}
+              element={<CourseViewerPage />}
             />
             <Route
               path="/experiments/:experimentId"
@@ -333,6 +334,12 @@ function AppRouterContent() {
             <Route
               path="/inbox"
               element={<InboxPage />}
+            />
+
+            {/* 平台学习热度 */}
+            <Route
+              path="/pulse"
+              element={<PulsePage />}
             />
           </Route>
 
@@ -403,12 +410,6 @@ function AppRouterContent() {
           <Route
             path="/about"
             element={<AboutPage />}
-          />
-
-          {/* 平台学习热度（公开） */}
-          <Route
-            path="/pulse"
-            element={<PulsePage />}
           />
 
           {/* Admin - 管理后台 */}

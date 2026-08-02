@@ -35,7 +35,21 @@ function LocationValue() {
   return <output aria-label="current location">{useLocation().pathname}</output>;
 }
 
-describe('UserDropdown administrator submenu', () => {
+describe('UserDropdown', () => {
+  it('links to learning pulse', async () => {
+    render(
+      <MemoryRouter>
+        <UserDropdown />
+        <LocationValue />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /root/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '学习热度' }));
+
+    expect(screen.getByLabelText('current location').textContent).toBe('/pulse');
+  });
+
   it('links to the user activity dashboard', async () => {
     render(
       <MemoryRouter>

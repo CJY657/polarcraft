@@ -25,6 +25,7 @@ import {
   Users,
   ChartNoAxesCombined,
   ClipboardCheck,
+  Flame,
 } from 'lucide-react';
 
 interface UserDropdownProps {
@@ -121,6 +122,12 @@ export function UserDropdown({ className, compact = false }: UserDropdownProps) 
       label: t('inbox.title', '收件箱'),
       icon: Bell,
       href: '/inbox',
+    },
+    {
+      id: 'pulse',
+      label: '学习热度',
+      icon: Flame,
+      href: '/pulse',
     },
     {
       id: 'research',

@@ -17,6 +17,7 @@ import {
   Maximize2,
   Minimize2,
   Clock,
+  ListTree,
   Loader2,
   MessageSquare,
 } from "lucide-react";
@@ -27,6 +28,12 @@ import {
   normalizeMediaReferenceText,
 } from "./mediaReference";
 import { ExperimentDiscussionSection } from "./ExperimentDiscussionSection";
+import { ExperimentCurriculumDrawer } from "./ExperimentCurriculumDrawer";
+import {
+  ExperimentCurriculumTree,
+  type ExperimentCurriculumNavigation,
+} from "./ExperimentCurriculumTree";
+import { buildPresentationFiles, type ExperimentFile } from "./experimentHierarchy";
 import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
 import { resolveApiEndpoint } from "@/lib/api";
 import { getKnowledgeTagLabel, normalizeKnowledgeTag } from "@/lib/course.service";
@@ -39,6 +46,10 @@ interface CourseViewerProps {
   canDownloadResources?: boolean;
   backPath?: string;
   backLabel?: string;
+  /**
+   * 实验工作台的层级导航；不传时保持前沿应用查看器的原有行为。
+   */
+  navigation?: ExperimentCurriculumNavigation;
 }
 
 // 媒体类型图标映射
@@ -1087,6 +1098,7 @@ export function CourseViewer({
   canDownloadResources = false,
   backPath = "/experiments",
   backLabel,
+  navigation,
 }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -1128,6 +1140,8 @@ export function CourseViewer({
   const [isMainSlideFullscreen, setIsMainSlideFullscreen] = useState(false);
   // PPT 课件演示是否全屏
   const [isPptFullscreen, setIsPptFullscreen] = useState(false);
+  // 移动端实验目录抽屉
+  const [isCurriculumDrawerOpen, setIsCurriculumDrawerOpen] = useState(false);
   const [previewPlaybackKey, setPreviewPlaybackKey] = useState(0);
   const [shouldAutoplayPreview, setShouldAutoplayPreview] = useState(false);
   const [linkedMediaId, setLinkedMediaId] = useState<string | null>(null);
@@ -1152,12 +1166,20 @@ export function CourseViewer({
   const imageMediaList = previewMediaList.filter((media) => media.type === "image");
   const pdfMediaList = previewMediaList.filter((media) => media.type === "pdf");
   const hasPptxLayout = pptMediaList.length > 0;
+  // 层级导航模式下始终使用双栏工作台（没有 PPT 时由主课件兜底）
+  const isNavigationMode = Boolean(navigation);
+  const showWorkspaceLayout = isNavigationMode || hasPptxLayout;
   const activePptMedia = selectedPptMedia ?? pptMediaList[0] ?? null;
   const defaultPreviewMedia =
     previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null;
   const activePreviewMedia = selectedMedia ?? defaultPreviewMedia;
   const activeHighlightedMediaId = activePreviewMedia?.id ?? null;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
+  // 目录中的课件材料：PPT，没有 PPT 时回退主课件（实验数据仍由右侧展示区承载）
+  const curriculumPresentationFiles = buildPresentationFiles(course);
+  const usesMainSlidePresentation = Boolean(isNavigationMode && !activePptMedia && mainSlide);
+  const activePresentationFileId =
+    activePptMedia?.id ?? (usesMainSlidePresentation && mainSlide ? mainSlide.id : null);
   const resourceSummaryChips = [
     {
       key: "pptx",
@@ -1256,6 +1278,26 @@ export function CourseViewer({
   // 获取媒体标题
   const getMediaTitle = (media: MediaResource | { title: Record<string, string> }) => {
     return media.title[i18n.language] || media.title["zh-CN"] || media.title["en-US"] || "";
+  };
+
+  const presentationTitle = activePptMedia
+    ? getMediaTitle(activePptMedia)
+    : usesMainSlidePresentation && mainSlide
+      ? getMediaTitle(mainSlide)
+      : isZh
+        ? "暂无课件"
+        : "No deck";
+
+  // 选择目录中的课件材料：只影响课件区，右侧实验数据区保持不变
+  const handleCurriculumFileSelect = (file: ExperimentFile) => {
+    if (file.isMainSlide) {
+      return;
+    }
+
+    const media = mediaList.find((item) => item.id === file.id);
+    if (media) {
+      handleMediaSelect(media);
+    }
   };
 
   const focusDiscussionForResource = (media: MediaResource | null) => {
@@ -1411,7 +1453,7 @@ export function CourseViewer({
   };
 
   useEffect(() => {
-    if (!hasPptxLayout) {
+    if (!showWorkspaceLayout) {
       setSelectedPptMedia(null);
       setSelectedMedia(null);
       setIsFullscreen(false);
@@ -1431,13 +1473,14 @@ export function CourseViewer({
     setSelectedMedia(initialPreviewMedia);
     setIsMainSlideFullscreen(false);
     setIsPptFullscreen(false);
+    setIsCurriculumDrawerOpen(false);
     setPreviewPlaybackKey(0);
     setShouldAutoplayPreview(false);
     setLinkedMediaId(null);
     setLinkedMediaNonce(0);
     setDiscussionQuestionResource(null);
     setDiscussionQuestionSignal(0);
-  }, [course.id, hasPptxLayout, mediaSignature]);
+  }, [course.id, showWorkspaceLayout, mediaSignature]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1530,6 +1573,57 @@ export function CourseViewer({
           />
         </Suspense>
       </div>
+    );
+  };
+
+  // 渲染主课件（层级导航模式下没有 PPT 时的课件区兜底）
+  const renderMainSlidePresentation = () => {
+    if (!mainSlide) return null;
+
+    return (
+      <div className="h-full w-full overflow-hidden rounded-[28px]">
+        <Suspense
+          fallback={
+            <ViewerModuleLoader
+              theme={theme}
+              message="Loading PDF viewer..."
+            />
+          }
+        >
+          <PdfViewer
+            url={mainSlide.url}
+            theme={theme}
+            presentationMode
+            hyperlinks={hyperlinks.filter((hyperlink) => !hyperlink.sourceMediaId)}
+            onHyperlinkClick={handleHyperlinkClick}
+            mediaList={previewMediaList}
+            linkedMediaId={linkedMediaId}
+            linkedMediaNonce={linkedMediaNonce}
+            activeMediaId={activeHighlightedMediaId}
+            onFullscreenClick={isPptFullscreen ? undefined : () => setIsPptFullscreen(true)}
+          />
+        </Suspense>
+      </div>
+    );
+  };
+
+  // 层级目录（桌面侧栏与移动端抽屉共用）
+  const renderCurriculumTree = (idPrefix: string, onAfterSelect?: () => void) => {
+    if (!navigation) {
+      return null;
+    }
+
+    return (
+      <ExperimentCurriculumTree
+        navigation={navigation}
+        presentationFiles={curriculumPresentationFiles}
+        activePresentationFileId={activePresentationFileId}
+        onSelectFile={handleCurriculumFileSelect}
+        theme={theme}
+        isZh={isZh}
+        idPrefix={idPrefix}
+        onAfterSelect={onAfterSelect}
+      />
     );
   };
 
@@ -1675,7 +1769,7 @@ export function CourseViewer({
   return (
     <div className="w-full">
       {/* 上方区域：主 PDF 永久显示 */}
-      {!hasPptxLayout && mainSlide && (
+      {!showWorkspaceLayout && mainSlide && (
         <div
           className={`rounded-2xl p-4 mb-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white"}`}
         >
@@ -1713,7 +1807,7 @@ export function CourseViewer({
         </div>
       )}
 
-      {hasPptxLayout && (
+      {showWorkspaceLayout && (
         <div
           className={`flex min-h-[calc(100vh-64px)] flex-col overflow-visible border-t transition-all duration-300 lg:h-[calc(100vh-64px)] lg:flex-row lg:overflow-hidden ${
             theme === "dark"
@@ -1721,245 +1815,271 @@ export function CourseViewer({
               : "border-slate-200 bg-white/50"
           }`}
         >
-          {/* 左侧固定边栏：资源总览 */}
+          {/* 左侧固定边栏：层级目录 / 资源总览 */}
           <aside
             className={`persistent-scrollbar w-full flex-shrink-0 overflow-visible border-b transition-all duration-300 lg:h-full lg:w-[236px] lg:overflow-y-auto lg:border-b-0 lg:border-r xl:w-[260px] 2xl:w-[288px] ${
+              isNavigationMode ? "hidden lg:block" : ""
+            } ${
               theme === "dark"
                 ? "border-slate-700/70 bg-slate-800/40"
                 : "border-slate-200 bg-slate-50/50"
             }`}
           >
-            <div className="p-4 flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div
-                      className={`h-1 w-6 rounded-full ${
-                        theme === "dark" ? "bg-amber-400/60" : "bg-amber-600/60"
-                      }`}
-                    />
-                    <p
-                      className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
-                        theme === "dark" ? "text-amber-300/90" : "text-amber-700"
+            {isNavigationMode ? (
+              renderCurriculumTree("curriculum-desktop")
+            ) : (
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div
+                        className={`h-1 w-6 rounded-full ${
+                          theme === "dark" ? "bg-amber-400/60" : "bg-amber-600/60"
+                        }`}
+                      />
+                      <p
+                        className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
+                          theme === "dark" ? "text-amber-300/90" : "text-amber-700"
+                        }`}
+                      >
+                        {isZh ? "资源总览" : "Resources"}
+                      </p>
+                    </div>
+                    <h2
+                      className={`text-xl font-bold leading-tight ${
+                        theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      {isZh ? "资源总览" : "Resources"}
-                    </p>
+                      {courseTitle}
+                    </h2>
                   </div>
-                  <h2
-                    className={`text-xl font-bold leading-tight ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
+                  <Link
+                    to={backPath}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {courseTitle}
-                  </h2>
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    {backLabel || (isZh ? "返回" : "Back")}
+                  </Link>
                 </div>
-                <Link
-                  to={backPath}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold shadow-sm transition-all hover:scale-105 active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  {backLabel || (isZh ? "返回" : "Back")}
-                </Link>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {resourceSummaryChips.map((chip) => (
-                  <div
-                    key={chip.key}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm transition-all hover:scale-[1.03] ${chip.className}`}
-                  >
-                    <span className="opacity-80">{chip.icon}</span>
-                    <span>
-                      <span className="text-xs">{chip.count}</span> {chip.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-2 space-y-4">
-                {resourceSections.map((section) => (
-                  <div
-                    key={section.id}
-                    className={`rounded-[20px] border transition-all duration-300 ${
-                      section.priority === "primary"
-                        ? theme === "dark"
-                          ? "border-slate-600/80 bg-slate-900/72 p-3 shadow-lg shadow-black/15"
-                          : "border-slate-200 bg-white p-3 shadow-md shadow-slate-200/45"
-                        : theme === "dark"
-                          ? "border-slate-700/75 bg-slate-900/40 p-2.5"
-                          : "border-slate-200/90 bg-white/80 p-2.5 shadow-sm"
-                    }`}
-                  >
-                    <div className="mb-2.5 flex items-start justify-between gap-2 px-1">
-                      <div>
-                        <div
-                          className={`mb-2 rounded-full ${
-                            section.priority === "primary" ? "h-1.5 w-12" : "h-1 w-8 opacity-70"
-                          }`}
-                          style={{ backgroundColor: section.accent }}
-                        />
-                        <p
-                          className="text-[13px] font-bold"
-                          style={{ color: section.accent }}
-                        >
-                          {section.title}
-                        </p>
-                        <p
-                          className={`mt-0.5 line-clamp-1 text-[10px] leading-4 font-medium ${
-                            section.priority === "primary"
-                              ? theme === "dark"
-                                ? "text-slate-300"
-                                : "text-slate-600"
-                              : theme === "dark"
-                                ? "text-slate-400"
-                                : "text-slate-500"
-                          }`}
-                        >
-                          {section.description}
-                        </p>
-                      </div>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                        style={{
-                          backgroundColor: `${section.accent}18`,
-                          color: section.accent,
-                        }}
-                      >
-                        {section.items.length}
+                <div className="flex flex-wrap items-center gap-2">
+                  {resourceSummaryChips.map((chip) => (
+                    <div
+                      key={chip.key}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-sm transition-all hover:scale-[1.03] ${chip.className}`}
+                    >
+                      <span className="opacity-80">{chip.icon}</span>
+                      <span>
+                        <span className="text-xs">{chip.count}</span> {chip.label}
                       </span>
                     </div>
+                  ))}
+                </div>
 
-                    <div className="space-y-1.5">
-                      {section.items.map((media) => {
-                        const isPrimarySection = section.priority === "primary";
-                        const isCurrentPpt = media.id === activePptMedia?.id;
-                        const isCurrentPreview =
-                          media.type === "pptx" ? false : media.id === activePreviewMedia?.id;
-                        const isActive = isCurrentPpt || isCurrentPreview;
-
-                        return (
-                          <button
-                            key={media.id}
-                            onClick={() => handleMediaSelect(media)}
-                            className={`group relative w-full rounded-[14px] border text-left transition-all duration-300 ${
-                              isActive
-                                ? theme === "dark"
-                                  ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/40"
-                                  : "border-slate-300 bg-white shadow-md shadow-slate-200/50"
-                                : theme === "dark"
-                                  ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-750"
-                                  : "border-slate-100 bg-white/60 hover:border-slate-200 hover:bg-white"
-                            } ${isPrimarySection ? "px-2.5 py-2.5" : "px-2 py-2"} hover:-translate-y-0.5`}
+                <div className="mt-2 space-y-4">
+                  {resourceSections.map((section) => (
+                    <div
+                      key={section.id}
+                      className={`rounded-[20px] border transition-all duration-300 ${
+                        section.priority === "primary"
+                          ? theme === "dark"
+                            ? "border-slate-600/80 bg-slate-900/72 p-3 shadow-lg shadow-black/15"
+                            : "border-slate-200 bg-white p-3 shadow-md shadow-slate-200/45"
+                          : theme === "dark"
+                            ? "border-slate-700/75 bg-slate-900/40 p-2.5"
+                            : "border-slate-200/90 bg-white/80 p-2.5 shadow-sm"
+                      }`}
+                    >
+                      <div className="mb-2.5 flex items-start justify-between gap-2 px-1">
+                        <div>
+                          <div
+                            className={`mb-2 rounded-full ${
+                              section.priority === "primary" ? "h-1.5 w-12" : "h-1 w-8 opacity-70"
+                            }`}
+                            style={{ backgroundColor: section.accent }}
+                          />
+                          <p
+                            className="text-[13px] font-bold"
+                            style={{ color: section.accent }}
                           >
-                            <div className="flex items-start gap-2.5">
-                              <div
-                                className={`flex flex-shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
-                                  isPrimarySection ? "h-8 w-8" : "h-7 w-7"
-                                }`}
-                                style={{
-                                  backgroundColor: isActive
-                                    ? `${MEDIA_TYPE_COLORS[media.type]}24`
-                                    : `${MEDIA_TYPE_COLORS[media.type]}12`,
-                                  color: MEDIA_TYPE_COLORS[media.type],
-                                }}
-                              >
-                                <span className="scale-90">{MEDIA_TYPE_ICONS[media.type]}</span>
-                              </div>
+                            {section.title}
+                          </p>
+                          <p
+                            className={`mt-0.5 line-clamp-1 text-[10px] leading-4 font-medium ${
+                              section.priority === "primary"
+                                ? theme === "dark"
+                                  ? "text-slate-300"
+                                  : "text-slate-600"
+                                : theme === "dark"
+                                  ? "text-slate-400"
+                                  : "text-slate-500"
+                            }`}
+                          >
+                            {section.description}
+                          </p>
+                        </div>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{
+                            backgroundColor: `${section.accent}18`,
+                            color: section.accent,
+                          }}
+                        >
+                          {section.items.length}
+                        </span>
+                      </div>
 
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-start justify-between gap-2">
-                                  <p
-                                    className={`line-clamp-2 font-bold ${
-                                      isPrimarySection
-                                        ? "text-[12px] leading-[1.2rem]"
-                                        : "text-[11px] leading-[1.1rem]"
-                                    } ${theme === "dark" ? "text-white" : "text-slate-900"}`}
-                                  >
-                                    {getMediaTitle(media)}
-                                  </p>
+                      <div className="space-y-1.5">
+                        {section.items.map((media) => {
+                          const isPrimarySection = section.priority === "primary";
+                          const isCurrentPpt = media.id === activePptMedia?.id;
+                          const isCurrentPreview =
+                            media.type === "pptx" ? false : media.id === activePreviewMedia?.id;
+                          const isActive = isCurrentPpt || isCurrentPreview;
+
+                          return (
+                            <button
+                              key={media.id}
+                              onClick={() => handleMediaSelect(media)}
+                              className={`group relative w-full rounded-[14px] border text-left transition-all duration-300 ${
+                                isActive
+                                  ? theme === "dark"
+                                    ? "border-slate-500 bg-slate-700/80 shadow-md shadow-slate-950/40"
+                                    : "border-slate-300 bg-white shadow-md shadow-slate-200/50"
+                                  : theme === "dark"
+                                    ? "border-slate-700 bg-slate-800/70 hover:border-slate-600 hover:bg-slate-750"
+                                    : "border-slate-100 bg-white/60 hover:border-slate-200 hover:bg-white"
+                              } ${isPrimarySection ? "px-2.5 py-2.5" : "px-2 py-2"} hover:-translate-y-0.5`}
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <div
+                                  className={`flex flex-shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
+                                    isPrimarySection ? "h-8 w-8" : "h-7 w-7"
+                                  }`}
+                                  style={{
+                                    backgroundColor: isActive
+                                      ? `${MEDIA_TYPE_COLORS[media.type]}24`
+                                      : `${MEDIA_TYPE_COLORS[media.type]}12`,
+                                    color: MEDIA_TYPE_COLORS[media.type],
+                                  }}
+                                >
+                                  <span className="scale-90">{MEDIA_TYPE_ICONS[media.type]}</span>
                                 </div>
 
-                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                  {renderKnowledgeTagBadge(getResourceKnowledgeTag(media))}
-                                  <span
-                                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-                                    style={{
-                                      backgroundColor: `${MEDIA_TYPE_COLORS[media.type]}18`,
-                                      color: MEDIA_TYPE_COLORS[media.type],
-                                    }}
-                                  >
-                                    {getMediaTypeLabel(media.type)}
-                                  </span>
-                                  {media.duration && (
-                                    <span
-                                      className={`inline-flex items-center gap-1 text-[10px] font-medium ${
-                                        theme === "dark" ? "text-slate-400" : "text-slate-500"
-                                      }`}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p
+                                      className={`line-clamp-2 font-bold ${
+                                        isPrimarySection
+                                          ? "text-[12px] leading-[1.2rem]"
+                                          : "text-[11px] leading-[1.1rem]"
+                                      } ${theme === "dark" ? "text-white" : "text-slate-900"}`}
                                     >
-                                      <Clock className="h-3 w-3" />
-                                      {Math.floor(media.duration / 60)}:
-                                      {(media.duration % 60).toString().padStart(2, "0")}
+                                      {getMediaTitle(media)}
+                                    </p>
+                                  </div>
+
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    {renderKnowledgeTagBadge(getResourceKnowledgeTag(media))}
+                                    <span
+                                      className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                                      style={{
+                                        backgroundColor: `${MEDIA_TYPE_COLORS[media.type]}18`,
+                                        color: MEDIA_TYPE_COLORS[media.type],
+                                      }}
+                                    >
+                                      {getMediaTypeLabel(media.type)}
                                     </span>
+                                    {media.duration && (
+                                      <span
+                                        className={`inline-flex items-center gap-1 text-[10px] font-medium ${
+                                          theme === "dark" ? "text-slate-400" : "text-slate-500"
+                                        }`}
+                                      >
+                                        <Clock className="h-3 w-3" />
+                                        {Math.floor(media.duration / 60)}:
+                                        {(media.duration % 60).toString().padStart(2, "0")}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {isCurrentPreview && (
+                                    <div className="mt-1.5">
+                                      <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-500 uppercase tracking-wider">
+                                        {isZh ? "正在预览" : "Previewing"}
+                                      </span>
+                                    </div>
                                   )}
                                 </div>
-
-                                {isCurrentPreview && (
-                                  <div className="mt-1.5">
-                                    <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-500 uppercase tracking-wider">
-                                      {isZh ? "正在预览" : "Previewing"}
-                                    </span>
-                                  </div>
-                                )}
                               </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                <button
-                  onClick={() => {
-                    const discussionElement = document.getElementById("experiment-discussion");
-                    discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className={`w-full rounded-[20px] border p-4 text-left transition-all duration-300 hover:-translate-y-1 ${
-                    theme === "dark"
-                      ? "border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20"
-                      : "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 shadow-sm"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
-                      <MessageSquare className="h-5 w-5" />
+                  <button
+                    onClick={() => {
+                      const discussionElement = document.getElementById("experiment-discussion");
+                      discussionElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className={`w-full rounded-[20px] border p-4 text-left transition-all duration-300 hover:-translate-y-1 ${
+                      theme === "dark"
+                        ? "border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20"
+                        : "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 shadow-sm"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
+                        <MessageSquare className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-[13px] font-bold ${theme === "dark" ? "text-indigo-200" : "text-indigo-900"}`}
+                        >
+                          {isZh ? "参与讨论" : "Join Discussion"}
+                        </p>
+                        <p
+                          className={`text-[10px] font-medium opacity-80 ${theme === "dark" ? "text-indigo-300" : "text-indigo-700"}`}
+                        >
+                          {isZh ? "与同学老师实时互动" : "Discuss with classmates"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p
-                        className={`text-[13px] font-bold ${theme === "dark" ? "text-indigo-200" : "text-indigo-900"}`}
-                      >
-                        {isZh ? "参与讨论" : "Join Discussion"}
-                      </p>
-                      <p
-                        className={`text-[10px] font-medium opacity-80 ${theme === "dark" ? "text-indigo-300" : "text-indigo-700"}`}
-                      >
-                        {isZh ? "与同学老师实时互动" : "Discuss with classmates"}
-                      </p>
-                    </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </aside>
 
           {/* 右侧：主内容区域（包括演示、视频和讨论） */}
           <main className="flex-1 overflow-visible lg:h-full lg:overflow-y-auto persistent-scrollbar">
             <div className="mx-auto max-w-[1720px] space-y-4 p-3 lg:p-4">
+              {isNavigationMode && (
+                <div className="lg:hidden">
+                  <button
+                    type="button"
+                    data-testid="curriculum-drawer-trigger"
+                    aria-haspopup="dialog"
+                    aria-expanded={isCurriculumDrawerOpen}
+                    onClick={() => setIsCurriculumDrawerOpen(true)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[13px] font-bold transition-colors ${
+                      theme === "dark"
+                        ? "border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700"
+                        : "border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+                    }`}
+                  >
+                    <ListTree className="h-4 w-4" />
+                    {isZh ? "实验目录" : "Curriculum"}
+                  </button>
+                </div>
+              )}
+
               {/* 第一行：演示 + 视频 */}
               <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
                 {/* 课件演示区域 */}
@@ -1971,20 +2091,20 @@ export function CourseViewer({
                           theme === "dark" ? "text-white" : "text-slate-900"
                         }`}
                       >
-                        {activePptMedia
-                          ? getMediaTitle(activePptMedia)
-                          : isZh
-                            ? "暂无课件"
-                            : "No deck"}
+                        {presentationTitle}
                       </h3>
                       {activePptMedia ? (
                         <div className="mt-2">
                           {renderKnowledgeTagBadge(getResourceKnowledgeTag(activePptMedia))}
                         </div>
+                      ) : usesMainSlidePresentation && mainSlide ? (
+                        <div className="mt-2">
+                          {renderKnowledgeTagBadge(getResourceKnowledgeTag(mainSlide))}
+                        </div>
                       ) : null}
                     </div>
 
-                    {activePptMedia && (
+                    {(activePptMedia || usesMainSlidePresentation) && (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -2009,7 +2129,13 @@ export function CourseViewer({
                         </button>
                         {canDownloadResources && (
                           <button
-                            onClick={() => openDownloadUrl(getMediaDownloadUrl(activePptMedia))}
+                            onClick={() =>
+                              openDownloadUrl(
+                                activePptMedia
+                                  ? getMediaDownloadUrl(activePptMedia)
+                                  : getMainSlideDownloadUrl(),
+                              )
+                            }
                             className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
                               theme === "dark"
                                 ? "text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700"
@@ -2060,6 +2186,8 @@ export function CourseViewer({
                         isFullscreen={isPptFullscreen}
                         onFullscreenClick={() => setIsPptFullscreen((current) => !current)}
                       />
+                    ) : usesMainSlidePresentation ? (
+                      renderMainSlidePresentation()
                     ) : (
                       <div
                         className={`flex h-full w-full items-center justify-center p-12 text-center rounded-[28px] border transition-all duration-500 ${
@@ -2249,11 +2377,23 @@ export function CourseViewer({
               </div>
             </div>
           </main>
+
+          {isNavigationMode && (
+            <ExperimentCurriculumDrawer
+              isOpen={isCurriculumDrawerOpen}
+              onClose={() => setIsCurriculumDrawerOpen(false)}
+              title={isZh ? "实验目录" : "Curriculum"}
+              closeLabel={isZh ? "关闭实验目录" : "Close curriculum"}
+              theme={theme}
+            >
+              {renderCurriculumTree("curriculum-drawer", () => setIsCurriculumDrawerOpen(false))}
+            </ExperimentCurriculumDrawer>
+          )}
         </div>
       )}
 
       {/* 下方区域：非 PPT 布局时的降级显示 */}
-      {!hasPptxLayout && mediaList.length > 0 && (
+      {!showWorkspaceLayout && mediaList.length > 0 && (
         <div className="max-w-[1400px] mx-auto p-4 lg:p-6 space-y-6">
           <div
             className={`rounded-3xl p-6 ${theme === "dark" ? "bg-slate-800/50" : "bg-white shadow-sm border border-slate-100"}`}

@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   BookOpenText,
-  Flame,
   Globe,
   Library,
   LockKeyhole,
@@ -216,36 +215,6 @@ export function HomePage() {
   return (
     <div className="clay-canvas min-h-screen">
       <PersistentHeader variant="solid" showBreadcrumb={false} />
-
-      {/* ============ LEARNING PULSE BANNER ============ */}
-      {/* 静态入口，不在首页拉取统计数据，保持首屏轻量 */}
-      <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          data-testid="home-pulse-teaser"
-          onClick={() => navigate("/pulse")}
-          className="group flex w-full flex-col items-stretch gap-4 rounded-[1.25rem] border border-clay-surface-strong bg-clay-surface-card px-5 py-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:flex-row sm:items-center sm:px-6 lg:px-8 lg:py-5"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e76f51]/10 text-[#e76f51] transition-colors group-hover:bg-[#e76f51]/15">
-            <Flame className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span
-              className="block text-lg font-semibold text-clay-ink sm:text-xl"
-              style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
-            >
-              平台热度
-            </span>
-            <span className="mt-1 block max-w-2xl text-sm leading-relaxed text-clay-body">
-              查看近 7 天活跃同学、学习行为和热门内容，数据每 10 分钟更新一次。
-            </span>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-clay-surface-strong bg-clay-surface-soft px-4 py-2 text-sm font-medium text-clay-ink transition-transform group-hover:translate-x-1 sm:self-auto">
-            查看热度
-            <ArrowRight className="h-4 w-4" />
-          </span>
-        </button>
-      </div>
 
       <main className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:gap-14 lg:px-8 lg:pb-20 lg:pt-8">
         {/* ============ MODULES & IMAGES ============ */}

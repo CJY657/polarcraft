@@ -11,8 +11,8 @@ describe("shouldHideGlobalFooter", () => {
     expect(shouldHideGlobalFooter("/applications/course1")).toBe(true);
   });
 
-  it("keeps the footer on the experiments index", () => {
-    expect(shouldHideGlobalFooter("/experiments")).toBe(false);
+  it("hides the footer on the experiments workspace index", () => {
+    expect(shouldHideGlobalFooter("/experiments")).toBe(true);
   });
 
   it("keeps the footer on unrelated pages", () => {
@@ -30,6 +30,7 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/units/unit1")).toBe(true);
     expect(shouldRequireStudentAuth("/profile")).toBe(true);
     expect(shouldRequireStudentAuth("/inbox")).toBe(true);
+    expect(shouldRequireStudentAuth("/pulse")).toBe(true);
     expect(shouldRequireStudentAuth("/lab")).toBe(true);
     expect(shouldRequireStudentAuth("/lab/projects")).toBe(true);
     expect(shouldRequireStudentAuth("/lab/projects/project-1/settings")).toBe(true);

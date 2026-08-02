@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CourseData } from "@/data/courses";
 
 import { CourseViewer } from "./CourseViewer";
+import type { ExperimentCurriculumNavigation } from "./ExperimentCurriculumTree";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -582,5 +583,221 @@ describe("CourseViewer media preview regressions", () => {
     });
 
     expect(container.querySelector(".pptx-linked-deck")).toBeTruthy();
+  });
+});
+
+describe("CourseViewer hierarchical workspace", () => {
+  const twoDeckFixture: CourseData = {
+    ...courseFixture,
+    media: [
+      courseFixture.media[0],
+      {
+        id: "ppt-2",
+        type: "pptx",
+        url: "/media/course-deck-2.pptx",
+        title: { "zh-CN": "第二课件" },
+      },
+      courseFixture.media[1],
+      courseFixture.media[2],
+    ],
+  };
+
+  function createNavigation(
+    overrides: Partial<ExperimentCurriculumNavigation> = {}
+  ): ExperimentCurriculumNavigation {
+    return {
+      units: [
+        {
+          id: "unit-media",
+          title: { "zh-CN": "第一单元" },
+          color: "#0ea5e9",
+          experiments: [
+            { id: "course-media", unitId: "unit-media", title: { "zh-CN": "媒体联动实验" } },
+            { id: "course-next", unitId: "unit-media", title: { "zh-CN": "下一个实验" } },
+          ],
+        },
+      ],
+      activeExperimentId: "course-media",
+      isLoading: false,
+      error: null,
+      onRetry: vi.fn(),
+      onSelectExperiment: vi.fn(),
+      ...overrides,
+    };
+  }
+
+  it("replaces the resource-card sidebar with the curriculum hierarchy", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("curriculum-tree")).toBeTruthy();
+    });
+
+    expect(screen.queryByText("资源总览")).toBeNull();
+    expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("2");
+    expect(screen.getByRole("heading", { name: "补充课件" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
+  });
+
+  it("keeps experimental data out of the curriculum tree", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("curriculum-tree")).toBeTruthy();
+    });
+
+    const curriculumTree = screen.getByTestId("curriculum-tree");
+    expect(within(curriculumTree).queryByText("实验数据")).toBeNull();
+    expect(within(curriculumTree).queryByRole("button", { name: /实验视频/ })).toBeNull();
+    expect(within(curriculumTree).queryByRole("button", { name: /实验图片/ })).toBeNull();
+    // 视频仍然默认展示在右侧实验数据区
+    expect(document.querySelector("video")).toBeTruthy();
+  });
+
+  it("changes only the presentation pane when a curriculum file is selected", async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector("video")).toBeTruthy();
+    });
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    Object.defineProperty(video, "currentTime", {
+      configurable: true,
+      writable: true,
+      value: 12,
+    });
+    fireEvent.timeUpdate(video);
+
+    fireEvent.click(screen.getByRole("button", { name: /第二课件/ }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "第二课件" })).toBeTruthy();
+    });
+    // 课件选择不影响右侧实验数据区
+    expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
+    expect(container.querySelector("video")).toBe(video);
+    expect(video.currentTime).toBe(12);
+  });
+
+  it("falls back to the main slide when the experiment has no PPT", async () => {
+    const mainSlideOnlyFixture: CourseData = {
+      ...courseFixture,
+      media: [courseFixture.media[1], courseFixture.media[2]],
+    };
+
+    render(
+      <MemoryRouter>
+        <CourseViewer
+          course={mainSlideOnlyFixture}
+          theme="light"
+          navigation={createNavigation()}
+        />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mock-pdf-viewer:/slides/main.pdf")).toBeTruthy();
+    });
+
+    expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("1");
+    expect(screen.getByRole("heading", { name: "主课件" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
+  });
+
+  it("opens the curriculum drawer on mobile and restores focus after closing", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("curriculum-drawer-trigger")).toBeTruthy();
+    });
+
+    const trigger = screen.getByTestId("curriculum-drawer-trigger");
+    trigger.focus();
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(document.activeElement).toBe(trigger);
+    expect(document.body.style.overflow).not.toBe("hidden");
+
+    // 遮罩关闭
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByTestId("curriculum-drawer-backdrop"));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    // 关闭按钮
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByTestId("curriculum-drawer-close"));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  it("closes the drawer after selecting a file from it", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("curriculum-drawer-trigger")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByTestId("curriculum-drawer-trigger"));
+
+    const drawer = screen.getByRole("dialog");
+    fireEvent.click(within(drawer).getByRole("button", { name: /第二课件/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(screen.getByRole("heading", { name: "第二课件" })).toBeTruthy();
+  });
+
+  it("selects another experiment from the hierarchy", async () => {
+    const onSelectExperiment = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <CourseViewer
+          course={twoDeckFixture}
+          theme="light"
+          navigation={createNavigation({ onSelectExperiment })}
+        />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("curriculum-tree")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /下一个实验/ }));
+    expect(onSelectExperiment).toHaveBeenCalledWith("course-next");
   });
 });
