@@ -33,7 +33,11 @@ import {
   ExperimentCurriculumTree,
   type ExperimentCurriculumNavigation,
 } from "./ExperimentCurriculumTree";
-import { buildPresentationFiles, type ExperimentFile } from "./experimentHierarchy";
+import {
+  buildExperimentalDataFiles,
+  buildPresentationFiles,
+  type ExperimentFile,
+} from "./experimentHierarchy";
 import { getPptPdfFallbackUrl, hasPdfSidecar } from "./pptMedia";
 import { resolveApiEndpoint } from "@/lib/api";
 import { getKnowledgeTagLabel, normalizeKnowledgeTag } from "@/lib/course.service";
@@ -1175,8 +1179,9 @@ export function CourseViewer({
   const activePreviewMedia = selectedMedia ?? defaultPreviewMedia;
   const activeHighlightedMediaId = activePreviewMedia?.id ?? null;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
-  // 目录中的课件材料：PPT，没有 PPT 时回退主课件（实验数据仍由右侧展示区承载）
+  // 目录中的课件材料与实验数据共用右侧现有展示区
   const curriculumPresentationFiles = buildPresentationFiles(course);
+  const curriculumExperimentalDataFiles = buildExperimentalDataFiles(course);
   const usesMainSlidePresentation = Boolean(isNavigationMode && !activePptMedia && mainSlide);
   const activePresentationFileId =
     activePptMedia?.id ?? (usesMainSlidePresentation && mainSlide ? mainSlide.id : null);
@@ -1617,7 +1622,9 @@ export function CourseViewer({
       <ExperimentCurriculumTree
         navigation={navigation}
         presentationFiles={curriculumPresentationFiles}
+        experimentalDataFiles={curriculumExperimentalDataFiles}
         activePresentationFileId={activePresentationFileId}
+        activeExperimentalDataFileId={activeHighlightedMediaId}
         onSelectFile={handleCurriculumFileSelect}
         theme={theme}
         isZh={isZh}

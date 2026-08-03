@@ -29,6 +29,12 @@ const presentationFiles: ExperimentFile[] = [
   { id: "ppt-2", title: { "zh-CN": "课件二" }, type: "pptx" },
 ];
 
+const experimentalDataFiles: ExperimentFile[] = [
+  { id: "video-1", title: { "zh-CN": "实验视频" }, type: "video" },
+  { id: "image-1", title: { "zh-CN": "实验图片" }, type: "image" },
+  { id: "pdf-1", title: { "zh-CN": "补充资料" }, type: "pdf" },
+];
+
 type TreeProps = Parameters<typeof ExperimentCurriculumTree>[0];
 
 function renderTree(
@@ -53,7 +59,9 @@ function renderTree(
         ...navigationOverrides,
       }}
       presentationFiles={presentationFiles}
+      experimentalDataFiles={experimentalDataFiles}
       activePresentationFileId="ppt-1"
+      activeExperimentalDataFileId="video-1"
       onSelectFile={onSelectFile}
       theme="light"
       isZh
@@ -99,11 +107,17 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole("button", { name: /课件二/ }).getAttribute("aria-current")).toBeNull();
   });
 
-  it("does not render an experimental-data folder", () => {
+  it("renders the experimental-data folder with image, video, and PDF resources", () => {
     renderTree();
 
-    expect(screen.queryByRole("button", { name: /实验数据/ })).toBeNull();
-    expect(screen.getAllByRole("button", { name: /材料|数据/ })).toHaveLength(1);
+    const experimentalDataFolder = screen.getByRole("button", { name: /实验数据/ });
+    expect(experimentalDataFolder.getAttribute("aria-expanded")).toBe("true");
+    expect(experimentalDataFolder.textContent).toContain("3");
+    expect(screen.getByRole("button", { name: /实验视频/ }).getAttribute("aria-current")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: /实验图片/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /补充资料/ })).toBeTruthy();
   });
 
   it("collapses the folder through its disclosure button", () => {
@@ -142,6 +156,31 @@ describe("ExperimentCurriculumTree", () => {
     fireEvent.click(screen.getByRole("button", { name: /课件二/ }));
     expect(onSelectFile).toHaveBeenCalledWith(
       expect.objectContaining({ id: "ppt-2", type: "pptx" })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /实验图片/ }));
+    expect(onSelectFile).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "image-1", type: "image" })
+    );
+  });
+
+  it("uses the same folder layout when the second unit is active", () => {
+    renderTree({
+      navigation: { activeExperimentId: "course-3" },
+      activePresentationFileId: "ppt-2",
+      activeExperimentalDataFileId: "image-1",
+    });
+
+    expect(screen.getByRole("button", { name: /第二单元/ }).getAttribute("aria-expanded")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: /色偏振/ }).getAttribute("aria-expanded")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: /课件材料/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验数据/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验图片/ }).getAttribute("aria-current")).toBe(
+      "true"
     );
   });
 
@@ -184,7 +223,14 @@ describe("ExperimentCurriculumTree", () => {
   it("renders an empty folder when the active experiment has no presentation files", () => {
     renderTree({ presentationFiles: [] });
 
-    expect(screen.getByText("暂无文件")).toBeTruthy();
+    expect(screen.getByText("暂无课件")).toBeTruthy();
     expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("0");
+  });
+
+  it("renders an empty experimental-data folder when the experiment has no resources", () => {
+    renderTree({ experimentalDataFiles: [] });
+
+    expect(screen.getByText("暂无资源")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("0");
   });
 });

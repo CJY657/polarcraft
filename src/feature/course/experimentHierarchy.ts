@@ -1,8 +1,8 @@
 /**
  * Experiment Hierarchy - 实验层级模型
  *
- * 前端视图模型：单元 → 实验 → 课件材料 → 文件
- * 后端没有存储"文件夹"，这里根据现有媒体类型推导课件材料分组。
+ * 前端视图模型：单元 → 实验 → 课件材料 / 实验数据 → 文件
+ * 后端没有存储"文件夹"，这里根据现有媒体类型推导目录分组。
  */
 
 import type { CourseData, MediaType } from "@/data/courses";
@@ -25,7 +25,7 @@ export interface HierarchyUnit {
   experiments: ExperimentSummary[];
 }
 
-/** 课件材料中的单个文件 */
+/** 实验目录中的单个文件 */
 export interface ExperimentFile {
   id: string;
   title: LabelI18n;
@@ -36,7 +36,7 @@ export interface ExperimentFile {
 
 /**
  * 推导实验下的课件材料：按现有顺序排列的 PPT；没有 PPT 时回退到主课件。
- * 视频、图片与补充 PDF 不进入目录，仍由右侧实验数据展示区承载。
+ * 视频、图片与补充 PDF 由 buildExperimentalDataFiles 归入实验数据分组。
  */
 export function buildPresentationFiles(
   course: Pick<CourseData, "media" | "mainSlide"> | null | undefined,
@@ -57,6 +57,18 @@ export function buildPresentationFiles(
   }
 
   return presentationFiles;
+}
+
+/**
+ * 推导实验数据：保留现有顺序中的视频、图片与补充 PDF。
+ * PPT 与主课件继续由课件材料分组承载。
+ */
+export function buildExperimentalDataFiles(
+  course: Pick<CourseData, "media"> | null | undefined,
+): ExperimentFile[] {
+  return (course?.media ?? [])
+    .filter((media) => media.type !== "pptx")
+    .map((media) => ({ id: media.id, title: media.title, type: media.type }));
 }
 
 /** 把公开单元与其课程摘要转换成层级视图模型（只保留基础知识实验） */

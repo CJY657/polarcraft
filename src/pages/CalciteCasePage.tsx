@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared";
+import { DevicesWorkspaceLayout } from "@/feature/devices/DevicesWorkspaceLayout";
 
 const CALCITE_CASE_SRC = "/devices/calcite-case/index.html";
 
@@ -12,10 +13,11 @@ export default function CalciteCasePage() {
         moduleKey="devices"
         moduleName="偏振挑战"
         variant="solid"
+        compact
         className="sticky top-0 z-40"
       />
 
-      <main className="flex min-h-[calc(100dvh-72px)] flex-col">
+      <DevicesWorkspaceLayout mainClassName="flex flex-col">
         <div className="flex flex-col gap-3 border-b border-[var(--paper-border)] bg-[var(--paper-surface)]/92 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <Link
             to="/devices"
@@ -40,7 +42,7 @@ export default function CalciteCasePage() {
           src={CALCITE_CASE_SRC}
           className="min-h-[720px] flex-1 border-0 bg-white"
         />
-      </main>
+      </DevicesWorkspaceLayout>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /**
  * ExperimentCurriculumTree - 实验目录层级导航
  *
- * 固定层级：单元 → 实验 → 课件材料 → 文件
+ * 固定层级：单元 → 实验 → 课件材料 / 实验数据 → 文件
  * 使用嵌套列表 + 展开按钮（aria-expanded / aria-controls），而不是自定义 tree 控件，
  * 以便键盘与读屏行为保持原生语义。
  */
@@ -13,7 +13,9 @@ import {
   FileText,
   FolderClosed,
   FolderOpen,
+  Image as ImageIcon,
   Layers,
+  Play,
   RotateCcw,
 } from "lucide-react";
 
@@ -38,7 +40,10 @@ interface ExperimentCurriculumTreeProps {
   navigation: ExperimentCurriculumNavigation;
   /** 当前实验的课件材料（PPT，没有 PPT 时是主课件） */
   presentationFiles: ExperimentFile[];
+  /** 当前实验的视频、图片与补充 PDF */
+  experimentalDataFiles: ExperimentFile[];
   activePresentationFileId: string | null;
+  activeExperimentalDataFileId: string | null;
   onSelectFile: (file: ExperimentFile) => void;
   theme: "dark" | "light";
   isZh: boolean;
@@ -51,7 +56,9 @@ interface ExperimentCurriculumTreeProps {
 export function ExperimentCurriculumTree({
   navigation,
   presentationFiles,
+  experimentalDataFiles,
   activePresentationFileId,
+  activeExperimentalDataFileId,
   onSelectFile,
   theme,
   isZh,
@@ -63,6 +70,7 @@ export function ExperimentCurriculumTree({
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(activeUnitId);
   const [isActiveExperimentExpanded, setIsActiveExperimentExpanded] = useState(true);
   const [isPresentationFolderExpanded, setIsPresentationFolderExpanded] = useState(true);
+  const [isExperimentalDataFolderExpanded, setIsExperimentalDataFolderExpanded] = useState(true);
 
   // 只保持激活路径展开：单元与实验跟随当前实验同步
   useEffect(() => {
@@ -72,6 +80,7 @@ export function ExperimentCurriculumTree({
   useEffect(() => {
     setIsActiveExperimentExpanded(true);
     setIsPresentationFolderExpanded(true);
+    setIsExperimentalDataFolderExpanded(true);
   }, [activeExperimentId]);
 
   const toggleUnit = useCallback((unitId: string) => {
@@ -159,16 +168,36 @@ export function ExperimentCurriculumTree({
     );
   }
 
-  const renderPresentationFolder = (experimentId: string) => {
-    const panelId = `${idPrefix}-folder-presentation-${experimentId}`;
-    const FolderIcon = isPresentationFolderExpanded ? FolderOpen : FolderClosed;
+  const renderResourceFolder = ({
+    experimentId,
+    folderKey,
+    label,
+    emptyLabel,
+    files,
+    activeFileId,
+    isExpanded,
+    onToggle,
+    folderIconClass,
+  }: {
+    experimentId: string;
+    folderKey: "presentation" | "experimental-data";
+    label: string;
+    emptyLabel: string;
+    files: ExperimentFile[];
+    activeFileId: string | null;
+    isExpanded: boolean;
+    onToggle: () => void;
+    folderIconClass: string;
+  }) => {
+    const panelId = `${idPrefix}-folder-${folderKey}-${experimentId}`;
+    const FolderIcon = isExpanded ? FolderOpen : FolderClosed;
 
     return (
       <li>
         <button
           type="button"
-          onClick={() => setIsPresentationFolderExpanded((current) => !current)}
-          aria-expanded={isPresentationFolderExpanded}
+          onClick={onToggle}
+          aria-expanded={isExpanded}
           aria-controls={panelId}
           className={`${rowBaseClass} ${hoverClass} px-2 py-1.5 pl-5 text-[12px] font-bold ${
             isDark ? "text-slate-200" : "text-slate-700"
@@ -177,33 +206,33 @@ export function ExperimentCurriculumTree({
           <ChevronRight
             aria-hidden="true"
             className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-              isPresentationFolderExpanded ? "rotate-90" : ""
+              isExpanded ? "rotate-90" : ""
             }`}
           />
           <FolderIcon
             aria-hidden="true"
-            className={`h-3.5 w-3.5 shrink-0 ${isDark ? "text-amber-300" : "text-amber-600"}`}
+            className={`h-3.5 w-3.5 shrink-0 ${folderIconClass}`}
           />
-          <span className="min-w-0 flex-1 truncate">
-            {isZh ? "课件材料" : "Presentation materials"}
-          </span>
+          <span className="min-w-0 flex-1 truncate">{label}</span>
           <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>
-            {presentationFiles.length}
+            {files.length}
           </span>
         </button>
 
         <ul
           id={panelId}
-          hidden={!isPresentationFolderExpanded}
+          hidden={!isExpanded}
           className="mt-0.5 space-y-0.5"
         >
-          {presentationFiles.length === 0 ? (
+          {files.length === 0 ? (
             <li className={`px-2 py-1.5 pl-11 text-[11px] ${mutedTextClass}`}>
-              {isZh ? "暂无文件" : "No files"}
+              {emptyLabel}
             </li>
           ) : (
-            presentationFiles.map((file) => {
-              const isActiveFile = file.id === activePresentationFileId;
+            files.map((file) => {
+              const isActiveFile = file.id === activeFileId;
+              const FileIcon =
+                file.type === "video" ? Play : file.type === "image" ? ImageIcon : FileText;
 
               return (
                 <li key={file.id}>
@@ -220,7 +249,7 @@ export function ExperimentCurriculumTree({
                         : `${hoverClass} font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`
                     }`}
                   >
-                    <FileText
+                    <FileIcon
                       aria-hidden="true"
                       className="h-3.5 w-3.5 shrink-0"
                     />
@@ -349,7 +378,30 @@ export function ExperimentCurriculumTree({
                             id={experimentPanelId}
                             className="mt-0.5 space-y-0.5"
                           >
-                            {renderPresentationFolder(experiment.id)}
+                            {renderResourceFolder({
+                              experimentId: experiment.id,
+                              folderKey: "presentation",
+                              label: isZh ? "课件材料" : "Presentation materials",
+                              emptyLabel: isZh ? "暂无课件" : "No courseware",
+                              files: presentationFiles,
+                              activeFileId: activePresentationFileId,
+                              isExpanded: isPresentationFolderExpanded,
+                              onToggle: () =>
+                                setIsPresentationFolderExpanded((current) => !current),
+                              folderIconClass: isDark ? "text-amber-300" : "text-amber-600",
+                            })}
+                            {renderResourceFolder({
+                              experimentId: experiment.id,
+                              folderKey: "experimental-data",
+                              label: isZh ? "实验数据" : "Experimental data",
+                              emptyLabel: isZh ? "暂无资源" : "No resources",
+                              files: experimentalDataFiles,
+                              activeFileId: activeExperimentalDataFileId,
+                              isExpanded: isExperimentalDataFolderExpanded,
+                              onToggle: () =>
+                                setIsExperimentalDataFolderExpanded((current) => !current),
+                              folderIconClass: isDark ? "text-cyan-300" : "text-cyan-700",
+                            })}
                           </ul>
                         ) : null}
                       </li>

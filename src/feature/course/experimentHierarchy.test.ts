@@ -4,6 +4,7 @@ import type { CourseData } from "@/data/courses";
 import type { Unit, UnitCourse } from "@/lib/unit.service";
 
 import {
+  buildExperimentalDataFiles,
   buildPresentationFiles,
   countExperiments,
   findFirstExperimentId,
@@ -44,7 +45,7 @@ function createUnitCourse(id: string, knowledgeTag: UnitCourse["knowledgeTag"]):
 }
 
 describe("buildPresentationFiles", () => {
-  it("keeps only PPT files in the existing order and leaves media out of the tree", () => {
+  it("keeps only PPT files in the existing order", () => {
     const presentationFiles = buildPresentationFiles({
       ...baseCourse,
       mainSlide: { id: "main-1", url: "/main.pdf", title: { "zh-CN": "主课件" } },
@@ -75,6 +76,30 @@ describe("buildPresentationFiles", () => {
   it("returns nothing when the experiment has no presentation resources", () => {
     expect(buildPresentationFiles(baseCourse)).toEqual([]);
     expect(buildPresentationFiles(null)).toEqual([]);
+  });
+});
+
+describe("buildExperimentalDataFiles", () => {
+  it("keeps videos, images, and supporting PDFs in the existing order", () => {
+    const experimentalDataFiles = buildExperimentalDataFiles({
+      media: [
+        { id: "video-1", type: "video", url: "/v.mp4", title: { "zh-CN": "实验视频" } },
+        { id: "ppt-1", type: "pptx", url: "/a.pptx", title: { "zh-CN": "课件一" } },
+        { id: "image-1", type: "image", url: "/i.jpg", title: { "zh-CN": "实验图片" } },
+        { id: "pdf-1", type: "pdf", url: "/p.pdf", title: { "zh-CN": "补充资料" } },
+      ],
+    });
+
+    expect(experimentalDataFiles.map((file) => file.id)).toEqual([
+      "video-1",
+      "image-1",
+      "pdf-1",
+    ]);
+  });
+
+  it("returns nothing when the experiment has no experimental data", () => {
+    expect(buildExperimentalDataFiles({ media: [] })).toEqual([]);
+    expect(buildExperimentalDataFiles(null)).toEqual([]);
   });
 });
 

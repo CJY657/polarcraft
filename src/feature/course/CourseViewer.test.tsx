@@ -639,11 +639,12 @@ describe("CourseViewer hierarchical workspace", () => {
 
     expect(screen.queryByText("资源总览")).toBeNull();
     expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("2");
+    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("2");
     expect(screen.getByRole("heading", { name: "补充课件" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
   });
 
-  it("keeps experimental data out of the curriculum tree", async () => {
+  it("shows experimental data in the curriculum tree and keeps it in the preview", async () => {
     render(
       <MemoryRouter>
         <CourseViewer course={twoDeckFixture} theme="light" navigation={createNavigation()} />
@@ -655,11 +656,17 @@ describe("CourseViewer hierarchical workspace", () => {
     });
 
     const curriculumTree = screen.getByTestId("curriculum-tree");
-    expect(within(curriculumTree).queryByText("实验数据")).toBeNull();
-    expect(within(curriculumTree).queryByRole("button", { name: /实验视频/ })).toBeNull();
-    expect(within(curriculumTree).queryByRole("button", { name: /实验图片/ })).toBeNull();
-    // 视频仍然默认展示在右侧实验数据区
+    expect(within(curriculumTree).getByRole("button", { name: /实验数据/ })).toBeTruthy();
+    expect(within(curriculumTree).getByRole("button", { name: /实验视频/ })).toBeTruthy();
+    expect(within(curriculumTree).getByRole("button", { name: /实验图片/ })).toBeTruthy();
     expect(document.querySelector("video")).toBeTruthy();
+
+    fireEvent.click(within(curriculumTree).getByRole("button", { name: /实验图片/ }));
+
+    await waitFor(() => {
+      expect(screen.getByAltText("实验图片")).toBeTruthy();
+    });
+    expect(document.querySelector("video")).toBeNull();
   });
 
   it("changes only the presentation pane when a curriculum file is selected", async () => {
@@ -713,6 +720,7 @@ describe("CourseViewer hierarchical workspace", () => {
     });
 
     expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("1");
+    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("2");
     expect(screen.getByRole("heading", { name: "主课件" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
   });

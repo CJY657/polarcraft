@@ -74,7 +74,9 @@ function ExperimentWorkspaceShell({
         <ExperimentCurriculumTree
           navigation={navigation}
           presentationFiles={EMPTY_PRESENTATION_FILES}
+          experimentalDataFiles={EMPTY_PRESENTATION_FILES}
           activePresentationFileId={null}
+          activeExperimentalDataFileId={null}
           onSelectFile={() => undefined}
           theme={theme}
           isZh={isZh}
