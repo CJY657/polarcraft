@@ -32,6 +32,7 @@ import AdminUsersPage from './AdminUsersPage';
 
 const DEFAULT_LIST_PARAMS = {
   search: '',
+  userType: 'all',
   role: 'all',
   status: 'all',
   sortBy: 'created_at',
@@ -59,6 +60,7 @@ describe('AdminUsersPage', () => {
           real_name: null,
           email: 'alice@example.com',
           role: 'admin',
+          user_type: 'teacher',
           avatar_url: null,
           email_verified: true,
           is_active: true,
@@ -72,6 +74,7 @@ describe('AdminUsersPage', () => {
           real_name: null,
           email: 'bob@example.com',
           role: 'user',
+          user_type: null,
           avatar_url: null,
           email_verified: false,
           is_active: false,
@@ -89,6 +92,7 @@ describe('AdminUsersPage', () => {
         real_name: null,
         email: 'alice@example.com',
         role: 'admin',
+        user_type: 'teacher',
         avatar_url: null,
         email_verified: true,
         is_active: true,
@@ -127,6 +131,10 @@ describe('AdminUsersPage', () => {
     expect(screen.getByText('可用账号中尚未完成邮箱验证')).toBeDefined();
     expect(screen.getByText('alice')).toBeDefined();
     expect(screen.getByText('alice@example.com')).toBeDefined();
+    expect(screen.getAllByText('教师').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('未分类').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('columnheader', { name: '身份' })).toBeDefined();
+    expect(screen.getByRole('columnheader', { name: '权限' })).toBeDefined();
     expect(screen.getByText('从未登录')).toBeDefined();
     expect(screen.getByRole('button', { name: '查看 alice 的详情' })).toBeDefined();
 
@@ -135,7 +143,7 @@ describe('AdminUsersPage', () => {
     });
   });
 
-  it('reloads the list when the role filter changes', async () => {
+  it('reloads the list when the permission filter changes', async () => {
     render(
       <MemoryRouter>
         <AdminUsersPage />
@@ -144,7 +152,7 @@ describe('AdminUsersPage', () => {
 
     await screen.findByText('alice');
 
-    fireEvent.change(screen.getByLabelText('角色筛选'), {
+    fireEvent.change(screen.getByLabelText('权限筛选'), {
       target: { value: 'admin' },
     });
 
@@ -152,6 +160,27 @@ describe('AdminUsersPage', () => {
       expect(list).toHaveBeenLastCalledWith({
         ...DEFAULT_LIST_PARAMS,
         role: 'admin',
+      });
+    });
+  });
+
+  it('reloads the list when the identity filter changes', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('alice');
+
+    fireEvent.change(screen.getByLabelText('身份筛选'), {
+      target: { value: 'unclassified' },
+    });
+
+    await waitFor(() => {
+      expect(list).toHaveBeenLastCalledWith({
+        ...DEFAULT_LIST_PARAMS,
+        userType: 'unclassified',
       });
     });
   });

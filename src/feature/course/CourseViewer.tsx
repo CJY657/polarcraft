@@ -51,7 +51,7 @@ interface CourseViewerProps {
   backPath?: string;
   backLabel?: string;
   /**
-   * 实验工作台的层级导航；不传时保持前沿应用查看器的原有行为。
+   * 实验或前沿应用工作台的层级导航；不传时保持独立查看器行为。
    */
   navigation?: ExperimentCurriculumNavigation;
 }
@@ -1106,6 +1106,21 @@ export function CourseViewer({
 }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
+  const isApplicationCurriculum = navigation?.contentKind === "application";
+  const curriculumTitle = isZh
+    ? isApplicationCurriculum
+      ? "应用目录"
+      : "实验目录"
+    : isApplicationCurriculum
+      ? "Applications"
+      : "Curriculum";
+  const curriculumCloseLabel = isZh
+    ? isApplicationCurriculum
+      ? "关闭应用目录"
+      : "关闭实验目录"
+    : isApplicationCurriculum
+      ? "Close applications"
+      : "Close curriculum";
   const courseTitle =
     course.title[i18n.language] || course.title["zh-CN"] || course.title["en-US"] || "";
   const fallbackKnowledgeTag = normalizeKnowledgeTag(course.knowledgeTag);
@@ -2082,7 +2097,7 @@ export function CourseViewer({
                     }`}
                   >
                     <ListTree className="h-4 w-4" />
-                    {isZh ? "实验目录" : "Curriculum"}
+                    {curriculumTitle}
                   </button>
                 </div>
               )}
@@ -2389,8 +2404,8 @@ export function CourseViewer({
             <ExperimentCurriculumDrawer
               isOpen={isCurriculumDrawerOpen}
               onClose={() => setIsCurriculumDrawerOpen(false)}
-              title={isZh ? "实验目录" : "Curriculum"}
-              closeLabel={isZh ? "关闭实验目录" : "Close curriculum"}
+              title={curriculumTitle}
+              closeLabel={curriculumCloseLabel}
               theme={theme}
             >
               {renderCurriculumTree("curriculum-drawer", () => setIsCurriculumDrawerOpen(false))}

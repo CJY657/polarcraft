@@ -35,7 +35,6 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // ============================================================
 // Module 1: 实验内容
 // 科学原理 × 历史故事
-const ApplicationsPage = lazy(() => import("@/pages/ApplicationsPage"));
 const TimelinePage = lazy(() => import("@/pages/TimelinePage"));
 
 // Module 1b: 实验课单元
@@ -214,6 +213,7 @@ export function shouldHideGlobalFooter(pathname: string) {
   return Boolean(
     pathname === "/experiments" ||
       matchPath("/experiments/:experimentId", pathname) ||
+      pathname === "/applications" ||
       matchPath("/applications/:applicationId", pathname) ||
       matchPath("/courses/:courseId", pathname)
   );
@@ -286,7 +286,7 @@ function AppRouterContent() {
             />
             <Route
               path="/applications"
-              element={<ApplicationsPage />}
+              element={<CourseViewerPage />}
             />
             <Route
               path="/applications/:applicationId"

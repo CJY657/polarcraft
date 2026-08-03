@@ -5,6 +5,7 @@ const {
   findIdentitiesByIdsForAdmin,
   getUserAnalytics,
   getActivityDashboard,
+  getLearnerActivityDetail,
   getUserEducations,
   getUserMemberships,
   getUserApplications,
@@ -13,6 +14,7 @@ const {
   findIdentitiesByIdsForAdmin: vi.fn(),
   getUserAnalytics: vi.fn(),
   getActivityDashboard: vi.fn(),
+  getLearnerActivityDetail: vi.fn(),
   getUserEducations: vi.fn(),
   getUserMemberships: vi.fn(),
   getUserApplications: vi.fn(),
@@ -37,6 +39,7 @@ vi.mock('./posthog.service.js', () => ({
   PostHogService: {
     getUserAnalytics,
     getActivityDashboard,
+    getLearnerActivityDetail,
   },
 }));
 
@@ -62,6 +65,7 @@ describe('UserService.getPostHogAnalyticsForAdmin', () => {
       id: 'inactive-user',
       username: 'bob',
       role: 'user',
+      user_type: 'student',
       avatar_url: null,
       email: null,
       email_verified: false,
@@ -94,10 +98,11 @@ describe('UserService.getActivityDashboardForAdmin', () => {
   it('delegates the selected range to PostHog aggregates', async () => {
     const dashboard = {
       status: 'ok',
+      segment: 'all',
       range: { start: '2026-04-12', end: '2026-07-10', days: 90 },
       generated_at: '2026-07-10T00:00:00.000Z',
       summary: {
-        active_learners: 1,
+        active_users: 1,
         meaningful_events: 2,
         pageviews: 1,
         learning_actions: 1,
@@ -106,24 +111,30 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [],
+      top_users: [],
     };
     getActivityDashboard.mockResolvedValue(dashboard);
 
     await expect(
-      UserService.getActivityDashboardForAdmin('2026-04-12', '2026-07-10', null)
+      UserService.getActivityDashboardForAdmin('2026-04-12', '2026-07-10', null, 'all')
     ).resolves.toBe(dashboard);
-    expect(getActivityDashboard).toHaveBeenCalledWith('2026-04-12', '2026-07-10', null);
+    expect(getActivityDashboard).toHaveBeenCalledWith(
+      '2026-04-12',
+      '2026-07-10',
+      null,
+      'all'
+    );
     expect(findIdentitiesByIdsForAdmin).not.toHaveBeenCalled();
   });
 
   it('uses real names in the ranking and falls back to nicknames, then usernames', async () => {
     getActivityDashboard.mockResolvedValue({
       status: 'ok',
+      segment: 'student',
       range: { start: '2026-07-01', end: '2026-07-10', days: 10 },
       generated_at: '2026-07-10T00:00:00.000Z',
       summary: {
-        active_learners: 3,
+        active_users: 3,
         meaningful_events: 9,
         pageviews: 6,
         learning_actions: 3,
@@ -132,11 +143,12 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [
+      top_users: [
         {
           user_id: 'real-name-user',
           username: 'alice',
           display_name: 'alice',
+          user_type: 'student',
           events: 4,
           pageviews: 3,
           learning_actions: 1,
@@ -146,6 +158,7 @@ describe('UserService.getActivityDashboardForAdmin', () => {
           user_id: 'nickname-user',
           username: 'bob',
           display_name: 'bob',
+          user_type: 'student',
           events: 3,
           pageviews: 2,
           learning_actions: 1,
@@ -155,6 +168,7 @@ describe('UserService.getActivityDashboardForAdmin', () => {
           user_id: 'unknown-user',
           username: 'legacy-account',
           display_name: 'legacy-account',
+          user_type: 'student',
           events: 2,
           pageviews: 1,
           learning_actions: 1,
@@ -168,19 +182,22 @@ describe('UserService.getActivityDashboardForAdmin', () => {
         username: 'alice',
         nickname: '小爱',
         real_name: ' Alice Wang ',
+        user_type: 'student',
       },
       {
         id: 'nickname-user',
         username: 'bob',
         nickname: ' 小波 ',
         real_name: '   ',
+        user_type: 'student',
       },
     ]);
 
     const result = await UserService.getActivityDashboardForAdmin(
       '2026-07-01',
       '2026-07-10',
-      10
+      10,
+      'student'
     );
 
     expect(findIdentitiesByIdsForAdmin).toHaveBeenCalledWith([
@@ -188,11 +205,47 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       'nickname-user',
       'unknown-user',
     ]);
-    expect(result.top_learners.map((learner) => learner.display_name)).toEqual([
+    expect(result.top_users.map((user) => user.display_name)).toEqual([
       'Alice Wang',
       '小波',
       'legacy-account',
     ]);
+    expect(result.top_users.every((user) => user.user_type === 'student')).toBe(true);
+  });
+});
+
+describe('UserService.getLearnerActivityForAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('adds the selected account type from the database to the activity detail', async () => {
+    findByIdForAdmin.mockResolvedValue({
+      id: 'teacher-1',
+      user_type: 'teacher',
+    });
+    getLearnerActivityDetail.mockResolvedValue({
+      status: 'ok',
+      range: { start: '2026-07-01', end: '2026-07-07', days: 7 },
+      previous_range: { start: '2026-06-24', end: '2026-06-30', days: 7 },
+      generated_at: '2026-07-07T00:00:00.000Z',
+      last_activity: null,
+      summary: null,
+      previous_summary: null,
+      daily: [],
+      top_pages: [],
+      module_breakdown: [],
+      hourly: [],
+    });
+
+    await expect(
+      UserService.getLearnerActivityForAdmin('teacher-1', '2026-07-01', '2026-07-07')
+    ).resolves.toMatchObject({ user_type: 'teacher' });
+    expect(getLearnerActivityDetail).toHaveBeenCalledWith(
+      'teacher-1',
+      '2026-07-01',
+      '2026-07-07'
+    );
   });
 });
 
@@ -217,6 +270,7 @@ describe('UserService.getUserDetailForAdmin', () => {
       id: 'user-1',
       username: 'alice',
       role: 'user',
+      user_type: 'student',
       avatar_url: null,
       email: 'alice@example.com',
       email_verified: true,

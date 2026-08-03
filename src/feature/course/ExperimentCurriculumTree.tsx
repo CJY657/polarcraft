@@ -26,14 +26,17 @@ import {
   type HierarchyUnit,
 } from "./experimentHierarchy";
 
+export type CurriculumContentKind = "experiment" | "application";
+
 export interface ExperimentCurriculumNavigation {
-  /** 单元 → 实验（仅基础知识实验，保持接口排序） */
+  /** 单元 → 内容条目（按当前模块分类过滤，保持接口排序） */
   units: HierarchyUnit[];
   activeExperimentId: string | null;
   isLoading: boolean;
   error: string | null;
   onRetry: () => void;
   onSelectExperiment: (experimentId: string) => void;
+  contentKind?: CurriculumContentKind;
 }
 
 interface ExperimentCurriculumTreeProps {
@@ -65,7 +68,15 @@ export function ExperimentCurriculumTree({
   idPrefix = "curriculum",
   onAfterSelect,
 }: ExperimentCurriculumTreeProps) {
-  const { units, activeExperimentId, isLoading, error, onRetry, onSelectExperiment } = navigation;
+  const {
+    units,
+    activeExperimentId,
+    isLoading,
+    error,
+    onRetry,
+    onSelectExperiment,
+    contentKind = "experiment",
+  } = navigation;
   const activeUnitId = findUnitIdForExperiment(units, activeExperimentId);
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(activeUnitId);
   const [isActiveExperimentExpanded, setIsActiveExperimentExpanded] = useState(true);
@@ -98,7 +109,42 @@ export function ExperimentCurriculumTree({
     ? "bg-cyan-500/15 text-cyan-100"
     : "bg-cyan-50 text-cyan-900";
 
-  const headingLabel = isZh ? "实验目录" : "Curriculum";
+  const isApplication = contentKind === "application";
+  const headingLabel = isZh
+    ? isApplication
+      ? "应用目录"
+      : "实验目录"
+    : isApplication
+      ? "Applications"
+      : "Curriculum";
+  const loadingLabel = isZh
+    ? isApplication
+      ? "应用目录加载中"
+      : "实验目录加载中"
+    : isApplication
+      ? "Loading applications"
+      : "Loading curriculum";
+  const emptyTitle = isZh
+    ? isApplication
+      ? "暂无前沿应用"
+      : "暂无实验内容"
+    : isApplication
+      ? "No applications yet"
+      : "No experiments yet";
+  const emptyDescription = isZh
+    ? isApplication
+      ? "还没有可进入的光学设备应用，稍后再来看看。"
+      : "还没有可进入的基础知识实验，稍后再来看看。"
+    : isApplication
+      ? "No optical-device applications are available yet."
+      : "No foundation experiments are available yet.";
+  const emptyUnitLabel = isZh
+    ? isApplication
+      ? "该单元暂无应用"
+      : "该单元暂无实验"
+    : isApplication
+      ? "No applications in this unit"
+      : "No experiments in this unit";
 
   if (isLoading) {
     return (
@@ -118,7 +164,7 @@ export function ExperimentCurriculumTree({
             style={{ marginLeft: row % 3 === 0 ? 0 : row % 3 === 1 ? 12 : 24 }}
           />
         ))}
-        <span className="sr-only">{isZh ? "实验目录加载中" : "Loading curriculum"}</span>
+        <span className="sr-only">{loadingLabel}</span>
       </div>
     );
   }
@@ -157,12 +203,10 @@ export function ExperimentCurriculumTree({
       >
         <Layers className={`mx-auto mb-3 h-10 w-10 ${isDark ? "text-slate-600" : "text-slate-300"}`} />
         <p className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-          {isZh ? "暂无实验内容" : "No experiments yet"}
+          {emptyTitle}
         </p>
         <p className={`mt-1.5 text-xs leading-5 ${mutedTextClass}`}>
-          {isZh
-            ? "还没有可进入的基础知识实验，稍后再来看看。"
-            : "No foundation experiments are available yet."}
+          {emptyDescription}
         </p>
       </div>
     );
@@ -329,7 +373,7 @@ export function ExperimentCurriculumTree({
               >
                 {unit.experiments.length === 0 ? (
                   <li className={`px-2 py-1.5 pl-7 text-[11px] ${mutedTextClass}`}>
-                    {isZh ? "该单元暂无实验" : "No experiments in this unit"}
+                    {emptyUnitLabel}
                   </li>
                 ) : (
                   unit.experiments.map((experiment) => {

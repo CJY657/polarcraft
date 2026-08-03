@@ -1,35 +1,40 @@
 /**
  * useExperimentHierarchy - 实验层级数据加载
  *
- * 复用现有的公开单元接口，组装 单元 → 实验 的层级视图模型。
- * 只保留基础知识（foundation）实验，并保持接口返回的排序。
+ * 复用现有的公开单元接口，组装 单元 → 内容条目 的层级视图模型。
+ * 按指定 knowledgeTag 过滤，并保持接口返回的排序。
  */
 
 import { useCallback, useEffect, useState } from "react";
 
+import type { KnowledgeTag } from "@/lib/course.service";
 import { unitApi } from "@/lib/unit.service";
 import { toHierarchyUnits, type HierarchyUnit } from "./experimentHierarchy";
 
 interface UseExperimentHierarchyOptions {
-  /** 仅在实验工作台路由下加载（前沿应用路由不需要） */
+  /** 仅在层级工作台路由下加载 */
   enabled: boolean;
   isZh: boolean;
+  knowledgeTag?: KnowledgeTag;
 }
 
 export interface ExperimentHierarchyState {
   units: HierarchyUnit[];
   isLoading: boolean;
   error: string | null;
+  loadedKnowledgeTag: KnowledgeTag | null;
   retry: () => void;
 }
 
 export function useExperimentHierarchy({
   enabled,
   isZh,
+  knowledgeTag = "foundation",
 }: UseExperimentHierarchyOptions): ExperimentHierarchyState {
   const [units, setUnits] = useState<HierarchyUnit[]>([]);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const [loadedKnowledgeTag, setLoadedKnowledgeTag] = useState<KnowledgeTag | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -37,6 +42,7 @@ export function useExperimentHierarchy({
       setUnits([]);
       setIsLoading(false);
       setError(null);
+      setLoadedKnowledgeTag(null);
       return;
     }
 
@@ -44,6 +50,7 @@ export function useExperimentHierarchy({
 
     setIsLoading(true);
     setError(null);
+    setLoadedKnowledgeTag(null);
 
     const loadHierarchy = async () => {
       try {
@@ -59,7 +66,8 @@ export function useExperimentHierarchy({
           return;
         }
 
-        setUnits(toHierarchyUnits(entries));
+        setUnits(toHierarchyUnits(entries, knowledgeTag));
+        setLoadedKnowledgeTag(knowledgeTag);
         setIsLoading(false);
       } catch (err) {
         if (isCancelled) {
@@ -67,13 +75,18 @@ export function useExperimentHierarchy({
         }
 
         setUnits([]);
+        setLoadedKnowledgeTag(knowledgeTag);
         setIsLoading(false);
         setError(
           err instanceof Error && err.message
             ? err.message
-            : isZh
-              ? "实验目录加载失败"
-              : "Failed to load the curriculum",
+            : knowledgeTag === "optical_device"
+              ? isZh
+                ? "应用目录加载失败"
+                : "Failed to load the application curriculum"
+              : isZh
+                ? "实验目录加载失败"
+                : "Failed to load the curriculum",
         );
       }
     };
@@ -83,11 +96,11 @@ export function useExperimentHierarchy({
     return () => {
       isCancelled = true;
     };
-  }, [enabled, isZh, reloadKey]);
+  }, [enabled, isZh, knowledgeTag, reloadKey]);
 
   const retry = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1);
   }, []);
 
-  return { units, isLoading, error, retry };
+  return { units, isLoading, error, loadedKnowledgeTag, retry };
 }

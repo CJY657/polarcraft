@@ -57,8 +57,22 @@ describe('AuthDialog registration', () => {
     expect(screen.getByLabelText('用户名 *')).toHaveProperty('required', true);
     expect(screen.getByLabelText('真实姓名 *')).toHaveProperty('required', true);
     expect(screen.getByLabelText('邮箱 *')).toHaveProperty('required', true);
+    expect(screen.getByRole('radio', { name: '学生' })).toHaveProperty('required', true);
+    expect(screen.getByRole('radio', { name: '教师' })).toHaveProperty('required', true);
     expect(screen.getByText('用于接收密码重置链接')).toBeDefined();
     expect(screen.queryByLabelText('昵称 *')).toBeNull();
+  });
+
+  it('requires an account identity before registration', async () => {
+    renderDialog();
+
+    fireEvent.change(screen.getByLabelText('真实姓名 *'), {
+      target: { value: 'Lin Chen' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: '注册' }).closest('form')!);
+
+    expect(await screen.findByText('请选择账号身份')).toBeDefined();
+    expect(mocks.register).not.toHaveBeenCalled();
   });
 
   it('submits trimmed registration fields', async () => {
@@ -73,6 +87,7 @@ describe('AuthDialog registration', () => {
     fireEvent.change(screen.getByLabelText('邮箱 *'), {
       target: { value: ' student@example.com ' },
     });
+    fireEvent.click(screen.getByRole('radio', { name: '学生' }));
     fireEvent.change(screen.getByLabelText('密码 *'), {
       target: { value: 'Password1!' },
     });
@@ -86,7 +101,8 @@ describe('AuthDialog registration', () => {
         'student-1',
         'Lin Chen',
         'Password1!',
-        'student@example.com'
+        'student@example.com',
+        'student'
       );
     });
   });
@@ -103,6 +119,7 @@ describe('AuthDialog registration', () => {
     fireEvent.change(screen.getByLabelText('邮箱 *'), {
       target: { value: 'not-an-email' },
     });
+    fireEvent.click(screen.getByRole('radio', { name: '学生' }));
     fireEvent.change(screen.getByLabelText('密码 *'), {
       target: { value: 'Password1!' },
     });

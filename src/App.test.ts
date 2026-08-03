@@ -11,6 +11,10 @@ describe("shouldHideGlobalFooter", () => {
     expect(shouldHideGlobalFooter("/applications/course1")).toBe(true);
   });
 
+  it("hides the footer on the applications workspace index", () => {
+    expect(shouldHideGlobalFooter("/applications")).toBe(true);
+  });
+
   it("hides the footer on the experiments workspace index", () => {
     expect(shouldHideGlobalFooter("/experiments")).toBe(true);
   });

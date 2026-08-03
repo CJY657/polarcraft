@@ -8,6 +8,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult, ValidationChain } from 'express-validator';
+import { USER_TYPES } from '../types/auth.types.js';
 import { sendError } from '../utils/response.util.js';
 
 /**
@@ -120,6 +121,11 @@ export const rememberMeValidation = body('rememberMe')
   .isBoolean()
   .withMessage('记住我必须是布尔值');
 
+const userTypeValidation = () =>
+  body('user_type')
+    .isIn([...USER_TYPES])
+    .withMessage('用户类型必须是学生或教师');
+
 // =====================================================
 // Predefined Validation Sets / 预定义验证集
 // =====================================================
@@ -132,6 +138,7 @@ export const validateRegister = validate(
     .isLength({ min: 8 })
     .withMessage('密码长度至少为 8 个字符'),
   emailValidation,
+  userTypeValidation(),
 );
 
 export const validateLogin = validate(
@@ -189,6 +196,7 @@ export const validateUpdateProfile = validate(
     .optional()
     .isURL()
     .withMessage('头像 URL 格式不正确'),
+  userTypeValidation().optional(),
 );
 
 export const validateCreateFeedback = validate(

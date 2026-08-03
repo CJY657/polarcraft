@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const doubles = vi.hoisted(() => ({
+  createUser: vi.fn(),
+  findById: vi.fn(),
   findByUsername: vi.fn(),
   findByEmail: vi.fn(),
   updateProfile: vi.fn(),
+  verifyPassword: vi.fn(),
+  updateLastLogin: vi.fn(),
+  generateTokens: vi.fn(),
   invalidateAllForUser: vi.fn(),
   createResetToken: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
@@ -11,9 +16,19 @@ const doubles = vi.hoisted(() => ({
 
 vi.mock('../models/user.model.js', () => ({
   UserModel: {
+    create: doubles.createUser,
+    findById: doubles.findById,
     findByUsername: doubles.findByUsername,
     findByEmail: doubles.findByEmail,
     updateProfile: doubles.updateProfile,
+    verifyPassword: doubles.verifyPassword,
+    updateLastLogin: doubles.updateLastLogin,
+  },
+}));
+
+vi.mock('./token.service.js', () => ({
+  TokenService: {
+    generateTokens: doubles.generateTokens,
   },
 }));
 
@@ -62,6 +77,7 @@ function createUser(email: string | null): User {
     client_salt: 'client-salt',
     client_hash_algorithm: 'sha256',
     role: 'user',
+    user_type: 'student',
     avatar_url: null,
     is_active: true,
     email,
@@ -71,6 +87,63 @@ function createUser(email: string | null): User {
     last_login_at: null,
   };
 }
+
+describe('AuthService user type responses', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('persists and returns the selected type when registering without changing role', async () => {
+    const user = {
+      ...createUser('teacher@example.com'),
+      real_name: 'Teacher Lin',
+      user_type: 'teacher' as const,
+    };
+    doubles.createUser.mockResolvedValue(user);
+    doubles.generateTokens.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 900,
+    });
+    const input = {
+      username: 'teacher-lin',
+      real_name: 'Teacher Lin',
+      password: 'a'.repeat(64),
+      clientSalt: 'client-salt',
+      email: 'teacher@example.com',
+      user_type: 'teacher' as const,
+    };
+
+    const result = await AuthService.register(input);
+
+    expect(doubles.createUser).toHaveBeenCalledWith(input);
+    expect(result.user).toMatchObject({ role: 'user', user_type: 'teacher' });
+  });
+
+  it('serializes a legacy administrator without a stored type as null', async () => {
+    const legacyAdmin = {
+      ...createUser('admin@example.com'),
+      role: 'admin' as const,
+      user_type: undefined as never,
+    };
+    doubles.findByUsername.mockResolvedValue(legacyAdmin);
+    doubles.verifyPassword.mockResolvedValue(true);
+    doubles.updateLastLogin.mockResolvedValue(undefined);
+    doubles.generateTokens.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 900,
+    });
+
+    const result = await AuthService.login({
+      username: 'alice',
+      password: 'a'.repeat(64),
+    });
+
+    expect(result.user).toMatchObject({ role: 'admin', user_type: null });
+    expect(doubles.generateTokens).toHaveBeenCalledWith(legacyAdmin, undefined, undefined);
+  });
+});
 
 describe('AuthService.forgotPassword', () => {
   beforeEach(() => {

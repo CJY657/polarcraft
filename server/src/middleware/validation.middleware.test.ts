@@ -36,6 +36,7 @@ describe('auth/profile validation', () => {
       real_name: 'Lin Chen',
       password: 'a'.repeat(64),
       clientSalt: 'client-salt',
+      user_type: 'student',
       ...(email === undefined ? {} : { email }),
     });
 
@@ -60,6 +61,7 @@ describe('auth/profile validation', () => {
       password: 'a'.repeat(64),
       clientSalt: 'client-salt',
       email: 'not-an-email',
+      user_type: 'student',
     });
 
     expect(res.status).toHaveBeenCalledWith(400);
@@ -82,6 +84,7 @@ describe('auth/profile validation', () => {
       password: 'a'.repeat(64),
       clientSalt: 'client-salt',
       email: 'student@example.com',
+      user_type: 'student',
     });
 
     expect(res.status).toHaveBeenCalledWith(400);
@@ -105,6 +108,7 @@ describe('auth/profile validation', () => {
       password: 'a'.repeat(64),
       clientSalt: 'client-salt',
       email: ' Student@Example.COM ',
+      user_type: 'teacher',
     });
 
     expect(res.json).not.toHaveBeenCalled();
@@ -113,6 +117,7 @@ describe('auth/profile validation', () => {
       username: 'student-1',
       real_name: 'Lin Chen',
       email: 'student@example.com',
+      user_type: 'teacher',
     });
   });
 
@@ -128,6 +133,46 @@ describe('auth/profile validation', () => {
     expect(res.json).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalled();
     expect(req.body.username).toBe('student-1');
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['invalid', 'guardian'],
+  ])('rejects %s user type when registering', async (_label, userType) => {
+    const { res } = await runValidationStack(validateRegister as Middleware[], {
+      username: 'student-1',
+      real_name: 'Lin Chen',
+      password: 'a'.repeat(64),
+      clientSalt: 'client-salt',
+      email: 'student@example.com',
+      ...(userType === undefined ? {} : { user_type: userType }),
+    });
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'VALIDATION_ERROR',
+          details: expect.arrayContaining([
+            expect.objectContaining({ field: 'user_type' }),
+          ]),
+        }),
+      })
+    );
+  });
+
+  it.each(['student', 'teacher'])('accepts %s as a registration user type', async (userType) => {
+    const { res, next } = await runValidationStack(validateRegister as Middleware[], {
+      username: `${userType}-1`,
+      real_name: 'Lin Chen',
+      password: 'a'.repeat(64),
+      clientSalt: 'client-salt',
+      email: `${userType}@example.com`,
+      user_type: userType,
+    });
+
+    expect(res.json).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
   });
 
   it('rejects blank real name profile updates', async () => {
@@ -147,5 +192,31 @@ describe('auth/profile validation', () => {
         }),
       })
     );
+  });
+
+  it('rejects an invalid profile user type', async () => {
+    const { res } = await runValidationStack(validateUpdateProfile as Middleware[], {
+      user_type: 'guardian',
+    });
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          details: expect.arrayContaining([
+            expect.objectContaining({ field: 'user_type' }),
+          ]),
+        }),
+      })
+    );
+  });
+
+  it.each(['student', 'teacher'])('accepts %s as a profile user type', async (userType) => {
+    const { res, next } = await runValidationStack(validateUpdateProfile as Middleware[], {
+      user_type: userType,
+    });
+
+    expect(res.json).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
   });
 });

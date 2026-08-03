@@ -129,6 +129,24 @@ describe("toHierarchyUnits", () => {
     expect(units[1].experiments).toEqual([]);
     expect(countExperiments(units)).toBe(2);
   });
+
+  it("keeps only optical-device applications when requested", () => {
+    const units = toHierarchyUnits(
+      [
+        {
+          unit: createUnit("unit-1", 0),
+          courses: [
+            createUnitCourse("course-1", "foundation"),
+            createUnitCourse("device-1", "optical_device"),
+          ],
+        },
+      ],
+      "optical_device",
+    );
+
+    expect(units[0].experiments.map((experiment) => experiment.id)).toEqual(["device-1"]);
+    expect(countExperiments(units)).toBe(1);
+  });
 });
 
 describe("hierarchy lookups", () => {

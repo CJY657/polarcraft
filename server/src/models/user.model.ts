@@ -81,7 +81,9 @@ export class UserModel {
   static async findIdentitiesByIdsForAdmin(
     ids: string[]
   ): Promise<
-    Array<Pick<AdminUserListItem, 'id' | 'username' | 'nickname' | 'real_name'>>
+    Array<
+      Pick<AdminUserListItem, 'id' | 'username' | 'nickname' | 'real_name' | 'user_type'>
+    >
   > {
     const uniqueIds = [...new Set(ids)];
     if (uniqueIds.length === 0) {
@@ -89,7 +91,7 @@ export class UserModel {
     }
 
     const users = normalizeDocuments<
-      Pick<User, 'id' | 'username' | 'nickname' | 'real_name'>
+      Pick<User, 'id' | 'username' | 'nickname' | 'real_name' | 'user_type'>
     >(
       await usersCollection()
         .find({ id: { $in: uniqueIds } })
@@ -99,6 +101,7 @@ export class UserModel {
           username: 1,
           nickname: 1,
           real_name: 1,
+          user_type: 1,
         })
         .toArray()
     );
@@ -108,6 +111,7 @@ export class UserModel {
       username: user.username,
       nickname: user.nickname ?? null,
       real_name: user.real_name ?? null,
+      user_type: user.user_type ?? null,
     }));
   }
 
@@ -163,6 +167,10 @@ export class UserModel {
       filter.role = options.role;
     }
 
+    if (options.userType) {
+      filter.user_type = options.userType === 'unclassified' ? null : options.userType;
+    }
+
     if (options.status) {
       filter.is_active = options.status === 'active';
     }
@@ -192,6 +200,7 @@ export class UserModel {
           show_real_name_publicly: 1,
           email: 1,
           role: 1,
+          user_type: 1,
           avatar_url: 1,
           email_verified: 1,
           is_active: 1,
@@ -259,6 +268,7 @@ export class UserModel {
       client_salt: input.clientSalt,
       client_hash_algorithm: 'SHA-256',
       role: 'user',
+      user_type: input.user_type,
       avatar_url: null,
       is_active: true,
       email: input.email,
@@ -284,7 +294,12 @@ export class UserModel {
     updates: Partial<
       Pick<
         User,
-        'username' | 'real_name' | 'email' | 'avatar_url' | 'show_real_name_publicly'
+        | 'username'
+        | 'real_name'
+        | 'email'
+        | 'avatar_url'
+        | 'show_real_name_publicly'
+        | 'user_type'
       >
     >
   ): Promise<UserProfile | null> {
@@ -303,6 +318,7 @@ export class UserModel {
       email: updates.email,
       avatar_url: updates.avatar_url,
       show_real_name_publicly: updates.show_real_name_publicly,
+      user_type: updates.user_type,
     });
 
     if (Object.keys(updateDoc).length === 0) {
@@ -412,6 +428,7 @@ export class UserModel {
       real_name: user.real_name ?? null,
       show_real_name_publicly: user.show_real_name_publicly === true,
       role: user.role,
+      user_type: user.user_type ?? null,
       avatar_url: user.avatar_url,
       email: user.email,
       email_verified: user.email_verified,
@@ -433,6 +450,7 @@ export class UserModel {
       real_name: user.real_name ?? null,
       show_real_name_publicly: user.show_real_name_publicly === true,
       role: user.role,
+      user_type: user.user_type ?? null,
       avatar_url: user.avatar_url,
       email: user.email,
       email_verified: user.email_verified,

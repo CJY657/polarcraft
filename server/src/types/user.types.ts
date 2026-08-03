@@ -3,7 +3,7 @@
  * 用户 API 类型定义
  */
 
-import { UserRole } from './auth.types.js';
+import { UserRole, UserType } from './auth.types.js';
 
 // =====================================================
 // User Update Types / 用户更新类型
@@ -16,6 +16,7 @@ export interface UpdateProfileInput {
   show_real_name_publicly?: boolean;
   email?: string;
   avatar_url?: string;
+  user_type?: UserType;
 }
 
 /** User profile response / 用户信息响应 */
@@ -26,6 +27,7 @@ export interface UserProfileResponse {
   real_name: string | null;
   show_real_name_publicly: boolean;
   role: UserRole;
+  user_type: UserType | null;
   avatar_url: string | null;
   email: string | null;
   email_verified: boolean;
@@ -41,6 +43,9 @@ export interface UserProfileResponse {
 /** Admin list status filter / 管理员用户列表状态筛选 */
 export type AdminUserStatusFilter = 'active' | 'inactive';
 
+/** Admin list identity filter / 管理员用户列表身份筛选 */
+export type AdminUserTypeFilter = UserType | 'unclassified';
+
 /** Admin list sortable fields / 管理员用户列表可排序字段 */
 export type AdminUserSortField = 'created_at' | 'last_login_at';
 
@@ -55,6 +60,7 @@ export interface AdminUserListItem {
   real_name: string | null;
   show_real_name_publicly: boolean;
   role: UserRole;
+  user_type: UserType | null;
   avatar_url: string | null;
   email: string | null;
   email_verified: boolean;
@@ -67,6 +73,7 @@ export interface AdminUserListItem {
 export interface ListAdminUsersOptions {
   search?: string;
   role?: UserRole;
+  userType?: AdminUserTypeFilter;
   status?: AdminUserStatusFilter;
   limit?: number;
   offset?: number;
@@ -170,26 +177,30 @@ export interface AdminUserActivityDateRange {
   days: number;
 }
 
-/** Per-module learner interest / 各模块学生兴趣统计 */
+/** Administrator activity identity segment / 管理员活动看板身份分组 */
+export type AdminUserActivitySegment = UserType | 'all';
+
+/** Per-module user interest / 各模块用户兴趣统计 */
 export interface AdminUserActivityModuleBreakdown {
   module: string;
   label: string;
   pageviews: number;
-  unique_learners: number;
-  learners: Array<{
+  unique_users: number;
+  users: Array<{
     user_id: string;
     username: string;
     pageviews: number;
   }>;
 }
 
-/** Administrator learner activity dashboard / 管理员学生行为看板 */
+/** Administrator user activity dashboard / 管理员用户行为看板 */
 export interface AdminUserActivityDashboardResponse {
   status: 'ok' | 'disabled';
+  segment: AdminUserActivitySegment;
   range: AdminUserActivityDateRange;
   generated_at: string;
   summary: {
-    active_learners: number;
+    active_users: number;
     meaningful_events: number;
     pageviews: number;
     learning_actions: number;
@@ -197,32 +208,33 @@ export interface AdminUserActivityDashboardResponse {
   /** Same totals over the preceding equal-length window / 上一周期同长度窗口的同类汇总 */
   previous_summary: {
     range: AdminUserActivityDateRange;
-    active_learners: number;
+    active_users: number;
     meaningful_events: number;
     pageviews: number;
     learning_actions: number;
   } | null;
   daily: Array<{
     date: string;
-    active_learners: number;
+    active_users: number;
     pageviews: number;
     learning_actions: number;
   }>;
   top_pages: Array<{
     path: string;
     pageviews: number;
-    unique_learners: number;
+    unique_users: number;
   }>;
   activity_breakdown: Array<{
     event: string;
     count: number;
-    unique_learners: number;
+    unique_users: number;
   }>;
   module_breakdown: AdminUserActivityModuleBreakdown[];
-  top_learners: Array<{
+  top_users: Array<{
     user_id: string;
     username: string;
     display_name: string;
+    user_type: UserType;
     events: number;
     pageviews: number;
     learning_actions: number;
@@ -240,6 +252,7 @@ export interface AdminUserActivityDetailSummary {
 /** Single-learner activity detail / 管理员查看的单个学生活动详情 */
 export interface AdminUserActivityDetailResponse {
   status: 'ok' | 'disabled';
+  user_type: UserType | null;
   range: AdminUserActivityDateRange;
   previous_range: AdminUserActivityDateRange;
   generated_at: string;

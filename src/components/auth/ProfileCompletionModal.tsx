@@ -4,6 +4,7 @@ import { UserRound } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/lib/auth.service';
+import type { UserType } from '@/lib/auth.service';
 import { Dialog } from '@/components/ui/dialog';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,6 +13,7 @@ export function ProfileCompletionModal() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [realName, setRealName] = useState('');
+  const [userType, setUserType] = useState<UserType | ''>('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -19,7 +21,8 @@ export function ProfileCompletionModal() {
     user && user.role !== 'admin' && !user.real_name?.trim()
   );
   const needsEmail = Boolean(user && !user.email?.trim());
-  const shouldCompleteProfile = needsRealName || needsEmail;
+  const needsUserType = Boolean(user && !user.user_type);
+  const shouldCompleteProfile = needsRealName || needsEmail || needsUserType;
 
   if (!shouldCompleteProfile) {
     return null;
@@ -46,12 +49,20 @@ export function ProfileCompletionModal() {
       return;
     }
 
-    const updates: { real_name?: string; email?: string } = {};
+    if (needsUserType && !userType) {
+      setError('请选择账号身份');
+      return;
+    }
+
+    const updates: { real_name?: string; email?: string; user_type?: UserType } = {};
     if (needsRealName) {
       updates.real_name = trimmedRealName;
     }
     if (needsEmail) {
       updates.email = trimmedEmail;
+    }
+    if (needsUserType) {
+      updates.user_type = userType as UserType;
     }
 
     try {
@@ -59,6 +70,7 @@ export function ProfileCompletionModal() {
       await authApi.updateProfile(updates);
       await refreshUser();
       setRealName('');
+      setUserType('');
       setEmail('');
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存身份信息失败，请稍后重试');
@@ -70,15 +82,19 @@ export function ProfileCompletionModal() {
   const handleLogout = async () => {
     await logout();
     setRealName('');
+    setUserType('');
     setEmail('');
     navigate('/');
   };
 
-  const completionMessage = needsRealName && needsEmail
-    ? '继续使用 PolariScope 前，请补充真实姓名和邮箱。邮箱用于接收密码重置链接。'
-    : needsEmail
-      ? '继续使用 PolariScope 前，请绑定邮箱，用于接收密码重置链接。'
-      : '继续使用 PolariScope 前，请补充真实姓名。用户名将作为公开名称显示。';
+  const missingFields = [
+    needsRealName ? '真实姓名' : null,
+    needsEmail ? '邮箱' : null,
+    needsUserType ? '账号身份' : null,
+  ].filter((field): field is string => Boolean(field));
+  const completionMessage = `继续使用 PolariScope 前，请补充${missingFields.join('、')}。${
+    needsEmail ? '邮箱用于接收密码重置链接。' : ''
+  }`;
 
   return (
     <Dialog
@@ -124,6 +140,39 @@ export function ProfileCompletionModal() {
             </div>
           )}
 
+          {needsUserType && (
+            <fieldset>
+              <legend className="mb-2 block text-sm font-semibold text-clay-ink">账号身份 *</legend>
+              <div className="grid grid-cols-2 gap-3">
+                {(['student', 'teacher'] as const).map((value) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                      userType === value
+                        ? 'border-clay-ink bg-clay-surface text-clay-ink'
+                        : 'border-clay-surface-strong bg-white text-clay-body hover:border-clay-ink/50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="profile-completion-user-type"
+                      value={value}
+                      checked={userType === value}
+                      onChange={() => {
+                        setUserType(value);
+                        setError('');
+                      }}
+                      required
+                      autoFocus={!needsRealName && value === 'student'}
+                      className="h-4 w-4 border-clay-surface-strong text-clay-ink focus:ring-clay-ink/20"
+                    />
+                    <span>{value === 'student' ? '学生' : '教师'}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
           {needsEmail && (
             <div>
               <label htmlFor="profile-completion-email" className="mb-2 block text-sm font-semibold text-clay-ink">
@@ -138,7 +187,7 @@ export function ProfileCompletionModal() {
                   setError('');
                 }}
                 required
-                autoFocus={!needsRealName}
+                autoFocus={!needsRealName && !needsUserType}
                 className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
                 placeholder="请输入邮箱"
               />

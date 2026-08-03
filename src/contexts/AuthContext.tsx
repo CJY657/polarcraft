@@ -10,9 +10,9 @@
  */
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { authApi, UserProfile } from '@/lib/auth.service';
+import { authApi, type UserProfile, type UserType } from '@/lib/auth.service';
 import { useSystem } from '@/contexts/SystemContext';
-import { capturePostHogEvent } from '@/lib/posthog';
+import { capturePostHogEvent, syncPostHogUser } from '@/lib/posthog';
 
 // Token refresh configuration
 // Token 刷新配置
@@ -31,7 +31,8 @@ interface AuthContextType {
     username: string,
     realName: string,
     password: string,
-    email: string
+    email: string,
+    userType: UserType
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -140,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user_id: response.user.id,
       username: response.user.username,
       role: response.user.role,
+      user_type: response.user.user_type ?? null,
       has_email: Boolean(response.user.email),
       remember_me: rememberMe,
     });
@@ -150,18 +152,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     realName: string,
     password: string,
-    email: string
+    email: string,
+    userType: UserType
   ) => {
     const response = await authApi.register({
       username,
       real_name: realName,
       password,
       email,
+      user_type: userType,
     });
     capturePostHogEvent('auth_register_success', {
       user_id: response.user.id,
       username: response.user.username,
       role: response.user.role,
+      user_type: response.user.user_type ?? userType,
       has_email: Boolean(response.user.email),
       email_provided: Boolean(email),
     });
@@ -175,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     const userData = await authApi.getCurrentUser();
+    syncPostHogUser(userData);
     setUser(userData);
   };
 

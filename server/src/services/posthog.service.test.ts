@@ -247,6 +247,7 @@ describe('PostHogService', () => {
       PostHogService.getActivityDashboard('2026-06-10', '2026-07-09', 10)
     ).resolves.toEqual({
       status: 'disabled',
+      segment: 'student',
       range: { start: '2026-06-10', end: '2026-07-09', days: 30 },
       generated_at: expect.any(String),
       summary: null,
@@ -255,7 +256,7 @@ describe('PostHogService', () => {
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [],
+      top_users: [],
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -291,8 +292,8 @@ describe('PostHogService', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           results: [
-            ['user-1', 'alice', 9, 4, 5, '2026-07-09T12:00:00.000Z'],
-            ['user-2', null, 6, 3, 3, null],
+            ['user-1', 'alice', 'student', 9, 4, 5, '2026-07-09T12:00:00.000Z'],
+            ['user-2', null, 'student', 6, 3, 3, null],
           ],
         })
       )
@@ -310,55 +311,57 @@ describe('PostHogService', () => {
       PostHogService.getActivityDashboard('2026-07-07', '2026-07-09', 10)
     ).resolves.toEqual({
       status: 'ok',
+      segment: 'student',
       range: { start: '2026-07-07', end: '2026-07-09', days: 3 },
       generated_at: expect.any(String),
       summary: {
-        active_learners: 3,
+        active_users: 3,
         meaningful_events: 18,
         pageviews: 8,
         learning_actions: 10,
       },
       previous_summary: {
         range: { start: '2026-07-04', end: '2026-07-06', days: 3 },
-        active_learners: 2,
+        active_users: 2,
         meaningful_events: 11,
         pageviews: 6,
         learning_actions: 5,
       },
       daily: [
-        { date: '2026-07-07', active_learners: 0, pageviews: 0, learning_actions: 0 },
-        { date: '2026-07-08', active_learners: 2, pageviews: 5, learning_actions: 4 },
-        { date: '2026-07-09', active_learners: 3, pageviews: 3, learning_actions: 6 },
+        { date: '2026-07-07', active_users: 0, pageviews: 0, learning_actions: 0 },
+        { date: '2026-07-08', active_users: 2, pageviews: 5, learning_actions: 4 },
+        { date: '2026-07-09', active_users: 3, pageviews: 3, learning_actions: 6 },
       ],
       top_pages: [
-        { path: '/courses', pageviews: 5, unique_learners: 2 },
-        { path: '/projects/1', pageviews: 3, unique_learners: 2 },
+        { path: '/courses', pageviews: 5, unique_users: 2 },
+        { path: '/projects/1', pageviews: 3, unique_users: 2 },
       ],
       activity_breakdown: [
-        { event: 'experiment_opened', count: 6, unique_learners: 3 },
-        { event: 'project_application_submitted', count: 4, unique_learners: 2 },
+        { event: 'experiment_opened', count: 6, unique_users: 3 },
+        { event: 'project_application_submitted', count: 4, unique_users: 2 },
       ],
       module_breakdown: [
         {
           module: 'module1',
           label: '实验内容',
           pageviews: 5,
-          unique_learners: 1,
-          learners: [{ user_id: 'user-1', username: 'alice', pageviews: 5 }],
+          unique_users: 1,
+          users: [{ user_id: 'user-1', username: 'alice', pageviews: 5 }],
         },
         {
           module: 'other',
           label: '其他页面',
           pageviews: 3,
-          unique_learners: 1,
-          learners: [{ user_id: 'user-2', username: 'user-2', pageviews: 3 }],
+          unique_users: 1,
+          users: [{ user_id: 'user-2', username: 'user-2', pageviews: 3 }],
         },
       ],
-      top_learners: [
+      top_users: [
         {
           user_id: 'user-1',
           username: 'alice',
           display_name: 'alice',
+          user_type: 'student',
           events: 9,
           pageviews: 4,
           learning_actions: 5,
@@ -368,6 +371,7 @@ describe('PostHogService', () => {
           user_id: 'user-2',
           username: 'user-2',
           display_name: 'user-2',
+          user_type: 'student',
           events: 6,
           pageviews: 3,
           learning_actions: 3,
@@ -387,7 +391,8 @@ describe('PostHogService', () => {
       expect(body.query.query).toContain(
         "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
       );
-      expect(body.query.query).toContain("person.properties.role = 'user'");
+      expect(body.query.query).toContain("person.properties.user_type = 'student'");
+      expect(body.query.query).not.toContain('person.properties.role');
       expect(body.query.query).toContain('person_id IS NOT NULL');
       expect(body.query.query).toContain('properties.$is_identified = true');
       expect(body.query.query).toContain(
@@ -410,27 +415,32 @@ describe('PostHogService', () => {
     expect(queryBodies[4]?.query.query).toContain('GROUP BY person_id');
     expect(queryBodies[5]?.query.query).toContain('GROUP BY 1, person_id');
     expect(queryBodies[5]?.query.query).not.toContain('LIMIT');
-    expect(queryBodies[6]?.name).toBe('admin learner activity previous summary');
+    expect(queryBodies[6]?.name).toBe('admin user activity previous summary');
     expect(queryBodies[6]?.query.query).toContain("timestamp >= toDate('2026-07-04')");
     expect(queryBodies[6]?.query.query).toContain(
       "timestamp < toDate('2026-07-06') + INTERVAL 1 DAY"
     );
   });
 
-  it('omits the learner limit when all learners are requested', async () => {
+  it('omits the user limit and excludes unclassified users from the all segment', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ results: [[]] }));
 
-    await PostHogService.getActivityDashboard('2026-07-08', '2026-07-09', null);
+    await PostHogService.getActivityDashboard('2026-07-08', '2026-07-09', null, 'all');
 
     const queryBodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
     );
-    const learnersQuery = queryBodies.find(
-      (body) => body.name === 'admin learner activity top learners'
+    const usersQuery = queryBodies.find(
+      (body) => body.name === 'admin user activity top users'
     );
-    expect(learnersQuery).toBeDefined();
-    expect(learnersQuery?.query.query).toContain('GROUP BY person_id');
-    expect(learnersQuery?.query.query).not.toContain('LIMIT');
+    expect(usersQuery).toBeDefined();
+    expect(usersQuery?.query.query).toContain('GROUP BY person_id');
+    expect(usersQuery?.query.query).not.toContain('LIMIT');
+    for (const body of queryBodies) {
+      expect(body.query.query).toContain(
+        "person.properties.user_type IN ('student', 'teacher')"
+      );
+    }
   });
 
   it('sanitizes activity dashboard upstream failures', async () => {
@@ -530,7 +540,8 @@ describe('PostHogService', () => {
       (call) => JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
     );
     for (const body of queryBodies) {
-      expect(body.query.query).toContain("person.properties.role = 'user'");
+      expect(body.query.query).toContain("person.properties.user_type = 'student'");
+      expect(body.query.query).not.toContain('person.properties.role');
       expect(body.query.query).toContain('properties.$is_identified = true');
       expect(body.query.query).toContain(
         "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"

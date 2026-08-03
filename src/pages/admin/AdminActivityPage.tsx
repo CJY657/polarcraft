@@ -20,7 +20,9 @@ import {
   adminUserApi,
   type AdminActivityLimit,
   type AdminActivityResponse,
+  type AdminActivityUserType,
 } from '@/lib/admin-user.service';
+import type { UserType } from '@/lib/auth.service';
 import { formatActivityDelta, formatEventName, formatPagePath } from '@/lib/activity-labels';
 import { buildValueAxis, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import AdminLearnerActivityDrawer from '@/pages/admin/AdminLearnerActivityDrawer';
@@ -33,6 +35,18 @@ const RANGES: Array<{ days: number; label: string }> = [
 ];
 
 const LIMIT_OPTIONS: AdminActivityLimit[] = [10, 50, 100, 'all'];
+
+const USER_TYPE_OPTIONS: Array<{ value: AdminActivityUserType; label: string }> = [
+  { value: 'student', label: '学生' },
+  { value: 'teacher', label: '教师' },
+  { value: 'all', label: '全部' },
+];
+
+const USER_TYPE_COPY: Record<AdminActivityUserType, { noun: string }> = {
+  student: { noun: '学生' },
+  teacher: { noun: '教师' },
+  all: { noun: '用户' },
+};
 
 const CHART_COLORS = ['#ff4d8b', '#1a3a3a', '#b8a4ed', '#ffb084', '#e8b94a'];
 
@@ -61,6 +75,7 @@ export default function AdminActivityPage() {
   const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [range, setRange] = useState(() => presetRange(7));
+  const [userType, setUserType] = useState<AdminActivityUserType>('student');
   const [limit, setLimit] = useState<AdminActivityLimit>(10);
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<AdminActivityResponse | null>(null);
@@ -68,10 +83,11 @@ export default function AdminActivityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const isDark = theme === 'dark';
   const rangeInvalid = range.start > range.end;
-  // Bookmarkable: /admin/activity?user=<id> opens the learner drawer directly.
-  const selectedLearnerId = searchParams.get('user');
+  const copy = USER_TYPE_COPY[userType];
+  // Bookmarkable: /admin/activity?user=<id> opens the user drawer directly.
+  const selectedUserId = searchParams.get('user');
 
-  const openLearner = (userId: string) => {
+  const openUser = (userId: string) => {
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -82,7 +98,7 @@ export default function AdminActivityPage() {
     );
   };
 
-  const closeLearner = () => {
+  const closeUser = () => {
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -93,18 +109,33 @@ export default function AdminActivityPage() {
     );
   };
 
-  const selectedLearnerName = useMemo(() => {
-    if (!selectedLearnerId) return '';
-    const ranked = result?.top_learners.find(
-      (learner) => learner.user_id === selectedLearnerId
-    );
-    if (ranked) return ranked.display_name;
+  const selectedUser = useMemo<{
+    name: string;
+    userType: UserType | null | undefined;
+  }>(() => {
+    if (!selectedUserId) return { name: '', userType: undefined };
+    const ranked = result?.top_users.find((user) => user.user_id === selectedUserId);
+    if (ranked) return { name: ranked.display_name, userType: ranked.user_type };
     for (const entry of result?.module_breakdown ?? []) {
-      const learner = entry.learners.find((item) => item.user_id === selectedLearnerId);
-      if (learner) return learner.username;
+      const user = entry.users.find((item) => item.user_id === selectedUserId);
+      if (user) {
+        return {
+          name: user.username,
+          userType: userType === 'all' ? undefined : userType,
+        };
+      }
     }
-    return '学生';
-  }, [selectedLearnerId, result]);
+    return {
+      name: copy.noun,
+      userType: undefined,
+    };
+  }, [copy.noun, selectedUserId, result, userType]);
+
+  const selectUserType = (nextUserType: AdminActivityUserType) => {
+    if (nextUserType === userType) return;
+    if (selectedUserId) closeUser();
+    setUserType(nextUserType);
+  };
 
   useEffect(() => {
     if (rangeInvalid) {
@@ -115,7 +146,7 @@ export default function AdminActivityPage() {
     setError(null);
 
     void adminUserApi
-      .getActivity({ start: range.start, end: range.end, limit })
+      .getActivity({ start: range.start, end: range.end, userType, limit })
       .then((data) => {
         if (!cancelled) {
           setResult(data);
@@ -135,7 +166,7 @@ export default function AdminActivityPage() {
     return () => {
       cancelled = true;
     };
-  }, [range.start, range.end, limit, retryKey, rangeInvalid]);
+  }, [range.start, range.end, userType, limit, retryKey, rangeInvalid]);
 
   const isEmpty =
     result?.status === 'ok' &&
@@ -171,11 +202,41 @@ export default function AdminActivityPage() {
                 isDark ? 'text-slate-300' : 'text-[#3a3a3a]'
               )}
             >
-              查看已登录学生的页面访问和学习行为，快速了解近期学习参与情况。
+              查看已登录{copy.noun}的页面访问和学习行为，快速了解近期参与情况。
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
+            <div
+              className={cn(
+                'inline-flex w-full gap-1 rounded-2xl border p-1 lg:w-auto',
+                isDark ? 'border-slate-700 bg-slate-900' : 'border-[#e5e5e5] bg-white'
+              )}
+              role="group"
+              aria-label="活动账号类型"
+            >
+              {USER_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={userType === option.value}
+                  onClick={() => selectUserType(option.value)}
+                  className={cn(
+                    'h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.98] lg:flex-none',
+                    userType === option.value
+                      ? isDark
+                        ? 'bg-emerald-300 text-slate-950'
+                        : 'bg-[#0a0a0a] text-white'
+                      : isDark
+                        ? 'text-slate-300 hover:bg-slate-800'
+                        : 'text-[#6a6a6a] hover:bg-[#faf5e8]'
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
             <div
               className={cn(
                 'inline-flex w-full gap-1 rounded-2xl border p-1 lg:w-auto',
@@ -261,12 +322,12 @@ export default function AdminActivityPage() {
 
         <div className="mt-7">
           {isLoading ? (
-            <ActivitySkeleton isDark={isDark} />
+            <ActivitySkeleton isDark={isDark} noun={copy.noun} />
           ) : error ? (
             <StatePanel
               isDark={isDark}
               icon={<AlertTriangle className="h-6 w-6" />}
-              title="加载用户活动失败"
+              title={`加载${copy.noun}活动失败`}
               description={error}
               action={
                 <button
@@ -296,27 +357,29 @@ export default function AdminActivityPage() {
               isDark={isDark}
               icon={<BookOpenCheck className="h-6 w-6" />}
               title="暂无活动数据"
-              description={`${range.start} 至 ${range.end} 还没有已登录学生的学习活动。`}
+              description={`${range.start} 至 ${range.end} 还没有已登录${copy.noun}的活动。`}
             />
           ) : result?.summary ? (
             <Dashboard
               result={result}
               isDark={isDark}
+              userType={result.segment}
               limit={limit}
               onLimitChange={setLimit}
-              onLearnerSelect={openLearner}
+              onUserSelect={openUser}
             />
           ) : null}
         </div>
       </main>
 
-      {selectedLearnerId ? (
+      {selectedUserId ? (
         <AdminLearnerActivityDrawer
-          userId={selectedLearnerId}
-          learnerName={selectedLearnerName}
+          userId={selectedUserId}
+          userName={selectedUser.name}
+          userType={selectedUser.userType}
           range={range}
           isDark={isDark}
-          onClose={closeLearner}
+          onClose={closeUser}
         />
       ) : null}
     </div>
@@ -326,24 +389,27 @@ export default function AdminActivityPage() {
 function Dashboard({
   result,
   isDark,
+  userType,
   limit,
   onLimitChange,
-  onLearnerSelect,
+  onUserSelect,
 }: {
   result: AdminActivityResponse;
   isDark: boolean;
+  userType: AdminActivityUserType;
   limit: AdminActivityLimit;
   onLimitChange: (limit: AdminActivityLimit) => void;
-  onLearnerSelect: (userId: string) => void;
+  onUserSelect: (userId: string) => void;
 }) {
   const summary = result.summary!;
   const previous = result.previous_summary;
+  const copy = USER_TYPE_COPY[userType];
   const metrics = [
     {
-      label: '活跃学生',
-      value: summary.active_learners,
-      previous: previous?.active_learners,
-      description: '所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。',
+      label: `活跃${copy.noun}`,
+      value: summary.active_users,
+      previous: previous?.active_users,
+      description: `所选起止日期均计入；至少有 1 次有效活动的已识别${copy.noun}人数，按账号去重。`,
       icon: Users,
       color: '#ff4d8b',
     },
@@ -351,7 +417,7 @@ function Dashboard({
       label: '有效活动',
       value: summary.meaningful_events,
       previous: previous?.meaningful_events,
-      description: '所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。',
+      description: `所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，${copy.noun}的活动总次数。`,
       icon: Activity,
       color: '#1a3a3a',
     },
@@ -359,7 +425,7 @@ function Dashboard({
       label: '页面访问',
       value: summary.pageviews,
       previous: previous?.pageviews,
-      description: '所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。',
+      description: `所选起止日期均计入；已识别${copy.noun}纳入统计的页面访问次数。`,
       icon: Eye,
       color: '#b8a4ed',
     },
@@ -367,7 +433,7 @@ function Dashboard({
       label: '学习行为',
       value: summary.learning_actions,
       previous: previous?.learning_actions,
-      description: '所选起止日期均计入；已识别普通学生进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。',
+      description: `所选起止日期均计入；已识别${copy.noun}进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。`,
       icon: MousePointerClick,
       color: '#e8b94a',
     },
@@ -435,16 +501,16 @@ function Dashboard({
         <Panel
           isDark={isDark}
           title="每日活动趋势"
-          description="每个日期分别显示当天的学生去重人数、页面访问次数和学习行为次数。"
+          description={`每个日期分别显示当天的${copy.noun}去重人数、页面访问次数和学习行为次数。`}
         >
-          <DailyTrend daily={result.daily} isDark={isDark} />
+          <DailyTrend daily={result.daily} isDark={isDark} noun={copy.noun} />
         </Panel>
         <Panel
           isDark={isDark}
           title="热门页面"
-          description="按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。"
+          description={`按页面访问次数展示前 10 个路径，每个路径的${copy.noun}人数单独去重。`}
         >
-          <TopPages pages={result.top_pages} isDark={isDark} />
+          <TopPages pages={result.top_pages} isDark={isDark} noun={copy.noun} />
         </Panel>
       </div>
 
@@ -457,7 +523,8 @@ function Dashboard({
           <ModuleBreakdown
             modules={result.module_breakdown}
             isDark={isDark}
-            onLearnerSelect={onLearnerSelect}
+            noun={copy.noun}
+            onUserSelect={onUserSelect}
           />
         </Panel>
       </div>
@@ -472,8 +539,8 @@ function Dashboard({
         </Panel>
         <Panel
           isDark={isDark}
-          title="活跃学生排行"
-          description="按纳入统计的有效活动次数排序；显示人数只影响排行行数。点击任意学生查看完整活动分析。"
+          title={`活跃${copy.noun}排行`}
+          description={`按纳入统计的有效活动次数排序；显示人数只影响排行行数。点击任意${copy.noun}查看完整活动分析。`}
           action={
             <label
               className={cn(
@@ -507,10 +574,11 @@ function Dashboard({
             </label>
           }
         >
-          <TopLearners
-            learners={result.top_learners}
+          <TopUsers
+            users={result.top_users}
             isDark={isDark}
-            onLearnerSelect={onLearnerSelect}
+            noun={copy.noun}
+            onUserSelect={onUserSelect}
           />
         </Panel>
       </div>
@@ -560,7 +628,15 @@ function Panel({
   );
 }
 
-function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; isDark: boolean }) {
+function DailyTrend({
+  daily,
+  isDark,
+  noun,
+}: {
+  daily: AdminActivityResponse['daily'];
+  isDark: boolean;
+  noun: string;
+}) {
   if (daily.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无每日趋势</InlineEmpty>;
   }
@@ -578,16 +654,16 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
 
   const axis = buildValueAxis(
     Math.max(
-      ...daily.flatMap((day) => [day.active_learners, day.pageviews, day.learning_actions])
+      ...daily.flatMap((day) => [day.active_users, day.pageviews, day.learning_actions])
     )
   );
   const x = (index: number) =>
     daily.length === 1 ? marginLeft + plotWidth / 2 : marginLeft + (index * plotWidth) / (daily.length - 1);
   const y = (value: number) => baseline - (value / axis.max) * plotHeight;
-  const points = (key: 'active_learners' | 'pageviews' | 'learning_actions') =>
+  const points = (key: 'active_users' | 'pageviews' | 'learning_actions') =>
     daily.map((day, index) => `${x(index)},${y(day[key])}`).join(' ');
   const series = [
-    { key: 'active_learners', label: '活跃学生', color: '#ff4d8b', dash: undefined },
+    { key: 'active_users', label: `活跃${noun}`, color: '#ff4d8b', dash: undefined },
     { key: 'pageviews', label: '页面访问', color: '#b8a4ed', dash: '12 6' },
     { key: 'learning_actions', label: '学习行为', color: '#e8b94a', dash: '3 6' },
   ] as const;
@@ -681,14 +757,14 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
           ))}
       </svg>
       <p className={cn('mt-2 text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-        纵轴：当日数量（活跃学生按人计，页面访问与学习行为按次计）· 横轴：日期
+        纵轴：当日数量（活跃{noun}按人计，页面访问与学习行为按次计）· 横轴：日期
       </p>
       <table id={dataTableId} className="sr-only">
         <caption>每日活动趋势数据</caption>
         <thead>
           <tr>
             <th>日期</th>
-            <th>活跃学生</th>
+            <th>活跃{noun}</th>
             <th>页面访问</th>
             <th>学习行为</th>
           </tr>
@@ -697,7 +773,7 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
           {daily.map((day) => (
             <tr key={day.date}>
               <td>{day.date}</td>
-              <td>{day.active_learners}</td>
+              <td>{day.active_users}</td>
               <td>{day.pageviews}</td>
               <td>{day.learning_actions}</td>
             </tr>
@@ -708,7 +784,15 @@ function DailyTrend({ daily, isDark }: { daily: AdminActivityResponse['daily']; 
   );
 }
 
-function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']; isDark: boolean }) {
+function TopPages({
+  pages,
+  isDark,
+  noun,
+}: {
+  pages: AdminActivityResponse['top_pages'];
+  isDark: boolean;
+  noun: string;
+}) {
   if (pages.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无热门页面</InlineEmpty>;
   }
@@ -730,7 +814,7 @@ function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']
             <div className="h-full rounded-full bg-[#ffb084]" style={{ width: `${(page.pageviews / max) * 100}%` }} />
           </div>
           <p className={cn('mt-1 break-all text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-            {page.unique_learners} 名学生访问 · {page.path || '/'}
+            {page.unique_users} 名{noun}访问 · {page.path || '/'}
           </p>
         </div>
       ))}
@@ -741,11 +825,13 @@ function TopPages({ pages, isDark }: { pages: AdminActivityResponse['top_pages']
 function ModuleBreakdown({
   modules,
   isDark,
-  onLearnerSelect,
+  noun,
+  onUserSelect,
 }: {
   modules: AdminActivityResponse['module_breakdown'];
   isDark: boolean;
-  onLearnerSelect: (userId: string) => void;
+  noun: string;
+  onUserSelect: (userId: string) => void;
 }) {
   if (modules.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无模块访问数据</InlineEmpty>;
@@ -779,7 +865,7 @@ function ModuleBreakdown({
                   {entry.label}
                 </span>
                 <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-                  {entry.pageviews} 次 / {entry.unique_learners} 人
+                  {entry.pageviews} 次 / {entry.unique_users} 人
                 </span>
               </div>
               <div className={cn('mt-2 h-2 overflow-hidden rounded-full', isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]')}>
@@ -801,17 +887,17 @@ function ModuleBreakdown({
             />
           </summary>
           <div className="px-4 pb-4">
-            {entry.learners.length === 0 ? (
+            {entry.users.length === 0 ? (
               <p className={cn('py-2 text-sm', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-                暂无学生访问该模块
+                暂无{noun}访问该模块
               </p>
             ) : (
               <ul className="space-y-2">
-                {entry.learners.map((learner) => (
-                  <li key={learner.user_id}>
+                {entry.users.map((user) => (
+                  <li key={user.user_id}>
                     <button
                       type="button"
-                      onClick={() => onLearnerSelect(learner.user_id)}
+                      onClick={() => onUserSelect(user.user_id)}
                       className={cn(
                         'flex w-full items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-left text-sm transition-colors',
                         isDark
@@ -819,9 +905,9 @@ function ModuleBreakdown({
                           : 'text-[#3a3a3a] hover:bg-[#faf5e8]'
                       )}
                     >
-                      <span className="min-w-0 truncate">{learner.username}</span>
+                      <span className="min-w-0 truncate">{user.username}</span>
                       <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-                        {learner.pageviews} 次
+                        {user.pageviews} 次
                       </span>
                     </button>
                   </li>
@@ -869,7 +955,7 @@ function ActivityMix({
               <span className="truncate">{formatEventName(item.event)}</span>
             </span>
             <span className={cn('shrink-0 tabular-nums', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-              {item.count} 次 / {item.unique_learners} 人
+              {item.count} 次 / {item.unique_users} 人
             </span>
           </div>
         ))}
@@ -878,17 +964,19 @@ function ActivityMix({
   );
 }
 
-function TopLearners({
-  learners,
+function TopUsers({
+  users,
   isDark,
-  onLearnerSelect,
+  noun,
+  onUserSelect,
 }: {
-  learners: AdminActivityResponse['top_learners'];
+  users: AdminActivityResponse['top_users'];
   isDark: boolean;
-  onLearnerSelect: (userId: string) => void;
+  noun: string;
+  onUserSelect: (userId: string) => void;
 }) {
-  if (learners.length === 0) {
-    return <InlineEmpty isDark={isDark}>暂无活跃学生</InlineEmpty>;
+  if (users.length === 0) {
+    return <InlineEmpty isDark={isDark}>暂无活跃{noun}</InlineEmpty>;
   }
 
   return (
@@ -896,7 +984,7 @@ function TopLearners({
       <table className="w-full min-w-[420px] text-left text-sm">
         <thead className={isDark ? 'text-slate-400' : 'text-[#6a6a6a]'}>
           <tr>
-            <th className="pb-3 pr-4 font-medium">学生</th>
+            <th className="pb-3 pr-4 font-medium">{noun}</th>
             <th className="hidden pb-3 pr-4 text-right font-medium sm:table-cell">有效活动</th>
             <th className="hidden pb-3 pr-4 text-right font-medium md:table-cell">页面访问</th>
             <th className="pb-3 pr-4 text-right font-medium">学习行为</th>
@@ -904,17 +992,17 @@ function TopLearners({
           </tr>
         </thead>
         <tbody className={isDark ? 'text-slate-200' : 'text-[#1a1a1a]'}>
-          {learners.map((learner) => (
+          {users.map((user) => (
             <tr
-              key={learner.user_id}
+              key={user.user_id}
               tabIndex={0}
               role="button"
-              aria-label={`查看 ${learner.display_name} 的活动详情`}
-              onClick={() => onLearnerSelect(learner.user_id)}
+              aria-label={`查看 ${user.display_name} 的活动详情`}
+              onClick={() => onUserSelect(user.user_id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  onLearnerSelect(learner.user_id);
+                  onUserSelect(user.user_id);
                 }
               }}
               className={cn(
@@ -925,25 +1013,54 @@ function TopLearners({
               )}
             >
               <td className="py-3 pr-4 font-medium">
-                <span className="inline-flex items-center gap-1.5">
-                  {learner.display_name}
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  {user.display_name}
+                  <UserTypeBadge userType={user.user_type} isDark={isDark} />
                   <ChevronRight
                     aria-hidden="true"
                     className={cn('h-4 w-4', isDark ? 'text-slate-500' : 'text-[#a9a9a9]')}
                   />
                 </span>
               </td>
-              <td className="hidden py-3 pr-4 text-right tabular-nums sm:table-cell">{learner.events}</td>
-              <td className="hidden py-3 pr-4 text-right tabular-nums md:table-cell">{learner.pageviews}</td>
-              <td className="py-3 pr-4 text-right tabular-nums">{learner.learning_actions}</td>
+              <td className="hidden py-3 pr-4 text-right tabular-nums sm:table-cell">{user.events}</td>
+              <td className="hidden py-3 pr-4 text-right tabular-nums md:table-cell">{user.pageviews}</td>
+              <td className="py-3 pr-4 text-right tabular-nums">{user.learning_actions}</td>
               <td className={cn('py-3 text-right text-xs', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}>
-                {learner.last_activity ? formatShortDateTime(learner.last_activity) : '暂无记录'}
+                {user.last_activity ? formatShortDateTime(user.last_activity) : '暂无记录'}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function UserTypeBadge({
+  userType,
+  isDark,
+}: {
+  userType: UserType | null;
+  isDark: boolean;
+}) {
+  const label = userType === 'student' ? '学生' : userType === 'teacher' ? '教师' : '未分类';
+  const classes =
+    userType === 'student'
+      ? isDark
+        ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : userType === 'teacher'
+        ? isDark
+          ? 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200'
+          : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+        : isDark
+          ? 'border-slate-700 bg-slate-800 text-slate-300'
+          : 'border-slate-200 bg-slate-100 text-slate-600';
+
+  return (
+    <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-xs font-medium', classes)}>
+      {label}
+    </span>
   );
 }
 
@@ -989,12 +1106,12 @@ function StatePanel({
   );
 }
 
-function ActivitySkeleton({ isDark }: { isDark: boolean }) {
+function ActivitySkeleton({ isDark, noun }: { isDark: boolean; noun: string }) {
   const block = isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]';
   const panel = isDark ? 'border-slate-800 bg-slate-900' : 'border-[#e5e5e5] bg-white';
 
   return (
-    <div role="status" aria-label="正在加载用户活动" className="animate-pulse">
+    <div role="status" aria-label={`正在加载${noun}活动`} className="animate-pulse">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((item) => (
           <div key={item} className={cn('h-32 rounded-2xl border p-5', panel)}>
@@ -1007,7 +1124,7 @@ function ActivitySkeleton({ isDark }: { isDark: boolean }) {
         <div className={cn('h-80 rounded-3xl border', panel)} />
         <div className={cn('h-80 rounded-3xl border', panel)} />
       </div>
-      <span className="sr-only">正在加载用户活动</span>
+      <span className="sr-only">正在加载{noun}活动</span>
     </div>
   );
 }

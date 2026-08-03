@@ -58,6 +58,7 @@ function createUser(overrides: Partial<UserProfile> = {}): UserProfile {
     real_name: null,
     show_real_name_publicly: false,
     role: "user",
+    user_type: null,
     avatar_url: null,
     email: null,
     email_verified: false,

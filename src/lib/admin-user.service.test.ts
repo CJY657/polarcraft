@@ -45,6 +45,7 @@ describe('adminUserApi', () => {
 
     await adminUserApi.list({
       search: 'alice',
+      userType: 'teacher',
       role: 'admin',
       status: 'inactive',
       limit: 20,
@@ -54,10 +55,11 @@ describe('adminUserApi', () => {
     });
 
     expect(get).toHaveBeenCalledWith(
-      '/api/users?search=alice&role=admin&status=inactive&limit=20&offset=40&sort_by=last_login_at&sort_order=asc'
+      '/api/users?search=alice&user_type=teacher&role=admin&status=inactive&limit=20&offset=40&sort_by=last_login_at&sort_order=asc'
     );
 
     await adminUserApi.list({
+      userType: 'all',
       role: 'all',
       status: 'all',
     });
@@ -113,13 +115,14 @@ describe('adminUserApi', () => {
     expect(get).toHaveBeenCalledWith('/api/users/user-1/posthog-analytics');
   });
 
-  it('requests the selected admin activity range and learner limit', async () => {
+  it('requests the selected admin activity range, user segment, and ranking limit', async () => {
     const activity = {
       status: 'ok',
+      segment: 'teacher',
       range: { start: '2026-06-11', end: '2026-07-10', days: 30 },
       generated_at: '2026-07-10T08:00:00.000Z',
       summary: {
-        active_learners: 18,
+        active_users: 18,
         meaningful_events: 146,
         pageviews: 62,
         learning_actions: 84,
@@ -128,16 +131,21 @@ describe('adminUserApi', () => {
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [],
+      top_users: [],
     };
     get.mockResolvedValue({ success: true, data: activity });
 
     await expect(
-      adminUserApi.getActivity({ start: '2026-06-11', end: '2026-07-10', limit: 'all' })
+      adminUserApi.getActivity({
+        start: '2026-06-11',
+        end: '2026-07-10',
+        userType: 'teacher',
+        limit: 'all',
+      })
     ).resolves.toEqual(activity);
 
     expect(get).toHaveBeenCalledWith(
-      '/api/users/activity?start=2026-06-11&end=2026-07-10&limit=all'
+      '/api/users/activity?start=2026-06-11&end=2026-07-10&user_type=teacher&limit=all'
     );
   });
 });

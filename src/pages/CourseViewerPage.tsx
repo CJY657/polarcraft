@@ -1,9 +1,8 @@
 /**
- * CourseViewerPage - 实验工作台 / 课件独立查看页面
+ * CourseViewerPage - 实验与前沿应用层级工作台
  *
- * /experiments 与 /experiments/:experimentId 共用同一个工作台：
- * 左侧是 单元 → 实验 → 课件材料 → 文件 的层级目录，右侧是课件与实验数据两个展示区。
- * /applications/:applicationId 仍然使用不带层级导航的原有查看器。
+ * /experiments 与 /applications 按 knowledgeTag 分流，但共用同一套：
+ * 单元 → 内容条目 → 课件材料 / 实验数据 → 文件。
  */
 
 import { Suspense, lazy, useCallback, useEffect, useMemo, type ReactNode } from "react";
@@ -24,6 +23,7 @@ import {
   type ExperimentFile,
 } from "@/feature/course/experimentHierarchy";
 import { useExperimentHierarchy } from "@/feature/course/useExperimentHierarchy";
+import { normalizeKnowledgeTag, type KnowledgeTag } from "@/lib/course.service";
 import { loadCourseViewerModule } from "@/lib/routePreload";
 import { capturePostHogEventOnce } from "@/lib/posthog";
 
@@ -104,109 +104,136 @@ export default function CourseViewerPage() {
   const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const resolvedExperimentId = applicationId || experimentId || courseId;
+  const resolvedContentId = applicationId || experimentId || courseId;
 
   const { course, mainSlide, media, hyperlinks, isLoading, error, fetchCourse, reset } =
     useCourseDetailStore();
 
   useEffect(() => {
-    if (resolvedExperimentId) {
-      fetchCourse(resolvedExperimentId);
+    if (resolvedContentId) {
+      fetchCourse(resolvedContentId);
     }
 
     return () => reset();
-  }, [fetchCourse, reset, resolvedExperimentId]);
+  }, [fetchCourse, reset, resolvedContentId]);
 
   const isZh = i18n.language.startsWith("zh");
   const isApplicationRoute = location.pathname.startsWith("/applications");
-  const isExperimentWorkspace = !isApplicationRoute;
   const viewerRootPath = isApplicationRoute ? "/applications" : "/experiments";
-  const isPendingInitialLoad = Boolean(resolvedExperimentId) && !course && !error;
+  const workspaceKnowledgeTag: KnowledgeTag = isApplicationRoute
+    ? "optical_device"
+    : "foundation";
+  const isPendingInitialLoad = Boolean(resolvedContentId) && !course && !error;
   const getLabel = useCallback(
     (label?: { "zh-CN"?: string; "en-US"?: string }) =>
       label?.[isZh ? "zh-CN" : "en-US"] || label?.["zh-CN"] || label?.["en-US"] || "",
     [isZh],
   );
 
-  const hierarchy = useExperimentHierarchy({ enabled: isExperimentWorkspace, isZh });
+  const hierarchy = useExperimentHierarchy({
+    enabled: true,
+    isZh,
+    knowledgeTag: workspaceKnowledgeTag,
+  });
+  const hierarchyMatchesWorkspace = hierarchy.loadedKnowledgeTag === workspaceKnowledgeTag;
+  const hierarchyUnits = hierarchyMatchesWorkspace ? hierarchy.units : [];
+  const hierarchyIsLoading = hierarchy.isLoading || !hierarchyMatchesWorkspace;
+  const hierarchyError = hierarchyMatchesWorkspace ? hierarchy.error : null;
 
-  // /experiments 没有实验 ID 时落位到第一个可用实验
+  // 模块根路径没有内容 ID 时，落位到该分类下第一个可用条目
   useEffect(() => {
-    if (
-      !isExperimentWorkspace ||
-      resolvedExperimentId ||
-      hierarchy.isLoading ||
-      hierarchy.error
-    ) {
+    if (resolvedContentId || hierarchyIsLoading || hierarchyError) {
       return;
     }
 
-    const firstExperimentId = findFirstExperimentId(hierarchy.units);
+    const firstExperimentId = findFirstExperimentId(hierarchyUnits);
     if (firstExperimentId) {
-      navigate(`/experiments/${firstExperimentId}`, { replace: true });
+      navigate(`${viewerRootPath}/${firstExperimentId}`, { replace: true });
     }
   }, [
-    hierarchy.error,
-    hierarchy.isLoading,
-    hierarchy.units,
-    isExperimentWorkspace,
+    hierarchyError,
+    hierarchyIsLoading,
+    hierarchyUnits,
     navigate,
-    resolvedExperimentId,
+    resolvedContentId,
+    viewerRootPath,
   ]);
 
   const handleSelectExperiment = useCallback(
     (nextExperimentId: string) => {
-      if (nextExperimentId === resolvedExperimentId) {
+      if (nextExperimentId === resolvedContentId) {
         return;
       }
 
-      navigate(`/experiments/${nextExperimentId}`);
+      navigate(`${viewerRootPath}/${nextExperimentId}`);
     },
-    [navigate, resolvedExperimentId],
+    [navigate, resolvedContentId, viewerRootPath],
   );
 
   const navigation = useMemo<ExperimentCurriculumNavigation>(
     () => ({
-      units: hierarchy.units,
-      activeExperimentId: resolvedExperimentId ?? null,
-      isLoading: hierarchy.isLoading,
-      error: hierarchy.error,
+      units: hierarchyUnits,
+      activeExperimentId: resolvedContentId ?? null,
+      isLoading: hierarchyIsLoading,
+      error: hierarchyError,
       onRetry: hierarchy.retry,
       onSelectExperiment: handleSelectExperiment,
+      contentKind: isApplicationRoute ? "application" : "experiment",
     }),
     [
       handleSelectExperiment,
-      hierarchy.error,
-      hierarchy.isLoading,
       hierarchy.retry,
-      hierarchy.units,
-      resolvedExperimentId,
+      hierarchyError,
+      hierarchyIsLoading,
+      hierarchyUnits,
+      isApplicationRoute,
+      resolvedContentId,
     ],
   );
 
-  const fallbackTitle = isZh ? "实验内容" : "Experiments";
-  const courseTitle =
-    getLabel(course?.title) ||
-    (isExperimentWorkspace && !resolvedExperimentId
-      ? fallbackTitle
-      : isZh
-        ? "实验详情"
-        : "Experiment");
-  const backLabel = isApplicationRoute
+  const fallbackTitle = isApplicationRoute
     ? isZh
-      ? "返回前沿应用"
-      : "Back to applications"
+      ? "前沿应用"
+      : "Frontier Applications"
     : isZh
-      ? "返回实验总览"
-      : "Back to experiments";
+      ? "实验内容"
+      : "Experiments";
+  const detailFallbackTitle = isApplicationRoute
+    ? isZh
+      ? "应用详情"
+      : "Application"
+    : isZh
+      ? "实验详情"
+      : "Experiment";
+  const courseKnowledgeTag = course ? normalizeKnowledgeTag(course.knowledgeTag) : null;
+  const isCourseInCurrentWorkspace = courseKnowledgeTag === workspaceKnowledgeTag;
+  const courseTitle =
+    (isCourseInCurrentWorkspace ? getLabel(course?.title) : "") ||
+    (!resolvedContentId ? fallbackTitle : detailFallbackTitle);
 
   useEffect(() => {
-    if (!course || isApplicationRoute || course.knowledgeTag !== "optical_device") {
+    if (!course || isCourseInCurrentWorkspace) {
       return;
     }
 
-    navigate(`/applications/${course.id}`, { replace: true });
-  }, [course, isApplicationRoute, navigate]);
+    if (courseKnowledgeTag === "foundation") {
+      navigate(`/experiments/${course.id}`, { replace: true });
+      return;
+    }
+
+    if (courseKnowledgeTag === "optical_device") {
+      navigate(`/applications/${course.id}`, { replace: true });
+      return;
+    }
+
+    navigate(viewerRootPath, { replace: true });
+  }, [
+    course,
+    courseKnowledgeTag,
+    isCourseInCurrentWorkspace,
+    navigate,
+    viewerRootPath,
+  ]);
 
   useEffect(() => {
     if (!course) {
@@ -287,7 +314,11 @@ export default function CourseViewerPage() {
   );
 
   const isViewerPending = isLoading || isPendingInitialLoad;
-  const hasViewerContent = Boolean(course && courseData) && !error && !isViewerPending;
+  const hasViewerContent =
+    Boolean(course && courseData) &&
+    isCourseInCurrentWorkspace &&
+    !error &&
+    !isViewerPending;
 
   const renderViewerActions = () => (
     <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
@@ -344,7 +375,7 @@ export default function CourseViewerPage() {
         <div className="text-center">
           <p className={`mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{error}</p>
           <button
-            onClick={() => resolvedExperimentId && fetchCourse(resolvedExperimentId)}
+            onClick={() => resolvedContentId && fetchCourse(resolvedContentId)}
             className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
           >
             {isZh ? "重新加载" : "Retry"}
@@ -353,18 +384,30 @@ export default function CourseViewerPage() {
       );
     }
 
-    if (hierarchy.error) {
+    if (hierarchyError) {
       return (
         <p className={`text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-          {isZh ? "请在左侧目录重试加载实验内容。" : "Retry loading the curriculum on the left."}
+          {isApplicationRoute
+            ? isZh
+              ? "请在左侧目录重试加载前沿应用。"
+              : "Retry loading the applications on the left."
+            : isZh
+              ? "请在左侧目录重试加载实验内容。"
+              : "Retry loading the curriculum on the left."}
         </p>
       );
     }
 
-    if (!hierarchy.isLoading && findFirstExperimentId(hierarchy.units) === null) {
+    if (!hierarchyIsLoading && findFirstExperimentId(hierarchyUnits) === null) {
       return (
         <p className={`text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-          {isZh ? "暂时还没有可进入的实验内容。" : "No experiment content is available yet."}
+          {isApplicationRoute
+            ? isZh
+              ? "暂时还没有可进入的前沿应用。"
+              : "No frontier applications are available yet."
+            : isZh
+              ? "暂时还没有可进入的实验内容。"
+              : "No experiment content is available yet."}
         </p>
       );
     }
@@ -375,61 +418,14 @@ export default function CourseViewerPage() {
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
       <PersistentHeader
-        moduleKey="course"
+        moduleKey={isApplicationRoute ? "applications" : "course"}
         moduleName={courseTitle}
         variant="solid"
         compact
         className="sticky top-0 z-40"
       />
 
-      {isExperimentWorkspace ? (
-        hasViewerContent && courseData ? (
-          <div>
-            <Suspense fallback={<ViewerLoader theme={theme} />}>
-              <CourseViewer
-                course={courseData}
-                theme={theme}
-                canDownloadResources={user?.role === "admin"}
-                backPath={viewerRootPath}
-                backLabel={isZh ? "返回" : "Back"}
-                navigation={navigation}
-              />
-            </Suspense>
-
-            {renderViewerActions()}
-          </div>
-        ) : (
-          <ExperimentWorkspaceShell
-            navigation={navigation}
-            theme={theme}
-            isZh={isZh}
-          >
-            {renderWorkspaceFallbackMessage()}
-          </ExperimentWorkspaceShell>
-        )
-      ) : isViewerPending ? (
-        <div
-          className={`min-h-[calc(100vh-64px)] flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}
-        >
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-        </div>
-      ) : error || !course || !courseData ? (
-        <div
-          className={`min-h-[calc(100vh-64px)] flex items-center justify-center ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}
-        >
-          <div className="text-center">
-            <p className={`${theme === "dark" ? "text-gray-400" : "text-gray-600"} mb-4`}>
-              {error || (isZh ? "实验不存在" : "Experiment not found")}
-            </p>
-            <button
-              onClick={() => navigate(viewerRootPath)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              {backLabel}
-            </button>
-          </div>
-        </div>
-      ) : (
+      {hasViewerContent && courseData ? (
         <div>
           <Suspense fallback={<ViewerLoader theme={theme} />}>
             <CourseViewer
@@ -438,11 +434,16 @@ export default function CourseViewerPage() {
               canDownloadResources={user?.role === "admin"}
               backPath={viewerRootPath}
               backLabel={isZh ? "返回" : "Back"}
+              navigation={navigation}
             />
           </Suspense>
 
           {renderViewerActions()}
         </div>
+      ) : (
+        <ExperimentWorkspaceShell navigation={navigation} theme={theme} isZh={isZh}>
+          {renderWorkspaceFallbackMessage()}
+        </ExperimentWorkspaceShell>
       )}
     </div>
   );

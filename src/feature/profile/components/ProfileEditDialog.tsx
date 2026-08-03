@@ -9,7 +9,7 @@ import { X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
-import { authApi, UserProfile } from '@/lib/auth.service';
+import { authApi, type UserProfile, type UserType } from '@/lib/auth.service';
 
 interface ProfileEditDialogProps {
   isOpen: boolean;
@@ -27,11 +27,18 @@ export function ProfileEditDialog({
   const { t } = useTranslation();
   const { theme } = useTheme();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    username: string;
+    realName: string;
+    showRealNamePublicly: boolean;
+    email: string;
+    userType: UserType | '';
+  }>({
     username: '',
     realName: '',
     showRealNamePublicly: false,
     email: '',
+    userType: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -44,6 +51,7 @@ export function ProfileEditDialog({
         realName: user.real_name || '',
         showRealNamePublicly: user.show_real_name_publicly === true,
         email: user.email || '',
+        userType: user.user_type || '',
       });
       setError('');
     }
@@ -71,6 +79,10 @@ export function ProfileEditDialog({
       setError(t('profile.editProfile.realNameRequired', '请输入真实姓名'));
       return;
     }
+    if (!formData.userType) {
+      setError('请选择账号身份');
+      return;
+    }
 
     // Email validation (if provided)
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -85,6 +97,7 @@ export function ProfileEditDialog({
         real_name: formData.realName.trim(),
         show_real_name_publicly: formData.showRealNamePublicly,
         email: formData.email.trim() || undefined,
+        user_type: formData.userType,
       });
       onSuccess();
       onClose();
@@ -174,6 +187,40 @@ export function ProfileEditDialog({
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
               )}
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="profile-user-type"
+              className={cn(
+                'block text-sm font-medium mb-1.5',
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+              )}
+            >
+              账号身份 *
+            </label>
+            <select
+              id="profile-user-type"
+              value={formData.userType}
+              required
+              onChange={(e) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  userType: e.target.value as UserType,
+                }));
+                setError('');
+              }}
+              className={cn(
+                'w-full px-3 py-2 rounded-lg border transition-colors',
+                theme === 'dark'
+                  ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500'
+                  : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+              )}
+            >
+              <option value="" disabled>请选择账号身份</option>
+              <option value="student">学生</option>
+              <option value="teacher">教师</option>
+            </select>
           </div>
 
           <label

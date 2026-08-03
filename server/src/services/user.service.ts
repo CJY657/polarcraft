@@ -18,6 +18,7 @@ import {
 import {
   AdminUserActivityDashboardResponse,
   AdminUserActivityDetailResponse,
+  AdminUserActivitySegment,
   AdminUserDetailResponse,
   AdminUserListResponse,
   AdminUserPostHogAnalyticsResponse,
@@ -58,6 +59,7 @@ export class UserService {
     return UserModel.listForAdmin({
       search: options.search,
       role: options.role,
+      userType: options.userType,
       status: options.status,
       limit,
       offset,
@@ -134,34 +136,41 @@ export class UserService {
     return PostHogService.getUserAnalytics(user.id);
   }
 
-  /** Get aggregate learner activity for the administrator dashboard. */
+  /** Get aggregate user activity for the administrator dashboard. */
   static async getActivityDashboardForAdmin(
     start: string,
     end: string,
-    learnerLimit: number | null
+    userLimit: number | null,
+    segment: AdminUserActivitySegment
   ): Promise<AdminUserActivityDashboardResponse> {
-    const dashboard = await PostHogService.getActivityDashboard(start, end, learnerLimit);
-    if (dashboard.top_learners.length === 0) {
+    const dashboard = await PostHogService.getActivityDashboard(
+      start,
+      end,
+      userLimit,
+      segment
+    );
+    if (dashboard.top_users.length === 0) {
       return dashboard;
     }
 
     const identities = await UserModel.findIdentitiesByIdsForAdmin(
-      dashboard.top_learners.map((learner) => learner.user_id)
+      dashboard.top_users.map((user) => user.user_id)
     );
     const identityById = new Map(identities.map((identity) => [identity.id, identity]));
 
     return {
       ...dashboard,
-      top_learners: dashboard.top_learners.map((learner) => {
-        const identity = identityById.get(learner.user_id);
+      top_users: dashboard.top_users.map((user) => {
+        const identity = identityById.get(user.user_id);
         const displayName =
           identity?.real_name?.trim() ||
           identity?.nickname?.trim() ||
-          learner.username;
+          user.username;
 
         return {
-          ...learner,
+          ...user,
           display_name: displayName,
+          user_type: identity?.user_type ?? user.user_type,
         };
       }),
     };
@@ -178,7 +187,8 @@ export class UserService {
       throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
     }
 
-    return PostHogService.getLearnerActivityDetail(user.id, start, end);
+    const activity = await PostHogService.getLearnerActivityDetail(user.id, start, end);
+    return { ...activity, user_type: user.user_type };
   }
 
   /**

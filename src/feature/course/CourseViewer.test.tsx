@@ -766,6 +766,27 @@ describe("CourseViewer hierarchical workspace", () => {
     });
   });
 
+  it("labels the mobile curriculum as applications for the cutting-edge workspace", async () => {
+    render(
+      <MemoryRouter>
+        <CourseViewer
+          course={twoDeckFixture}
+          theme="light"
+          navigation={createNavigation({ contentKind: "application" })}
+        />
+      </MemoryRouter>
+    );
+
+    const trigger = await screen.findByTestId("curriculum-drawer-trigger");
+    expect(trigger.textContent).toContain("应用目录");
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "应用目录" })).toBeTruthy();
+    expect(screen.getByTestId("curriculum-drawer-close").getAttribute("aria-label")).toBe(
+      "关闭应用目录",
+    );
+  });
+
   it("closes the drawer after selecting a file from it", async () => {
     render(
       <MemoryRouter>

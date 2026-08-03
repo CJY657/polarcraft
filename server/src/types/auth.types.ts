@@ -10,6 +10,10 @@
 /** User role enum / 用户角色枚举 */
 export type UserRole = 'user' | 'admin';
 
+/** User identity type / 用户身份类型 */
+export const USER_TYPES = ['student', 'teacher'] as const;
+export type UserType = (typeof USER_TYPES)[number];
+
 /** User entity / 用户实体 */
 export interface User {
   id: string;
@@ -21,6 +25,7 @@ export interface User {
   client_salt: string;
   client_hash_algorithm: string;
   role: UserRole;
+  user_type: UserType | null;
   avatar_url: string | null;
   is_active: boolean;
   email: string | null;
@@ -38,6 +43,7 @@ export interface UserProfile {
   real_name: string | null;
   show_real_name_publicly: boolean;
   role: UserRole;
+  user_type: UserType | null;
   avatar_url: string | null;
   email: string | null;
   email_verified: boolean;
@@ -53,6 +59,7 @@ export interface UpdateProfileInput {
   show_real_name_publicly?: boolean;
   email?: string;
   avatar_url?: string;
+  user_type?: UserType;
 }
 
 /** Sessions response / 会话响应 */
@@ -68,6 +75,7 @@ export interface RegisterInput {
   password: string;
   clientSalt: string;
   email: string;
+  user_type: UserType;
 }
 
 /** User login input / 用户登录输入 */

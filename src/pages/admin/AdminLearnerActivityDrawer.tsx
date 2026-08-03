@@ -1,5 +1,5 @@
 /**
- * 学生活动详情 — slide-over for one learner, opened from the activity dashboard.
+ * 用户活动详情 — slide-over opened from the activity dashboard.
  * 教师常投屏查看，字号刻意偏大。
  */
 
@@ -17,8 +17,9 @@ import {
 import { formatActivityDelta, formatPagePath } from '@/lib/activity-labels';
 import {
   adminUserApi,
-  type AdminLearnerActivityResponse,
+  type AdminUserActivityResponse,
 } from '@/lib/admin-user.service';
+import type { UserType } from '@/lib/auth.service';
 import { buildValueAxis, formatAxisDay, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import { formatShortDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
@@ -40,21 +41,51 @@ function deltaClass(direction: 'up' | 'down' | 'flat', isDark: boolean): string 
   return isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
 }
 
+function UserTypeBadge({
+  userType,
+  isDark,
+}: {
+  userType: UserType | null;
+  isDark: boolean;
+}) {
+  const label = userType === 'student' ? '学生' : userType === 'teacher' ? '教师' : '未分类';
+  const classes =
+    userType === 'student'
+      ? isDark
+        ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : userType === 'teacher'
+        ? isDark
+          ? 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200'
+          : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+        : isDark
+          ? 'border-slate-700 bg-slate-800 text-slate-300'
+          : 'border-slate-200 bg-slate-100 text-slate-600';
+
+  return (
+    <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-xs font-medium', classes)}>
+      {label}
+    </span>
+  );
+}
+
 export default function AdminLearnerActivityDrawer({
   userId,
-  learnerName,
+  userName,
+  userType,
   range,
   isDark,
   onClose,
 }: {
   userId: string;
-  learnerName: string;
+  userName: string;
+  userType: UserType | null | undefined;
   range: { start: string; end: string };
   isDark: boolean;
   onClose: () => void;
 }) {
   const [retryKey, setRetryKey] = useState(0);
-  const [detail, setDetail] = useState<AdminLearnerActivityResponse | null>(null);
+  const [detail, setDetail] = useState<AdminUserActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -72,7 +103,7 @@ export default function AdminLearnerActivityDrawer({
       .catch((loadError) => {
         if (!cancelled) {
           setError(
-            loadError instanceof Error ? loadError.message : '学生活动详情暂时无法加载'
+            loadError instanceof Error ? loadError.message : '用户活动详情暂时无法加载'
           );
         }
       })
@@ -97,6 +128,8 @@ export default function AdminLearnerActivityDrawer({
   const panel = isDark ? 'border-slate-800 bg-slate-950/60' : 'border-[#f0f0f0] bg-[#fdfbf4]';
   const muted = isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
   const strong = isDark ? 'text-slate-50' : 'text-[#0a0a0a]';
+  const hasResolvedUserType = detail !== null || userType !== undefined;
+  const selectedUserType = detail ? detail.user_type : userType;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -108,7 +141,7 @@ export default function AdminLearnerActivityDrawer({
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={`${learnerName} 的活动详情`}
+        aria-label={`${userName} 的活动详情`}
         className={cn(
           'relative flex h-full w-full max-w-2xl flex-col border-l shadow-2xl',
           surface
@@ -121,9 +154,14 @@ export default function AdminLearnerActivityDrawer({
           )}
         >
           <div className="min-w-0">
-            <h2 className={cn('truncate text-2xl font-semibold', strong)}>{learnerName}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className={cn('truncate text-2xl font-semibold', strong)}>{userName}</h2>
+              {hasResolvedUserType ? (
+                <UserTypeBadge userType={selectedUserType ?? null} isDark={isDark} />
+              ) : null}
+            </div>
             <p className={cn('mt-1 text-sm', muted)}>
-              学生活动详情 · {range.start} 至 {range.end}
+              账号活动详情 · {range.start} 至 {range.end}
               {detail?.last_activity
                 ? ` · 最近活动 ${formatShortDateTime(detail.last_activity)}`
                 : ''}
@@ -131,7 +169,7 @@ export default function AdminLearnerActivityDrawer({
           </div>
           <button
             type="button"
-            aria-label="关闭学生活动详情"
+            aria-label="关闭账号活动详情"
             onClick={onClose}
             className={cn(
               'rounded-full p-2 transition-colors',
@@ -148,7 +186,7 @@ export default function AdminLearnerActivityDrawer({
           {isLoading ? (
             <div
               role="status"
-              aria-label="正在加载学生活动详情"
+              aria-label="正在加载账号活动详情"
               className="animate-pulse space-y-4"
             >
               <div className="grid gap-4 sm:grid-cols-3">
@@ -157,13 +195,13 @@ export default function AdminLearnerActivityDrawer({
                 ))}
               </div>
               <div className={cn('h-56 rounded-2xl border', panel)} />
-              <span className="sr-only">正在加载学生活动详情</span>
+              <span className="sr-only">正在加载账号活动详情</span>
             </div>
           ) : error ? (
             <DrawerState
               isDark={isDark}
               icon={<AlertTriangle className="h-6 w-6" />}
-              title="加载学生活动详情失败"
+              title="加载账号活动详情失败"
               description={error}
               action={
                 <button
@@ -191,10 +229,10 @@ export default function AdminLearnerActivityDrawer({
               isDark={isDark}
               icon={<Activity className="h-6 w-6" />}
               title="这段时间没有活动"
-              description={`${range.start} 至 ${range.end} 该学生没有留下学习记录。`}
+              description={`${range.start} 至 ${range.end} 该账号没有留下活动记录。`}
             />
           ) : detail && detail.summary ? (
-            <LearnerDetail detail={detail} isDark={isDark} />
+            <UserActivityDetail detail={detail} isDark={isDark} />
           ) : null}
         </div>
       </aside>
@@ -202,11 +240,11 @@ export default function AdminLearnerActivityDrawer({
   );
 }
 
-function LearnerDetail({
+function UserActivityDetail({
   detail,
   isDark,
 }: {
-  detail: AdminLearnerActivityResponse;
+  detail: AdminUserActivityResponse;
   isDark: boolean;
 }) {
   const summary = detail.summary!;
@@ -241,7 +279,7 @@ function LearnerDetail({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-3" aria-label="学生活动指标">
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="账号活动指标">
         {metrics.map((metric) => {
           const Icon = metric.Icon;
           const delta = formatActivityDelta(metric.value, metric.previous);
@@ -273,8 +311,8 @@ function LearnerDetail({
         })}
       </section>
 
-      <Section isDark={isDark} title="每日活动" description="该学生每天纳入统计的有效活动次数。">
-        <LearnerTrend daily={detail.daily} isDark={isDark} />
+      <Section isDark={isDark} title="每日活动" description="该账号每天纳入统计的有效活动次数。">
+        <UserTrend daily={detail.daily} isDark={isDark} />
       </Section>
 
       <Section isDark={isDark} title="模块分布" description="按页面路径前缀归类的访问次数。">
@@ -344,11 +382,11 @@ function LearnerDetail({
   );
 }
 
-function LearnerTrend({
+function UserTrend({
   daily,
   isDark,
 }: {
-  daily: AdminLearnerActivityResponse['daily'];
+  daily: AdminUserActivityResponse['daily'];
   isDark: boolean;
 }) {
   if (daily.length === 0) {
@@ -462,7 +500,7 @@ function HourlyHeatmap({
   hourly,
   isDark,
 }: {
-  hourly: AdminLearnerActivityResponse['hourly'];
+  hourly: AdminUserActivityResponse['hourly'];
   isDark: boolean;
 }) {
   if (hourly.length === 0) {

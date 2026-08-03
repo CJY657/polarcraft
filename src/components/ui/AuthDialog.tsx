@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import type { UserType } from '@/lib/auth.service';
 import { Dialog } from './dialog';
 import { useAuthDialogStore, AuthMode } from '@/stores/authDialogStore';
 
@@ -200,6 +201,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
   const [username, setUsername] = useState('');
   const [realName, setRealName] = useState('');
+  const [userType, setUserType] = useState<UserType | ''>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -220,6 +222,11 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
 
     if (!realName.trim()) {
       setError('请输入真实姓名');
+      return;
+    }
+
+    if (!userType) {
+      setError('请选择账号身份');
       return;
     }
 
@@ -245,7 +252,8 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         username.trim(),
         realName.trim(),
         password,
-        trimmedEmail
+        trimmedEmail,
+        userType
       );
       const returnTo = consumeReturnTo();
       closeDialog();
@@ -320,6 +328,36 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             placeholder={t('auth.realNamePlaceholder', '请输入真实姓名')}
           />
         </div>
+
+        <fieldset>
+          <legend className="mb-2 block text-sm font-semibold text-clay-ink">账号身份 *</legend>
+          <div className="grid grid-cols-2 gap-3">
+            {(['student', 'teacher'] as const).map((value) => (
+              <label
+                key={value}
+                className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                  userType === value
+                    ? 'border-clay-ink bg-clay-surface text-clay-ink'
+                    : 'border-clay-surface-strong bg-white text-clay-body hover:border-clay-ink/50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="register-user-type"
+                  value={value}
+                  checked={userType === value}
+                  onChange={() => {
+                    setUserType(value);
+                    setError('');
+                  }}
+                  required
+                  className="h-4 w-4 border-clay-surface-strong text-clay-ink focus:ring-clay-ink/20"
+                />
+                <span>{value === 'student' ? '学生' : '教师'}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div>
           <label htmlFor="register-email" className="mb-2 block text-sm font-semibold text-clay-ink">

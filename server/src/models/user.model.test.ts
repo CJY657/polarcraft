@@ -92,6 +92,7 @@ describe('UserModel admin queries', () => {
         show_real_name_publicly: false,
         email: 'alice@example.com',
         role: 'admin',
+        user_type: 'teacher',
         avatar_url: null,
         email_verified: true,
         is_active: false,
@@ -109,6 +110,7 @@ describe('UserModel admin queries', () => {
     const result = await UserModel.listForAdmin({
       search: 'alice',
       role: 'admin',
+      userType: 'teacher',
       status: 'inactive',
       limit: 20,
       offset: 40,
@@ -116,11 +118,13 @@ describe('UserModel admin queries', () => {
 
     const filter = usersFind.mock.calls[0]?.[0] as {
       role: string;
+      user_type: string;
       is_active: boolean;
       $or: Array<Record<string, RegExp>>;
     };
 
     expect(filter.role).toBe('admin');
+    expect(filter.user_type).toBe('teacher');
     expect(filter.is_active).toBe(false);
     expect(filter.$or[0]?.username).toBeInstanceOf(RegExp);
     expect(filter.$or[0]?.username.test('ALICE')).toBe(true);
@@ -136,6 +140,7 @@ describe('UserModel admin queries', () => {
       show_real_name_publicly: 1,
       email: 1,
       role: 1,
+      user_type: 1,
       avatar_url: 1,
       email_verified: 1,
       is_active: 1,
@@ -156,6 +161,7 @@ describe('UserModel admin queries', () => {
           show_real_name_publicly: false,
           email: 'alice@example.com',
           role: 'admin',
+          user_type: 'teacher',
           avatar_url: null,
           email_verified: true,
           is_active: false,
@@ -167,6 +173,21 @@ describe('UserModel admin queries', () => {
     });
     expect(result.items[0]).not.toHaveProperty('password_hash');
     expect(result.items[0]).not.toHaveProperty('client_salt');
+  });
+
+  it('filters unclassified legacy users by null, which also matches a missing field', async () => {
+    const cursor = createCursor([]);
+    usersFind.mockReturnValue(cursor);
+    usersCountDocuments.mockResolvedValueOnce(0);
+
+    await UserModel.listForAdmin({
+      userType: 'unclassified',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(usersFind).toHaveBeenCalledWith({ user_type: null });
+    expect(usersCountDocuments).toHaveBeenCalledWith({ user_type: null });
   });
 
   it('finds inactive users for admin detail lookups without applying the active-user filter', async () => {
@@ -197,6 +218,7 @@ describe('UserModel admin queries', () => {
       show_real_name_publicly: false,
       email: 'bob@example.com',
       role: 'user',
+      user_type: null,
       avatar_url: null,
       email_verified: false,
       is_active: false,
@@ -214,12 +236,14 @@ describe('UserModel admin queries', () => {
         username: 'alice',
         nickname: '小爱',
         real_name: 'Alice Wang',
+        user_type: 'student',
       },
       {
         id: 'user-2',
         username: 'bob',
         nickname: '小波',
         real_name: null,
+        user_type: 'teacher',
       },
     ]);
     usersFind.mockReturnValue(cursor);
@@ -232,12 +256,14 @@ describe('UserModel admin queries', () => {
         username: 'alice',
         nickname: '小爱',
         real_name: 'Alice Wang',
+        user_type: 'student',
       },
       {
         id: 'user-2',
         username: 'bob',
         nickname: '小波',
         real_name: null,
+        user_type: 'teacher',
       },
     ]);
 
@@ -250,6 +276,7 @@ describe('UserModel admin queries', () => {
       username: 1,
       nickname: 1,
       real_name: 1,
+      user_type: 1,
     });
   });
 
@@ -263,6 +290,7 @@ describe('UserModel admin queries', () => {
       password: 'client-hash',
       clientSalt: 'client-salt',
       email: 'new@example.com',
+      user_type: 'teacher',
     });
 
     expect(result).toMatchObject({
@@ -272,6 +300,7 @@ describe('UserModel admin queries', () => {
       real_name: 'New User',
       show_real_name_publicly: false,
       email: 'new@example.com',
+      user_type: 'teacher',
     });
     expect(result.created_at).toBeInstanceOf(Date);
     expect(result.last_login_at).toBe(result.created_at);
@@ -281,6 +310,7 @@ describe('UserModel admin queries', () => {
         nickname: null,
         real_name: 'New User',
         show_real_name_publicly: false,
+        user_type: 'teacher',
         password_hash: 'hashed-client-hash',
         created_at: result.created_at,
         last_login_at: result.created_at,
@@ -288,7 +318,7 @@ describe('UserModel admin queries', () => {
     );
   });
 
-  it('updates username and real-name visibility without touching legacy nickname', async () => {
+  it('updates profile identity without touching legacy nickname or authorization role', async () => {
     usersUpdateOne.mockResolvedValueOnce({ matchedCount: 1 });
     const savedUser = {
       id: 'user-1',
@@ -298,6 +328,7 @@ describe('UserModel admin queries', () => {
       show_real_name_publicly: true,
       email: null,
       role: 'user',
+      user_type: 'student',
       avatar_url: null,
       email_verified: false,
       is_active: true,
@@ -310,19 +341,21 @@ describe('UserModel admin queries', () => {
     };
     usersFindOne
       .mockResolvedValueOnce(savedUser)
-      .mockResolvedValueOnce(savedUser);
+      .mockResolvedValueOnce({ ...savedUser, user_type: 'teacher' });
 
     await expect(
       UserModel.updateProfile('user-1', {
         username: 'alice',
         real_name: 'Alice Wang',
         show_real_name_publicly: true,
+        user_type: 'teacher',
       })
     ).resolves.toMatchObject({
       username: 'alice',
       nickname: '旧昵称',
       real_name: 'Alice Wang',
       show_real_name_publicly: true,
+      user_type: 'teacher',
     });
 
     expect(usersUpdateOne).toHaveBeenCalledWith(
@@ -332,9 +365,11 @@ describe('UserModel admin queries', () => {
           username: 'alice',
           real_name: 'Alice Wang',
           show_real_name_publicly: true,
+          user_type: 'teacher',
         }),
       }
     );
     expect(usersUpdateOne.mock.calls[0]?.[1]?.$set).not.toHaveProperty('nickname');
+    expect(usersUpdateOne.mock.calls[0]?.[1]?.$set).not.toHaveProperty('role');
   });
 });

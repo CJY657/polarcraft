@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getPostHogAnalyticsForAdmin, getActivityDashboardForAdmin, getLearnerActivityForAdmin } =
+const {
+  listUsersForAdmin,
+  updateProfile,
+  getPostHogAnalyticsForAdmin,
+  getActivityDashboardForAdmin,
+  getLearnerActivityForAdmin,
+} =
   vi.hoisted(() => ({
+    listUsersForAdmin: vi.fn(),
+    updateProfile: vi.fn(),
     getPostHogAnalyticsForAdmin: vi.fn(),
     getActivityDashboardForAdmin: vi.fn(),
     getLearnerActivityForAdmin: vi.fn(),
@@ -9,6 +17,8 @@ const { getPostHogAnalyticsForAdmin, getActivityDashboardForAdmin, getLearnerAct
 
 vi.mock('../services/user.service.js', () => ({
   UserService: {
+    listUsersForAdmin,
+    updateProfile,
     getPostHogAnalyticsForAdmin,
     getActivityDashboardForAdmin,
     getLearnerActivityForAdmin,
@@ -68,7 +78,12 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 6 * 86_400_000)
       .toISOString()
       .slice(0, 10);
-    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(expectedStart, today, 10);
+    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(
+      expectedStart,
+      today,
+      10,
+      'student'
+    );
     expect(res.success).toHaveBeenCalledWith(dashboard);
   });
 
@@ -77,7 +92,14 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     const res = { success: vi.fn(), error: vi.fn() };
 
     UserController.getActivityDashboardForAdmin(
-      { query: { start: '2026-01-01', end: '2026-01-31', limit: 'all' } } as never,
+      {
+        query: {
+          start: '2026-01-01',
+          end: '2026-01-31',
+          limit: 'all',
+          user_type: 'all',
+        },
+      } as never,
       res as never,
       vi.fn() as never
     );
@@ -86,8 +108,47 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(
       '2026-01-01',
       '2026-01-31',
-      null
+      null,
+      'all'
     );
+  });
+
+  it.each(['student', 'teacher', 'all'])('accepts the %s activity segment', async (segment) => {
+    getActivityDashboardForAdmin.mockResolvedValue({ status: 'ok' });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getActivityDashboardForAdmin(
+      { query: { user_type: segment } } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getActivityDashboardForAdmin).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      10,
+      segment
+    );
+    expect(res.error).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported activity segment without querying analytics', async () => {
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getActivityDashboardForAdmin(
+      { query: { user_type: 'guardian' } } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      '用户类型仅支持 student、teacher 或 all',
+      'INVALID_ACTIVITY_USER_TYPE',
+      400
+    );
+    expect(getActivityDashboardForAdmin).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -125,7 +186,7 @@ describe('UserController.getActivityDashboardForAdmin', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(res.error).toHaveBeenCalledWith(
-      '名单人数仅支持 10、50、100 或 all',
+      '用户人数仅支持 10、50、100 或 all',
       'INVALID_ACTIVITY_LIMIT',
       400
     );
@@ -148,6 +209,58 @@ describe('UserController.getActivityDashboardForAdmin', () => {
       'POSTHOG_QUERY_FAILED',
       502
     );
+  });
+});
+
+describe('UserController profile and admin identity inputs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes the admin user type filter to the list service', async () => {
+    listUsersForAdmin.mockResolvedValue({ items: [], total: 0 });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.listUsersForAdmin(
+      { query: { user_type: 'unclassified' } } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(listUsersForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ userType: 'unclassified' })
+    );
+  });
+
+  it('submits completion fields together without accepting a role change', async () => {
+    updateProfile.mockResolvedValue({ id: 'user-1', role: 'admin', user_type: 'teacher' });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.updateProfile(
+      {
+        user: { sub: 'user-1', username: 'legacy-admin' },
+        body: {
+          real_name: 'Lin Chen',
+          email: 'lin@example.com',
+          user_type: 'teacher',
+          role: 'user',
+        },
+      } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(updateProfile).toHaveBeenCalledWith('user-1', {
+      username: undefined,
+      real_name: 'Lin Chen',
+      show_real_name_publicly: undefined,
+      email: 'lin@example.com',
+      avatar_url: undefined,
+      user_type: 'teacher',
+    });
+    expect(updateProfile.mock.calls[0]?.[1]).not.toHaveProperty('role');
   });
 });
 

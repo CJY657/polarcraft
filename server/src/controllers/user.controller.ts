@@ -30,6 +30,12 @@ export class UserController {
       req.query.role === 'user' || req.query.role === 'admin'
         ? req.query.role
         : undefined;
+    const userType =
+      req.query.user_type === 'student' ||
+      req.query.user_type === 'teacher' ||
+      req.query.user_type === 'unclassified'
+        ? req.query.user_type
+        : undefined;
     const status =
       req.query.status === 'active' || req.query.status === 'inactive'
         ? req.query.status
@@ -54,6 +60,7 @@ export class UserController {
     const result = await UserService.listUsersForAdmin({
       search,
       role,
+      userType,
       status,
       limit,
       offset,
@@ -102,7 +109,7 @@ export class UserController {
     }
   );
 
-  /** Get aggregate signed-in learner activity for administrators. */
+  /** Get aggregate signed-in user activity for administrators. */
   static getActivityDashboardForAdmin = asyncHandler(
     async (req: Request, res: Response) => {
       const range = resolveActivityDateRange(req.query.start, req.query.end, ADMIN_ACTIVITY_RANGE);
@@ -111,18 +118,28 @@ export class UserController {
         return;
       }
 
-      let learnerLimit: number | null = 10;
+      const segment = req.query.user_type ?? 'student';
+      if (segment !== 'student' && segment !== 'teacher' && segment !== 'all') {
+        res.error(
+          '用户类型仅支持 student、teacher 或 all',
+          'INVALID_ACTIVITY_USER_TYPE',
+          400
+        );
+        return;
+      }
+
+      let userLimit: number | null = 10;
       if (req.query.limit !== undefined) {
-        if (req.query.limit === 'all') learnerLimit = null;
+        if (req.query.limit === 'all') userLimit = null;
         else if (
           req.query.limit === '10' ||
           req.query.limit === '50' ||
           req.query.limit === '100'
         ) {
-          learnerLimit = Number(req.query.limit);
+          userLimit = Number(req.query.limit);
         } else {
           res.error(
-            '名单人数仅支持 10、50、100 或 all',
+            '用户人数仅支持 10、50、100 或 all',
             'INVALID_ACTIVITY_LIMIT',
             400
           );
@@ -134,7 +151,8 @@ export class UserController {
         const result = await UserService.getActivityDashboardForAdmin(
           range.start,
           range.end,
-          learnerLimit
+          userLimit,
+          segment
         );
         res.success(result);
       } catch (error) {
@@ -194,13 +212,21 @@ export class UserController {
  * 更新用户资料
    */
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const { username, real_name, show_real_name_publicly, email, avatar_url } = req.body;
+    const {
+      username,
+      real_name,
+      show_real_name_publicly,
+      email,
+      avatar_url,
+      user_type,
+    } = req.body;
     const profile = await UserService.updateProfile(req.user!.sub, {
       username,
       real_name,
       show_real_name_publicly,
       email,
       avatar_url,
+      user_type,
     });
 
     logger.info(`Profile updated for user: ${req.user!.username}`);

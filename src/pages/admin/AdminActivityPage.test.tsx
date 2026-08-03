@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,53 +39,55 @@ function presetRange(days: number): { start: string; end: string } {
 
 const activity = {
   status: 'ok' as const,
+  segment: 'student' as const,
   range: { ...presetRange(7), days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
   summary: {
-    active_learners: 18,
+    active_users: 18,
     meaningful_events: 146,
     pageviews: 62,
     learning_actions: 84,
   },
   previous_summary: {
     range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
-    active_learners: 12,
+    active_users: 12,
     meaningful_events: 146,
     pageviews: 124,
     learning_actions: 0,
   },
   daily: [
-    { date: '2026-07-09', active_learners: 7, pageviews: 24, learning_actions: 31 },
-    { date: '2026-07-10', active_learners: 9, pageviews: 38, learning_actions: 53 },
+    { date: '2026-07-09', active_users: 7, pageviews: 24, learning_actions: 31 },
+    { date: '2026-07-10', active_users: 9, pageviews: 38, learning_actions: 53 },
   ],
   top_pages: [
-    { path: '/experiments/calcite', pageviews: 21, unique_learners: 8 },
+    { path: '/experiments/calcite', pageviews: 21, unique_users: 8 },
   ],
   activity_breakdown: [
-    { event: 'experiment_opened', count: 42, unique_learners: 11 },
-    { event: '$pageview', count: 21, unique_learners: 8 },
+    { event: 'experiment_opened', count: 42, unique_users: 11 },
+    { event: '$pageview', count: 21, unique_users: 8 },
   ],
   module_breakdown: [
     {
       module: 'module1',
       label: '实验内容',
       pageviews: 21,
-      unique_learners: 8,
-      learners: [{ user_id: 'learner-1', username: '林晓光', pageviews: 12 }],
+      unique_users: 8,
+      users: [{ user_id: 'learner-1', username: '林晓光', pageviews: 12 }],
     },
     {
       module: 'module6',
       label: '虚拟课题',
       pageviews: 6,
-      unique_learners: 2,
-      learners: [{ user_id: 'learner-2', username: '王小雨', pageviews: 6 }],
+      unique_users: 2,
+      users: [{ user_id: 'learner-2', username: '王小雨', pageviews: 6 }],
     },
   ],
-  top_learners: [
+  top_users: [
     {
       user_id: 'learner-1',
       username: 'learner-account',
       display_name: '林晓光',
+      user_type: 'student' as const,
       events: 32,
       pageviews: 12,
       learning_actions: 20,
@@ -96,6 +98,7 @@ const activity = {
 
 const learnerDetail = {
   status: 'ok' as const,
+  user_type: 'student' as const,
   range: { ...presetRange(7), days: 30 },
   previous_range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
@@ -130,7 +133,11 @@ describe('AdminActivityPage', () => {
     renderPage();
 
     await waitFor(() =>
-      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(7), limit: 10 })
+      expect(getActivity).toHaveBeenCalledWith({
+        ...presetRange(7),
+        userType: 'student',
+        limit: 10,
+      })
     );
     expect(await screen.findByRole('heading', { name: '用户活动' })).toBeDefined();
     expect(screen.getAllByText('活跃学生').length).toBeGreaterThanOrEqual(2);
@@ -138,10 +145,10 @@ describe('AdminActivityPage', () => {
     expect(screen.getByText('146')).toBeDefined();
     expect(screen.getByText('62')).toBeDefined();
     expect(screen.getByText('84')).toBeDefined();
-    expect(screen.getByText('所选起止日期均计入；至少有 1 次有效活动的已识别普通学生人数，按学生去重。')).toBeDefined();
-    expect(screen.getByText('所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，普通学生的活动总次数。')).toBeDefined();
-    expect(screen.getByText('所选起止日期均计入；已识别普通学生纳入统计的页面访问次数。')).toBeDefined();
-    expect(screen.getByText('所选起止日期均计入；已识别普通学生进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；至少有 1 次有效活动的已识别学生人数，按账号去重。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；排除自动采集、离开、身份识别和属性设置后，学生的活动总次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；已识别学生纳入统计的页面访问次数。')).toBeDefined();
+    expect(screen.getByText('所选起止日期均计入；已识别学生进入实验，以及在虚拟课题组里建课题、提交申请、讨论、交证据、完成任务的合计次数。')).toBeDefined();
     expect(screen.getByText('每个日期分别显示当天的学生去重人数、页面访问次数和学习行为次数。')).toBeDefined();
     expect(screen.getByText('按页面访问次数展示前 10 个路径，每个路径的学生人数单独去重。')).toBeDefined();
     expect(screen.getByText('按现有页面路径前缀归类并汇总页面访问次数。')).toBeDefined();
@@ -182,16 +189,85 @@ describe('AdminActivityPage', () => {
     expect(within(rankingPanel!).queryByText('learner-account')).toBeNull();
   });
 
+  it('defaults to students and makes one request when the activity segment changes', async () => {
+    getActivity.mockImplementation(({ userType }: { userType: 'student' | 'teacher' | 'all' }) =>
+      Promise.resolve({ ...activity, segment: userType })
+    );
+    renderPage();
+
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: '学生' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: '教师' }));
+
+    await waitFor(() => {
+      expect(getActivity).toHaveBeenCalledTimes(2);
+      expect(getActivity).toHaveBeenLastCalledWith({
+        ...presetRange(7),
+        userType: 'teacher',
+        limit: 10,
+      });
+    });
+    expect(screen.getByRole('button', { name: '教师' }).getAttribute('aria-pressed')).toBe('true');
+    expect(await screen.findByRole('heading', { name: '活跃教师排行' })).toBeDefined();
+  });
+
+  it('closes the activity drawer when the segment changes', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
+    const drawer = await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
+    expect(within(drawer).getByText('学生')).toBeDefined();
+
+    getActivity.mockClear();
+    getActivity.mockResolvedValue({ ...activity, segment: 'teacher' });
+    fireEvent.click(screen.getByRole('button', { name: '教师' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not label an unresolved module user as unclassified in the all segment', async () => {
+    getActivity.mockImplementation(({ userType }: { userType: 'student' | 'teacher' | 'all' }) =>
+      Promise.resolve({ ...activity, segment: userType })
+    );
+    getActivityDetail.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: '全部' }));
+    await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(2));
+
+    const modulePanel = (
+      await screen.findByRole('heading', { name: '模块热度' })
+    ).closest('section');
+    expect(modulePanel).not.toBeNull();
+    fireEvent.click(within(modulePanel!).getByText('虚拟课题'));
+    fireEvent.click(within(modulePanel!).getByRole('button', { name: /王小雨/ }));
+
+    const drawer = await screen.findByRole('dialog', { name: '王小雨 的活动详情' });
+    expect(within(drawer).queryByText('未分类')).toBeNull();
+    expect(within(drawer).getByLabelText('正在加载账号活动详情')).toBeDefined();
+  });
+
   it('reloads when a preset range is selected', async () => {
     renderPage();
     await waitFor(() =>
-      expect(getActivity).toHaveBeenCalledWith({ ...presetRange(7), limit: 10 })
+      expect(getActivity).toHaveBeenCalledWith({
+        ...presetRange(7),
+        userType: 'student',
+        limit: 10,
+      })
     );
 
     fireEvent.click(screen.getByRole('button', { name: '近 30 天' }));
 
     await waitFor(() =>
-      expect(getActivity).toHaveBeenLastCalledWith({ ...presetRange(30), limit: 10 })
+      expect(getActivity).toHaveBeenLastCalledWith({
+        ...presetRange(30),
+        userType: 'student',
+        limit: 10,
+      })
     );
     expect(screen.getByRole('button', { name: '近 30 天' }).getAttribute('aria-pressed')).toBe(
       'true'
@@ -213,6 +289,7 @@ describe('AdminActivityPage', () => {
       expect(getActivity).toHaveBeenLastCalledWith({
         start: '2026-06-01',
         end: '2026-06-30',
+        userType: 'student',
         limit: 10,
       })
     );
@@ -256,36 +333,60 @@ describe('AdminActivityPage', () => {
 
     renderPage();
 
-    expect(screen.getByLabelText('正在加载用户活动')).toBeDefined();
+    expect(screen.getByLabelText('正在加载学生活动')).toBeDefined();
+  });
+
+  it('uses the selected segment in loading and error copy', async () => {
+    let rejectTeacher: ((reason: Error) => void) | undefined;
+    getActivity
+      .mockResolvedValueOnce(activity)
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            rejectTeacher = reject;
+          })
+      );
+    renderPage();
+
+    await screen.findByRole('heading', { name: '活跃学生排行' });
+    fireEvent.click(screen.getByRole('button', { name: '教师' }));
+    expect(screen.getByLabelText('正在加载教师活动')).toBeDefined();
+
+    await act(async () => {
+      rejectTeacher?.(new Error('行为统计服务暂时不可用'));
+    });
+    expect(await screen.findByText('加载教师活动失败')).toBeDefined();
   });
 
   it('shows an empty state when the selected range has no activity', async () => {
     getActivity.mockResolvedValue({
       ...activity,
       summary: {
-        active_learners: 0,
+        active_users: 0,
         meaningful_events: 0,
         pageviews: 0,
         learning_actions: 0,
       },
       daily: [
-        { date: '2026-07-09', active_learners: 0, pageviews: 0, learning_actions: 0 },
-        { date: '2026-07-10', active_learners: 0, pageviews: 0, learning_actions: 0 },
+        { date: '2026-07-09', active_users: 0, pageviews: 0, learning_actions: 0 },
+        { date: '2026-07-10', active_users: 0, pageviews: 0, learning_actions: 0 },
       ],
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [],
+      top_users: [],
     });
 
     renderPage();
 
     expect(await screen.findByText('暂无活动数据')).toBeDefined();
+    expect(screen.getByText(/还没有已登录学生的活动/)).toBeDefined();
   });
 
   it('shows a teacher-friendly disabled state', async () => {
     getActivity.mockResolvedValue({
       status: 'disabled',
+      segment: 'student',
       range: { ...presetRange(7), days: 30 },
       generated_at: '2026-07-10T08:00:00.000Z',
       summary: null,
@@ -293,7 +394,7 @@ describe('AdminActivityPage', () => {
       top_pages: [],
       activity_breakdown: [],
       module_breakdown: [],
-      top_learners: [],
+      top_users: [],
     });
 
     renderPage();
@@ -305,7 +406,7 @@ describe('AdminActivityPage', () => {
   it('renders a missing last activity without inventing a date', async () => {
     getActivity.mockResolvedValue({
       ...activity,
-      top_learners: [{ ...activity.top_learners[0], last_activity: null }],
+      top_users: [{ ...activity.top_users[0], last_activity: null }],
     });
 
     renderPage();
@@ -367,7 +468,7 @@ describe('AdminActivityPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('加载用户活动失败')).toBeDefined();
+    expect(await screen.findByText('加载学生活动失败')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
 
     await waitFor(() => expect(getActivity).toHaveBeenCalledTimes(2));
@@ -422,7 +523,7 @@ describe('AdminActivityPage', () => {
     renderPage('/admin/activity?user=learner-1');
 
     await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
-    fireEvent.click(screen.getByRole('button', { name: '关闭学生活动详情' }));
+    fireEvent.click(screen.getByRole('button', { name: '关闭账号活动详情' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.getByRole('heading', { name: '用户活动' })).toBeDefined();
@@ -433,7 +534,7 @@ describe('AdminActivityPage', () => {
 
     renderPage('/admin/activity?user=learner-1');
 
-    expect(await screen.findByText('加载学生活动详情失败')).toBeDefined();
+    expect(await screen.findByText('加载账号活动详情失败')).toBeDefined();
     expect(screen.getByRole('heading', { name: '用户活动' })).toBeDefined();
   });
 });

@@ -1,7 +1,9 @@
 import { api } from './api';
+import type { UserType } from './auth.service';
 
 export type AdminUserRoleFilter = 'all' | 'user' | 'admin';
 export type AdminUserStatusFilter = 'all' | 'active' | 'inactive';
+export type AdminUserTypeFilter = 'all' | UserType | 'unclassified';
 export type AdminUserSortField = 'created_at' | 'last_login_at';
 export type AdminUserSortOrder = 'asc' | 'desc';
 
@@ -12,6 +14,7 @@ export interface AdminUserListItem {
   real_name: string | null;
   show_real_name_publicly: boolean;
   role: 'user' | 'admin';
+  user_type: UserType | null;
   avatar_url: string | null;
   email: string | null;
   email_verified: boolean;
@@ -101,10 +104,12 @@ export interface AdminUserPostHogAnalyticsResponse {
 }
 
 export type AdminActivityLimit = 10 | 50 | 100 | 'all';
+export type AdminActivityUserType = UserType | 'all';
 
 export interface AdminActivityQuery {
   start: string;
   end: string;
+  userType: AdminActivityUserType;
   limit: AdminActivityLimit;
 }
 
@@ -112,8 +117,8 @@ export interface AdminActivityModuleBreakdown {
   module: string;
   label: string;
   pageviews: number;
-  unique_learners: number;
-  learners: Array<{
+  unique_users: number;
+  users: Array<{
     user_id: string;
     username: string;
     pageviews: number;
@@ -122,6 +127,7 @@ export interface AdminActivityModuleBreakdown {
 
 export interface AdminActivityResponse {
   status: 'ok' | 'disabled';
+  segment: AdminActivityUserType;
   range: {
     start: string;
     end: string;
@@ -129,7 +135,7 @@ export interface AdminActivityResponse {
   };
   generated_at: string;
   summary: {
-    active_learners: number;
+    active_users: number;
     meaningful_events: number;
     pageviews: number;
     learning_actions: number;
@@ -141,32 +147,33 @@ export interface AdminActivityResponse {
       end: string;
       days: number;
     };
-    active_learners: number;
+    active_users: number;
     meaningful_events: number;
     pageviews: number;
     learning_actions: number;
   } | null;
   daily: Array<{
     date: string;
-    active_learners: number;
+    active_users: number;
     pageviews: number;
     learning_actions: number;
   }>;
   top_pages: Array<{
     path: string;
     pageviews: number;
-    unique_learners: number;
+    unique_users: number;
   }>;
   activity_breakdown: Array<{
     event: string;
     count: number;
-    unique_learners: number;
+    unique_users: number;
   }>;
   module_breakdown: AdminActivityModuleBreakdown[];
-  top_learners: Array<{
+  top_users: Array<{
     user_id: string;
     username: string;
     display_name: string;
+    user_type: UserType | null;
     events: number;
     pageviews: number;
     learning_actions: number;
@@ -174,14 +181,15 @@ export interface AdminActivityResponse {
   }>;
 }
 
-export interface AdminLearnerActivitySummary {
+export interface AdminUserActivitySummary {
   meaningful_events: number;
   pageviews: number;
   learning_actions: number;
 }
 
-export interface AdminLearnerActivityResponse {
+export interface AdminUserActivityResponse {
   status: 'ok' | 'disabled';
+  user_type: UserType | null;
   range: {
     start: string;
     end: string;
@@ -194,8 +202,8 @@ export interface AdminLearnerActivityResponse {
   };
   generated_at: string;
   last_activity: string | null;
-  summary: AdminLearnerActivitySummary | null;
-  previous_summary: AdminLearnerActivitySummary | null;
+  summary: AdminUserActivitySummary | null;
+  previous_summary: AdminUserActivitySummary | null;
   daily: Array<{
     date: string;
     events: number;
@@ -233,6 +241,7 @@ export const adminUserApi = {
     search?: string;
     role?: AdminUserRoleFilter;
     status?: AdminUserStatusFilter;
+    userType?: AdminUserTypeFilter;
     limit?: number;
     offset?: number;
     sortBy?: AdminUserSortField;
@@ -242,6 +251,10 @@ export const adminUserApi = {
 
     if (params.search?.trim()) {
       search.set('search', params.search.trim());
+    }
+
+    if (params.userType && params.userType !== 'all') {
+      search.set('user_type', params.userType);
     }
 
     if (params.role && params.role !== 'all') {
@@ -305,6 +318,7 @@ export const adminUserApi = {
     const search = new URLSearchParams({
       start: query.start,
       end: query.end,
+      user_type: query.userType,
       limit: String(query.limit),
     });
     const response = await api.get<AdminActivityResponse>(
@@ -320,15 +334,15 @@ export const adminUserApi = {
   async getActivityDetail(
     userId: string,
     range: { start: string; end: string }
-  ): Promise<AdminLearnerActivityResponse> {
+  ): Promise<AdminUserActivityResponse> {
     const search = new URLSearchParams({ start: range.start, end: range.end });
-    const response = await api.get<AdminLearnerActivityResponse>(
+    const response = await api.get<AdminUserActivityResponse>(
       `/api/users/${userId}/activity?${search.toString()}`
     );
     if (response.success && response.data) {
       return response.data;
     }
 
-    throw new Error(response.error?.message || '获取学生活动详情失败');
+    throw new Error(response.error?.message || '获取用户活动详情失败');
   },
 };

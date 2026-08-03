@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Calendar, FileText, Edit, KeyRound } from 'lucide-react';
+import { User, Mail, Calendar, FileText, Edit, KeyRound, GraduationCap } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatUserIdentity } from '@/lib/identity';
@@ -144,6 +144,16 @@ export default function ProfilePage() {
               </h1>
 
               <div className="space-y-1.5">
+                {user?.user_type && (
+                  <div className={cn(
+                    "flex items-center gap-2 text-sm",
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  )}>
+                    <GraduationCap className="w-4 h-4" />
+                    <span>账号身份：{user.user_type === 'teacher' ? '教师' : '学生'}</span>
+                  </div>
+                )}
+
                 {user?.email && (
                   <div className={cn(
                     "flex items-center gap-2 text-sm",

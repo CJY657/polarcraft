@@ -4,6 +4,7 @@ import {
   AdminUserActivityDateRange,
   AdminUserActivityDetailResponse,
   AdminUserActivityModuleBreakdown,
+  AdminUserActivitySegment,
   AdminUserPostHogAnalyticsResponse,
   AdminUserPostHogPerson,
   AdminUserPostHogSummary,
@@ -129,7 +130,8 @@ export class PostHogService {
   static async getActivityDashboard(
     start: string,
     end: string,
-    learnerLimit: number | null
+    userLimit: number | null,
+    segment: AdminUserActivitySegment = 'student'
   ): Promise<AdminUserActivityDashboardResponse> {
     const generatedAt = new Date().toISOString();
     const range = this.computeRange(start, end);
@@ -137,6 +139,7 @@ export class PostHogService {
     if (!this.isEnabled()) {
       return {
         status: 'disabled',
+        segment,
         range,
         generated_at: generatedAt,
         summary: null,
@@ -145,12 +148,12 @@ export class PostHogService {
         top_pages: [],
         activity_breakdown: [],
         module_breakdown: [],
-        top_learners: [],
+        top_users: [],
       };
     }
 
     const learningEventPredicate = this.LEARNING_EVENT_PREDICATE;
-    const filter = this.activityFilter(start, end);
+    const filter = this.activityFilter(start, end, segment);
     const pathExpression = this.PATH_EXPRESSION;
     const summaryQuery = (windowFilter: string) => `
             SELECT
@@ -162,7 +165,7 @@ export class PostHogService {
             WHERE ${windowFilter}
         `;
     const [summaryResponse, dailyResponse, pagesResponse] = await Promise.all([
-      this.runQuery(summaryQuery(filter), 'admin learner activity summary'),
+      this.runQuery(summaryQuery(filter), 'admin user activity summary'),
       this.runQuery(
         `
             SELECT
@@ -176,7 +179,7 @@ export class PostHogService {
             ORDER BY day
             LIMIT ${rangeDays}
         `,
-        'admin learner activity daily'
+        'admin user activity daily'
       ),
       this.runQuery(
         `
@@ -191,10 +194,10 @@ export class PostHogService {
             ORDER BY count() DESC
             LIMIT 10
         `,
-        'admin learner activity top pages'
+        'admin user activity top pages'
       ),
     ]);
-    const [breakdownResponse, learnersResponse, moduleResponse] = await Promise.all([
+    const [breakdownResponse, usersResponse, moduleResponse] = await Promise.all([
       this.runQuery(
         `
             SELECT event, count(), count(DISTINCT person_id)
@@ -204,13 +207,14 @@ export class PostHogService {
             ORDER BY count() DESC
             LIMIT 10
         `,
-        'admin learner activity breakdown'
+        'admin user activity breakdown'
       ),
       this.runQuery(
         `
             SELECT
               argMax(distinct_id, timestamp),
               any(person.properties.username),
+              any(person.properties.user_type),
               count(),
               countIf(event = '$pageview'),
               countIf(${learningEventPredicate}),
@@ -219,9 +223,9 @@ export class PostHogService {
             WHERE ${filter}
             GROUP BY person_id
             ORDER BY count() DESC
-            ${learnerLimit === null ? '' : `LIMIT ${learnerLimit}`}
+            ${userLimit === null ? '' : `LIMIT ${userLimit}`}
         `,
-        'admin learner activity top learners'
+        'admin user activity top users'
       ),
       this.runQuery(
         `
@@ -235,7 +239,7 @@ export class PostHogService {
               AND event = '$pageview'
             GROUP BY 1, person_id
         `,
-        'admin learner activity module usage'
+        'admin user activity module usage'
       ),
     ]);
 
@@ -247,24 +251,27 @@ export class PostHogService {
     const previousRow =
       this.extractRows(
         await this.runQuery(
-          summaryQuery(this.activityFilter(previousRange.start, previousRange.end)),
-          'admin learner activity previous summary'
+          summaryQuery(
+            this.activityFilter(previousRange.start, previousRange.end, segment)
+          ),
+          'admin user activity previous summary'
         )
       )[0] ?? [];
 
     return {
       status: 'ok',
+      segment,
       range,
       generated_at: generatedAt,
       summary: {
-        active_learners: this.numberOrZero(summaryRow[0]),
+        active_users: this.numberOrZero(summaryRow[0]),
         meaningful_events: this.numberOrZero(summaryRow[1]),
         pageviews: this.numberOrZero(summaryRow[2]),
         learning_actions: this.numberOrZero(summaryRow[3]),
       },
       previous_summary: {
         range: previousRange,
-        active_learners: this.numberOrZero(previousRow[0]),
+        active_users: this.numberOrZero(previousRow[0]),
         meaningful_events: this.numberOrZero(previousRow[1]),
         pageviews: this.numberOrZero(previousRow[2]),
         learning_actions: this.numberOrZero(previousRow[3]),
@@ -275,26 +282,31 @@ export class PostHogService {
         .map((row) => ({
           path: this.pathFrom(row[0] as string),
           pageviews: this.numberOrZero(row[1]),
-          unique_learners: this.numberOrZero(row[2]),
+          unique_users: this.numberOrZero(row[2]),
         })),
       activity_breakdown: this.extractRows(breakdownResponse)
         .filter((row) => typeof row[0] === 'string')
         .map((row) => ({
           event: row[0] as string,
           count: this.numberOrZero(row[1]),
-          unique_learners: this.numberOrZero(row[2]),
+          unique_users: this.numberOrZero(row[2]),
         })),
       module_breakdown: this.buildModuleBreakdown(this.extractRows(moduleResponse)),
-      top_learners: this.extractRows(learnersResponse)
-        .filter((row) => typeof row[0] === 'string')
+      top_users: this.extractRows(usersResponse)
+        .filter(
+          (row) =>
+            typeof row[0] === 'string' &&
+            (row[2] === 'student' || row[2] === 'teacher')
+        )
         .map((row) => ({
           user_id: row[0] as string,
           username: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
           display_name: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
-          events: this.numberOrZero(row[2]),
-          pageviews: this.numberOrZero(row[3]),
-          learning_actions: this.numberOrZero(row[4]),
-          last_activity: this.stringOrNull(row[5]),
+          user_type: row[2] as 'student' | 'teacher',
+          events: this.numberOrZero(row[3]),
+          pageviews: this.numberOrZero(row[4]),
+          learning_actions: this.numberOrZero(row[5]),
+          last_activity: this.stringOrNull(row[6]),
         })),
     };
   }
@@ -322,7 +334,7 @@ export class PostHogService {
       };
     }
 
-    const filter = this.activityFilter(start, end);
+    const filter = this.activityFilter(start, end, 'student');
     const [dailyResponse, pagesResponse, learnersResponse] = await Promise.all([
       this.runQuery(
         `
@@ -392,7 +404,7 @@ export class PostHogService {
           0
         ),
       },
-      daily: this.buildDailySeries(start, end, this.extractRows(dailyResponse)),
+      daily: this.buildPublicDailySeries(start, end, this.extractRows(dailyResponse)),
       top_pages: this.extractRows(pagesResponse)
         .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
         .map((row) => ({
@@ -412,7 +424,7 @@ export class PostHogService {
     userId: string,
     start: string,
     end: string
-  ): Promise<AdminUserActivityDetailResponse> {
+  ): Promise<Omit<AdminUserActivityDetailResponse, 'user_type'>> {
     const generatedAt = new Date().toISOString();
     const range = this.computeRange(start, end);
     const previousRange = this.previousRange(range);
@@ -578,8 +590,8 @@ export class PostHogService {
   }
 
   /**
-   * Aggregate per-(path, learner) pageview rows into per-module totals with
-   * the learners who visited each module.
+   * Aggregate per-(path, user) pageview rows into per-module totals with
+   * the users who visited each module.
    */
   private static buildModuleBreakdown(
     rows: unknown[][]
@@ -590,7 +602,7 @@ export class PostHogService {
         module: string;
         label: string;
         pageviews: number;
-        learners: Map<string, { user_id: string; username: string; pageviews: number }>;
+        users: Map<string, { user_id: string; username: string; pageviews: number }>;
       }
     >();
 
@@ -604,15 +616,15 @@ export class PostHogService {
 
       let entry = modules.get(module);
       if (!entry) {
-        entry = { module, label, pageviews: 0, learners: new Map() };
+        entry = { module, label, pageviews: 0, users: new Map() };
         modules.set(module, entry);
       }
       entry.pageviews += pageviews;
-      const learner = entry.learners.get(userId);
-      if (learner) {
-        learner.pageviews += pageviews;
+      const user = entry.users.get(userId);
+      if (user) {
+        user.pageviews += pageviews;
       } else {
-        entry.learners.set(userId, { user_id: userId, username, pageviews });
+        entry.users.set(userId, { user_id: userId, username, pageviews });
       }
     }
 
@@ -628,8 +640,8 @@ export class PostHogService {
         module: entry.module,
         label: entry.label,
         pageviews: entry.pageviews,
-        unique_learners: entry.learners.size,
-        learners: [...entry.learners.values()].sort(
+        unique_users: entry.users.size,
+        users: [...entry.users.values()].sort(
           (a, b) => b.pageviews - a.pageviews
         ),
       }));
@@ -646,7 +658,7 @@ export class PostHogService {
       if (typeof row[0] !== 'string') continue;
       valuesByDate.set(row[0], {
         date: row[0],
-        active_learners: this.numberOrZero(row[1]),
+        active_users: this.numberOrZero(row[1]),
         pageviews: this.numberOrZero(row[2]),
         learning_actions: this.numberOrZero(row[3]),
       });
@@ -657,7 +669,7 @@ export class PostHogService {
       daily.push(
         valuesByDate.get(date) ?? {
           date,
-          active_learners: 0,
+          active_users: 0,
           pageviews: 0,
           learning_actions: 0,
         }
@@ -665,6 +677,34 @@ export class PostHogService {
     }
 
     return daily;
+  }
+
+  private static buildPublicDailySeries(
+    start: string,
+    end: string,
+    rows: unknown[][]
+  ): PublicActivitySnapshot['daily'] {
+    const valuesByDate = new Map<string, PublicActivitySnapshot['daily'][number]>();
+
+    for (const row of rows) {
+      if (typeof row[0] !== 'string') continue;
+      valuesByDate.set(row[0], {
+        date: row[0],
+        active_learners: this.numberOrZero(row[1]),
+        pageviews: this.numberOrZero(row[2]),
+        learning_actions: this.numberOrZero(row[3]),
+      });
+    }
+
+    return this.denseDates(start, end).map(
+      (date) =>
+        valuesByDate.get(date) ?? {
+          date,
+          active_learners: 0,
+          pageviews: 0,
+          learning_actions: 0,
+        }
+    );
   }
 
   /** Every YYYY-MM-DD from start to end, inclusive. */
@@ -699,13 +739,22 @@ export class PostHogService {
     };
   }
 
-  /** Aggregate filter: identified students only. start/end are YYYY-MM-DD literals. */
-  private static activityFilter(start: string, end: string): string {
+  /** Aggregate filter: identified, classified users in the selected segment. */
+  private static activityFilter(
+    start: string,
+    end: string,
+    segment: AdminUserActivitySegment
+  ): string {
+    const userTypePredicate =
+      segment === 'all'
+        ? "person.properties.user_type IN ('student', 'teacher')"
+        : `person.properties.user_type = ${this.quoteLiteral(segment)}`;
+
     return `
       timestamp >= toDate('${start}')
       AND timestamp < toDate('${end}') + INTERVAL 1 DAY
       AND person_id IS NOT NULL
-      AND person.properties.role = 'user'
+      AND ${userTypePredicate}
       AND properties.$is_identified = true
       AND event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')
     `;

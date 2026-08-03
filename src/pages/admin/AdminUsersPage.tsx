@@ -38,6 +38,7 @@ import {
   type AdminUserSortOrder,
   type AdminUserStats,
   type AdminUserStatusFilter,
+  type AdminUserTypeFilter,
 } from '@/lib/admin-user.service';
 import { formatUserIdentity } from '@/lib/identity';
 import { buildValueAxis, formatAxisDay, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
@@ -95,6 +96,12 @@ function roleLabel(role: AdminUserListItem['role']): string {
   return role === 'admin' ? '管理员' : '普通用户';
 }
 
+function userTypeLabel(userType: AdminUserListItem['user_type'] | undefined): string {
+  if (userType === 'student') return '学生';
+  if (userType === 'teacher') return '教师';
+  return '未分类';
+}
+
 function formatAdminUserIdentity(user: AdminUserListItem | null | undefined): string {
   return formatUserIdentity(user, '用户', { includePrivateRealName: true });
 }
@@ -123,6 +130,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<AdminUserRoleFilter>('all');
   const [status, setStatus] = useState<AdminUserStatusFilter>('all');
+  const [userType, setUserType] = useState<AdminUserTypeFilter>('all');
   const [sortBy, setSortBy] = useState<AdminUserSortField>('created_at');
   const [sortOrder, setSortOrder] = useState<AdminUserSortOrder>('desc');
   const [page, setPage] = useState(0);
@@ -158,6 +166,7 @@ export default function AdminUsersPage() {
         search,
         role,
         status,
+        userType,
         sortBy,
         sortOrder,
         limit: PAGE_SIZE,
@@ -180,7 +189,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     setError(null);
     void loadUsers();
-  }, [search, role, status, sortBy, sortOrder, page]);
+  }, [search, role, status, userType, sortBy, sortOrder, page]);
 
   useEffect(() => {
     if (!selectedUser) {
@@ -392,7 +401,7 @@ export default function AdminUsersPage() {
             theme === 'dark' ? 'border-slate-800 bg-slate-900/80' : 'border-slate-200 bg-white'
           )}
         >
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px_160px_auto]">
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <label className="sr-only" htmlFor="admin-user-search">
                 搜索用户
@@ -426,7 +435,29 @@ export default function AdminUsersPage() {
             </form>
 
             <label className="grid gap-1.5 text-sm">
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>角色筛选</span>
+              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>身份筛选</span>
+              <select
+                value={userType}
+                onChange={(event) => {
+                  setPage(0);
+                  setUserType(event.target.value as AdminUserTypeFilter);
+                }}
+                className={cn(
+                  'rounded-2xl border px-3 py-2.5 outline-none',
+                  theme === 'dark'
+                    ? 'border-slate-700 bg-slate-950 text-slate-100'
+                    : 'border-slate-200 bg-slate-50 text-slate-900'
+                )}
+              >
+                <option value="all">全部身份</option>
+                <option value="student">学生</option>
+                <option value="teacher">教师</option>
+                <option value="unclassified">未分类</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1.5 text-sm">
+              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>权限筛选</span>
               <select
                 value={role}
                 onChange={(event) => {
@@ -440,7 +471,7 @@ export default function AdminUsersPage() {
                     : 'border-slate-200 bg-slate-50 text-slate-900'
                 )}
               >
-                <option value="all">全部角色</option>
+                <option value="all">全部权限</option>
                 <option value="user">普通用户</option>
                 <option value="admin">管理员</option>
               </select>
@@ -538,7 +569,8 @@ export default function AdminUsersPage() {
                   >
                     <th className="px-5 py-4 font-medium">用户</th>
                     <th className="px-5 py-4 font-medium">邮箱</th>
-                    <th className="px-5 py-4 font-medium">角色</th>
+                    <th className="px-5 py-4 font-medium">身份</th>
+                    <th className="px-5 py-4 font-medium">权限</th>
                     <th className="px-5 py-4 font-medium">状态</th>
                     <th className="px-5 py-4 font-medium">
                       <SortableHeader
@@ -601,6 +633,9 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4">{item.email || '未填写'}</td>
+                      <td className="px-5 py-4">
+                        <UserTypeBadge theme={theme} userType={item.user_type} />
+                      </td>
                       <td className="px-5 py-4">{roleLabel(item.role)}</td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-1.5">
@@ -820,6 +855,21 @@ function StatusBadge({
   );
 }
 
+function UserTypeBadge({
+  userType,
+  theme,
+}: {
+  userType: AdminUserListItem['user_type'] | undefined;
+  theme: string;
+}) {
+  const tone: BadgeTone = userType === 'student' ? 'green' : userType === 'teacher' ? 'cyan' : 'slate';
+  return (
+    <ToneBadge tone={tone} theme={theme}>
+      {userTypeLabel(userType)}
+    </ToneBadge>
+  );
+}
+
 function paginationButtonClass(theme: string) {
   return cn(
     'rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
@@ -923,6 +973,9 @@ function UserDetailDialog({
                 <h2 className={cn('text-xl font-semibold', strongText)}>
                   {formatAdminUserIdentity(user)}
                 </h2>
+                {user ? (
+                  <UserTypeBadge theme={theme} userType={user.user_type} />
+                ) : null}
                 {user ? (
                   <ToneBadge tone={user.role === 'admin' ? 'cyan' : 'slate'} theme={theme}>
                     {roleLabel(user.role)}

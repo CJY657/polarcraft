@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
     real_name: string | null;
     role: 'user' | 'admin';
     email: string | null;
+    user_type?: 'student' | 'teacher' | null;
   },
   logout: vi.fn(),
   refreshUser: vi.fn(),
@@ -55,6 +56,7 @@ describe('ProfileCompletionModal', () => {
       real_name: null,
       role: 'user',
       email: 'alice@example.com',
+      user_type: 'student',
     };
   });
 
@@ -72,6 +74,7 @@ describe('ProfileCompletionModal', () => {
       real_name: null,
       role: 'admin',
       email: 'admin@example.com',
+      user_type: 'teacher',
     };
 
     renderModal();
@@ -87,12 +90,38 @@ describe('ProfileCompletionModal', () => {
       real_name: null,
       role: 'admin',
       email: null,
+      user_type: 'teacher',
     };
 
     renderModal();
 
     expect(screen.getByLabelText('邮箱 *')).toBeDefined();
     expect(screen.queryByLabelText('真实姓名 *')).toBeNull();
+  });
+
+  it('requires legacy administrators to choose an account identity', async () => {
+    mocks.user = {
+      id: 'admin-1',
+      username: 'admin',
+      nickname: null,
+      real_name: null,
+      role: 'admin',
+      email: 'admin@example.com',
+      user_type: null,
+    };
+
+    renderModal();
+
+    expect(screen.queryByLabelText('真实姓名 *')).toBeNull();
+    expect(screen.getByRole('radio', { name: '教师' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('radio', { name: '教师' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存并继续' }));
+
+    await waitFor(() => {
+      expect(mocks.updateProfile).toHaveBeenCalledWith({ user_type: 'teacher' });
+    });
+    expect(mocks.refreshUser).toHaveBeenCalled();
   });
 
   it('saves real name and refreshes auth state', async () => {
@@ -117,6 +146,7 @@ describe('ProfileCompletionModal', () => {
       real_name: 'Alice Chen',
       role: 'user',
       email: null,
+      user_type: 'student',
     };
     renderModal();
 
@@ -149,6 +179,7 @@ describe('ProfileCompletionModal', () => {
       real_name: 'Alice Chen',
       role: 'user',
       email: null,
+      user_type: 'student',
     };
     const view = renderModal();
 

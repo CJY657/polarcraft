@@ -43,6 +43,13 @@ const { mockGetPublicUnits, mockGetPublicUnitCourses, mockCoursesByUnit } = vi.h
         color: "#f97316",
         knowledgeTag: "foundation",
       },
+      {
+        id: "device2",
+        title: { "zh-CN": "偏振散射仪" },
+        description: { "zh-CN": "前沿检测设备" },
+        color: "#f97316",
+        knowledgeTag: "optical_device",
+      },
     ],
   },
 }));
@@ -154,6 +161,7 @@ vi.mock("@/lib/routePreload", () => ({
         units: Array<{ id: string; experiments: Array<{ id: string; title: Record<string, string> }> }>;
         activeExperimentId: string | null;
         onSelectExperiment: (experimentId: string) => void;
+        contentKind?: "experiment" | "application";
       };
     }) => (
       <div>
@@ -164,6 +172,7 @@ vi.mock("@/lib/routePreload", () => ({
           <div>
             <div data-testid="nav-active">{navigation.activeExperimentId}</div>
             <div data-testid="nav-units">{navigation.units.length}</div>
+            <div data-testid="nav-kind">{navigation.contentKind || "experiment"}</div>
             {navigation.units.flatMap((unit) =>
               unit.experiments.map((experiment) => (
                 <button
@@ -195,6 +204,7 @@ function renderPage(initialEntry: string) {
       <Routes>
         <Route path="/experiments" element={<CourseViewerPage />} />
         <Route path="/experiments/:experimentId" element={<CourseViewerPage />} />
+        <Route path="/applications" element={<CourseViewerPage />} />
         <Route path="/applications/:applicationId" element={<CourseViewerPage />} />
       </Routes>
     </MemoryRouter>
@@ -259,6 +269,9 @@ describe("CourseViewerPage", () => {
       expect(screen.getByTestId("nav-active").textContent).toBe("course3");
     });
     expect(screen.getByTestId("nav-units").textContent).toBe("2");
+    expect(screen.getByTestId("nav-kind").textContent).toBe("experiment");
+    expect(screen.queryByRole("button", { name: "select-device1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "select-device2" })).toBeNull();
   });
 
   it("navigates and fetches details when another experiment is selected", async () => {
@@ -276,24 +289,68 @@ describe("CourseViewerPage", () => {
   });
 
   it("still redirects optical-device content to the applications viewer", async () => {
-    courseStoreState.course = { ...defaultCourse, knowledgeTag: "optical_device" };
+    courseStoreState.course = {
+      ...defaultCourse,
+      id: "device1",
+      title: { "zh-CN": "缪勒显微镜" },
+      knowledgeTag: "optical_device",
+    };
 
-    renderPage("/experiments/course1");
+    renderPage("/experiments/device1");
 
     await waitFor(() => {
-      expect(screen.getByTestId("location").textContent).toBe("/applications/course1");
+      expect(screen.getByTestId("location").textContent).toBe("/applications/device1");
     });
-    expect(await screen.findByTestId("nav-absent")).toBeDefined();
+    expect((await screen.findByTestId("nav-kind")).textContent).toBe("application");
+    expect(screen.queryByRole("button", { name: "select-course1" })).toBeNull();
   });
 
-  it("keeps the applications viewer free of hierarchy navigation", async () => {
+  it("sends /applications to the first optical-device application", async () => {
+    courseStoreState.course = null;
+
+    renderPage("/applications");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe("/applications/device1");
+    });
+    expect(fetchCourse).toHaveBeenCalledWith("device1");
+  });
+
+  it("shows only optical-device content in the applications hierarchy", async () => {
+    courseStoreState.course = {
+      ...defaultCourse,
+      id: "device1",
+      title: { "zh-CN": "缪勒显微镜" },
+      knowledgeTag: "optical_device",
+    };
+
+    renderPage("/applications/device1");
+
+    expect(
+      await screen.findByText("mock-viewer-device1-download-false-back-/applications")
+    ).toBeDefined();
+    expect(screen.getByTestId("nav-kind").textContent).toBe("application");
+    expect(screen.getByRole("button", { name: "select-device2" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "select-course1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "select-course3" })).toBeNull();
+
+    fetchCourse.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "select-device2" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe("/applications/device2");
+    });
+    expect(fetchCourse).toHaveBeenCalledWith("device2");
+  });
+
+  it("redirects foundation content back to the experiments workspace", async () => {
     renderPage("/applications/course1");
 
-    expect(await screen.findByTestId("nav-absent")).toBeDefined();
-    expect(mockGetPublicUnits).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("mock-viewer-course1-download-false-back-/applications")
-    ).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe("/experiments/course1");
+    });
+    expect((await screen.findByTestId("nav-kind")).textContent).toBe("experiment");
+    expect(screen.queryByRole("button", { name: "select-device1" })).toBeNull();
   });
 
   it("shows an inline retry when the curriculum fails to load", async () => {
@@ -325,5 +382,16 @@ describe("CourseViewerPage", () => {
     expect(await screen.findByTestId("curriculum-empty")).toBeDefined();
     expect(screen.getByText("暂时还没有可进入的实验内容。")).toBeDefined();
     expect(screen.getByTestId("location").textContent).toBe("/experiments");
+  });
+
+  it("shows an application-specific empty state when no optical-device content exists", async () => {
+    courseStoreState.course = null;
+    mockGetPublicUnitCourses.mockResolvedValue([]);
+
+    renderPage("/applications");
+
+    expect(await screen.findByTestId("curriculum-empty")).toBeDefined();
+    expect(screen.getByText("暂时还没有可进入的前沿应用。")).toBeDefined();
+    expect(screen.getByTestId("location").textContent).toBe("/applications");
   });
 });

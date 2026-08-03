@@ -24,6 +24,8 @@ import {
 // Types / 类型定义
 // =====================================================
 
+export type UserType = 'student' | 'teacher';
+
 export interface UserProfile {
   id: string;
   username: string;
@@ -31,6 +33,7 @@ export interface UserProfile {
   real_name: string | null;
   show_real_name_publicly: boolean;
   role: 'user' | 'admin';
+  user_type: UserType | null;
   avatar_url: string | null;
   email: string | null;
   email_verified: boolean;
@@ -66,6 +69,7 @@ export interface RegisterInput {
   real_name: string;
   password: string;
   email: string;
+  user_type: UserType;
 }
 
 export interface UpdateProfileInput {
@@ -74,6 +78,7 @@ export interface UpdateProfileInput {
   show_real_name_publicly?: boolean;
   email?: string;
   avatar_url?: string;
+  user_type?: UserType;
 }
 
 export interface ChangePasswordInput {
@@ -125,6 +130,7 @@ export const authApi = {
       real_name: input.real_name,
       password: hashedPassword,
       email: input.email.trim(),
+      user_type: input.user_type,
       clientSalt: salt,
     });
     if (response.success && response.data) {

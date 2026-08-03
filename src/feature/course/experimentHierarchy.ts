@@ -6,7 +6,11 @@
  */
 
 import type { CourseData, MediaType } from "@/data/courses";
-import { normalizeKnowledgeTag, type LabelI18n } from "@/lib/course.service";
+import {
+  normalizeKnowledgeTag,
+  type KnowledgeTag,
+  type LabelI18n,
+} from "@/lib/course.service";
 import type { Unit, UnitCourse } from "@/lib/unit.service";
 
 /** 层级中的实验条目（仅展示所需字段） */
@@ -71,16 +75,17 @@ export function buildExperimentalDataFiles(
     .map((media) => ({ id: media.id, title: media.title, type: media.type }));
 }
 
-/** 把公开单元与其课程摘要转换成层级视图模型（只保留基础知识实验） */
+/** 把公开单元与其课程摘要转换成指定内容分类的层级视图模型 */
 export function toHierarchyUnits(
   entries: Array<{ unit: Unit; courses: UnitCourse[] }>,
+  knowledgeTag: KnowledgeTag = "foundation",
 ): HierarchyUnit[] {
   return entries.map(({ unit, courses }) => ({
     id: unit.id,
     title: unit.title,
     color: unit.color,
     experiments: courses
-      .filter((course) => normalizeKnowledgeTag(course.knowledgeTag) === "foundation")
+      .filter((course) => normalizeKnowledgeTag(course.knowledgeTag) === knowledgeTag)
       .map((course) => ({
         id: course.id,
         unitId: unit.id,

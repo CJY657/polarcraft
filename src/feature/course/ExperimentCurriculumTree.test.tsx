@@ -120,6 +120,16 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole("button", { name: /补充资料/ })).toBeTruthy();
   });
 
+  it("uses application terminology without changing the hierarchy", () => {
+    renderTree({ navigation: { contentKind: "application" } });
+
+    expect(screen.getByRole("navigation", { name: "应用目录" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /第一单元/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /冰洲石实验/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /课件材料/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验数据/ })).toBeTruthy();
+  });
+
   it("collapses the folder through its disclosure button", () => {
     renderTree();
 
@@ -218,6 +228,18 @@ describe("ExperimentCurriculumTree", () => {
     });
 
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("暂无实验内容");
+  });
+
+  it("shows an application-specific empty state", () => {
+    renderTree({
+      navigation: {
+        contentKind: "application",
+        units: [{ id: "unit-1", title: { "zh-CN": "第一单元" }, color: "#0ea5e9", experiments: [] }],
+      },
+    });
+
+    expect(screen.getByTestId("curriculum-empty").textContent).toContain("暂无前沿应用");
+    expect(screen.getByTestId("curriculum-empty").textContent).toContain("光学设备应用");
   });
 
   it("renders an empty folder when the active experiment has no presentation files", () => {
