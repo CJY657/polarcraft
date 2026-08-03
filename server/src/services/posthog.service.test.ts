@@ -294,6 +294,7 @@ describe('PostHogService', () => {
           results: [
             ['user-1', 'alice', 'student', 9, 4, 5, '2026-07-09T12:00:00.000Z'],
             ['user-2', null, 'student', 6, 3, 3, null],
+            ['legacy-user', 'legacy', null, 4, 2, 1, '2026-07-08T08:00:00.000Z'],
           ],
         })
       )
@@ -377,6 +378,16 @@ describe('PostHogService', () => {
           learning_actions: 3,
           last_activity: null,
         },
+        {
+          user_id: 'legacy-user',
+          username: 'legacy',
+          display_name: 'legacy',
+          user_type: null,
+          events: 4,
+          pageviews: 2,
+          learning_actions: 1,
+          last_activity: '2026-07-08T08:00:00.000Z',
+        },
       ],
     });
 
@@ -392,7 +403,9 @@ describe('PostHogService', () => {
         "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
       );
       expect(body.query.query).toContain("person.properties.user_type = 'student'");
-      expect(body.query.query).not.toContain('person.properties.role');
+      expect(body.query.query).toContain('person.properties.user_type IS NULL');
+      expect(body.query.query).toContain("person.properties.user_type = ''");
+      expect(body.query.query).toContain("person.properties.role = 'user'");
       expect(body.query.query).toContain('person_id IS NOT NULL');
       expect(body.query.query).toContain('properties.$is_identified = true');
       expect(body.query.query).toContain(
@@ -422,7 +435,7 @@ describe('PostHogService', () => {
     );
   });
 
-  it('omits the user limit and excludes unclassified users from the all segment', async () => {
+  it('omits the user limit and keeps legacy learners in the all segment', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ results: [[]] }));
 
     await PostHogService.getActivityDashboard('2026-07-08', '2026-07-09', null, 'all');
@@ -440,6 +453,25 @@ describe('PostHogService', () => {
       expect(body.query.query).toContain(
         "person.properties.user_type IN ('student', 'teacher')"
       );
+      expect(body.query.query).toContain('person.properties.user_type IS NULL');
+      expect(body.query.query).toContain("person.properties.user_type = ''");
+      expect(body.query.query).toContain("person.properties.role = 'user'");
+    }
+  });
+
+  it('keeps the teacher segment limited to explicitly classified teachers', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ results: [[]] }));
+
+    await PostHogService.getActivityDashboard('2026-07-08', '2026-07-09', 10, 'teacher');
+
+    const queryBodies = fetchMock.mock.calls.map(
+      (call) => JSON.parse(String(call[1]?.body)) as { query: { query: string } }
+    );
+    for (const body of queryBodies) {
+      expect(body.query.query).toContain("person.properties.user_type = 'teacher'");
+      expect(body.query.query).not.toContain('person.properties.user_type IS NULL');
+      expect(body.query.query).not.toContain("person.properties.user_type = ''");
+      expect(body.query.query).not.toContain('person.properties.role');
     }
   });
 
@@ -541,7 +573,9 @@ describe('PostHogService', () => {
     );
     for (const body of queryBodies) {
       expect(body.query.query).toContain("person.properties.user_type = 'student'");
-      expect(body.query.query).not.toContain('person.properties.role');
+      expect(body.query.query).toContain('person.properties.user_type IS NULL');
+      expect(body.query.query).toContain("person.properties.user_type = ''");
+      expect(body.query.query).toContain("person.properties.role = 'user'");
       expect(body.query.query).toContain('properties.$is_identified = true');
       expect(body.query.query).toContain(
         "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"

@@ -234,7 +234,7 @@ export interface AdminUserActivityDashboardResponse {
     user_id: string;
     username: string;
     display_name: string;
-    user_type: UserType;
+    user_type: UserType | null;
     events: number;
     pageviews: number;
     learning_actions: number;

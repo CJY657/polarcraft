@@ -293,16 +293,12 @@ export class PostHogService {
         })),
       module_breakdown: this.buildModuleBreakdown(this.extractRows(moduleResponse)),
       top_users: this.extractRows(usersResponse)
-        .filter(
-          (row) =>
-            typeof row[0] === 'string' &&
-            (row[2] === 'student' || row[2] === 'teacher')
-        )
+        .filter((row) => typeof row[0] === 'string')
         .map((row) => ({
           user_id: row[0] as string,
           username: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
           display_name: typeof row[1] === 'string' && row[1] ? row[1] : (row[0] as string),
-          user_type: row[2] as 'student' | 'teacher',
+          user_type: row[2] === 'student' || row[2] === 'teacher' ? row[2] : null,
           events: this.numberOrZero(row[3]),
           pageviews: this.numberOrZero(row[4]),
           learning_actions: this.numberOrZero(row[5]),
@@ -739,16 +735,29 @@ export class PostHogService {
     };
   }
 
-  /** Aggregate filter: identified, classified users in the selected segment. */
+  /**
+   * Aggregate filter for identified users in the selected segment.
+   * Legacy learner accounts predate user_type, so role=user accounts remain
+   * in the student and all views until they explicitly choose an identity.
+   */
   private static activityFilter(
     start: string,
     end: string,
     segment: AdminUserActivitySegment
   ): string {
+    const legacyLearnerPredicate = `(
+        (person.properties.user_type IS NULL OR person.properties.user_type = '')
+        AND person.properties.role = 'user'
+      )`;
     const userTypePredicate =
-      segment === 'all'
-        ? "person.properties.user_type IN ('student', 'teacher')"
-        : `person.properties.user_type = ${this.quoteLiteral(segment)}`;
+      segment === 'student'
+        ? `(person.properties.user_type = 'student' OR ${legacyLearnerPredicate})`
+        : segment === 'teacher'
+          ? `person.properties.user_type = ${this.quoteLiteral(segment)}`
+          : `(
+        person.properties.user_type IN ('student', 'teacher')
+        OR ${legacyLearnerPredicate}
+      )`;
 
     return `
       timestamp >= toDate('${start}')

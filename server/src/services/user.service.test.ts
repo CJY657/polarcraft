@@ -165,10 +165,10 @@ describe('UserService.getActivityDashboardForAdmin', () => {
           last_activity: null,
         },
         {
-          user_id: 'unknown-user',
+          user_id: 'legacy-user',
           username: 'legacy-account',
           display_name: 'legacy-account',
-          user_type: 'student',
+          user_type: null,
           events: 2,
           pageviews: 1,
           learning_actions: 1,
@@ -191,6 +191,13 @@ describe('UserService.getActivityDashboardForAdmin', () => {
         real_name: '   ',
         user_type: 'student',
       },
+      {
+        id: 'legacy-user',
+        username: 'legacy-account',
+        nickname: null,
+        real_name: null,
+        user_type: null,
+      },
     ]);
 
     const result = await UserService.getActivityDashboardForAdmin(
@@ -203,14 +210,18 @@ describe('UserService.getActivityDashboardForAdmin', () => {
     expect(findIdentitiesByIdsForAdmin).toHaveBeenCalledWith([
       'real-name-user',
       'nickname-user',
-      'unknown-user',
+      'legacy-user',
     ]);
     expect(result.top_users.map((user) => user.display_name)).toEqual([
       'Alice Wang',
       '小波',
       'legacy-account',
     ]);
-    expect(result.top_users.every((user) => user.user_type === 'student')).toBe(true);
+    expect(result.top_users.map((user) => user.user_type)).toEqual([
+      'student',
+      'student',
+      null,
+    ]);
   });
 });
 

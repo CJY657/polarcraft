@@ -189,6 +189,33 @@ describe('AdminActivityPage', () => {
     expect(within(rankingPanel!).queryByText('learner-account')).toBeNull();
   });
 
+  it('keeps a legacy account visible and labels its missing identity', async () => {
+    getActivity.mockResolvedValue({
+      ...activity,
+      top_users: [
+        ...activity.top_users,
+        {
+          user_id: 'legacy-user',
+          username: 'legacy-account',
+          display_name: '旧账号',
+          user_type: null,
+          events: 8,
+          pageviews: 5,
+          learning_actions: 3,
+          last_activity: '2026-07-09T07:30:00.000Z',
+        },
+      ],
+    });
+    renderPage();
+
+    const rankingPanel = (
+      await screen.findByRole('heading', { name: '活跃学生排行' })
+    ).closest('section');
+    expect(rankingPanel).not.toBeNull();
+    expect(within(rankingPanel!).getByText('旧账号')).toBeDefined();
+    expect(within(rankingPanel!).getByText('未分类')).toBeDefined();
+  });
+
   it('defaults to students and makes one request when the activity segment changes', async () => {
     getActivity.mockImplementation(({ userType }: { userType: 'student' | 'teacher' | 'all' }) =>
       Promise.resolve({ ...activity, segment: userType })
@@ -246,6 +273,23 @@ describe('AdminActivityPage', () => {
     fireEvent.click(within(modulePanel!).getByRole('button', { name: /王小雨/ }));
 
     const drawer = await screen.findByRole('dialog', { name: '王小雨 的活动详情' });
+    expect(within(drawer).queryByText('未分类')).toBeNull();
+    expect(within(drawer).getByLabelText('正在加载账号活动详情')).toBeDefined();
+  });
+
+  it('does not infer a student identity for an unresolved legacy module user', async () => {
+    getActivityDetail.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+
+    const modulePanel = (
+      await screen.findByRole('heading', { name: '模块热度' })
+    ).closest('section');
+    expect(modulePanel).not.toBeNull();
+    fireEvent.click(within(modulePanel!).getByText('虚拟课题'));
+    fireEvent.click(within(modulePanel!).getByRole('button', { name: /王小雨/ }));
+
+    const drawer = await screen.findByRole('dialog', { name: '王小雨 的活动详情' });
+    expect(within(drawer).queryByText('学生')).toBeNull();
     expect(within(drawer).queryByText('未分类')).toBeNull();
     expect(within(drawer).getByLabelText('正在加载账号活动详情')).toBeDefined();
   });

@@ -121,7 +121,7 @@ export default function AdminActivityPage() {
       if (user) {
         return {
           name: user.username,
-          userType: userType === 'all' ? undefined : userType,
+          userType: undefined,
         };
       }
     }
@@ -129,7 +129,7 @@ export default function AdminActivityPage() {
       name: copy.noun,
       userType: undefined,
     };
-  }, [copy.noun, selectedUserId, result, userType]);
+  }, [copy.noun, selectedUserId, result]);
 
   const selectUserType = (nextUserType: AdminActivityUserType) => {
     if (nextUserType === userType) return;
