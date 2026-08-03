@@ -1105,25 +1105,19 @@ export class ResearchModel {
     }
 
     const canvasIds = canvases.map((canvas) => canvas.id);
-    const [nodes, edges] = await Promise.all([
-      normalizeDocuments<{ canvas_id: string }>(
-        await nodesCollection().find({ canvas_id: { $in: canvasIds } }).project({ _id: 0, canvas_id: 1 }).toArray()
-      ),
-      normalizeDocuments<{ canvas_id: string }>(
-        await edgesCollection().find({ canvas_id: { $in: canvasIds } }).project({ _id: 0, canvas_id: 1 }).toArray()
-      ),
+    const [nodeCounts, edgeCounts] = await Promise.all([
+      nodesCollection().aggregate<{ _id: string; count: number }>([
+        { $match: { canvas_id: { $in: canvasIds } } },
+        { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
+      ]).toArray(),
+      edgesCollection().aggregate<{ _id: string; count: number }>([
+        { $match: { canvas_id: { $in: canvasIds } } },
+        { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
+      ]).toArray(),
     ]);
 
-    const nodeCountMap = new Map<string, number>();
-    const edgeCountMap = new Map<string, number>();
-
-    for (const node of nodes) {
-      nodeCountMap.set(node.canvas_id, (nodeCountMap.get(node.canvas_id) ?? 0) + 1);
-    }
-
-    for (const edge of edges) {
-      edgeCountMap.set(edge.canvas_id, (edgeCountMap.get(edge.canvas_id) ?? 0) + 1);
-    }
+    const nodeCountMap = new Map(nodeCounts.map(({ _id, count }) => [_id, count]));
+    const edgeCountMap = new Map(edgeCounts.map(({ _id, count }) => [_id, count]));
 
     return canvases.map((canvas) => ({
       ...canvas,

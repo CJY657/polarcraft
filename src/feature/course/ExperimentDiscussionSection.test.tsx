@@ -115,4 +115,44 @@ describe("ExperimentDiscussionSection", () => {
       "false"
     );
   });
+
+  it("keeps reply totals and chronological reply ordering", async () => {
+    mockGetPublicDiscussionComments.mockResolvedValue([
+      createComment({ id: "root-comment", content: "顶层讨论" }),
+      createComment({
+        id: "later-reply",
+        parentCommentId: "root-comment",
+        content: "较晚回复",
+        createdAt: "2026-04-10T10:00:00.000Z",
+      }),
+      createComment({
+        id: "nested-reply",
+        parentCommentId: "later-reply",
+        content: "嵌套回复",
+        createdAt: "2026-04-10T11:00:00.000Z",
+      }),
+      createComment({
+        id: "earlier-reply",
+        parentCommentId: "root-comment",
+        content: "较早回复",
+        createdAt: "2026-04-10T09:00:00.000Z",
+      }),
+    ]);
+
+    const { container } = render(
+      <ExperimentDiscussionSection
+        courseId="course-1"
+        courseTitle="偏振实验"
+        theme="light"
+      />
+    );
+
+    await screen.findByText("顶层讨论");
+    fireEvent.click(screen.getByRole("button", { name: "展开 3 条回复" }));
+
+    await screen.findByText("嵌套回复");
+    const text = container.textContent ?? "";
+    expect(text.indexOf("较早回复")).toBeLessThan(text.indexOf("较晚回复"));
+    expect(text.indexOf("较晚回复")).toBeLessThan(text.indexOf("嵌套回复"));
+  });
 });

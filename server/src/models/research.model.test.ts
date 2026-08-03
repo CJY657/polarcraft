@@ -15,7 +15,9 @@ const canvasesDeleteMany = vi.fn();
 const canvasesCountDocuments = vi.fn();
 const canvasesInsertOne = vi.fn();
 const nodesFind = vi.fn();
+const nodesAggregate = vi.fn();
 const nodesDeleteMany = vi.fn();
+const edgesAggregate = vi.fn();
 const edgesDeleteMany = vi.fn();
 const commentsDeleteMany = vi.fn();
 const projectCommentsDeleteMany = vi.fn();
@@ -75,10 +77,12 @@ vi.mock('../database/connection.js', () => ({
       case 'research_nodes':
         return {
           find: (...args: unknown[]) => nodesFind(...args),
+          aggregate: (...args: unknown[]) => nodesAggregate(...args),
           deleteMany: (...args: unknown[]) => nodesDeleteMany(...args),
         };
       case 'research_edges':
         return {
+          aggregate: (...args: unknown[]) => edgesAggregate(...args),
           deleteMany: (...args: unknown[]) => edgesDeleteMany(...args),
         };
       case 'research_node_comments':
@@ -159,6 +163,52 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 import { ResearchModel } from './research.model.js';
+
+describe('ResearchModel.getProjectCanvases', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    canvasesFind.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          { _id: 'mongo-canvas-2', id: 'canvas-2', project_id: 'project-1' },
+          { _id: 'mongo-canvas-1', id: 'canvas-1', project_id: 'project-1' },
+        ],
+      }),
+    });
+    nodesAggregate.mockReturnValue({
+      toArray: async () => [{ _id: 'canvas-1', count: 3 }],
+    });
+    edgesAggregate.mockReturnValue({
+      toArray: async () => [{ _id: 'canvas-2', count: 2 }],
+    });
+  });
+
+  it('keeps canvas ordering and maps grouped node and edge counts', async () => {
+    await expect(ResearchModel.getProjectCanvases('project-1')).resolves.toEqual([
+      {
+        id: 'canvas-2',
+        project_id: 'project-1',
+        node_count: 0,
+        edge_count: 2,
+      },
+      {
+        id: 'canvas-1',
+        project_id: 'project-1',
+        node_count: 3,
+        edge_count: 0,
+      },
+    ]);
+
+    expect(nodesAggregate).toHaveBeenCalledWith([
+      { $match: { canvas_id: { $in: ['canvas-2', 'canvas-1'] } } },
+      { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
+    ]);
+    expect(edgesAggregate).toHaveBeenCalledWith([
+      { $match: { canvas_id: { $in: ['canvas-2', 'canvas-1'] } } },
+      { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
+    ]);
+  });
+});
 
 describe('ResearchModel.createProject', () => {
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   ChevronDown,
   ImagePlus,
@@ -47,15 +47,24 @@ interface DraftImage {
 
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_COMMENT_IMAGES = 6;
+const ZH_COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const EN_COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 function formatCommentTime(value: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  const formatter = locale === "zh-CN" ? ZH_COMMENT_TIME_FORMATTER : EN_COMMENT_TIME_FORMATTER;
+  return formatter.format(new Date(value));
 }
 
 function buildCommentTree(comments: CourseDiscussionComment[]): DiscussionTreeComment[] {
@@ -338,8 +347,10 @@ export function ExperimentDiscussionSection({
   const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const canParticipate = Boolean(user);
-  const commentTree = buildCommentTree(comments);
-  const parentCommentLookup = buildParentCommentLookup(comments);
+  const { commentTree, parentCommentLookup } = useMemo(() => ({
+    commentTree: buildCommentTree(comments),
+    parentCommentLookup: buildParentCommentLookup(comments),
+  }), [comments]);
 
   useEffect(() => {
     newCommentImagesRef.current = newCommentImages;

@@ -22,8 +22,6 @@ export default defineConfig({
         manualChunks: {
           // React core
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // 3D rendering (Three.js ecosystem - largest chunk)
-          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
           // Animation library
           'vendor-motion': ['framer-motion'],
           // State management and i18n

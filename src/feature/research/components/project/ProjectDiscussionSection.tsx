@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   ImagePlus,
@@ -53,6 +53,12 @@ interface DiscussionTreeComment extends ProjectDiscussionComment {
   replies: DiscussionTreeComment[];
 }
 
+interface DiscussionThreadGroup {
+  threads: DiscussionTreeComment[];
+  discussionCount: number;
+  latestActivity: string | null;
+}
+
 type DiscussionTopic = number | 'general';
 
 type DraftAttachmentType = 'image' | 'video';
@@ -69,15 +75,17 @@ const MAX_COMMENT_IMAGES = 6;
 const MAX_COMMENT_VIDEOS = 2;
 /** 首屏渲染的顶层讨论串数量；点击「展开更早的讨论」后每次追加同样数量 */
 const INITIAL_VISIBLE_THREADS = 20;
+const EMPTY_DISCUSSION_QUESTIONS: string[] = [];
+const COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 function formatCommentTime(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return COMMENT_TIME_FORMATTER.format(new Date(value));
 }
 
 function buildCommentTree(comments: ProjectDiscussionComment[]): DiscussionTreeComment[] {
@@ -127,6 +135,14 @@ function getLatestDiscussionActivity(threads: DiscussionTreeComment[]): string |
 
   threads.forEach(visit);
   return latest;
+}
+
+function summarizeDiscussionThreads(threads: DiscussionTreeComment[]): DiscussionThreadGroup {
+  return {
+    threads,
+    discussionCount: countDiscussionComments(threads),
+    latestActivity: getLatestDiscussionActivity(threads),
+  };
 }
 
 function buildParentCommentLookup(
@@ -452,14 +468,23 @@ export function ProjectDiscussionSection({
   const newCommentFileInputRef = useRef<HTMLInputElement | null>(null);
   const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const commentTree = buildCommentTree(comments);
-  const parentCommentLookup = buildParentCommentLookup(comments);
-  const commentsById = new Map(comments.map((comment) => [comment.id, comment]));
-  const questions = outline?.questions ?? [];
-  const questionThreads = questions.map((_, questionIndex) =>
-    commentTree.filter((comment) => comment.question_index === questionIndex)
-  );
-  const generalThreads = commentTree.filter((comment) => comment.question_index == null);
+  const { commentTree, parentCommentLookup, commentsById } = useMemo(() => ({
+    commentTree: buildCommentTree(comments),
+    parentCommentLookup: buildParentCommentLookup(comments),
+    commentsById: new Map(comments.map((comment) => [comment.id, comment])),
+  }), [comments]);
+  const questions = outline?.questions ?? EMPTY_DISCUSSION_QUESTIONS;
+  const { questionThreadGroups, generalThreadGroup } = useMemo(() => {
+    const questionThreads = questions.map((_, questionIndex) =>
+      commentTree.filter((comment) => comment.question_index === questionIndex)
+    );
+    const generalThreads = commentTree.filter((comment) => comment.question_index == null);
+
+    return {
+      questionThreadGroups: questionThreads.map(summarizeDiscussionThreads),
+      generalThreadGroup: summarizeDiscussionThreads(generalThreads),
+    };
+  }, [commentTree, questions]);
 
   useEffect(() => {
     newCommentAttachmentsRef.current = newCommentAttachments;
@@ -1360,12 +1385,11 @@ export function ProjectDiscussionSection({
   function renderDiscussionRow(
     topic: DiscussionTopic,
     label: string,
-    threads: DiscussionTreeComment[]
+    group: DiscussionThreadGroup
   ) {
+    const { threads, discussionCount, latestActivity } = group;
     const isOpen = openDiscussionTopic === topic;
     const contentId = topic === 'general' ? 'discussion-comments' : `discussion-question-${topic}`;
-    const discussionCount = countDiscussionComments(threads);
-    const latestActivity = getLatestDiscussionActivity(threads);
 
     return (
       <div
@@ -1425,9 +1449,9 @@ export function ProjectDiscussionSection({
       >
         <div className="space-y-2.5">
           {questions.map((question, questionIndex) =>
-            renderDiscussionRow(questionIndex, question, questionThreads[questionIndex])
+            renderDiscussionRow(questionIndex, question, questionThreadGroups[questionIndex])
           )}
-          {renderDiscussionRow('general', '其它讨论', generalThreads)}
+          {renderDiscussionRow('general', '其它讨论', generalThreadGroup)}
         </div>
       </ResearchSectionCard>
 
