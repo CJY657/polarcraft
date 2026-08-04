@@ -136,13 +136,37 @@ describe('PublicStatsService', () => {
     const service = await loadService();
 
     await service.getPublicActivity(range7, null);
-    vi.setSystemTime(new Date('2026-08-01T09:09:00Z'));
+    vi.setSystemTime(new Date('2026-08-01T09:39:00Z'));
     await service.getPublicActivity(range7, null);
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(1);
 
-    vi.setSystemTime(new Date('2026-08-01T09:11:00Z'));
+    vi.setSystemTime(new Date('2026-08-01T09:41:00Z'));
     await service.getPublicActivity(range7, null);
     expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves an expired snapshot without waiting for the refresh', async () => {
+    const service = await loadService();
+    await service.getPublicActivity(range7, null);
+
+    getPublicActivitySnapshot.mockReturnValue(new Promise(() => undefined));
+    vi.setSystemTime(new Date('2026-08-01T09:41:00Z'));
+
+    // A blocking refresh would never settle here.
+    const result = await service.getPublicActivity(range7, null);
+    expect(result.generated_at).toBe('2026-08-01T02:00:00.000Z');
+    expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('derives each viewer from the shared snapshot instead of caching their rank', async () => {
+    const service = await loadService();
+
+    const anonymous = await service.getPublicActivity(range7, null);
+    const student = await service.getPublicActivity(range7, 'user-12');
+
+    expect(anonymous.viewer).toBeNull();
+    expect(student.viewer?.rank).toBe(12);
+    expect(getPublicActivitySnapshot).toHaveBeenCalledTimes(1);
   });
 
   it('caches each range separately', async () => {
@@ -190,7 +214,7 @@ describe('PublicStatsService', () => {
     await service.getPublicActivity(range7, null);
 
     getPublicActivitySnapshot.mockRejectedValue(new Error('upstream down'));
-    vi.setSystemTime(new Date('2026-08-01T09:11:00Z'));
+    vi.setSystemTime(new Date('2026-08-01T09:41:00Z'));
 
     const result = await service.getPublicActivity(range7, null);
     expect(result.summary).toEqual({

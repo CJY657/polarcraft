@@ -165,6 +165,9 @@ export default function AdminLearnerActivityDrawer({
               {detail?.last_activity
                 ? ` · 最近活动 ${formatShortDateTime(detail.last_activity)}`
                 : ''}
+              {detail
+                ? ` · 数据更新时间 ${formatShortDateTime(detail.generated_at)}`
+                : ''}
             </p>
           </div>
           <button

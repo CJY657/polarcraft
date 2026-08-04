@@ -237,6 +237,82 @@ describe('UserService.getActivityDashboardForAdmin', () => {
       null,
     ]);
   });
+
+  it('reuses the cached PostHog aggregate for an identical request', async () => {
+    const dashboard = {
+      status: 'ok',
+      segment: 'student',
+      range: { start: '2026-05-01', end: '2026-05-07', days: 7 },
+      generated_at: '2026-05-07T00:00:00.000Z',
+      summary: { active_users: 1, meaningful_events: 1, pageviews: 1, learning_actions: 0 },
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      module_breakdown: [],
+      top_users: [],
+    };
+    getActivityDashboard.mockResolvedValue(dashboard);
+
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'student');
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'student');
+    expect(getActivityDashboard).toHaveBeenCalledTimes(1);
+
+    // Segment, ranking limit, and range are all part of the key.
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'teacher');
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 50, 'student');
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-08', 10, 'student');
+    expect(getActivityDashboard).toHaveBeenCalledTimes(4);
+  });
+
+  it('reads display names from the database on every request, cached aggregate or not', async () => {
+    getActivityDashboard.mockResolvedValue({
+      status: 'ok',
+      segment: 'student',
+      range: { start: '2026-05-11', end: '2026-05-17', days: 7 },
+      generated_at: '2026-05-17T00:00:00.000Z',
+      summary: { active_users: 1, meaningful_events: 1, pageviews: 1, learning_actions: 0 },
+      daily: [],
+      top_pages: [],
+      activity_breakdown: [],
+      module_breakdown: [],
+      top_users: [
+        {
+          user_id: 'renamed-user',
+          username: 'alice',
+          display_name: 'alice',
+          user_type: 'student',
+          events: 1,
+          pageviews: 1,
+          learning_actions: 0,
+          last_activity: null,
+        },
+      ],
+    });
+    findIdentitiesByIdsForAdmin.mockResolvedValueOnce([
+      { id: 'renamed-user', username: 'alice', nickname: null, real_name: 'Alice', user_type: 'student' },
+    ]);
+    findIdentitiesByIdsForAdmin.mockResolvedValueOnce([
+      { id: 'renamed-user', username: 'alice', nickname: null, real_name: 'Alice Wang', user_type: 'teacher' },
+    ]);
+
+    const first = await UserService.getActivityDashboardForAdmin(
+      '2026-05-11',
+      '2026-05-17',
+      10,
+      'student'
+    );
+    const second = await UserService.getActivityDashboardForAdmin(
+      '2026-05-11',
+      '2026-05-17',
+      10,
+      'student'
+    );
+
+    expect(getActivityDashboard).toHaveBeenCalledTimes(1);
+    expect(first.top_users[0].display_name).toBe('Alice');
+    expect(second.top_users[0].display_name).toBe('Alice Wang');
+    expect(second.top_users[0].user_type).toBe('teacher');
+  });
 });
 
 describe('UserService.getLearnerActivityForAdmin', () => {
@@ -271,6 +347,39 @@ describe('UserService.getLearnerActivityForAdmin', () => {
       '2026-07-01',
       '2026-07-07'
     );
+  });
+
+  it('caches activity per learner and range, after checking the account exists', async () => {
+    findByIdForAdmin.mockResolvedValue({ id: 'learner-1', user_type: 'student' });
+    getLearnerActivityDetail.mockResolvedValue({
+      status: 'ok',
+      range: { start: '2026-06-01', end: '2026-06-07', days: 7 },
+      previous_range: { start: '2026-05-25', end: '2026-05-31', days: 7 },
+      generated_at: '2026-06-07T00:00:00.000Z',
+      last_activity: null,
+      summary: null,
+      previous_summary: null,
+      daily: [],
+      top_pages: [],
+      module_breakdown: [],
+      hourly: [],
+    });
+
+    await UserService.getLearnerActivityForAdmin('learner-1', '2026-06-01', '2026-06-07');
+    await UserService.getLearnerActivityForAdmin('learner-1', '2026-06-01', '2026-06-07');
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(1);
+    // Existence is still verified on the cached path.
+    expect(findByIdForAdmin).toHaveBeenCalledTimes(2);
+
+    findByIdForAdmin.mockResolvedValue({ id: 'learner-2', user_type: 'student' });
+    await UserService.getLearnerActivityForAdmin('learner-2', '2026-06-01', '2026-06-07');
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(2);
+
+    findByIdForAdmin.mockResolvedValue(null);
+    await expect(
+      UserService.getLearnerActivityForAdmin('learner-1', '2026-06-01', '2026-06-07')
+    ).rejects.toBeInstanceOf(AuthError);
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(2);
   });
 });
 

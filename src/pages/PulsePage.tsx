@@ -117,7 +117,7 @@ export function PulsePage() {
           <h1 className="clay-display-lg mt-3">平台学习热度</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-clay-body">
             汇总了全平台已登用户的学习活动：每天有多少人在做实验、看模拟、参与课题。
-            数据每 10 分钟更新一次。
+            数据每 40 分钟更新一次。
           </p>
 
           <div

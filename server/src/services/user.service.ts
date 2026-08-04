@@ -29,6 +29,22 @@ import { TokenService } from './token.service.js';
 import { AuthService } from './auth.service.js';
 import { PostHogService } from './posthog.service.js';
 import { logger } from '../utils/logger.js';
+import { createSwrCache } from '../utils/swr-cache.js';
+
+/** Analytics fan out to PostHog; admins share the snapshot for 20 minutes. */
+const ACTIVITY_CACHE_TTL_MS = 20 * 60 * 1000;
+
+/** Raw PostHog aggregates only — display names stay a live MongoDB read. */
+const activityDashboards = createSwrCache<AdminUserActivityDashboardResponse>(
+  'admin activity dashboard',
+  ACTIVITY_CACHE_TTL_MS,
+  32
+);
+const learnerActivities = createSwrCache<Omit<AdminUserActivityDetailResponse, 'user_type'>>(
+  'admin learner activity',
+  ACTIVITY_CACHE_TTL_MS,
+  128
+);
 
 /**
  * User Service Class
@@ -144,11 +160,9 @@ export class UserService {
     userLimit: number | null,
     segment: AdminUserActivitySegment
   ): Promise<AdminUserActivityDashboardResponse> {
-    const dashboard = await PostHogService.getActivityDashboard(
-      start,
-      end,
-      userLimit,
-      segment
+    const dashboard = await activityDashboards(
+      `${start}:${end}:${segment}:${userLimit ?? 'all'}`,
+      () => PostHogService.getActivityDashboard(start, end, userLimit, segment)
     );
     if (dashboard.top_users.length === 0) {
       return dashboard;
@@ -188,7 +202,9 @@ export class UserService {
       throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
     }
 
-    const activity = await PostHogService.getLearnerActivityDetail(user.id, start, end);
+    const activity = await learnerActivities(`${user.id}:${start}:${end}`, () =>
+      PostHogService.getLearnerActivityDetail(user.id, start, end)
+    );
     return { ...activity, user_type: user.user_type };
   }
 

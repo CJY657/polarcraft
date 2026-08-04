@@ -584,7 +584,7 @@ function Dashboard({
       </div>
 
       <p className={cn('mt-4 text-right text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-        数据更新时间：{formatShortDateTime(result.generated_at)}
+        数据更新时间：{formatShortDateTime(result.generated_at)} · 每 20 分钟刷新一次
       </p>
     </>
   );
