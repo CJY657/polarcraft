@@ -87,6 +87,12 @@ export class PostHogService {
 
   private static readonly LEARNING_EVENT_PREDICATE = LEARNING_EVENT_PREDICATE;
 
+  private static readonly MAX_CONCURRENT_QUERIES = 3;
+
+  private static activeQueries = 0;
+
+  private static readonly pendingQueries: Array<() => void> = [];
+
   /** Prefer the SPA-reported path, fall back to the raw URL. */
   private static readonly PATH_EXPRESSION = `
       coalesce(
@@ -154,18 +160,22 @@ export class PostHogService {
 
     const learningEventPredicate = this.LEARNING_EVENT_PREDICATE;
     const filter = this.activityFilter(start, end, segment);
+    const previousRange = this.previousRange(range);
     const pathExpression = this.PATH_EXPRESSION;
-    const summaryQuery = (windowFilter: string) => `
+    const comparisonFilter = this.activityFilter(previousRange.start, end, segment);
+    const summaryQuery = `
             SELECT
+              if(timestamp >= toDate('${start}'), 'current', 'previous') AS period,
               count(DISTINCT person_id),
               count(),
               countIf(event = '$pageview'),
               countIf(${learningEventPredicate})
             FROM events
-            WHERE ${windowFilter}
+            WHERE ${comparisonFilter}
+            GROUP BY period
         `;
     const [summaryResponse, dailyResponse, pagesResponse] = await Promise.all([
-      this.runQuery(summaryQuery(filter), 'admin user activity summary'),
+      this.runQuery(summaryQuery, 'admin user activity comparison'),
       this.runQuery(
         `
             SELECT
@@ -243,20 +253,9 @@ export class PostHogService {
       ),
     ]);
 
-    const summaryRow = this.extractRows(summaryResponse)[0] ?? [];
-
-    // Run last and alone: PostHog throttles bursts, and the batches above
-    // already saturate the concurrency the upstream tolerates.
-    const previousRange = this.previousRange(range);
-    const previousRow =
-      this.extractRows(
-        await this.runQuery(
-          summaryQuery(
-            this.activityFilter(previousRange.start, previousRange.end, segment)
-          ),
-          'admin user activity previous summary'
-        )
-      )[0] ?? [];
+    const summaryRows = this.extractRows(summaryResponse);
+    const summaryRow = summaryRows.find((row) => row[0] === 'current') ?? [];
+    const previousRow = summaryRows.find((row) => row[0] === 'previous') ?? [];
 
     return {
       status: 'ok',
@@ -264,17 +263,17 @@ export class PostHogService {
       range,
       generated_at: generatedAt,
       summary: {
-        active_users: this.numberOrZero(summaryRow[0]),
-        meaningful_events: this.numberOrZero(summaryRow[1]),
-        pageviews: this.numberOrZero(summaryRow[2]),
-        learning_actions: this.numberOrZero(summaryRow[3]),
+        active_users: this.numberOrZero(summaryRow[1]),
+        meaningful_events: this.numberOrZero(summaryRow[2]),
+        pageviews: this.numberOrZero(summaryRow[3]),
+        learning_actions: this.numberOrZero(summaryRow[4]),
       },
       previous_summary: {
         range: previousRange,
-        active_users: this.numberOrZero(previousRow[0]),
-        meaningful_events: this.numberOrZero(previousRow[1]),
-        pageviews: this.numberOrZero(previousRow[2]),
-        learning_actions: this.numberOrZero(previousRow[3]),
+        active_users: this.numberOrZero(previousRow[1]),
+        meaningful_events: this.numberOrZero(previousRow[2]),
+        pageviews: this.numberOrZero(previousRow[3]),
+        learning_actions: this.numberOrZero(previousRow[4]),
       },
       daily: this.buildDailySeries(start, end, this.extractRows(dailyResponse)),
       top_pages: this.extractRows(pagesResponse)
@@ -441,6 +440,7 @@ export class PostHogService {
     }
 
     const filter = this.learnerFilter(userId, start, end);
+    const dailyFilter = this.learnerFilter(userId, previousRange.start, end);
     const [dailyResponse, pagesResponse, hourlyResponse] = await Promise.all([
       this.runQuery(
         `
@@ -451,10 +451,10 @@ export class PostHogService {
               countIf(event = '$pageview'),
               countIf(${this.LEARNING_EVENT_PREDICATE})
             FROM events
-            WHERE ${filter}
+            WHERE ${dailyFilter}
             GROUP BY day
             ORDER BY day
-            LIMIT ${range.days}
+            LIMIT ${range.days + previousRange.days}
         `,
         'admin learner detail daily'
       ),
@@ -486,21 +486,6 @@ export class PostHogService {
       ),
     ]);
 
-    const previousRow =
-      this.extractRows(
-        await this.runQuery(
-          `
-            SELECT
-              count(),
-              countIf(event = '$pageview'),
-              countIf(${this.LEARNING_EVENT_PREDICATE})
-            FROM events
-            WHERE ${this.learnerFilter(userId, previousRange.start, previousRange.end)}
-        `,
-          'admin learner detail previous summary'
-        )
-      )[0] ?? [];
-
     const dailyRows = this.extractRows(dailyResponse).filter(
       (row) => typeof row[0] === 'string'
     );
@@ -519,6 +504,10 @@ export class PostHogService {
       (date) =>
         byDate.get(date) ?? { date, events: 0, pageviews: 0, learning_actions: 0 }
     );
+    const previousDaily = this.denseDates(previousRange.start, previousRange.end).map(
+      (date) =>
+        byDate.get(date) ?? { date, events: 0, pageviews: 0, learning_actions: 0 }
+    );
     const summary = daily.reduce(
       (totals, day) => ({
         meaningful_events: totals.meaningful_events + day.events,
@@ -527,11 +516,22 @@ export class PostHogService {
       }),
       { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
     );
+    const previousSummary = previousDaily.reduce(
+      (totals, day) => ({
+        meaningful_events: totals.meaningful_events + day.events,
+        pageviews: totals.pageviews + day.pageviews,
+        learning_actions: totals.learning_actions + day.learning_actions,
+      }),
+      { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
+    );
+    const currentDailyRows = dailyRows.filter(
+      (row) => (row[0] as string) >= start && (row[0] as string) <= end
+    );
     // rows are ordered by day, so the last one carries the newest timestamp
     const lastActivity =
       summary.meaningful_events === 0
         ? null
-        : this.stringOrNull(dailyRows[dailyRows.length - 1]?.[1]);
+        : this.stringOrNull(currentDailyRows[currentDailyRows.length - 1]?.[1]);
 
     const pageRows = this.extractRows(pagesResponse)
       .filter((row) => typeof row[0] === 'string' && row[0].length > 0)
@@ -547,11 +547,7 @@ export class PostHogService {
       generated_at: generatedAt,
       last_activity: lastActivity,
       summary,
-      previous_summary: {
-        meaningful_events: this.numberOrZero(previousRow[0]),
-        pageviews: this.numberOrZero(previousRow[1]),
-        learning_actions: this.numberOrZero(previousRow[2]),
-      },
+      previous_summary: previousSummary,
       daily,
       top_pages: pageRows.slice(0, 10),
       module_breakdown: this.buildLearnerModules(pageRows),
@@ -873,19 +869,44 @@ export class PostHogService {
     query: string,
     name: string
   ): Promise<PostHogQueryResponse> {
-    return this.request<PostHogQueryResponse>(
-      `/api/environments/${config.posthog.environmentId}/query/`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          query: {
-            kind: 'HogQLQuery',
-            query: query.trim(),
-          },
-          name,
-        }),
-      }
-    );
+    await this.acquireQuerySlot();
+    try {
+      return await this.request<PostHogQueryResponse>(
+        `/api/environments/${config.posthog.environmentId}/query/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            query: {
+              kind: 'HogQLQuery',
+              query: query.trim(),
+            },
+            name,
+          }),
+        }
+      );
+    } finally {
+      this.releaseQuerySlot();
+    }
+  }
+
+  private static acquireQuerySlot(): Promise<void> {
+    if (this.activeQueries < this.MAX_CONCURRENT_QUERIES) {
+      this.activeQueries += 1;
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      this.pendingQueries.push(resolve);
+    });
+  }
+
+  private static releaseQuerySlot(): void {
+    const next = this.pendingQueries.shift();
+    if (next) {
+      next();
+    } else {
+      this.activeQueries -= 1;
+    }
   }
 
   private static async request<T>(

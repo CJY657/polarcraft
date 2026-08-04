@@ -264,7 +264,14 @@ describe('PostHogService', () => {
 
   it('maps bounded learner-only aggregate queries into the activity dashboard', async () => {
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ results: [[3, 18, 8, 10]] }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          results: [
+            ['current', 3, 18, 8, 10],
+            ['previous', 2, 11, 6, 5],
+          ],
+        })
+      )
       .mockResolvedValueOnce(
         jsonResponse({
           results: [
@@ -305,8 +312,7 @@ describe('PostHogService', () => {
             ['/projects/1', 'user-2', null, 3],
           ],
         })
-      )
-      .mockResolvedValueOnce(jsonResponse({ results: [[2, 11, 6, 5]] }));
+      );
 
     await expect(
       PostHogService.getActivityDashboard('2026-07-07', '2026-07-09', 10)
@@ -391,11 +397,11 @@ describe('PostHogService', () => {
       ],
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
     const queryBodies = fetchMock.mock.calls.map((call) =>
       JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
     );
-    for (const body of queryBodies.slice(0, 6)) {
+    for (const body of queryBodies.slice(1)) {
       expect(body.query.query).toContain(
         "timestamp >= toDate('2026-07-07')"
       );
@@ -412,6 +418,19 @@ describe('PostHogService', () => {
         "event NOT IN ('$autocapture', '$pageleave', '$identify', '$set')"
       );
     }
+    expect(queryBodies[0]?.name).toBe('admin user activity comparison');
+    expect(queryBodies[0]?.query.query).toContain(
+      "if(timestamp >= toDate('2026-07-07'), 'current', 'previous') AS period"
+    );
+    expect(queryBodies[0]?.query.query).toContain('GROUP BY period');
+    expect(queryBodies[0]?.query.query).toContain("timestamp >= toDate('2026-07-04')");
+    expect(queryBodies[0]?.query.query).toContain(
+      "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
+    );
+    expect(queryBodies[0]?.query.query).toContain("person.properties.user_type = 'student'");
+    expect(queryBodies[0]?.query.query).toContain('person.properties.user_type IS NULL');
+    expect(queryBodies[0]?.query.query).toContain("person.properties.user_type = ''");
+    expect(queryBodies[0]?.query.query).toContain("person.properties.role = 'user'");
     expect(queryBodies[0]?.query.query).toContain('count(DISTINCT person_id)');
     expect(queryBodies[1]?.query.query).toContain('ORDER BY day');
     expect(queryBodies[1]?.query.query).not.toContain('WITH FILL');
@@ -428,11 +447,6 @@ describe('PostHogService', () => {
     expect(queryBodies[4]?.query.query).toContain('GROUP BY person_id');
     expect(queryBodies[5]?.query.query).toContain('GROUP BY 1, person_id');
     expect(queryBodies[5]?.query.query).not.toContain('LIMIT');
-    expect(queryBodies[6]?.name).toBe('admin user activity previous summary');
-    expect(queryBodies[6]?.query.query).toContain("timestamp >= toDate('2026-07-04')");
-    expect(queryBodies[6]?.query.query).toContain(
-      "timestamp < toDate('2026-07-06') + INTERVAL 1 DAY"
-    );
   });
 
   it('omits the user limit and keeps legacy learners in the all segment', async () => {
@@ -500,6 +514,33 @@ describe('PostHogService', () => {
     });
 
     await PostHogService.getActivityDashboard('2026-07-07', '2026-07-13', 10);
+
+    expect(maximumConcurrency).toBeLessThanOrEqual(3);
+  });
+
+  it('loads the dashboard without a serial third upstream query wave', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ results: [] }));
+
+    await PostHogService.getActivityDashboard('2026-07-07', '2026-07-13', 10);
+
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+  });
+
+  it('keeps overlapping dashboard and learner-detail queries within the upstream limit', async () => {
+    let activeRequests = 0;
+    let maximumConcurrency = 0;
+    fetchMock.mockImplementation(async () => {
+      activeRequests += 1;
+      maximumConcurrency = Math.max(maximumConcurrency, activeRequests);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      activeRequests -= 1;
+      return jsonResponse({ results: [] });
+    });
+
+    await Promise.all([
+      PostHogService.getActivityDashboard('2026-07-07', '2026-07-13', 10),
+      PostHogService.getLearnerActivityDetail('user-1', '2026-07-07', '2026-07-13'),
+    ]);
 
     expect(maximumConcurrency).toBeLessThanOrEqual(3);
   });
@@ -611,7 +652,10 @@ describe('PostHogService', () => {
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
-          results: [['2026-07-09', '2026-07-09T11:30:00.000Z', 9, 5, 2]],
+          results: [
+            ['2026-07-07', '2026-07-07T10:00:00.000Z', 4, 2, 1],
+            ['2026-07-09', '2026-07-09T11:30:00.000Z', 9, 5, 2],
+          ],
         })
       )
       .mockResolvedValueOnce(
@@ -630,8 +674,7 @@ describe('PostHogService', () => {
             [0, 1, 4],
           ],
         })
-      )
-      .mockResolvedValueOnce(jsonResponse({ results: [[4, 2, 1]] }));
+      );
 
     await expect(
       PostHogService.getLearnerActivityDetail('user-1', '2026-07-08', '2026-07-09')
@@ -662,7 +705,7 @@ describe('PostHogService', () => {
       ],
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     const queryBodies = fetchMock.mock.calls.map(
       (call) => JSON.parse(String(call[1]?.body)) as { query: { query: string }; name: string }
     );
@@ -672,16 +715,31 @@ describe('PostHogService', () => {
       // Admins inspect any account here, so no role filter.
       expect(body.query.query).not.toContain('person.properties.role');
     }
+    expect(queryBodies[0]?.query.query).toContain("timestamp >= toDate('2026-07-06')");
+    expect(queryBodies[0]?.query.query).toContain(
+      "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
+    );
+    expect(queryBodies[0]?.query.query).toContain('LIMIT 4');
+    expect(queryBodies[1]?.query.query).toContain("timestamp >= toDate('2026-07-08')");
+    expect(queryBodies[2]?.query.query).toContain("timestamp >= toDate('2026-07-08')");
     expect(queryBodies[2]?.query.query).toContain(
       "toDayOfWeek(toTimeZone(timestamp, 'Asia/Shanghai'))"
     );
     expect(queryBodies[2]?.query.query).toContain(
       "toHour(toTimeZone(timestamp, 'Asia/Shanghai'))"
     );
-    expect(queryBodies[3]?.query.query).toContain("timestamp >= toDate('2026-07-06')");
-    expect(queryBodies[3]?.query.query).toContain(
-      "timestamp < toDate('2026-07-07') + INTERVAL 1 DAY"
+  });
+
+  it('loads a learner detail in one upstream query wave', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ results: [] }));
+
+    await PostHogService.getLearnerActivityDetail(
+      'one-wave-user',
+      '2026-07-08',
+      '2026-07-09'
     );
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('reports no last activity for a learner without events in the range', async () => {

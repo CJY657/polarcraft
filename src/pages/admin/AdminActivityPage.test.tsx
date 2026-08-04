@@ -318,9 +318,10 @@ describe('AdminActivityPage', () => {
     );
   });
 
-  it('reloads when a custom date range is entered', async () => {
+  it('queries only the final custom date range after it is applied', async () => {
     renderPage();
     await waitFor(() => expect(getActivity).toHaveBeenCalled());
+    getActivity.mockClear();
 
     fireEvent.change(screen.getByLabelText('开始日期'), {
       target: { value: '2026-06-01' },
@@ -329,14 +330,48 @@ describe('AdminActivityPage', () => {
       target: { value: '2026-06-30' },
     });
 
+    expect(getActivity).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '查询自定义日期' }));
+
     await waitFor(() =>
-      expect(getActivity).toHaveBeenLastCalledWith({
-        start: '2026-06-01',
-        end: '2026-06-30',
-        userType: 'student',
-        limit: 10,
-      })
+      expect(getActivity).toHaveBeenCalledTimes(1)
     );
+    expect(getActivity).toHaveBeenLastCalledWith({
+      start: '2026-06-01',
+      end: '2026-06-30',
+      userType: 'student',
+      limit: 10,
+    });
+  });
+
+  it('queries the dashboard and bookmarked drawer only once for an applied custom range', async () => {
+    renderPage('/admin/activity?user=learner-2');
+    await waitFor(() => {
+      expect(getActivity).toHaveBeenCalled();
+      expect(getActivityDetail).toHaveBeenCalled();
+    });
+    getActivity.mockClear();
+    getActivityDetail.mockClear();
+
+    fireEvent.change(screen.getByLabelText('开始日期'), {
+      target: { value: '2026-06-01' },
+    });
+    fireEvent.change(screen.getByLabelText('结束日期'), {
+      target: { value: '2026-06-30' },
+    });
+
+    expect(getActivity).not.toHaveBeenCalled();
+    expect(getActivityDetail).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '查询自定义日期' }));
+
+    await waitFor(() => {
+      expect(getActivity).toHaveBeenCalledTimes(1);
+      expect(getActivityDetail).toHaveBeenCalledTimes(1);
+    });
+    expect(getActivityDetail).toHaveBeenLastCalledWith('learner-2', {
+      start: '2026-06-01',
+      end: '2026-06-30',
+    });
   });
 
   it('flags an inverted custom range instead of querying', async () => {

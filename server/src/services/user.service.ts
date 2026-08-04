@@ -33,6 +33,8 @@ import { createSwrCache } from '../utils/swr-cache.js';
 
 /** Analytics fan out to PostHog; admins share the snapshot for 20 minutes. */
 const ACTIVITY_CACHE_TTL_MS = 20 * 60 * 1000;
+/** Numeric display limits share one bounded snapshot instead of refetching every aggregate. */
+const MAX_BOUNDED_ACTIVITY_USER_LIMIT = 100;
 
 /** Raw PostHog aggregates only — display names stay a live MongoDB read. */
 const activityDashboards = createSwrCache<AdminUserActivityDashboardResponse>(
@@ -160,10 +162,19 @@ export class UserService {
     userLimit: number | null,
     segment: AdminUserActivitySegment
   ): Promise<AdminUserActivityDashboardResponse> {
-    const dashboard = await activityDashboards(
-      `${start}:${end}:${segment}:${userLimit ?? 'all'}`,
-      () => PostHogService.getActivityDashboard(start, end, userLimit, segment)
+    const cachedUserLimit =
+      userLimit === null ? null : MAX_BOUNDED_ACTIVITY_USER_LIMIT;
+    const cachedDashboard = await activityDashboards(
+      `${start}:${end}:${segment}:${cachedUserLimit ?? 'all'}`,
+      () => PostHogService.getActivityDashboard(start, end, cachedUserLimit, segment)
     );
+    const dashboard =
+      userLimit === null
+        ? cachedDashboard
+        : {
+            ...cachedDashboard,
+            top_users: cachedDashboard.top_users.slice(0, userLimit),
+          };
     if (dashboard.top_users.length === 0) {
       return dashboard;
     }

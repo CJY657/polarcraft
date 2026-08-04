@@ -238,7 +238,7 @@ describe('UserService.getActivityDashboardForAdmin', () => {
     ]);
   });
 
-  it('reuses the cached PostHog aggregate for an identical request', async () => {
+  it('reuses one bounded PostHog aggregate across numeric ranking limits', async () => {
     const dashboard = {
       status: 'ok',
       segment: 'student',
@@ -256,11 +256,19 @@ describe('UserService.getActivityDashboardForAdmin', () => {
     await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'student');
     await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'student');
     expect(getActivityDashboard).toHaveBeenCalledTimes(1);
+    expect(getActivityDashboard).toHaveBeenLastCalledWith(
+      '2026-05-01',
+      '2026-05-07',
+      100,
+      'student'
+    );
 
-    // Segment, ranking limit, and range are all part of the key.
+    // Numeric ranking limits share the same top-100 snapshot. Segment, range,
+    // and the unbounded "all" result remain independent cache keys.
     await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 10, 'teacher');
     await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', 50, 'student');
     await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-08', 10, 'student');
+    await UserService.getActivityDashboardForAdmin('2026-05-01', '2026-05-07', null, 'student');
     expect(getActivityDashboard).toHaveBeenCalledTimes(4);
   });
 

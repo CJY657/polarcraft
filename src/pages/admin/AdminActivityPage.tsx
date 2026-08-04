@@ -75,6 +75,7 @@ export default function AdminActivityPage() {
   const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [range, setRange] = useState(() => presetRange(7));
+  const [customRange, setCustomRange] = useState(range);
   const [userType, setUserType] = useState<AdminActivityUserType>('student');
   const [limit, setLimit] = useState<AdminActivityLimit>(10);
   const [retryKey, setRetryKey] = useState(0);
@@ -82,7 +83,10 @@ export default function AdminActivityPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isDark = theme === 'dark';
-  const rangeInvalid = range.start > range.end;
+  const customRangeInvalid =
+    !customRange.start || !customRange.end || customRange.start > customRange.end;
+  const customRangeUnchanged =
+    customRange.start === range.start && customRange.end === range.end;
   const copy = USER_TYPE_COPY[userType];
   // Bookmarkable: /admin/activity?user=<id> opens the user drawer directly.
   const selectedUserId = searchParams.get('user');
@@ -137,10 +141,18 @@ export default function AdminActivityPage() {
     setUserType(nextUserType);
   };
 
+  const selectPresetRange = (days: number) => {
+    const nextRange = presetRange(days);
+    setCustomRange(nextRange);
+    setRange(nextRange);
+  };
+
+  const applyCustomRange = () => {
+    if (customRangeInvalid || customRangeUnchanged) return;
+    setRange({ ...customRange });
+  };
+
   useEffect(() => {
-    if (rangeInvalid) {
-      return;
-    }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
@@ -166,7 +178,7 @@ export default function AdminActivityPage() {
     return () => {
       cancelled = true;
     };
-  }, [range.start, range.end, userType, limit, retryKey, rangeInvalid]);
+  }, [range.start, range.end, userType, limit, retryKey]);
 
   const isEmpty =
     result?.status === 'ok' &&
@@ -253,7 +265,7 @@ export default function AdminActivityPage() {
                     key={preset.days}
                     type="button"
                     aria-pressed={selected}
-                    onClick={() => setRange(presetDates)}
+                    onClick={() => selectPresetRange(preset.days)}
                     className={cn(
                       'h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.98] lg:flex-none',
                       selected
@@ -281,10 +293,10 @@ export default function AdminActivityPage() {
                 <span>自定义</span>
                 <input
                   type="date"
-                  value={range.start}
+                  value={customRange.start}
                   max={toDateInput(new Date())}
                   onChange={(event) =>
-                    setRange((current) => ({ ...current, start: event.target.value }))
+                    setCustomRange((current) => ({ ...current, start: event.target.value }))
                   }
                   aria-label="开始日期"
                   className={cn(
@@ -298,10 +310,10 @@ export default function AdminActivityPage() {
               <span aria-hidden="true">至</span>
               <input
                 type="date"
-                value={range.end}
+                value={customRange.end}
                 max={toDateInput(new Date())}
                 onChange={(event) =>
-                  setRange((current) => ({ ...current, end: event.target.value }))
+                  setCustomRange((current) => ({ ...current, end: event.target.value }))
                 }
                 aria-label="结束日期"
                 className={cn(
@@ -311,9 +323,25 @@ export default function AdminActivityPage() {
                     : 'border-[#e5e5e5] bg-white text-[#0a0a0a]'
                 )}
               />
-              {rangeInvalid && (
+              <button
+                type="button"
+                aria-label="查询自定义日期"
+                disabled={customRangeInvalid || customRangeUnchanged}
+                onClick={applyCustomRange}
+                className={cn(
+                  'h-11 rounded-xl px-4 font-semibold transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40',
+                  isDark
+                    ? 'bg-emerald-300 text-slate-950'
+                    : 'bg-[#0a0a0a] text-white'
+                )}
+              >
+                查询
+              </button>
+              {customRangeInvalid && (
                 <span role="alert" className="text-sm font-medium text-[#d23f63]">
-                  开始日期不能晚于结束日期
+                  {!customRange.start || !customRange.end
+                    ? '请选择完整的起止日期'
+                    : '开始日期不能晚于结束日期'}
                 </span>
               )}
             </div>
@@ -584,7 +612,7 @@ function Dashboard({
       </div>
 
       <p className={cn('mt-4 text-right text-xs', isDark ? 'text-slate-500' : 'text-[#6a6a6a]')}>
-        数据更新时间：{formatShortDateTime(result.generated_at)} · 每 20 分钟刷新一次
+        数据更新时间：{formatShortDateTime(result.generated_at)} · 相同条件 20 分钟内直接复用
       </p>
     </>
   );
