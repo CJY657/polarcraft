@@ -12,6 +12,8 @@ const doubles = vi.hoisted(() => ({
   invalidateAllForUser: vi.fn(),
   createResetToken: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  markEmailVerified: vi.fn(),
 }));
 
 vi.mock('../models/user.model.js', () => ({
@@ -23,6 +25,7 @@ vi.mock('../models/user.model.js', () => ({
     updateProfile: doubles.updateProfile,
     verifyPassword: doubles.verifyPassword,
     updateLastLogin: doubles.updateLastLogin,
+    markEmailVerified: doubles.markEmailVerified,
   },
 }));
 
@@ -44,6 +47,8 @@ vi.mock('../config/index.js', () => ({
   config: {
     email: { enabled: true },
     isDevelopment: false,
+    frontendUrl: 'https://polariscope.test',
+    jwt: { accessSecret: 'test-access-secret' },
   },
 }));
 
@@ -51,16 +56,21 @@ vi.mock('../utils/logger.js', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 vi.mock('./email.service.js', () => ({
   EmailService: {
     sendPasswordResetEmail: doubles.sendPasswordResetEmail,
+    sendEmailVerification: doubles.sendEmailVerification,
   },
 }));
 
 import type { ForgotPasswordInput, User } from '../types/auth.types.js';
+import { AuthError } from '../types/auth.types.js';
+import { generateEmailVerifyToken } from '../utils/jwt.util.js';
 import { AuthService } from './auth.service.js';
 
 const genericResponse = {
@@ -204,5 +214,68 @@ describe('AuthService.forgotPassword', () => {
       'alice',
       'reset-token'
     );
+  });
+});
+
+describe('AuthService email verification', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('marks the email verified when the token matches the current address', async () => {
+    doubles.markEmailVerified.mockResolvedValue(true);
+    const token = generateEmailVerifyToken('user-1', 'alice@example.com');
+
+    await expect(AuthService.verifyEmail(token)).resolves.toEqual({
+      message: '邮箱验证成功',
+    });
+    expect(doubles.markEmailVerified).toHaveBeenCalledWith('user-1', 'alice@example.com');
+  });
+
+  it('rejects a stale token whose email is no longer the current address', async () => {
+    // markEmailVerified matches on { id, email }, so a replaced address never matches
+    doubles.markEmailVerified.mockResolvedValue(false);
+    const token = generateEmailVerifyToken('user-1', 'old@example.com');
+
+    await expect(AuthService.verifyEmail(token)).rejects.toBeInstanceOf(AuthError);
+  });
+
+  it('rejects a malformed token without touching the database', async () => {
+    await expect(AuthService.verifyEmail('not-a-token')).rejects.toBeInstanceOf(AuthError);
+    expect(doubles.markEmailVerified).not.toHaveBeenCalled();
+  });
+
+  it('does not fail registration when the verification email cannot be sent', async () => {
+    doubles.createUser.mockResolvedValue(createUser('alice@example.com'));
+    doubles.generateTokens.mockResolvedValue({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 900,
+    });
+    doubles.sendEmailVerification.mockRejectedValue(new Error('SMTP down'));
+
+    const result = await AuthService.register({
+      username: 'alice',
+      real_name: 'Alice',
+      password: 'a'.repeat(64),
+      clientSalt: 'client-salt',
+      email: 'alice@example.com',
+      user_type: 'student',
+    });
+
+    expect(result.user.username).toBe('alice');
+    expect(doubles.sendEmailVerification).toHaveBeenCalled();
+  });
+
+  it('skips the resend when the email is already verified', async () => {
+    doubles.findById.mockResolvedValue({
+      ...createUser('alice@example.com'),
+      email_verified: true,
+    });
+
+    await expect(AuthService.resendEmailVerification('user-1')).resolves.toEqual({
+      message: '邮箱已验证',
+    });
+    expect(doubles.sendEmailVerification).not.toHaveBeenCalled();
   });
 });

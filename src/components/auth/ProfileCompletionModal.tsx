@@ -191,7 +191,9 @@ export function ProfileCompletionModal() {
                 className="w-full rounded-xl border border-clay-surface-strong bg-white px-4 py-3 text-base text-clay-ink placeholder-clay-muted transition-all focus:border-clay-ink focus:outline-none focus:ring-2 focus:ring-clay-ink/10"
                 placeholder="请输入邮箱"
               />
-              <p className="mt-2 text-xs text-clay-muted">用于接收密码重置链接</p>
+              <p className="mt-2 text-xs text-clay-muted">
+                用于接收密码重置链接，保存后会向该邮箱发送一封验证邮件
+              </p>
             </div>
           )}
 

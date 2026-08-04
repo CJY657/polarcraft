@@ -26,6 +26,7 @@ import {
   ListAdminUsersOptions,
 } from '../types/user.types.js';
 import { TokenService } from './token.service.js';
+import { AuthService } from './auth.service.js';
 import { PostHogService } from './posthog.service.js';
 import { logger } from '../utils/logger.js';
 
@@ -199,10 +200,19 @@ export class UserService {
     userId: string,
     input: UpdateProfileInput
   ): Promise<UserProfile> {
+    const previous = await UserModel.findById(userId);
     const profile = await UserModel.updateProfile(userId, input);
     if (!profile) {
       throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
     }
+
+    // A changed address needs its own verification link; failures are logged,
+    // never surfaced — the profile update itself already succeeded.
+    // 邮箱变更后需要重新验证；发送失败只记录日志，不影响资料更新结果
+    if (profile.email && profile.email !== previous?.email) {
+      await AuthService.sendEmailVerification(profile.id, profile.username, profile.email);
+    }
+
     return profile;
   }
 

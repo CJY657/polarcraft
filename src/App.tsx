@@ -111,6 +111,7 @@ const PulsePage = lazy(() => import("@/pages/PulsePage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("@/pages/VerifyEmailPage"));
 
 // Admin Pages - 管理员页面
 const CourseEditorPage = lazy(() => import("@/pages/admin/CourseEditorPage"));
@@ -514,6 +515,10 @@ function AppRouterContent() {
           <Route
             path="/reset-password"
             element={<ResetPasswordPage />}
+          />
+          <Route
+            path="/verify-email"
+            element={<VerifyEmailPage />}
           />
           {/* Default route for 404 pages */}
           <Route

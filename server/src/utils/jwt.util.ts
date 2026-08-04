@@ -67,6 +67,59 @@ export function generateTokenPair(payload: Omit<TokenPayload, 'type' | 'iat' | '
 }
 
 /**
+ * Email verification token payload
+ * 邮箱验证令牌载荷
+ */
+export interface EmailVerifyPayload {
+  sub: string;
+  email: string;
+  type: 'email_verify';
+  iat?: number;
+  exp?: number;
+}
+
+/** Email verification links stay valid for 24 hours / 邮箱验证链接 24 小时内有效 */
+export const EMAIL_VERIFY_EXPIRY = '24h';
+
+/**
+ * Generate an email verification token
+ * 生成邮箱验证令牌
+ *
+ * The email is embedded so a stale link cannot verify a newly changed address.
+ * 令牌内嵌邮箱地址，防止旧链接验证已更换的新邮箱
+ */
+export function generateEmailVerifyToken(userId: string, email: string): string {
+  const payload: EmailVerifyPayload = {
+    sub: userId,
+    email,
+    type: 'email_verify',
+  };
+
+  return jwt.sign(payload, config.jwt.accessSecret, {
+    expiresIn: EMAIL_VERIFY_EXPIRY,
+  } as jwt.SignOptions);
+}
+
+/**
+ * Verify an email verification token
+ * 验证邮箱验证令牌
+ */
+export function verifyEmailVerifyToken(token: string): EmailVerifyPayload {
+  try {
+    const payload = jwt.verify(token, config.jwt.accessSecret) as EmailVerifyPayload;
+    // Access tokens share the same secret — reject anything that is not a verify token
+    // 访问令牌使用同一密钥签发，因此必须校验令牌类型
+    if (payload.type !== 'email_verify' || !payload.sub || !payload.email) {
+      throw new Error('Not an email verification token');
+    }
+    return payload;
+  } catch (error) {
+    logger.debug('Email verification token verification failed:', error);
+    throw new Error('Invalid or expired email verification token');
+  }
+}
+
+/**
  * Verify an access token
  * 验证访问令牌
  */

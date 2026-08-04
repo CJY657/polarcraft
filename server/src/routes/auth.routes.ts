@@ -12,6 +12,7 @@ import {
   validateForgotPassword,
   validateResetToken,
   validateResetPassword,
+  validateVerifyEmail,
 } from '../middleware/validation.middleware.js';
 import {
   registerRateLimiter,
@@ -106,6 +107,30 @@ router.post(
   passwordResetRateLimiter,
   validateResetPassword,
   AuthController.resetPassword
+);
+
+/**
+ * @route   POST /api/auth/verify-email
+ * @desc    Verify email address with a signed token
+ * @access  Public
+ */
+router.post(
+  '/verify-email',
+  passwordResetRateLimiter,
+  validateVerifyEmail,
+  AuthController.verifyEmail
+);
+
+/**
+ * @route   POST /api/auth/send-verification
+ * @desc    Re-send the verification link to the current user's email
+ * @access  Private
+ */
+router.post(
+  '/send-verification',
+  passwordResetRateLimiter,
+  authenticate,
+  AuthController.sendVerification
 );
 
 /**

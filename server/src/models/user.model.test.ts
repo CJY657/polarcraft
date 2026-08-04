@@ -373,3 +373,66 @@ describe('UserModel admin queries', () => {
     expect(usersUpdateOne.mock.calls[0]?.[1]?.$set).not.toHaveProperty('role');
   });
 });
+
+describe('UserModel email verification state', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function storedUser(email: string | null) {
+    return {
+      id: 'user-1',
+      username: 'alice',
+      nickname: null,
+      real_name: 'Alice',
+      show_real_name_publicly: false,
+      email,
+      role: 'user',
+      user_type: 'student',
+      avatar_url: null,
+      email_verified: true,
+      is_active: true,
+      created_at: new Date('2026-05-01T00:00:00.000Z'),
+      updated_at: new Date('2026-05-01T00:00:00.000Z'),
+      last_login_at: null,
+      password_hash: 'secret',
+      client_salt: 'salt',
+      client_hash_algorithm: 'SHA-256',
+    };
+  }
+
+  it('clears email_verified when the address changes', async () => {
+    usersFindOne.mockResolvedValue(storedUser('old@example.com'));
+    usersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+
+    await UserModel.updateProfile('user-1', { email: 'new@example.com' });
+
+    expect(usersUpdateOne).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      { $set: expect.objectContaining({ email: 'new@example.com', email_verified: false }) }
+    );
+  });
+
+  it('keeps email_verified when the address is resubmitted unchanged', async () => {
+    usersFindOne.mockResolvedValue(storedUser('same@example.com'));
+    usersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+
+    await UserModel.updateProfile('user-1', {
+      email: 'same@example.com',
+      real_name: 'Alice Wang',
+    });
+
+    const [, update] = usersUpdateOne.mock.calls[0] as [unknown, { $set: Record<string, unknown> }];
+    expect(update.$set).not.toHaveProperty('email_verified');
+  });
+
+  it('only marks an email verified while it is still the current address', async () => {
+    usersUpdateOne.mockResolvedValue({ matchedCount: 0 });
+
+    await expect(UserModel.markEmailVerified('user-1', 'stale@example.com')).resolves.toBe(false);
+    expect(usersUpdateOne).toHaveBeenCalledWith(
+      { id: 'user-1', email: 'stale@example.com' },
+      { $set: expect.objectContaining({ email_verified: true }) }
+    );
+  });
+});

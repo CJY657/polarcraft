@@ -182,6 +182,28 @@ export class AuthController {
   });
 
   /**
+   * Verify email with token
+ * 使用令牌验证邮箱
+   */
+  static verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { token } = req.body;
+    const result = await AuthService.verifyEmail(token);
+
+    res.success(result, '邮箱验证成功');
+  });
+
+  /**
+   * Re-send email verification link
+ * 重新发送邮箱验证链接
+   */
+  static sendVerification = asyncHandler(async (req: Request, res: Response) => {
+    const result = await AuthService.resendEmailVerification(req.user!.sub);
+
+    logger.info(`Verification email requested by: ${req.user!.username}`);
+    res.success(result);
+  });
+
+  /**
    * Get current user info
  * 获取当前用户信息
    */

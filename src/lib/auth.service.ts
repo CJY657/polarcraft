@@ -274,6 +274,29 @@ export const authApi = {
   },
 
   /**
+   * Verify email with token from the verification link
+   * 使用验证链接中的令牌验证邮箱
+   */
+  verifyEmail: async (token: string): Promise<void> => {
+    const response = await api.post('/api/auth/verify-email', { token });
+    if (!response.success) {
+      throw new Error(response.error?.message || '邮箱验证链接无效或已过期');
+    }
+  },
+
+  /**
+   * Re-send the verification email to the current user's address
+   * 向当前用户邮箱重新发送验证邮件
+   */
+  sendVerificationEmail: async (): Promise<string> => {
+    const response = await api.post<{ message: string }>('/api/auth/send-verification', {});
+    if (!response.success) {
+      throw new Error(response.error?.message || '验证邮件发送失败，请稍后重试');
+    }
+    return response.data?.message || '验证邮件已发送，请查收';
+  },
+
+  /**
    * Get CAPTCHA
    * 获取验证码
    */

@@ -181,6 +181,92 @@ If you did not request a password reset, please ignore this email.
   }
 
   /**
+   * Send email verification email
+   * 发送邮箱验证邮件
+   */
+  static async sendEmailVerification(
+    email: string,
+    username: string,
+    verifyToken: string
+  ): Promise<boolean> {
+    const verifyUrl = `${config.frontendUrl}/verify-email?token=${verifyToken}`;
+
+    const subject = 'PolariScope 邮箱验证 | Verify Your Email';
+    const text = `
+你好 ${username}，
+
+请验证此邮箱，以便在忘记密码时能够收到重置链接。
+
+请点击以下链接完成验证：
+${verifyUrl}
+
+此链接将在 24 小时后过期。
+
+如果你没有在 PolariScope 绑定此邮箱，请忽略此邮件。
+
+---
+Hello ${username},
+
+Please verify this email address so you can receive password reset links.
+
+Click the following link to complete verification:
+${verifyUrl}
+
+This link will expire in 24 hours.
+
+If you did not add this email to PolariScope, please ignore this email.
+    `.trim();
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    h1 { color: #2c3e50; }
+    .button { display: inline-block; padding: 12px 24px; background-color: #3498db; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .button:hover { background-color: #2980b9; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #777; }
+  </style>
+</head>
+<body>
+  <h1>PolariScope 邮箱验证 | Verify Your Email</h1>
+
+  <p>你好 <strong>${username}</strong>，</p>
+  <p>Hello <strong>${username}</strong>,</p>
+
+  <p>请验证此邮箱，以便在忘记密码时能够收到重置链接。</p>
+  <p>Please verify this email address so you can receive password reset links.</p>
+
+  <a href="${verifyUrl}" class="button">验证邮箱 | Verify Email</a>
+
+  <p>或者复制此链接到浏览器：</p>
+  <p>Or copy this link to your browser:</p>
+  <p style="word-break: break-all; color: #3498db;">${verifyUrl}</p>
+
+  <p><strong>此链接将在 24 小时后过期。</strong></p>
+  <p><strong>This link will expire in 24 hours.</strong></p>
+
+  <p>如果你没有在 PolariScope 绑定此邮箱，请忽略此邮件。</p>
+  <p>If you did not add this email to PolariScope, please ignore this email.</p>
+
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} PolariScope. 偏振光下新世界 | A New World Through Polarized Light</p>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    return await this.sendEmail({
+      to: email,
+      subject,
+      text,
+      html,
+    });
+  }
+
+  /**
    * Test email configuration
    * 测试邮件配置
    */

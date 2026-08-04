@@ -312,10 +312,21 @@ export class UserModel {
       }
     }
 
+    // A new address is unverified until its own link is clicked.
+    // 更换邮箱后必须重新验证，不能继承旧邮箱的验证状态
+    let resetEmailVerified: false | undefined;
+    if (updates.email !== undefined) {
+      const current = await this.findById(id);
+      if (current && current.email !== updates.email) {
+        resetEmailVerified = false;
+      }
+    }
+
     const updateDoc = pickDefined({
       username,
       real_name: normalizeOptionalText(updates.real_name),
       email: updates.email,
+      email_verified: resetEmailVerified,
       avatar_url: updates.avatar_url,
       show_real_name_publicly: updates.show_real_name_publicly,
       user_type: updates.user_type,
@@ -341,6 +352,24 @@ export class UserModel {
 
     logger.info(`User profile updated: ${id}`);
     return this.findById(id);
+  }
+
+  /**
+   * Mark an email as verified, but only if it is still the user's current address.
+   * 标记邮箱为已验证（仅当该邮箱仍是用户当前邮箱时生效）
+   */
+  static async markEmailVerified(id: string, email: string): Promise<boolean> {
+    const result = await usersCollection().updateOne(
+      { id, email },
+      { $set: { email_verified: true, updated_at: new Date() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return false;
+    }
+
+    logger.info(`Email verified for user: ${id}`);
+    return true;
   }
 
   /**

@@ -10,6 +10,7 @@ import { UserModel } from '../models/user.model.js';
 import { PasswordResetModel } from '../models/password-reset.model.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+import { generateEmailVerifyToken, verifyEmailVerifyToken } from '../utils/jwt.util.js';
 import { TokenService } from './token.service.js';
 import { CaptchaService } from './captcha.service.js';
 import { EmailService } from './email.service.js';
@@ -52,6 +53,12 @@ export class AuthService {
     const tokens = await TokenService.generateTokens(user);
 
     logger.info(`User registered: ${user.username} (${user.id})`);
+
+    // Fire off the verification email; never block registration on it
+    // 发送验证邮件；无论成功与否都不阻塞注册
+    if (user.email) {
+      await this.sendEmailVerification(user.id, user.username, user.email);
+    }
 
     return {
       user: {
@@ -277,6 +284,90 @@ export class AuthService {
     return {
       message: '密码已成功重置，请使用新密码登录',
     };
+  }
+
+  /**
+   * Send an email verification link. Never throws — a mail outage must not
+   * block registration or profile updates.
+   * 发送邮箱验证链接。永不抛错——邮件故障不能阻塞注册或资料更新
+   */
+  static async sendEmailVerification(
+    userId: string,
+    username: string,
+    email: string
+  ): Promise<boolean> {
+    try {
+      const token = generateEmailVerifyToken(userId, email);
+      const sent = await EmailService.sendEmailVerification(email, username, token);
+
+      if (sent) {
+        logger.info(`Verification email sent to: ${email}`);
+      } else {
+        logger.warn(`Failed to send verification email to: ${email}`);
+        // If email is not configured, log the link for development
+        // 邮件未配置时，记录链接以便开发调试
+        if (!config.email.enabled) {
+          logger.info(
+            `Email verification link (email not configured): ${config.frontendUrl}/verify-email?token=${token}`
+          );
+        }
+      }
+
+      return sent;
+    } catch (error) {
+      logger.error('Failed to send verification email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Re-send a verification link to the user's current email
+   * 向用户当前邮箱重新发送验证链接
+   */
+  static async resendEmailVerification(
+    userId: string
+  ): Promise<{ message: string }> {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new AuthError('USER_NOT_FOUND', '用户未找到', 404);
+    }
+
+    if (!user.email) {
+      throw new AuthError('EMAIL_MISSING', '请先绑定邮箱', 400);
+    }
+
+    if (user.email_verified) {
+      return { message: '邮箱已验证' };
+    }
+
+    await this.sendEmailVerification(user.id, user.username, user.email);
+
+    return { message: '验证邮件已发送，请查收' };
+  }
+
+  /**
+   * Verify an email address using a signed token
+   * 使用签名令牌验证邮箱地址
+   */
+  static async verifyEmail(token: string): Promise<{ message: string }> {
+    let payload;
+    try {
+      payload = verifyEmailVerifyToken(token);
+    } catch {
+      throw new AuthError('INVALID_TOKEN', '邮箱验证链接无效或已过期', 400);
+    }
+
+    // Only verify if this is still the user's current address — a stale link
+    // for a replaced email must not mark the new one verified.
+    // 仅当邮箱仍是用户当前邮箱时才生效，避免旧链接验证新邮箱
+    const verified = await UserModel.markEmailVerified(payload.sub, payload.email);
+    if (!verified) {
+      throw new AuthError('INVALID_TOKEN', '该验证链接对应的邮箱已变更，请重新发送验证邮件', 400);
+    }
+
+    logger.info(`Email verified for user: ${payload.sub}`);
+
+    return { message: '邮箱验证成功' };
   }
 
   /**

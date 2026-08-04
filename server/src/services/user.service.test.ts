@@ -9,6 +9,9 @@ const {
   getUserEducations,
   getUserMemberships,
   getUserApplications,
+  findById,
+  updateProfile,
+  sendEmailVerification,
 } = vi.hoisted(() => ({
   findByIdForAdmin: vi.fn(),
   findIdentitiesByIdsForAdmin: vi.fn(),
@@ -18,12 +21,23 @@ const {
   getUserEducations: vi.fn(),
   getUserMemberships: vi.fn(),
   getUserApplications: vi.fn(),
+  findById: vi.fn(),
+  updateProfile: vi.fn(),
+  sendEmailVerification: vi.fn(),
 }));
 
 vi.mock('../models/user.model.js', () => ({
   UserModel: {
     findByIdForAdmin,
     findIdentitiesByIdsForAdmin,
+    findById,
+    updateProfile,
+  },
+}));
+
+vi.mock('./auth.service.js', () => ({
+  AuthService: {
+    sendEmailVerification,
   },
 }));
 
@@ -376,5 +390,48 @@ describe('UserService.getUserDetailForAdmin', () => {
     ]);
     // Sensitive review/application internals must not leak into the admin list payload
     expect(JSON.stringify(result)).not.toContain('motivation');
+  });
+});
+
+describe('UserService.updateProfile email verification', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const profile = (email: string | null, verified = false) => ({
+    id: 'user-1',
+    username: 'alice',
+    nickname: null,
+    real_name: 'Alice',
+    show_real_name_publicly: false,
+    role: 'user' as const,
+    user_type: 'student' as const,
+    avatar_url: null,
+    email,
+    email_verified: verified,
+    created_at: new Date('2026-05-01T00:00:00.000Z'),
+    updated_at: new Date('2026-05-01T00:00:00.000Z'),
+    last_login_at: null,
+  });
+
+  it('sends a verification link when the address changes', async () => {
+    findById.mockResolvedValue(profile('old@example.com', true));
+    updateProfile.mockResolvedValue(profile('new@example.com'));
+
+    await UserService.updateProfile('user-1', { email: 'new@example.com' });
+
+    expect(sendEmailVerification).toHaveBeenCalledWith('user-1', 'alice', 'new@example.com');
+  });
+
+  it('does not resend when an unchanged address is resubmitted', async () => {
+    findById.mockResolvedValue(profile('same@example.com'));
+    updateProfile.mockResolvedValue(profile('same@example.com'));
+
+    await UserService.updateProfile('user-1', {
+      email: 'same@example.com',
+      real_name: 'Alice Wang',
+    });
+
+    expect(sendEmailVerification).not.toHaveBeenCalled();
   });
 });

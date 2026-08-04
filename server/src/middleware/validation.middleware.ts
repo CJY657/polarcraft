@@ -170,6 +170,8 @@ export const validateResetPassword = validate(
 
 export const validateResetToken = validate(tokenValidation);
 
+export const validateVerifyEmail = validate(tokenValidation);
+
 export const validateUpdateProfile = validate(
   body('username')
     .optional()

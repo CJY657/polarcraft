@@ -42,6 +42,20 @@ export function ProfileEditDialog({
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState('');
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setVerificationNotice('');
+    try {
+      setVerificationNotice(await authApi.sendVerificationEmail());
+    } catch (err) {
+      setVerificationNotice(err instanceof Error ? err.message : '验证邮件发送失败');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -54,6 +68,7 @@ export function ProfileEditDialog({
         userType: user.user_type || '',
       });
       setError('');
+      setVerificationNotice('');
     }
   }, [isOpen, user]);
 
@@ -265,6 +280,38 @@ export function ProfileEditDialog({
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
               )}
             />
+            {user?.email && !user.email_verified && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 font-medium',
+                    theme === 'dark'
+                      ? 'bg-amber-900/40 text-amber-300'
+                      : 'bg-amber-50 text-amber-700'
+                  )}
+                >
+                  未验证
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void handleResendVerification()}
+                  disabled={isResending}
+                  className={cn(
+                    'underline underline-offset-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                    theme === 'dark'
+                      ? 'text-blue-300 hover:text-blue-200'
+                      : 'text-blue-600 hover:text-blue-700'
+                  )}
+                >
+                  {isResending ? '发送中...' : '重新发送验证邮件'}
+                </button>
+                {verificationNotice && (
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                    {verificationNotice}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Error */}
