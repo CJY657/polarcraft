@@ -14,6 +14,16 @@ import {
 
 const notificationsCollection = () => getCollection('user_notifications');
 
+function buildVisibleNotificationFilter(userId: string): Record<string, unknown> {
+  return {
+    user_id: userId,
+    $or: [
+      { expires_at: { $exists: false } },
+      { expires_at: { $gt: new Date() } },
+    ],
+  };
+}
+
 export class NotificationModel {
   /**
    * Get notifications for a user
@@ -25,7 +35,7 @@ export class NotificationModel {
   ): Promise<{ notifications: UserNotification[]; total: number }> {
     const limit = Math.max(1, Math.floor(options?.limit ?? 20));
     const offset = Math.max(0, Math.floor(options?.offset ?? 0));
-    const filter: Record<string, unknown> = { user_id: userId };
+    const filter = buildVisibleNotificationFilter(userId);
 
     if (options?.unreadOnly) {
       filter.is_read = false;
@@ -56,7 +66,10 @@ export class NotificationModel {
     userId: string
   ): Promise<UserNotification | null> {
     return normalizeDocument<UserNotification>(
-      await notificationsCollection().findOne({ id: notificationId, user_id: userId })
+      await notificationsCollection().findOne({
+        id: notificationId,
+        ...buildVisibleNotificationFilter(userId),
+      })
     );
   }
 
@@ -65,7 +78,10 @@ export class NotificationModel {
    * 获取用户未读通知数量
    */
   static async getUnreadCount(userId: string): Promise<number> {
-    return notificationsCollection().countDocuments({ user_id: userId, is_read: false });
+    return notificationsCollection().countDocuments({
+      ...buildVisibleNotificationFilter(userId),
+      is_read: false,
+    });
   }
 
   /**
@@ -83,6 +99,7 @@ export class NotificationModel {
       is_read: false,
       action_url: data.action_url || null,
       created_at: new Date(),
+      ...(data.expires_at ? { expires_at: data.expires_at } : {}),
     };
 
     await notificationsCollection().insertOne(notification as unknown as Record<string, unknown>);
@@ -114,6 +131,7 @@ export class NotificationModel {
       is_read: false,
       action_url: data.action_url || null,
       created_at: now,
+      ...(data.expires_at ? { expires_at: data.expires_at } : {}),
     }));
 
     await notificationsCollection().insertMany(

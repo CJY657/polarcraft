@@ -48,10 +48,13 @@ const UPLOAD_REFERENCE_FIELDS: CollectionFieldRef[] = [
   { collection: 'course_main_slides', field: 'url' },
   { collection: 'course_media', field: 'url' },
   { collection: 'course_media', field: 'preview_pdf_url' },
+  { collection: 'course_discussion_comments', field: 'image_urls' },
   { collection: 'research_projects', field: 'thumbnail' },
   { collection: 'research_project_comments', field: 'image_urls' },
   { collection: 'research_project_comments', field: 'video_urls' },
   { collection: 'research_project_evidence', field: 'attachment_url' },
+  { collection: 'research_project_evidence', field: 'attachment_urls' },
+  { collection: 'research_project_evidence', field: 'attachments.url' },
 ];
 
 const uploadRootDir = path.resolve(uploadConfig.uploadDir);
@@ -77,7 +80,7 @@ function normalizeCandidateUrls(urls: CleanupCandidateUrl[]): string[] {
   return [...uniqueUrls];
 }
 
-function extractReferencedUrlValues(value: unknown): string[] {
+export function extractReferencedUrlValues(value: unknown): string[] {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     return trimmed ? [trimmed] : [];
@@ -87,14 +90,32 @@ function extractReferencedUrlValues(value: unknown): string[] {
     return [];
   }
 
-  return value.flatMap((item) => {
-    if (typeof item !== 'string') {
+  return value.flatMap(extractReferencedUrlValues);
+}
+
+export function extractDocumentFieldValues(document: unknown, field: string): unknown[] {
+  const segments = field.split('.');
+
+  const visit = (value: unknown, segmentIndex: number): unknown[] => {
+    if (segmentIndex >= segments.length) {
+      return [value];
+    }
+
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => visit(item, segmentIndex));
+    }
+
+    if (!value || typeof value !== 'object') {
       return [];
     }
 
-    const trimmed = item.trim();
-    return trimmed ? [trimmed] : [];
-  });
+    return visit(
+      (value as Record<string, unknown>)[segments[segmentIndex]],
+      segmentIndex + 1
+    );
+  };
+
+  return visit(document, 0);
 }
 
 function getManagedUploadFilePath(url: string): string | null {
@@ -158,7 +179,7 @@ async function findStillReferencedUrls(urls: string[]): Promise<Set<string>> {
         .toArray();
 
       for (const document of documents) {
-        for (const value of extractReferencedUrlValues(document?.[field])) {
+        for (const value of extractReferencedUrlValues(extractDocumentFieldValues(document, field))) {
           if (urlSet.has(value)) {
             referencedUrls.add(value);
           }
@@ -180,7 +201,7 @@ async function collectReferencedManagedUploadFilePaths(): Promise<Set<string>> {
         .toArray();
 
       for (const document of documents) {
-        for (const value of extractReferencedUrlValues(document?.[field])) {
+        for (const value of extractReferencedUrlValues(extractDocumentFieldValues(document, field))) {
           const filePath = getManagedUploadFilePath(value);
           if (filePath) {
             referencedPaths.add(filePath);

@@ -3,7 +3,7 @@
  * MongoDB 数据库连接
  */
 
-import { Db, MongoClient, type IndexDescription } from 'mongodb';
+import { Db, MongoClient, type ClientSession, type IndexDescription } from 'mongodb';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -107,6 +107,17 @@ const COLLECTION_INDEXES: Array<{
       // TTL：通知是时效性内容（前端只按时间倒序分页展示），半年后自动清理，
       // 避免集合随成员操作的多路广播（insertMany 给全体成员）无限增长。
       { key: { created_at: 1 }, name: 'idx_created_ttl', expireAfterSeconds: 15_552_000 },
+      // 组长转让邀请只有七天有效期；部分 TTL 仅索引带到期时间的转让通知，
+      // 已接受/拒绝的结果通知继续走上面的半年保留策略。
+      {
+        key: { expires_at: 1 },
+        name: 'idx_leadership_transfer_ttl',
+        expireAfterSeconds: 0,
+        partialFilterExpression: {
+          type: 'leadership_transfer',
+          expires_at: { $type: 'date' },
+        },
+      },
     ],
   },
   {
@@ -173,6 +184,7 @@ const COLLECTION_INDEXES: Array<{
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: -1 }, name: 'idx_project_created' },
+      { key: { project_id: 1, sort_order: 1, created_at: -1 }, name: 'idx_project_sort_created' },
       { key: { project_id: 1, evidence_type: 1 }, name: 'idx_project_type' },
     ],
   },
@@ -382,8 +394,19 @@ async function createCollectionIndexes(
   }
 }
 
-export async function connectDatabase(): Promise<Db> {
+export interface ConnectDatabaseOptions {
+  ensureIndexes?: boolean;
+}
+
+export async function connectDatabase(
+  options: ConnectDatabaseOptions = {}
+): Promise<Db> {
+  const shouldEnsureIndexes = options.ensureIndexes !== false;
+
   if (database) {
+    if (shouldEnsureIndexes) {
+      await ensureIndexes(database);
+    }
     return database;
   }
 
@@ -394,7 +417,9 @@ export async function connectDatabase(): Promise<Db> {
   await client.connect();
   database = client.db(config.database.name);
 
-  await ensureIndexes(database);
+  if (shouldEnsureIndexes) {
+    await ensureIndexes(database);
+  }
   logger.info('MongoDB connection established');
 
   return database;
@@ -410,6 +435,16 @@ export function getDb(): Db {
 
 export function getCollection(name: string) {
   return getDb().collection(name);
+}
+
+export async function withDatabaseTransaction<T>(
+  operation: (session: ClientSession) => Promise<T>
+): Promise<T> {
+  if (!client) {
+    throw new Error('MongoDB connection has not been initialized');
+  }
+
+  return client.withSession((session) => session.withTransaction(() => operation(session)));
 }
 
 export async function closeDatabase(): Promise<void> {

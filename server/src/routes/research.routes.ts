@@ -8,7 +8,10 @@ import { ResearchController } from '../controllers/research.controller.js';
 import { UploadController } from '../controllers/upload.controller.js';
 import type { FileCategory } from '../config/upload.config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import { researchAgentRateLimiter } from '../middleware/rate-limit.middleware.js';
+import {
+  leadershipTransferRateLimiter,
+  researchAgentRateLimiter,
+} from '../middleware/rate-limit.middleware.js';
 import { createUploadMiddleware, handleUploadError } from '../middleware/upload.middleware.js';
 import { ProjectAccessService, type ResearchProjectAccess } from '../services/project-access.service.js';
 import { logger } from '../utils/logger.js';
@@ -175,6 +178,47 @@ router.get('/projects/:id', ResearchController.getProject);
 router.put('/projects/:id', ResearchController.updateProject);
 
 /**
+ * @route   PUT /api/research/projects/:id/leadership-transfer
+ * @desc    Nominate or replace a pending project leader
+ * @access  Private (owner or admin)
+ */
+router.put(
+  '/projects/:id/leadership-transfer',
+  leadershipTransferRateLimiter,
+  ResearchController.nominateProjectLeader
+);
+
+/**
+ * @route   DELETE /api/research/projects/:id/leadership-transfer/:transferId
+ * @desc    Cancel a pending leadership transfer
+ * @access  Private (owner or admin)
+ */
+router.delete(
+  '/projects/:id/leadership-transfer/:transferId',
+  ResearchController.cancelProjectLeadershipTransfer
+);
+
+/**
+ * @route   POST /api/research/projects/:id/leadership-transfer/:transferId/accept
+ * @desc    Accept a project leadership transfer
+ * @access  Private (nominee)
+ */
+router.post(
+  '/projects/:id/leadership-transfer/:transferId/accept',
+  ResearchController.acceptProjectLeadershipTransfer
+);
+
+/**
+ * @route   POST /api/research/projects/:id/leadership-transfer/:transferId/decline
+ * @desc    Decline a project leadership transfer
+ * @access  Private (nominee)
+ */
+router.post(
+  '/projects/:id/leadership-transfer/:transferId/decline',
+  ResearchController.declineProjectLeadershipTransfer
+);
+
+/**
  * @route   DELETE /api/research/projects/:id
  * @desc    Delete project
  * @access  Private
@@ -194,6 +238,13 @@ router.get('/projects/:projectId/evidence', ResearchController.getProjectEvidenc
  * @access  Private
  */
 router.post('/projects/:projectId/evidence', ResearchController.createProjectEvidence);
+
+/**
+ * @route   PUT /api/research/projects/:projectId/evidence/order
+ * @desc    Reorder project evidence
+ * @access  Private
+ */
+router.put('/projects/:projectId/evidence/order', ResearchController.reorderProjectEvidence);
 
 /**
  * @route   PUT /api/research/projects/:projectId/evidence/:evidenceId

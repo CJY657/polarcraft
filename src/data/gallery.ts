@@ -309,28 +309,8 @@ export function getWorkById(id: string): GalleryWork | undefined {
 }
 
 /**
- * 搜索作品
- */
-export function searchWorks(query: string): GalleryWork[] {
-  const lowerQuery = query.toLowerCase();
-  return GALLERY_WORKS.filter(
-    (work) =>
-      work.title["zh-CN"].toLowerCase().includes(lowerQuery) ||
-      work.description["zh-CN"].toLowerCase().includes(lowerQuery) ||
-      work.subtitle?.["zh-CN"].toLowerCase().includes(lowerQuery),
-  );
-}
-
-/**
  * 获取公开作品列表
  */
 export function getPublicWorks(): GalleryWork[] {
   return GALLERY_WORKS.filter((work) => work.status === "public");
-}
-
-/**
- * 获取公开作品列表
- */
-export function getPrivateWorks(): GalleryWork[] {
-  return GALLERY_WORKS.filter((work) => work.status === "private");
 }

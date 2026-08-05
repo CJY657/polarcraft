@@ -42,6 +42,8 @@ export function getActivityLabel(item: ProjectActivityItem): string {
         : '完成了任务';
     case 'review_submitted':
       return '提交了同伴评审';
+    case 'project_leadership_transferred':
+      return '接受转让并成为新组长';
     case 'create_node':
       return '添加了画布节点';
     case 'delete_node':

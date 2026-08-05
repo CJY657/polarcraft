@@ -11,6 +11,8 @@ import { uploadConfig } from '../config/upload.config.js';
 import {
   ResearchModel,
   type CreateResearchProjectTaskInput,
+  type PendingLeadershipTransfer,
+  type ProjectEvidenceAttachment,
   type ResearchProjectEvidenceInput,
   type ResearchProjectEvidenceType,
   type UpdateResearchProjectTaskInput,
@@ -48,7 +50,9 @@ const MAX_RESEARCH_AGENT_CONTENT_LENGTH = 2000;
 const MAX_RESEARCH_AGENT_HISTORY_MESSAGES = 12;
 const MAX_PROJECT_REVIEW_CONTENT_LENGTH = 2000;
 const MAX_PROJECT_TASK_TITLE_LENGTH = 200;
+const MAX_PROJECT_EVIDENCE_ATTACHMENTS = 10;
 const PROJECT_REVIEW_QUORUM = 2;
+const LEADERSHIP_TRANSFER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PROJECT_REVIEW_VERDICTS: ResearchProjectReviewVerdict[] = ['approve', 'request_changes'];
 const PROJECT_TASK_STATUSES: ResearchProjectTaskStatus[] = ['todo', 'doing', 'done'];
 const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
@@ -63,6 +67,7 @@ const RESEARCH_PROJECT_EVIDENCE_TYPES: ResearchProjectEvidenceType[] = [
   'other',
 ];
 const researchProjectEvidenceTypeSet = new Set<string>(RESEARCH_PROJECT_EVIDENCE_TYPES);
+const researchProjectEvidenceAttachmentCategorySet = new Set(['image', 'video', 'pdf', 'pptx']);
 const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: '草稿',
   recruiting: '招募中',
@@ -73,6 +78,93 @@ const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   relay_open: '接力开放',
   archived: '已归档',
 };
+
+function getPendingLeadershipTransfer(project: any): PendingLeadershipTransfer | null {
+  const pending = project?.pending_leadership_transfer;
+  if (
+    !pending
+    || typeof pending.id !== 'string'
+    || typeof pending.outgoing_owner_user_id !== 'string'
+    || typeof pending.nominee_user_id !== 'string'
+    || typeof pending.initiated_by_user_id !== 'string'
+    || typeof pending.invitation_notification_id !== 'string'
+  ) {
+    return null;
+  }
+  return pending as PendingLeadershipTransfer;
+}
+
+function isLeadershipTransferExpired(
+  transfer: PendingLeadershipTransfer,
+  now: Date = new Date()
+): boolean {
+  const expiresAt = new Date(transfer.expires_at).getTime();
+  return !Number.isFinite(expiresAt) || expiresAt <= now.getTime();
+}
+
+async function deleteLeadershipTransferInvitation(
+  transfer: PendingLeadershipTransfer | null | undefined
+): Promise<void> {
+  if (!transfer?.invitation_notification_id) {
+    return;
+  }
+  await NotificationModel.deleteNotification(
+    transfer.invitation_notification_id,
+    transfer.nominee_user_id
+  );
+}
+
+async function clearExpiredLeadershipTransfer(
+  projectId: string,
+  transfer: PendingLeadershipTransfer,
+  now: Date = new Date()
+): Promise<boolean> {
+  if (!isLeadershipTransferExpired(transfer, now)) {
+    return false;
+  }
+
+  const cleared = await ResearchModel.clearExpiredLeadershipTransfer(projectId, transfer.id, now);
+  await deleteLeadershipTransferInvitation(cleared);
+  return true;
+}
+
+async function notifyLeadershipTransferResolution({
+  transfer,
+  projectId,
+  projectName,
+  accepted,
+  actorId,
+}: {
+  transfer: PendingLeadershipTransfer;
+  projectId: string;
+  projectName?: string | null;
+  accepted: boolean;
+  actorId: string;
+}): Promise<void> {
+  const recipients = [...new Set([
+    transfer.initiated_by_user_id,
+    transfer.outgoing_owner_user_id,
+  ])].filter((userId) => userId && userId !== actorId);
+  if (recipients.length === 0) {
+    return;
+  }
+
+  const projectLabel = projectName ? `“${projectName}”` : '该课题';
+  await NotificationModel.createNotificationForUsers(recipients, {
+    type: 'leadership_transfer',
+    title: accepted ? '组长转让已接受' : '组长转让已拒绝',
+    content: accepted
+      ? `${projectLabel}的组长权限已经完成转让。`
+      : `${projectLabel}的组长转让邀请已被候选人拒绝。`,
+    data: {
+      project_id: projectId,
+      transfer_id: transfer.id,
+      nominee_user_id: transfer.nominee_user_id,
+      accepted,
+    },
+    action_url: `/lab/projects/${projectId}#project-members`,
+  });
+}
 
 function normalizeProjectTaskPayload(
   body: Record<string, unknown>,
@@ -265,6 +357,114 @@ function normalizeAttachmentSize(value: unknown): number | null | undefined {
   return Math.floor(value);
 }
 
+function normalizeProjectEvidenceAttachments(
+  value: unknown
+): { attachments?: ProjectEvidenceAttachment[]; error?: string } {
+  if (!Array.isArray(value)) {
+    return { error: '附件列表格式无效' };
+  }
+
+  if (value.length > MAX_PROJECT_EVIDENCE_ATTACHMENTS) {
+    return { error: `每条证据最多上传 ${MAX_PROJECT_EVIDENCE_ATTACHMENTS} 个附件` };
+  }
+
+  const attachments: ProjectEvidenceAttachment[] = [];
+  const urls = new Set<string>();
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') {
+      return { error: '附件信息格式无效' };
+    }
+
+    const input = item as Record<string, unknown>;
+    const url = normalizeManagedUploadUrl(input.url);
+    if (typeof url !== 'string' || url === managedUploadUrlPrefix) {
+      return { error: '附件地址格式无效' };
+    }
+    if (urls.has(url)) {
+      return { error: '附件地址不能重复' };
+    }
+
+    const originalName = normalizeOptionalString(input.original_name, 300);
+    const mimeType = normalizeOptionalString(input.mime_type, 160);
+    const category = normalizeOptionalString(input.category, 30);
+    const size = input.size === undefined ? null : normalizeAttachmentSize(input.size);
+    if (!originalName.ok) {
+      return { error: '附件文件名过长' };
+    }
+    if (!mimeType.ok) {
+      return { error: '附件类型过长' };
+    }
+    if (!category.ok || (
+      category.value !== undefined
+      && category.value !== null
+      && !researchProjectEvidenceAttachmentCategorySet.has(category.value)
+    )) {
+      return { error: '附件类别无效' };
+    }
+    if (size === undefined) {
+      return { error: '附件大小格式无效' };
+    }
+
+    urls.add(url);
+    attachments.push({
+      url,
+      original_name: originalName.value ?? null,
+      size: size ?? null,
+      mime_type: mimeType.value ?? null,
+      category: category.value ?? null,
+    });
+  }
+
+  return { attachments };
+}
+
+function getEvidenceAttachmentUrls(evidence: any): string[] {
+  const candidates: unknown[] = Array.isArray(evidence?.attachment_urls)
+    ? evidence.attachment_urls
+    : Array.isArray(evidence?.attachments)
+      ? evidence.attachments.map((attachment: any) => attachment?.url)
+      : [evidence?.attachment_url];
+
+  return [...new Set(candidates
+    .map((url: unknown) => (typeof url === 'string' ? url.trim() : ''))
+    .filter((url): url is string => Boolean(url)))];
+}
+
+function normalizeProjectEvidenceOrderPayload(body: Record<string, unknown>): {
+  expectedEvidenceIds?: string[];
+  evidenceIds?: string[];
+  error?: string;
+} {
+  const normalizeIds = (value: unknown): string[] | null => {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+
+    const ids = value.map((id) => (typeof id === 'string' ? id.trim() : ''));
+    if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
+      return null;
+    }
+    return ids;
+  };
+
+  const expectedEvidenceIds = normalizeIds(body.expectedEvidenceIds);
+  const evidenceIds = normalizeIds(body.evidenceIds);
+  if (!expectedEvidenceIds || !evidenceIds) {
+    return { error: '证据顺序列表格式无效或包含重复标识' };
+  }
+
+  const expectedSet = new Set(expectedEvidenceIds);
+  if (
+    expectedEvidenceIds.length !== evidenceIds.length
+    || evidenceIds.some((id) => !expectedSet.has(id))
+  ) {
+    return { error: '调整前后的证据标识必须完全一致' };
+  }
+
+  return { expectedEvidenceIds, evidenceIds };
+}
+
 function normalizeProjectEvidencePayload(
   body: Record<string, unknown>,
   options: { partial?: boolean } = {}
@@ -321,6 +521,24 @@ function normalizeProjectEvidencePayload(
       return { data, error: '附件大小格式无效' };
     }
     data.attachment_size = attachmentSize;
+  }
+
+  if (body.attachments !== undefined) {
+    const normalized = normalizeProjectEvidenceAttachments(body.attachments);
+    if (normalized.error) {
+      return { data, error: normalized.error };
+    }
+    data.attachments = normalized.attachments;
+  } else if (body.attachment_url !== undefined) {
+    data.attachments = data.attachment_url
+      ? [{
+          url: data.attachment_url,
+          original_name: data.attachment_original_name ?? null,
+          size: data.attachment_size ?? null,
+          mime_type: data.attachment_mime_type ?? null,
+          category: data.attachment_category ?? null,
+        }]
+      : [];
   }
 
   if (data.attachment_url === null) {
@@ -437,6 +655,11 @@ async function ensureProjectAccess(
 
   if (!access.project) {
     res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    return null;
+  }
+
+  if (level === 'manage' && access.ownerStateValid === false) {
+    res.error('课题当前组长数据异常', 'PROJECT_OWNER_STATE_INVALID', 409);
     return null;
   }
 
@@ -621,18 +844,56 @@ export class ResearchController {
       return;
     }
 
+    let pendingLeadershipTransfer = getPendingLeadershipTransfer(access.project);
+    if (
+      pendingLeadershipTransfer
+      && await clearExpiredLeadershipTransfer(id, pendingLeadershipTransfer)
+    ) {
+      pendingLeadershipTransfer = null;
+    }
+
     // Get members
     const [members, formerMembers, pendingApplication] = await Promise.all([
       ResearchModel.getProjectMembers(id),
       access.canManage ? ResearchModel.getFormerProjectMembers(id) : Promise.resolve(undefined),
       ProfileModel.getPendingApplication(id, req.user!.sub),
     ]);
+    const isActiveNominee = Boolean(
+      pendingLeadershipTransfer
+      && access.membership
+      && req.user!.sub === pendingLeadershipTransfer.nominee_user_id
+    );
+    const canViewLeadershipTransfer = Boolean(
+      pendingLeadershipTransfer
+      && (
+        req.user!.role === 'admin'
+        || req.user!.sub === access.ownerUserId
+        || isActiveNominee
+      )
+    );
+    const leadershipTransferView = canViewLeadershipTransfer && pendingLeadershipTransfer
+      ? {
+          ...(await ResearchModel.getLeadershipTransferIdentityView(pendingLeadershipTransfer)),
+          can_accept: isActiveNominee,
+          can_decline: isActiveNominee,
+          can_cancel: req.user!.role === 'admin' || req.user!.sub === access.ownerUserId,
+          can_replace: req.user!.role === 'admin' || req.user!.sub === access.ownerUserId,
+        }
+      : null;
+    const {
+      pending_leadership_transfer: _storedLeadershipTransfer,
+      ...projectResponse
+    } = access.project;
 
     res.success({
-      ...access.project,
+      ...projectResponse,
+      owner_user_id: access.ownerUserId,
       members,
       has_pending_application: Boolean(pendingApplication),
       ...(formerMembers ? { former_members: formerMembers } : {}),
+      ...(leadershipTransferView
+        ? { pending_leadership_transfer: leadershipTransferView }
+        : {}),
     });
   });
 
@@ -808,7 +1069,282 @@ export class ResearchController {
       });
     }
     logger.info(`Project updated by user ${req.user!.username}: ${id}`);
-    res.success(project, '项目更新成功');
+    const {
+      pending_leadership_transfer: _pendingLeadershipTransfer,
+      ...projectResponse
+    } = project ?? {};
+    res.success(projectResponse, '项目更新成功');
+  });
+
+  /**
+   * Nominate or replace a pending project leader
+   * 提名或替换待确认的新组长
+   */
+  static nominateProjectLeader = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const targetUserId = typeof req.body?.targetUserId === 'string'
+      ? req.body.targetUserId.trim()
+      : '';
+    if (!targetUserId) {
+      return res.error('请选择要提名的课题成员', 'INVALID_TRANSFER_TARGET', 400);
+    }
+
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '只有当前组长或管理员可以转让组长权限'
+    );
+    if (!access) {
+      return;
+    }
+    if (!access.ownerStateValid || !access.ownerUserId) {
+      return res.error('课题当前组长数据异常，无法发起转让', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
+
+    const members = await ResearchModel.getProjectMembers(id);
+    const currentOwner = members.find((member: any) => member.user_id === access.ownerUserId);
+    const targetMember = members.find((member: any) => member.user_id === targetUserId);
+    if (!currentOwner || currentOwner.active === false) {
+      return res.error('课题当前组长数据异常，无法发起转让', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
+    if (!targetMember || targetMember.active === false || targetUserId === access.ownerUserId) {
+      return res.error('只能向其他有效课题成员转让组长权限', 'INVALID_TRANSFER_TARGET', 400);
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + LEADERSHIP_TRANSFER_TTL_MS);
+    const transferId = generateId();
+    const projectName = access.project.name_zh || access.project.name_en || id;
+    const invitationNotificationId = await NotificationModel.createNotification({
+      user_id: targetUserId,
+      type: 'leadership_transfer',
+      title: `课题“${projectName}”邀请你担任组长`,
+      content: '请在七天内接受或拒绝。接受后，原组长仍保留为普通成员。',
+      data: {
+        project_id: id,
+        transfer_id: transferId,
+        outgoing_owner_user_id: access.ownerUserId,
+        notification_kind: 'invitation',
+      },
+      action_url: `/lab/projects/${id}#project-members`,
+      expires_at: expiresAt,
+    });
+    const transfer: PendingLeadershipTransfer = {
+      id: transferId,
+      outgoing_owner_user_id: access.ownerUserId,
+      nominee_user_id: targetUserId,
+      initiated_by_user_id: req.user!.sub,
+      invitation_notification_id: invitationNotificationId,
+      created_at: now,
+      expires_at: expiresAt,
+    };
+    const previousTransfer = await ResearchModel.replacePendingLeadershipTransfer(
+      id,
+      access.ownerUserId,
+      transfer
+    );
+    if (previousTransfer === false) {
+      await deleteLeadershipTransferInvitation(transfer);
+      return res.error('课题组长或转让状态已发生变化，请刷新后重试', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+    await deleteLeadershipTransferInvitation(previousTransfer);
+
+    if (req.user!.role === 'admin' && req.user!.sub !== access.ownerUserId) {
+      await NotificationModel.createNotification({
+        user_id: access.ownerUserId,
+        type: 'leadership_transfer',
+        title: `管理员已为课题“${projectName}”发起组长转让`,
+        content: `已邀请 ${targetMember.nickname || targetMember.username || '该成员'} 接任组长。`,
+        data: {
+          project_id: id,
+          transfer_id: transferId,
+          nominee_user_id: targetUserId,
+          notification_kind: 'admin_nomination',
+        },
+        action_url: `/lab/projects/${id}#project-members`,
+        expires_at: expiresAt,
+      });
+    }
+
+    const transferView = await ResearchModel.getLeadershipTransferIdentityView(transfer);
+    logger.info(`Project leadership transfer nominated in ${id} by ${req.user!.username}: ${targetUserId}`);
+    res.success({
+      ...transferView,
+      can_accept: req.user!.sub === targetUserId,
+      can_decline: req.user!.sub === targetUserId,
+      can_cancel: true,
+      can_replace: true,
+    }, '组长转让邀请已发送');
+  });
+
+  /** Cancel a pending project leadership transfer. */
+  static cancelProjectLeadershipTransfer = asyncHandler(async (req: Request, res: Response) => {
+    const { id, transferId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'manage',
+      '只有当前组长或管理员可以取消组长转让'
+    );
+    if (!access) {
+      return;
+    }
+    if (!access.ownerStateValid || !access.ownerUserId) {
+      return res.error('课题当前组长数据异常', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
+
+    const pending = getPendingLeadershipTransfer(access.project);
+    if (!pending || pending.id !== transferId) {
+      return res.error('该组长转让邀请已失效或已被替换', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+    const now = new Date();
+    if (await clearExpiredLeadershipTransfer(id, pending, now)) {
+      return res.error('该组长转让邀请已过期', 'LEADERSHIP_TRANSFER_EXPIRED', 410);
+    }
+
+    const cleared = await ResearchModel.clearPendingLeadershipTransfer(
+      id,
+      transferId,
+      access.ownerUserId,
+      undefined,
+      now
+    );
+    if (!cleared) {
+      return res.error('该组长转让邀请已失效或已被替换', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+    await deleteLeadershipTransferInvitation(cleared);
+    logger.info(`Project leadership transfer cancelled in ${id} by ${req.user!.username}`);
+    res.success(null, '组长转让已取消');
+  });
+
+  /** Accept a project leadership transfer as the nominated member. */
+  static acceptProjectLeadershipTransfer = asyncHandler(async (req: Request, res: Response) => {
+    const { id, transferId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能处理自己所在课题的组长转让邀请'
+    );
+    if (!access) {
+      return;
+    }
+    if (!access.ownerStateValid || !access.ownerUserId) {
+      return res.error('课题当前组长数据异常', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
+
+    const pending = getPendingLeadershipTransfer(access.project);
+    if (!pending || pending.id !== transferId) {
+      return res.error('该组长转让邀请已失效或已被替换', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+    if (pending.nominee_user_id !== req.user!.sub || !access.membership) {
+      return res.error('只有被提名的有效成员可以接受邀请', 'FORBIDDEN', 403);
+    }
+    const now = new Date();
+    if (await clearExpiredLeadershipTransfer(id, pending, now)) {
+      return res.error('该组长转让邀请已过期', 'LEADERSHIP_TRANSFER_EXPIRED', 410);
+    }
+
+    const accepted = await ResearchModel.acceptLeadershipTransfer(
+      id,
+      transferId,
+      access.ownerUserId,
+      req.user!.sub,
+      now
+    );
+    if (!accepted) {
+      const latestProject = await ResearchModel.getProjectById(id);
+      const latestPending = getPendingLeadershipTransfer(latestProject);
+      if (
+        latestPending?.id === transferId
+        && await clearExpiredLeadershipTransfer(id, latestPending)
+      ) {
+        return res.error('该组长转让邀请已过期', 'LEADERSHIP_TRANSFER_EXPIRED', 410);
+      }
+      return res.error('该组长转让邀请已失效或已被处理', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+
+    await deleteLeadershipTransferInvitation(accepted);
+    await ResearchModel.logActivity(
+      id,
+      req.user!.sub,
+      'project_leadership_transferred',
+      'project',
+      id,
+      {
+        outgoing_owner_user_id: accepted.outgoing_owner_user_id,
+        incoming_owner_user_id: accepted.nominee_user_id,
+      }
+    );
+    await notifyLeadershipTransferResolution({
+      transfer: accepted,
+      projectId: id,
+      projectName: access.project.name_zh || access.project.name_en,
+      accepted: true,
+      actorId: req.user!.sub,
+    });
+    logger.info(`Project leadership transferred in ${id}: ${accepted.nominee_user_id}`);
+    res.success({ owner_user_id: accepted.nominee_user_id }, '你已成为课题组长');
+  });
+
+  /** Decline a project leadership transfer as the nominated member. */
+  static declineProjectLeadershipTransfer = asyncHandler(async (req: Request, res: Response) => {
+    const { id, transferId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能处理自己所在课题的组长转让邀请'
+    );
+    if (!access) {
+      return;
+    }
+    if (!access.ownerStateValid || !access.ownerUserId) {
+      return res.error('课题当前组长数据异常', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
+
+    const pending = getPendingLeadershipTransfer(access.project);
+    if (!pending || pending.id !== transferId) {
+      return res.error('该组长转让邀请已失效或已被替换', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+    if (pending.nominee_user_id !== req.user!.sub || !access.membership) {
+      return res.error('只有被提名的有效成员可以拒绝邀请', 'FORBIDDEN', 403);
+    }
+    const now = new Date();
+    if (await clearExpiredLeadershipTransfer(id, pending, now)) {
+      return res.error('该组长转让邀请已过期', 'LEADERSHIP_TRANSFER_EXPIRED', 410);
+    }
+
+    const declined = await ResearchModel.clearPendingLeadershipTransfer(
+      id,
+      transferId,
+      access.ownerUserId,
+      req.user!.sub,
+      now
+    );
+    if (!declined) {
+      return res.error('该组长转让邀请已失效或已被处理', 'LEADERSHIP_TRANSFER_STALE', 409);
+    }
+
+    await deleteLeadershipTransferInvitation(declined);
+    await notifyLeadershipTransferResolution({
+      transfer: declined,
+      projectId: id,
+      projectName: access.project.name_zh || access.project.name_en,
+      accepted: false,
+      actorId: req.user!.sub,
+    });
+    logger.info(`Project leadership transfer declined in ${id}: ${req.user!.sub}`);
+    res.success(null, '已拒绝组长转让邀请');
   });
 
   /**
@@ -842,6 +1378,7 @@ export class ResearchController {
     const coverUrl = access.project.thumbnail;
     const evidenceAttachmentUrls = await ResearchModel.getProjectEvidenceAttachmentUrls(id);
     await ResearchModel.deleteProject(id);
+    await deleteLeadershipTransferInvitation(getPendingLeadershipTransfer(access.project));
     await ManagedUploadCleanupService.cleanupUrls([coverUrl, ...evidenceAttachmentUrls], {
       reason: `research.project.delete:${id}`,
     });
@@ -869,6 +1406,43 @@ export class ResearchController {
 
     const evidenceItems = await ResearchModel.getProjectEvidence(projectId);
     res.success(evidenceItems);
+  });
+
+  /**
+   * Reorder project evidence
+   * 调整课题证据顺序
+   */
+  static reorderProjectEvidence = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      projectId,
+      req.user!.sub,
+      req.user!.role,
+      'write',
+      '只有课题成员可以调整证据顺序'
+    );
+    if (!access) {
+      return;
+    }
+
+    const { expectedEvidenceIds, evidenceIds, error } = normalizeProjectEvidenceOrderPayload(req.body ?? {});
+    if (error || !expectedEvidenceIds || !evidenceIds) {
+      return res.error(error || '证据顺序列表格式无效', 'INVALID_EVIDENCE_ORDER', 400);
+    }
+
+    const reordered = await ResearchModel.reorderProjectEvidence(
+      projectId,
+      expectedEvidenceIds,
+      evidenceIds
+    );
+    if (!reordered) {
+      return res.error('证据列表已发生变化，请刷新后重试', 'EVIDENCE_ORDER_STALE', 409);
+    }
+
+    const evidenceItems = await ResearchModel.getProjectEvidence(projectId);
+    logger.info(`Project evidence reordered by user ${req.user!.username}: ${projectId}`);
+    res.success(evidenceItems, '证据顺序已更新');
   });
 
   /**
@@ -942,12 +1516,10 @@ export class ResearchController {
     }
 
     const evidence = await ResearchModel.getProjectEvidenceById(evidenceId);
-    if (
-      data.attachment_url !== undefined
-      && existing.attachment_url
-      && existing.attachment_url !== data.attachment_url
-    ) {
-      await ManagedUploadCleanupService.cleanupUrls([existing.attachment_url], {
+    if (data.attachments !== undefined || data.attachment_url !== undefined) {
+      const nextUrls = new Set(getEvidenceAttachmentUrls(evidence));
+      const removedUrls = getEvidenceAttachmentUrls(existing).filter((url) => !nextUrls.has(url));
+      await ManagedUploadCleanupService.cleanupUrls(removedUrls, {
         reason: `research.project-evidence.attachment-change:${evidenceId}`,
       });
     }
@@ -980,7 +1552,7 @@ export class ResearchController {
     }
 
     await ResearchModel.deleteProjectEvidence(evidenceId);
-    await ManagedUploadCleanupService.cleanupUrls([existing.attachment_url], {
+    await ManagedUploadCleanupService.cleanupUrls(getEvidenceAttachmentUrls(existing), {
       reason: `research.project-evidence.delete:${evidenceId}`,
     });
     logger.info(`Project evidence deleted by user ${req.user!.username}: ${evidenceId}`);
@@ -1363,11 +1935,16 @@ export class ResearchController {
     if (!access) {
       return;
     }
+    if (access.ownerStateValid === false) {
+      return res.error('课题当前组长数据异常', 'PROJECT_OWNER_STATE_INVALID', 409);
+    }
 
     // 获取项目成员列表
     const members = await ResearchModel.getProjectMembers(id);
-    const currentUser = members.find((m: any) => m.user_id === currentUserId);
     const targetMember = members.find((m: any) => m.user_id === userId);
+    const currentOwnerUserId = access.ownerUserId
+      ?? members.find((member: any) => member.role === 'owner')?.user_id
+      ?? null;
 
     // 检查目标成员是否存在
     if (!targetMember) {
@@ -1377,10 +1954,17 @@ export class ResearchController {
     // 允许成员移除自己（退出课题组）
     if (userId === currentUserId) {
       // owner 不能移除自己
-      if (currentUser?.role === 'owner') {
+      if (userId === currentOwnerUserId) {
         return res.error('组长不能退出课题组，请先转让组长权限', 'OWNER_CANNOT_LEAVE', 403);
       }
-      await ResearchModel.removeProjectMember(id, userId);
+      const removal = await ResearchModel.removeProjectMember(id, userId, currentOwnerUserId);
+      if (removal.ownerConflict) {
+        return res.error('组长不能退出课题组，请先转让组长权限', 'OWNER_CANNOT_LEAVE', 403);
+      }
+      if (!removal.removed) {
+        return res.error('成员状态已发生变化，请刷新后重试', 'MEMBER_STATE_STALE', 409);
+      }
+      await deleteLeadershipTransferInvitation(removal.clearedLeadershipTransfer);
       logger.info(`Member left project ${id}: ${userId}`);
       return res.success(null, '已退出课题组');
     }
@@ -1391,11 +1975,18 @@ export class ResearchController {
     }
 
     // 不能移除 owner
-    if (targetMember.role === 'owner') {
+    if (userId === currentOwnerUserId) {
       return res.error('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
     }
 
-    await ResearchModel.removeProjectMember(id, userId);
+    const removal = await ResearchModel.removeProjectMember(id, userId, currentOwnerUserId);
+    if (removal.ownerConflict) {
+      return res.error('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
+    }
+    if (!removal.removed) {
+      return res.error('成员状态已发生变化，请刷新后重试', 'MEMBER_STATE_STALE', 409);
+    }
+    await deleteLeadershipTransferInvitation(removal.clearedLeadershipTransfer);
     logger.info(`Member removed from project ${id} by ${req.user!.username}: ${userId}`);
     res.success(null, '成员移除成功');
   });

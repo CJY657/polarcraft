@@ -620,44 +620,4 @@ export function getEraFromYear(year: number): Era {
   return 'modern'
 }
 
-/**
- * Generate inline SVG string for use in embedded contexts (e.g., SVG text elements)
- */
-export function getNodeIconPath(
-  type: 'scientist' | 'concept',
-  field?: ScientistField,
-  status?: ConceptStatus
-): string {
-  // Return simplified path data for inline use
-  if (type === 'scientist') {
-    switch (field) {
-      case 'optics':
-        return 'M3 7L5 2.5L7 7M1 4.5H3.8M6.2 5L9 3.5M6.2 5.2L9 5.2M6.2 5.4L9 7'
-      case 'polarization':
-        return 'M3.5 2V8M3.6 3H4.2M3.6 4H4.2M3.6 5H4.2M3.6 6H4.2M3.6 7H4.2M1 5Q1.5 4 2 5T3 5M4.8 5Q5.8 3.5 6.8 5T8.8 5'
-      case 'wave':
-        return 'M1 5Q2 2 3.5 5T6 5T8.5 5'
-      case 'quantum':
-        return 'M5 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0M5 5m-3.5 0a3.5 1.5 0 1 0 7 0a3.5 1.5 0 1 0-7 0'
-      default:
-        return 'M3 7L5 2.5L7 7'
-    }
-  } else {
-    switch (status) {
-      case 'phenomenon':
-        return 'M1 5Q5 1.5 9 5Q5 8.5 1 5M5 5m-1.8 0a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0-3.6 0'
-      case 'theory':
-        return 'M3.5 5.5Q2 3.5 3.5 2Q5 1 6.5 2Q8 3.5 6.5 5.5L6 6.5H4L3.5 5.5M4 7H6V8H4Z'
-      case 'law':
-        return 'M1.5 2.5H8.5V7.5H1.5ZM2.5 3.5L4 3.5L3.2 5L4 6.5L2.5 6.5M5 4.5H6.5M5 5.5H6.5'
-      case 'principle':
-        return 'M5 5m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0M5 2L5.5 5L5 8L4.5 5Z'
-      case 'application':
-        return 'M5 1.5L5.5 2.2L6.2 1.8L6.8 2.5L7.5 2.8L7.8 3.5L8.5 4L8.5 4.8L8.8 5.5L8.2 6L8.5 6.8L7.8 7.2L7.5 8L6.8 7.8L6 8.5L5.2 8.2L4.5 8.8L3.8 8.2L3 8.5L2.5 7.8L1.8 7.5L1.8 6.8L1.2 6L1.5 5.2L1.2 4.5L1.8 3.8L1.8 3L2.5 2.5L3.2 2L4 2.2L4.5 1.5Z'
-      default:
-        return 'M1 5Q5 1.5 9 5Q5 8.5 1 5'
-    }
-  }
-}
-
 export default NodeIcon

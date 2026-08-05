@@ -952,70 +952,7 @@ export function getResourcesByCategory(category: ResourceCategory): Polarization
   return POLARIZATION_RESOURCES.filter(r => r.category === category)
 }
 
-/** Get resources by type */
-export function getResourcesByType(type: ResourceType): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.type === type)
-}
-
-/** Get resources by related module */
-export function getResourcesByModule(moduleId: string): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.relatedModules.includes(moduleId))
-}
-
 /** Get resource by ID */
 export function getResourceById(id: string): PolarizationResource | undefined {
   return POLARIZATION_RESOURCES.find(r => r.id === id)
-}
-
-/** Get all sequence resources */
-export function getSequenceResources(): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.type === 'sequence')
-}
-
-/** Get resources with videos */
-export function getResourcesWithVideos(): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.metadata.hasVideo)
-}
-
-/** Get resources with view pairs (parallel/crossed) */
-export function getResourcesWithViewPairs(): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.views && (r.views.parallel || r.views.crossed))
-}
-
-/** Get chiral (optically active) resources */
-export function getChiralResources(): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.isChiral)
-}
-
-/** Get resources with video annotations */
-export function getResourcesWithAnnotations(): PolarizationResource[] {
-  return POLARIZATION_RESOURCES.filter(r => r.videoAnnotations && r.videoAnnotations.length > 0)
-}
-
-/** Check if resource has view pair */
-export function hasViewPair(resource: PolarizationResource): boolean {
-  return !!(resource.views && resource.views.parallel && resource.views.crossed)
-}
-
-// ===== Statistics =====
-export const RESOURCE_STATS = {
-  totalResources: POLARIZATION_RESOURCES.length,
-  byCategory: {
-    stress: getResourcesByCategory('stress').length,
-    interference: getResourcesByCategory('interference').length,
-    art: getResourcesByCategory('art').length,
-    daily: getResourcesByCategory('daily').length,
-    birefringence: getResourcesByCategory('birefringence').length,
-    brewster: getResourcesByCategory('brewster').length,
-    scattering: getResourcesByCategory('scattering').length,
-    rotation: getResourcesByCategory('rotation').length,
-  },
-  byType: {
-    image: getResourcesByType('image').length,
-    video: getResourcesByType('video').length,
-    sequence: getResourcesByType('sequence').length,
-  },
-  withVideos: getResourcesWithVideos().length,
-  withViewPairs: getResourcesWithViewPairs().length,
-  chiralResources: getChiralResources().length,
 }

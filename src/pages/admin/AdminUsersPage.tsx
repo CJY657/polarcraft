@@ -1298,7 +1298,7 @@ function UserDetailDialog({
 
           {user ? (
             <Link
-              to={`/admin/activity?user=${encodeURIComponent(user.id)}`}
+              to={`/admin/activity/user/${encodeURIComponent(user.id)}`}
               className={cn(
                 'mt-3 inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-colors',
                 theme === 'dark'

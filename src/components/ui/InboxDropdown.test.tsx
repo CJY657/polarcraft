@@ -97,10 +97,14 @@ describe('InboxDropdown notification polling', () => {
   });
 
   it('sends a fresh jump signal when opening a notification for the current page', async () => {
-    mocks.notifications = [createNotification()];
+    mocks.notifications = [createNotification({
+      type: 'leadership_transfer',
+      title: '课题组长转让邀请',
+      action_url: '/lab/projects/project-1#project-members',
+    })];
 
     render(
-      <MemoryRouter initialEntries={['/lab/projects/project-1#discussion-comment-comment-1']}>
+      <MemoryRouter initialEntries={['/lab/projects/project-1#project-members']}>
         <InboxDropdown />
         <Routes>
           <Route path="/lab/projects/:projectId" element={<LocationProbe />} />
@@ -112,11 +116,11 @@ describe('InboxDropdown notification polling', () => {
       fireEvent.click(screen.getByTitle('收件箱'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('新的课题讨论'));
+      fireEvent.click(screen.getByText('课题组长转让邀请'));
     });
     expect(mocks.markAsRead).toHaveBeenCalledWith('notification-1');
     expect(screen.getByTestId('location').textContent).toBe(
-      '/lab/projects/project-1#discussion-comment-comment-1'
+      '/lab/projects/project-1#project-members'
     );
     expect(screen.getByTestId('notification-jump-state').textContent).toBe('jump');
   });

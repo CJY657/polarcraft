@@ -103,6 +103,10 @@ const httpRequestTimeoutMs = parsePositiveInt(
 );
 const aiApiBaseUrl = process.env.AI_API_BASE_URL?.trim().replace(/\/+$/, '') || '';
 const aiRequestTimeoutMs = parsePositiveInt(process.env.AI_REQUEST_TIMEOUT_MS, 30000);
+const posthogQueryTimeoutMs = parsePositiveInt(
+  process.env.POSTHOG_QUERY_TIMEOUT_MS,
+  15000,
+);
 
 // =====================================================
 // Server Configuration / 服务器配置
@@ -190,6 +194,7 @@ export const config = {
     appHost: process.env.POSTHOG_APP_HOST?.trim().replace(/\/$/, '') || '',
     environmentId: process.env.POSTHOG_ENVIRONMENT_ID?.trim() || '',
     personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY?.trim() || '',
+    queryTimeoutMs: posthogQueryTimeoutMs,
   },
 
   // Research AI advisor / 课题 AI 顾问

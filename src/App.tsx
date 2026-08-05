@@ -119,7 +119,8 @@ const AdminUnitsPage = lazy(() => import("@/pages/admin/AdminUnitsPage"));
 const AdminGalleryPage = lazy(() => import("@/pages/admin/AdminGalleryPage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin/AdminFeedbackPage"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
-const AdminActivityPage = lazy(() => import("@/pages/admin/AdminActivityPage"));
+const AdminActivityPage = lazy(() => import("@/pages/admin/AdminActivityRoute"));
+const AdminUserActivityPage = lazy(() => import("@/pages/admin/AdminUserActivityPage"));
 const AdminQuizPage = lazy(() => import("@/pages/admin/AdminQuizPage"));
 const UnitEditorPage = lazy(() => import("@/pages/admin/UnitEditorPage"));
 const AdminRoute = lazy(() => import("@/components/admin/AdminRoute").then(m => ({ default: m.AdminRoute })));
@@ -451,6 +452,14 @@ function AppRouterContent() {
             element={
               <AdminRoute>
                 <AdminActivityPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/activity/user/:userId"
+            element={
+              <AdminRoute>
+                <AdminUserActivityPage />
               </AdminRoute>
             }
           />

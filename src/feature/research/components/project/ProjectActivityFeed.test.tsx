@@ -48,6 +48,11 @@ describe('ProjectActivityFeed', () => {
         username: '组长',
       }),
       createActivity({ id: 'activity-review', action: 'review_submitted', username: '评审同学' }),
+      createActivity({
+        id: 'activity-leadership',
+        action: 'project_leadership_transferred',
+        username: '新组长',
+      }),
     ]);
 
     render(<ProjectActivityFeed projectId="project-1" limit={15} />);
@@ -57,7 +62,8 @@ describe('ProjectActivityFeed', () => {
     expect(screen.getByText('把课题阶段从「进行中」推进到「待评审」')).toBeTruthy();
     expect(screen.getByText('完成了任务「整理观察数据」')).toBeTruthy();
     expect(screen.getByText('提交了同伴评审')).toBeTruthy();
-    expect(screen.getAllByText('刚刚').length).toBe(3);
+    expect(screen.getByText('接受转让并成为新组长')).toBeTruthy();
+    expect(screen.getAllByText('刚刚').length).toBe(4);
   });
 
   it('shows an empty state when there is no activity yet', async () => {

@@ -53,6 +53,17 @@ export function formatProjectDate(dateStr: string): string {
   });
 }
 
+function getAuthoritativeProjectMembers(project: ProjectWithMembers): ProjectMember[] {
+  if (!project.owner_user_id) {
+    return project.members;
+  }
+
+  return project.members.map((member) => ({
+    ...member,
+    role: member.user_id === project.owner_user_id ? "owner" : "member",
+  }));
+}
+
 export interface ApplyButtonStateInput {
   isPublicGuestMode: boolean;
   hasPendingApplication: boolean;
@@ -100,7 +111,8 @@ export function buildApplicationProjectFromProject(
   project: ProjectWithMembers,
   { requireApproval, recruitmentRequirements, isRecruitmentClosed, maxMembers }: ApplicationProjectOptions
 ): PublicProject {
-  const projectOwner = project.members.find((member) => member.role === "owner") ?? null;
+  const projectMembers = getAuthoritativeProjectMembers(project);
+  const projectOwner = projectMembers.find((member) => member.role === "owner") ?? null;
 
   return {
     id: project.id,
@@ -137,7 +149,7 @@ export function buildApplicationProjectFromProject(
     owner_real_name: projectOwner?.real_name ?? null,
     owner_show_real_name_publicly: projectOwner?.show_real_name_publicly ?? false,
     owner_avatar_url: projectOwner?.avatar_url ?? null,
-    members: project.members.map((member) => ({
+    members: projectMembers.map((member) => ({
       username: member.username,
       nickname: member.nickname ?? null,
       real_name: member.real_name ?? null,
@@ -235,7 +247,8 @@ export function buildResearchProjectViewModel({
   const displayProject = isExampleProject
     ? buildExampleProjectDisplay(projectId, exampleProject)
     : publicProject ?? project;
-  const displayMembers = project?.members ?? publicProject?.members ?? [];
+  const authenticatedMembers = project ? getAuthoritativeProjectMembers(project) : [];
+  const displayMembers = project ? authenticatedMembers : publicProject?.members ?? [];
   const formerMembers = project?.former_members ?? [];
   const displayIsRecruiting = settings?.is_recruiting ?? publicProject?.is_recruiting ?? false;
   const displayRequireApproval = settings?.require_approval ?? publicProject?.require_approval ?? true;
@@ -249,7 +262,7 @@ export function buildResearchProjectViewModel({
   const isAdmin = user?.role === "admin";
   const currentUserRole =
     project && user
-      ? project.members.find((member) => member.user_id === user.id)?.role ?? null
+      ? authenticatedMembers.find((member) => member.user_id === user.id)?.role ?? null
       : null;
   const isReadOnlyMode =
     !isExampleProject

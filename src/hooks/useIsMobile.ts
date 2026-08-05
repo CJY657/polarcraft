@@ -81,15 +81,3 @@ export function useIsMobile(): MobileState {
 
   return state
 }
-
-// Simple hook for just checking mobile
-export function useIsMobileSimple(): boolean {
-  const { isMobile } = useIsMobile()
-  return isMobile
-}
-
-// Hook for checking touch device
-export function useIsTouchDevice(): boolean {
-  const { isTouchDevice } = useIsMobile()
-  return isTouchDevice
-}

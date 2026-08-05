@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -73,7 +72,6 @@ function formatDate(value: string): string {
 
 export default function AdminActivityPage() {
   const { theme } = useTheme();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [range, setRange] = useState(() => presetRange(7));
   const [customRange, setCustomRange] = useState(range);
   const [userType, setUserType] = useState<AdminActivityUserType>('student');
@@ -82,35 +80,20 @@ export default function AdminActivityPage() {
   const [result, setResult] = useState<AdminActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const isDark = theme === 'dark';
   const customRangeInvalid =
     !customRange.start || !customRange.end || customRange.start > customRange.end;
   const customRangeUnchanged =
     customRange.start === range.start && customRange.end === range.end;
   const copy = USER_TYPE_COPY[userType];
-  // Bookmarkable: /admin/activity?user=<id> opens the user drawer directly.
-  const selectedUserId = searchParams.get('user');
 
   const openUser = (userId: string) => {
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.set('user', userId);
-        return next;
-      },
-      { replace: false }
-    );
+    setSelectedUserId(userId);
   };
 
   const closeUser = () => {
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.delete('user');
-        return next;
-      },
-      { replace: true }
-    );
+    setSelectedUserId(null);
   };
 
   const selectedUser = useMemo<{

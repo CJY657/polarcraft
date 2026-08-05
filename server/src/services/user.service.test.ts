@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   findByIdForAdmin,
@@ -59,6 +59,10 @@ vi.mock('./posthog.service.js', () => ({
 
 import { AuthError } from '../types/auth.types.js';
 import { UserService } from './user.service.js';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('UserService.getPostHogAnalyticsForAdmin', () => {
   beforeEach(() => {
@@ -328,9 +332,12 @@ describe('UserService.getLearnerActivityForAdmin', () => {
     vi.clearAllMocks();
   });
 
-  it('adds the selected account type from the database to the activity detail', async () => {
+  it('adds the selected account identity from the database to the activity detail', async () => {
     findByIdForAdmin.mockResolvedValue({
       id: 'teacher-1',
+      username: 'teacher-account',
+      nickname: '林老师',
+      real_name: '林教授',
       user_type: 'teacher',
     });
     getLearnerActivityDetail.mockResolvedValue({
@@ -349,7 +356,11 @@ describe('UserService.getLearnerActivityForAdmin', () => {
 
     await expect(
       UserService.getLearnerActivityForAdmin('teacher-1', '2026-07-01', '2026-07-07')
-    ).resolves.toMatchObject({ user_type: 'teacher' });
+    ).resolves.toMatchObject({
+      username: 'teacher-account',
+      display_name: '林教授',
+      user_type: 'teacher',
+    });
     expect(getLearnerActivityDetail).toHaveBeenCalledWith(
       'teacher-1',
       '2026-07-01',
@@ -358,7 +369,11 @@ describe('UserService.getLearnerActivityForAdmin', () => {
   });
 
   it('caches activity per learner and range, after checking the account exists', async () => {
-    findByIdForAdmin.mockResolvedValue({ id: 'learner-1', user_type: 'student' });
+    findByIdForAdmin.mockResolvedValue({
+      id: 'learner-1',
+      username: 'learner-1',
+      user_type: 'student',
+    });
     getLearnerActivityDetail.mockResolvedValue({
       status: 'ok',
       range: { start: '2026-06-01', end: '2026-06-07', days: 7 },
@@ -379,7 +394,11 @@ describe('UserService.getLearnerActivityForAdmin', () => {
     // Existence is still verified on the cached path.
     expect(findByIdForAdmin).toHaveBeenCalledTimes(2);
 
-    findByIdForAdmin.mockResolvedValue({ id: 'learner-2', user_type: 'student' });
+    findByIdForAdmin.mockResolvedValue({
+      id: 'learner-2',
+      username: 'learner-2',
+      user_type: 'student',
+    });
     await UserService.getLearnerActivityForAdmin('learner-2', '2026-06-01', '2026-06-07');
     expect(getLearnerActivityDetail).toHaveBeenCalledTimes(2);
 
@@ -388,6 +407,154 @@ describe('UserService.getLearnerActivityForAdmin', () => {
       UserService.getLearnerActivityForAdmin('learner-1', '2026-06-01', '2026-06-07')
     ).rejects.toBeInstanceOf(AuthError);
     expect(getLearnerActivityDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns stale learner activity while a failed refresh runs in the background', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
+    findByIdForAdmin.mockResolvedValue({
+      id: 'stale-learner',
+      username: 'stale-account',
+      user_type: null,
+    });
+    const snapshot = {
+      status: 'ok',
+      range: { start: '2026-07-01', end: '2026-07-30', days: 30 },
+      previous_range: { start: '2026-06-01', end: '2026-06-30', days: 30 },
+      generated_at: '2026-08-05T00:00:00.000Z',
+      last_activity: null,
+      summary: null,
+      previous_summary: null,
+      daily: [],
+      top_pages: [],
+      module_breakdown: [],
+      hourly: [],
+    };
+    getLearnerActivityDetail
+      .mockResolvedValueOnce(snapshot)
+      .mockRejectedValueOnce(new Error('timeout'));
+
+    const first = await UserService.getLearnerActivityForAdmin(
+      'stale-learner',
+      '2026-07-01',
+      '2026-07-30'
+    );
+    await vi.advanceTimersByTimeAsync(20 * 60 * 1000 + 1);
+    const stale = await UserService.getLearnerActivityForAdmin(
+      'stale-learner',
+      '2026-07-01',
+      '2026-07-30'
+    );
+
+    expect(first.generated_at).toBe(snapshot.generated_at);
+    expect(stale.generated_at).toBe(snapshot.generated_at);
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('deduplicates concurrent detail misses for the same learner and range', async () => {
+    findByIdForAdmin.mockResolvedValue({
+      id: 'concurrent-learner',
+      username: 'concurrent-account',
+      user_type: 'student',
+    });
+    let resolveActivity:
+      | ((value: {
+          status: 'ok';
+          range: { start: string; end: string; days: number };
+          previous_range: { start: string; end: string; days: number };
+          generated_at: string;
+          last_activity: null;
+          summary: null;
+          previous_summary: null;
+          daily: never[];
+          top_pages: never[];
+          module_breakdown: never[];
+          hourly: never[];
+        }) => void)
+      | undefined;
+    getLearnerActivityDetail.mockReturnValue(
+      new Promise((resolve) => {
+        resolveActivity = resolve;
+      })
+    );
+
+    const first = UserService.getLearnerActivityForAdmin(
+      'concurrent-learner',
+      '2026-07-01',
+      '2026-07-30'
+    );
+    const second = UserService.getLearnerActivityForAdmin(
+      'concurrent-learner',
+      '2026-07-01',
+      '2026-07-30'
+    );
+    await vi.waitFor(() => expect(getLearnerActivityDetail).toHaveBeenCalledTimes(1));
+
+    resolveActivity?.({
+      status: 'ok',
+      range: { start: '2026-07-01', end: '2026-07-30', days: 30 },
+      previous_range: { start: '2026-06-01', end: '2026-06-30', days: 30 },
+      generated_at: '2026-08-05T00:00:00.000Z',
+      last_activity: null,
+      summary: null,
+      previous_summary: null,
+      daily: [],
+      top_pages: [],
+      module_breakdown: [],
+      hourly: [],
+    });
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(findByIdForAdmin).toHaveBeenCalledTimes(2);
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for a delayed cold detail load and returns the identical cached range immediately', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
+    findByIdForAdmin.mockResolvedValue({
+      id: 'latency-learner',
+      username: 'latency-account',
+      user_type: 'student',
+    });
+    const snapshot = {
+      status: 'ok',
+      range: { start: '2026-07-01', end: '2026-07-30', days: 30 },
+      previous_range: { start: '2026-06-01', end: '2026-06-30', days: 30 },
+      generated_at: '2026-08-05T00:00:00.000Z',
+      last_activity: null,
+      summary: null,
+      previous_summary: null,
+      daily: [],
+      top_pages: [],
+      module_breakdown: [],
+      hourly: [],
+    };
+    getLearnerActivityDetail.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(snapshot), 100))
+    );
+
+    let coldResolved = false;
+    const cold = UserService.getLearnerActivityForAdmin(
+      'latency-learner',
+      '2026-07-01',
+      '2026-07-30'
+    ).then((value) => {
+      coldResolved = true;
+      return value;
+    });
+    await vi.advanceTimersByTimeAsync(99);
+    expect(coldResolved).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(cold).resolves.toMatchObject({ generated_at: snapshot.generated_at });
+
+    const cached = await UserService.getLearnerActivityForAdmin(
+      'latency-learner',
+      '2026-07-01',
+      '2026-07-30'
+    );
+    expect(cached.generated_at).toBe(snapshot.generated_at);
+    expect(getLearnerActivityDetail).toHaveBeenCalledTimes(1);
   });
 });
 

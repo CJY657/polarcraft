@@ -143,6 +143,19 @@ describe('AdminUsersPage', () => {
     });
   });
 
+  it('links full activity analysis to the dedicated user route', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '查看 alice 的详情' }));
+
+    const link = await screen.findByRole('link', { name: '查看完整活动分析' });
+    expect(link.getAttribute('href')).toBe('/admin/activity/user/user-1');
+  });
+
   it('reloads the list when the permission filter changes', async () => {
     render(
       <MemoryRouter>

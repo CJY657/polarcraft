@@ -7,8 +7,6 @@
  * 3. 区分关联强度：primary(核心关联) vs secondary(相关联系)
  */
 
-import type { TimelineEvent } from './timeline-events'
-
 // 课程演示信息结构
 export interface CourseDemo {
   id: string
@@ -25,15 +23,6 @@ export interface CourseEventMapping {
   eventYear: number                       // 事件年份
   eventTrack: 'optics' | 'polarization'   // 事件轨道
   relevance: 'primary' | 'secondary'      // 关联强度
-}
-
-// 事件查找结果（用于UI展示）
-export interface EventSearchResult {
-  year: number
-  track: 'optics' | 'polarization'
-  titleEn: string
-  titleZh: string
-  relevance: 'primary' | 'secondary'
 }
 
 // Demo查找结果（用于UI展示）
@@ -191,31 +180,6 @@ export const COURSE_EVENT_MAPPINGS: CourseEventMapping[] = [
 // =====================================
 
 /**
- * 根据演示ID获取关联的历史事件
- * @param demoId 演示ID
- * @param events 时间线事件列表
- * @returns 关联事件列表，带有关联强度标记
- */
-export function getEventsByDemo(
-  demoId: string,
-  events: TimelineEvent[]
-): EventSearchResult[] {
-  const mappings = COURSE_EVENT_MAPPINGS.filter(m => m.demoId === demoId)
-
-  return mappings.map(m => {
-    const event = events.find(e => e.year === m.eventYear && e.track === m.eventTrack)
-    if (!event) return null
-    return {
-      year: event.year,
-      track: event.track,
-      titleEn: event.titleEn,
-      titleZh: event.titleZh,
-      relevance: m.relevance,
-    }
-  }).filter((e): e is EventSearchResult => e !== null)
-}
-
-/**
  * 根据事件年份和轨道获取关联的课程演示
  * @param year 事件年份
  * @param track 事件轨道
@@ -241,81 +205,6 @@ export function getDemosByEvent(
       relevance: m.relevance,
     }
   }).filter((d): d is DemoSearchResult => d !== null)
-}
-
-/**
- * 根据选中的演示ID列表过滤事件
- * @param selectedDemoIds 选中的演示ID列表
- * @param _events 时间线事件列表（可选，用于未来扩展验证）
- * @returns 匹配的事件年份和轨道集合
- */
-export function filterEventsByDemos(
-  selectedDemoIds: string[],
-  _events?: unknown
-): Set<string> {
-  const matchedEvents = new Set<string>()
-
-  selectedDemoIds.forEach(demoId => {
-    const mappings = COURSE_EVENT_MAPPINGS.filter(m => m.demoId === demoId)
-    mappings.forEach(m => {
-      // 使用 year-track 作为唯一标识
-      matchedEvents.add(`${m.eventYear}-${m.eventTrack}`)
-    })
-  })
-
-  return matchedEvents
-}
-
-/**
- * 获取单元的所有演示
- * @param unitNumber 单元编号
- * @returns 该单元的所有演示
- */
-export function getDemosByUnit(unitNumber: number): CourseDemo[] {
-  return COURSE_DEMOS.filter(d => d.unit === unitNumber)
-}
-
-/**
- * 获取演示关联的事件数量
- * @param demoId 演示ID
- * @returns 关联事件数量
- */
-export function getEventCountByDemo(demoId: string): number {
-  return COURSE_EVENT_MAPPINGS.filter(m => m.demoId === demoId).length
-}
-
-/**
- * 获取事件关联的演示数量
- * @param year 事件年份
- * @param track 事件轨道
- * @returns 关联演示数量
- */
-export function getDemoCountByEvent(year: number, track: 'optics' | 'polarization'): number {
-  return COURSE_EVENT_MAPPINGS.filter(
-    m => m.eventYear === year && m.eventTrack === track
-  ).length
-}
-
-/**
- * 根据选中的事件过滤相关的演示
- * @param selectedEvents 选中的事件列表 [{year, track}]
- * @returns 匹配的演示ID集合
- */
-export function filterDemosByEvents(
-  selectedEvents: Array<{ year: number; track: 'optics' | 'polarization' }>
-): Set<string> {
-  const matchedDemos = new Set<string>()
-
-  selectedEvents.forEach(event => {
-    const mappings = COURSE_EVENT_MAPPINGS.filter(
-      m => m.eventYear === event.year && m.eventTrack === event.track
-    )
-    mappings.forEach(m => {
-      matchedDemos.add(m.demoId)
-    })
-  })
-
-  return matchedDemos
 }
 
 /**

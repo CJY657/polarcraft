@@ -27,6 +27,7 @@ const {
     createProjectEvidence: vi.fn(),
     updateProjectEvidence: vi.fn(),
     deleteProjectEvidence: vi.fn(),
+    reorderProjectEvidence: vi.fn(),
     getProjectDiscussionCommentById: vi.fn(),
     addProjectDiscussionComment: vi.fn(),
     logActivity: vi.fn(),
@@ -50,10 +51,16 @@ const {
     updateProjectTask: vi.fn(),
     deleteProjectTask: vi.fn(),
     updateProjectDiscussionComment: vi.fn(),
+    replacePendingLeadershipTransfer: vi.fn(),
+    clearPendingLeadershipTransfer: vi.fn(),
+    clearExpiredLeadershipTransfer: vi.fn(),
+    acceptLeadershipTransfer: vi.fn(),
+    getLeadershipTransferIdentityView: vi.fn(),
   },
   mockNotificationModel: {
     createNotification: vi.fn(),
     createNotificationForUsers: vi.fn(),
+    deleteNotification: vi.fn(),
   },
   mockProfileModel: {
     getOrCreateProjectSettings: vi.fn(),
@@ -535,6 +542,7 @@ describe('ResearchController member management', () => {
     });
     mockResearchModel.getProjectEvidenceAttachmentUrls.mockResolvedValue([
       '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+      '/uploads/courses/project-evidence-project-1/image/support.png',
     ]);
     mockResearchModel.deleteProject.mockResolvedValue(true);
 
@@ -551,6 +559,7 @@ describe('ResearchController member management', () => {
       [
         '/uploads/courses/project-cover-project-1/image/cover.png',
         '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+        '/uploads/courses/project-evidence-project-1/image/support.png',
       ],
       { reason: 'research.project.delete:project-1' }
     );
@@ -584,6 +593,93 @@ describe('ResearchController member management', () => {
     expect(res.success).toHaveBeenCalledWith([
       { id: 'evidence-1', title: '图像观察', evidence_type: 'image_observation' },
     ]);
+  });
+
+  it('reorders evidence for members and returns the saved order', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.reorderProjectEvidence.mockResolvedValue(true);
+    mockResearchModel.getProjectEvidence.mockResolvedValue([
+      { id: 'evidence-2', sort_order: 0 },
+      { id: 'evidence-1', sort_order: 1 },
+    ]);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.reorderProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        expectedEvidenceIds: ['evidence-1', 'evidence-2'],
+        evidenceIds: ['evidence-2', 'evidence-1'],
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.reorderProjectEvidence).toHaveBeenCalledWith(
+      'project-1',
+      ['evidence-1', 'evidence-2'],
+      ['evidence-2', 'evidence-1']
+    );
+    expect(res.success).toHaveBeenCalledWith([
+      { id: 'evidence-2', sort_order: 0 },
+      { id: 'evidence-1', sort_order: 1 },
+    ], '证据顺序已更新');
+  });
+
+  it('rejects duplicate evidence order ids and reports stale order conflicts', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    const duplicateResponse = createResponse();
+
+    await invokeHandler(ResearchController.reorderProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        expectedEvidenceIds: ['evidence-1', 'evidence-1'],
+        evidenceIds: ['evidence-1', 'evidence-1'],
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, duplicateResponse);
+
+    expect(duplicateResponse.error).toHaveBeenCalledWith(
+      '证据顺序列表格式无效或包含重复标识',
+      'INVALID_EVIDENCE_ORDER',
+      400
+    );
+    expect(mockResearchModel.reorderProjectEvidence).not.toHaveBeenCalled();
+
+    mockResearchModel.reorderProjectEvidence.mockResolvedValue(false);
+    const staleResponse = createResponse();
+    await invokeHandler(ResearchController.reorderProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        expectedEvidenceIds: ['evidence-1'],
+        evidenceIds: ['evidence-1'],
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, staleResponse);
+
+    expect(staleResponse.error).toHaveBeenCalledWith(
+      '证据列表已发生变化，请刷新后重试',
+      'EVIDENCE_ORDER_STALE',
+      409
+    );
   });
 
   it('rejects evidence creation for users without write access', async () => {
@@ -666,6 +762,74 @@ describe('ResearchController member management', () => {
     );
   });
 
+  it('rejects too many, duplicate, or unmanaged evidence attachments', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    const user = { sub: 'member-1', username: 'member', role: 'user' };
+
+    const tooManyResponse = createResponse();
+    await invokeHandler(ResearchController.createProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        title: '附件过多',
+        evidence_type: 'other',
+        attachments: Array.from({ length: 11 }, (_, index) => ({
+          url: `/uploads/courses/project-evidence-project-1/pdf/${index}.pdf`,
+        })),
+      },
+      user,
+    }, tooManyResponse);
+    expect(tooManyResponse.error).toHaveBeenCalledWith(
+      '每条证据最多上传 10 个附件',
+      'INVALID_PROJECT_EVIDENCE',
+      400
+    );
+
+    const duplicateResponse = createResponse();
+    await invokeHandler(ResearchController.createProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        title: '重复附件',
+        evidence_type: 'other',
+        attachments: [
+          { url: '/uploads/courses/project-evidence-project-1/pdf/a.pdf' },
+          { url: '/uploads/courses/project-evidence-project-1/pdf/a.pdf' },
+        ],
+      },
+      user,
+    }, duplicateResponse);
+    expect(duplicateResponse.error).toHaveBeenCalledWith(
+      '附件地址不能重复',
+      'INVALID_PROJECT_EVIDENCE',
+      400
+    );
+
+    const unmanagedResponse = createResponse();
+    await invokeHandler(ResearchController.createProjectEvidence, {
+      params: { projectId: 'project-1' },
+      body: {
+        title: '外部附件',
+        evidence_type: 'other',
+        attachments: [{ url: 'https://example.com/file.pdf' }],
+      },
+      user,
+    }, unmanagedResponse);
+    expect(unmanagedResponse.error).toHaveBeenCalledWith(
+      '附件地址格式无效',
+      'INVALID_PROJECT_EVIDENCE',
+      400
+    );
+  });
+
   it('cleans up the previous attachment when replacing project evidence attachment', async () => {
     mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -717,6 +881,55 @@ describe('ResearchController member management', () => {
     );
   });
 
+  it('cleans up only attachments removed from an updated evidence record', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: false,
+      canAccessDiscussion: true,
+      canModerate: false,
+    });
+    mockResearchModel.getProjectEvidenceById
+      .mockResolvedValueOnce({
+        id: 'evidence-1',
+        project_id: 'project-1',
+        attachment_urls: [
+          '/uploads/courses/project-evidence-project-1/image/old.png',
+          '/uploads/courses/project-evidence-project-1/pdf/kept.pdf',
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: 'evidence-1',
+        project_id: 'project-1',
+        attachment_urls: [
+          '/uploads/courses/project-evidence-project-1/pdf/kept.pdf',
+          '/uploads/courses/project-evidence-project-1/image/new.png',
+        ],
+      });
+    mockResearchModel.updateProjectEvidence.mockResolvedValue(true);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.updateProjectEvidence, {
+      params: { projectId: 'project-1', evidenceId: 'evidence-1' },
+      body: {
+        attachments: [
+          { url: '/uploads/courses/project-evidence-project-1/pdf/kept.pdf' },
+          { url: '/uploads/courses/project-evidence-project-1/image/new.png' },
+        ],
+      },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/courses/project-evidence-project-1/image/old.png'],
+      { reason: 'research.project-evidence.attachment-change:evidence-1' }
+    );
+  });
+
   it('deletes project evidence and cleans up its attachment', async () => {
     mockProjectAccessService.getProjectAccess.mockResolvedValue({
       project: { id: 'project-1' },
@@ -733,6 +946,10 @@ describe('ResearchController member management', () => {
       id: 'evidence-1',
       project_id: 'project-1',
       attachment_url: '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+      attachment_urls: [
+        '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+        '/uploads/courses/project-evidence-project-1/image/support.png',
+      ],
     });
     mockResearchModel.deleteProjectEvidence.mockResolvedValue(true);
 
@@ -746,7 +963,10 @@ describe('ResearchController member management', () => {
 
     expect(mockResearchModel.deleteProjectEvidence).toHaveBeenCalledWith('evidence-1');
     expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
-      ['/uploads/courses/project-evidence-project-1/pdf/record.pdf'],
+      [
+        '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
+        '/uploads/courses/project-evidence-project-1/image/support.png',
+      ],
       { reason: 'research.project-evidence.delete:evidence-1' }
     );
     expect(res.success).toHaveBeenCalledWith(null, '证据已删除');
@@ -865,7 +1085,11 @@ describe('ResearchController member management', () => {
       { user_id: 'owner-1', role: 'owner', username: 'owner' },
       { user_id: 'member-1', role: 'member', username: 'member' },
     ]);
-    mockResearchModel.removeProjectMember.mockResolvedValue(true);
+    mockResearchModel.removeProjectMember.mockResolvedValue({
+      removed: true,
+      ownerConflict: false,
+      clearedLeadershipTransfer: null,
+    });
 
     const req = {
       params: { id: 'project-1', userId: 'member-1' },
@@ -875,8 +1099,47 @@ describe('ResearchController member management', () => {
 
     await invokeHandler(ResearchController.removeProjectMember, req, res);
 
-    expect(mockResearchModel.removeProjectMember).toHaveBeenCalledWith('project-1', 'member-1');
+    expect(mockResearchModel.removeProjectMember).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      'owner-1'
+    );
     expect(res.success).toHaveBeenCalledWith(null, '成员移除成功');
+  });
+
+  it('does not remove a member who became owner after the access check', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1', owner_user_id: 'owner-1' },
+      membership: null,
+      role: null,
+      ownerUserId: 'owner-1',
+      ownerStateValid: true,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', role: 'owner', username: 'owner' },
+      { user_id: 'member-1', role: 'member', username: 'member' },
+    ]);
+    mockResearchModel.removeProjectMember.mockResolvedValue({
+      removed: false,
+      ownerConflict: true,
+      clearedLeadershipTransfer: null,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.removeProjectMember, {
+      params: { id: 'project-1', userId: 'member-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
+    expect(res.success).not.toHaveBeenCalled();
   });
 
   it('does not allow an admin to remove the project owner', async () => {
@@ -905,6 +1168,37 @@ describe('ResearchController member management', () => {
     await invokeHandler(ResearchController.removeProjectMember, req, res);
 
     expect(res.error).toHaveBeenCalledWith('不能移除组长', 'CANNOT_REMOVE_OWNER', 403);
+    expect(mockResearchModel.removeProjectMember).not.toHaveBeenCalled();
+  });
+
+  it('rejects member removal when legacy ownership is missing or ambiguous', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: { id: 'project-1' },
+      membership: null,
+      role: null,
+      ownerUserId: null,
+      ownerStateValid: false,
+      isAdmin: true,
+      isMember: false,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.removeProjectMember, {
+      params: { id: 'project-1', userId: 'member-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '课题当前组长数据异常',
+      'PROJECT_OWNER_STATE_INVALID',
+      409
+    );
+    expect(mockResearchModel.getProjectMembers).not.toHaveBeenCalled();
     expect(mockResearchModel.removeProjectMember).not.toHaveBeenCalled();
   });
 
@@ -2743,5 +3037,444 @@ describe('ResearchController discussion comment editing', () => {
 
     expect(mockResearchModel.updateProjectDiscussionComment).toHaveBeenCalledWith('comment-1', 'member-1', '');
     expect(res.success).toHaveBeenCalledWith(null, '讨论留言已更新');
+  });
+});
+
+describe('ResearchController leadership transfers', () => {
+  const activeTransfer = {
+    id: 'transfer-1',
+    outgoing_owner_user_id: 'owner-1',
+    nominee_user_id: 'member-1',
+    initiated_by_user_id: 'owner-1',
+    invitation_notification_id: 'notification-1',
+    created_at: new Date('2026-08-05T00:00:00.000Z'),
+    expires_at: new Date('2099-08-12T00:00:00.000Z'),
+  };
+
+  function setAccess(overrides: Record<string, unknown> = {}) {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+      },
+      membership: { user_id: 'owner-1', role: 'owner' },
+      role: 'owner',
+      ownerUserId: 'owner-1',
+      ownerStateValid: true,
+      isAdmin: false,
+      isMember: true,
+      canRead: true,
+      canWrite: true,
+      canManage: true,
+      canAccessDiscussion: true,
+      canModerate: true,
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setAccess();
+    mockResearchModel.getProjectMembers.mockResolvedValue([
+      { user_id: 'owner-1', username: 'owner', role: 'owner', active: true },
+      { user_id: 'member-1', username: 'member', role: 'member', active: true },
+      { user_id: 'member-2', username: 'member2', role: 'member', active: true },
+    ]);
+    mockNotificationModel.createNotification.mockResolvedValue('notification-new');
+    mockNotificationModel.deleteNotification.mockResolvedValue(true);
+    mockProfileModel.getPendingApplication.mockResolvedValue(null);
+    mockResearchModel.getFormerProjectMembers.mockResolvedValue([]);
+    mockResearchModel.getLeadershipTransferIdentityView.mockImplementation(async (transfer: any) => ({
+      id: transfer.id,
+      nominee: { user_id: transfer.nominee_user_id, username: 'member' },
+      outgoing_owner: { user_id: transfer.outgoing_owner_user_id, username: 'owner' },
+      initiator: { user_id: transfer.initiated_by_user_id, username: 'owner' },
+      created_at: transfer.created_at,
+      expires_at: transfer.expires_at,
+    }));
+  });
+
+  it('creates a seven-day invitation and immediately removes the replaced invitation', async () => {
+    const previousTransfer = {
+      ...activeTransfer,
+      id: 'transfer-old',
+      invitation_notification_id: 'notification-old',
+      nominee_user_id: 'member-2',
+    };
+    mockResearchModel.replacePendingLeadershipTransfer.mockResolvedValue(previousTransfer);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.nominateProjectLeader, {
+      params: { id: 'project-1' },
+      body: { targetUserId: 'member-1' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    const invitation = mockNotificationModel.createNotification.mock.calls[0][0];
+    expect(invitation).toEqual(expect.objectContaining({
+      user_id: 'member-1',
+      type: 'leadership_transfer',
+      action_url: '/lab/projects/project-1#project-members',
+      expires_at: expect.any(Date),
+    }));
+    const storedTransfer = mockResearchModel.replacePendingLeadershipTransfer.mock.calls[0][2];
+    expect(storedTransfer.expires_at.getTime() - storedTransfer.created_at.getTime())
+      .toBe(7 * 24 * 60 * 60 * 1000);
+    expect(mockNotificationModel.deleteNotification).toHaveBeenCalledWith(
+      'notification-old',
+      'member-2'
+    );
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(res.success).toHaveBeenCalledWith(
+      expect.objectContaining({ id: storedTransfer.id, can_cancel: true, can_replace: true }),
+      '组长转让邀请已发送'
+    );
+  });
+
+  it('exposes only the sanitized transfer view to the current owner', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+    });
+    mockResearchModel.getLeadershipTransferIdentityView.mockResolvedValue({
+      id: 'transfer-1',
+      nominee: { user_id: 'member-1', username: 'member' },
+      outgoing_owner: { user_id: 'owner-1', username: 'owner' },
+      initiator: { user_id: 'owner-1', username: 'owner' },
+      created_at: activeTransfer.created_at,
+      expires_at: activeTransfer.expires_at,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProject, {
+      params: { id: 'project-1' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    const response = res.success.mock.calls[0][0];
+    expect(response.pending_leadership_transfer).toEqual(expect.objectContaining({
+      id: 'transfer-1',
+      can_cancel: true,
+      can_replace: true,
+      can_accept: false,
+    }));
+    expect(JSON.stringify(response.pending_leadership_transfer))
+      .not.toContain('invitation_notification_id');
+  });
+
+  it('omits pending transfer state from ordinary member project details', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+      membership: { user_id: 'member-2', role: 'member' },
+      role: 'member',
+      canManage: false,
+      canModerate: false,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProject, {
+      params: { id: 'project-1' },
+      user: { sub: 'member-2', username: 'member2', role: 'user' },
+    }, res);
+
+    const response = res.success.mock.calls[0][0];
+    expect(response).not.toHaveProperty('pending_leadership_transfer');
+    expect(mockResearchModel.getLeadershipTransferIdentityView).not.toHaveBeenCalled();
+  });
+
+  it('exposes accept and decline only to an active nominee', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      canManage: false,
+      canModerate: false,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProject, {
+      params: { id: 'project-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.success.mock.calls[0][0].pending_leadership_transfer)
+      .toEqual(expect.objectContaining({
+        id: 'transfer-1',
+        can_accept: true,
+        can_decline: true,
+        can_cancel: false,
+        can_replace: false,
+      }));
+  });
+
+  it('omits pending transfer state from a removed nominee on a public project', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+      membership: null,
+      role: null,
+      isMember: false,
+      canManage: false,
+      canModerate: false,
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.getProject, {
+      params: { id: 'project-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    const response = res.success.mock.calls[0][0];
+    expect(response).not.toHaveProperty('pending_leadership_transfer');
+    expect(mockResearchModel.getLeadershipTransferIdentityView).not.toHaveBeenCalled();
+  });
+
+  it('rejects nomination when legacy ownership is missing or ambiguous', async () => {
+    setAccess({ ownerUserId: null, ownerStateValid: false, isAdmin: true });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.nominateProjectLeader, {
+      params: { id: 'project-1' },
+      body: { targetUserId: 'member-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '课题当前组长数据异常',
+      'PROJECT_OWNER_STATE_INVALID',
+      409
+    );
+    expect(mockNotificationModel.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('notifies the current owner when an admin nominates an active member', async () => {
+    setAccess({
+      membership: null,
+      role: null,
+      isAdmin: true,
+      isMember: false,
+    });
+    mockResearchModel.replacePendingLeadershipTransfer.mockResolvedValue(null);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.nominateProjectLeader, {
+      params: { id: 'project-1' },
+      body: { targetUserId: 'member-1' },
+      user: { sub: 'admin-1', username: 'admin', role: 'admin' },
+    }, res);
+
+    expect(mockNotificationModel.createNotification).toHaveBeenCalledTimes(2);
+    expect(mockNotificationModel.createNotification).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        user_id: 'owner-1',
+        type: 'leadership_transfer',
+        action_url: '/lab/projects/project-1#project-members',
+      })
+    );
+  });
+
+  it('cancels with one expiry timestamp and does not update activity or recency', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+    });
+    mockResearchModel.clearPendingLeadershipTransfer.mockResolvedValue(activeTransfer);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.cancelProjectLeadershipTransfer, {
+      params: { id: 'project-1', transferId: 'transfer-1' },
+      user: { sub: 'owner-1', username: 'owner', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.clearPendingLeadershipTransfer).toHaveBeenCalledWith(
+      'project-1',
+      'transfer-1',
+      'owner-1',
+      undefined,
+      expect.any(Date)
+    );
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockResearchModel.touchProjectActivity).not.toHaveBeenCalled();
+    expect(mockNotificationModel.deleteNotification).toHaveBeenCalledWith(
+      'notification-1',
+      'member-1'
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '组长转让已取消');
+  });
+
+  it('accepts once, logs one activity entry, and notifies the admin initiator and outgoing owner', async () => {
+    const adminTransfer = { ...activeTransfer, initiated_by_user_id: 'admin-1' };
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: adminTransfer,
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      canManage: false,
+      canModerate: false,
+    });
+    mockResearchModel.acceptLeadershipTransfer.mockResolvedValue(adminTransfer);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.acceptProjectLeadershipTransfer, {
+      params: { id: 'project-1', transferId: 'transfer-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.acceptLeadershipTransfer).toHaveBeenCalledWith(
+      'project-1',
+      'transfer-1',
+      'owner-1',
+      'member-1',
+      expect.any(Date)
+    );
+    expect(mockResearchModel.logActivity).toHaveBeenCalledTimes(1);
+    expect(mockResearchModel.logActivity).toHaveBeenCalledWith(
+      'project-1',
+      'member-1',
+      'project_leadership_transferred',
+      'project',
+      'project-1',
+      {
+        outgoing_owner_user_id: 'owner-1',
+        incoming_owner_user_id: 'member-1',
+      }
+    );
+    expect(mockNotificationModel.deleteNotification).toHaveBeenCalledWith(
+      'notification-1',
+      'member-1'
+    );
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['admin-1', 'owner-1'],
+      expect.objectContaining({ type: 'leadership_transfer' })
+    );
+    expect(res.success).toHaveBeenCalledWith(
+      { owner_user_id: 'member-1' },
+      '你已成为课题组长'
+    );
+  });
+
+  it('declines without updating activity or project recency', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        name_zh: '偏振课题',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      canManage: false,
+      canModerate: false,
+    });
+    mockResearchModel.clearPendingLeadershipTransfer.mockResolvedValue(activeTransfer);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.declineProjectLeadershipTransfer, {
+      params: { id: 'project-1', transferId: 'transfer-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockResearchModel.touchProjectActivity).not.toHaveBeenCalled();
+    const clearArgs = mockResearchModel.clearPendingLeadershipTransfer.mock.calls[0];
+    expect(clearArgs[4]).toEqual(expect.any(Date));
+    expect(mockNotificationModel.createNotificationForUsers).toHaveBeenCalledWith(
+      ['owner-1'],
+      expect.objectContaining({ type: 'leadership_transfer' })
+    );
+    expect(res.success).toHaveBeenCalledWith(null, '已拒绝组长转让邀请');
+  });
+
+  it('returns 410 and clears an expired invitation before acceptance', async () => {
+    const expiredTransfer = {
+      ...activeTransfer,
+      expires_at: new Date('2026-08-04T00:00:00.000Z'),
+    };
+    setAccess({
+      project: {
+        id: 'project-1',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: expiredTransfer,
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      canManage: false,
+    });
+    mockResearchModel.clearExpiredLeadershipTransfer.mockResolvedValue(expiredTransfer);
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.acceptProjectLeadershipTransfer, {
+      params: { id: 'project-1', transferId: 'transfer-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '该组长转让邀请已过期',
+      'LEADERSHIP_TRANSFER_EXPIRED',
+      410
+    );
+    expect(mockResearchModel.acceptLeadershipTransfer).not.toHaveBeenCalled();
+    expect(mockNotificationModel.deleteNotification).toHaveBeenCalledWith(
+      'notification-1',
+      'member-1'
+    );
+  });
+
+  it('returns 409 when another acceptance has already resolved the transfer', async () => {
+    setAccess({
+      project: {
+        id: 'project-1',
+        owner_user_id: 'owner-1',
+        pending_leadership_transfer: activeTransfer,
+      },
+      membership: { user_id: 'member-1', role: 'member' },
+      role: 'member',
+      canManage: false,
+    });
+    mockResearchModel.acceptLeadershipTransfer.mockResolvedValue(null);
+    mockResearchModel.getProjectById.mockResolvedValue({
+      id: 'project-1',
+      owner_user_id: 'member-1',
+    });
+    const res = createResponse();
+
+    await invokeHandler(ResearchController.acceptProjectLeadershipTransfer, {
+      params: { id: 'project-1', transferId: 'transfer-1' },
+      user: { sub: 'member-1', username: 'member', role: 'user' },
+    }, res);
+
+    expect(res.error).toHaveBeenCalledWith(
+      '该组长转让邀请已失效或已被处理',
+      'LEADERSHIP_TRANSFER_STALE',
+      409
+    );
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
   });
 });

@@ -42,7 +42,9 @@ const activityDashboards = createSwrCache<AdminUserActivityDashboardResponse>(
   ACTIVITY_CACHE_TTL_MS,
   32
 );
-const learnerActivities = createSwrCache<Omit<AdminUserActivityDetailResponse, 'user_type'>>(
+const learnerActivities = createSwrCache<
+  Omit<AdminUserActivityDetailResponse, 'username' | 'display_name' | 'user_type'>
+>(
   'admin learner activity',
   ACTIVITY_CACHE_TTL_MS,
   128
@@ -202,7 +204,7 @@ export class UserService {
     };
   }
 
-  /** Get one learner's activity detail for the administrator drawer. */
+  /** Get one learner's activity detail for administrator workflows. */
   static async getLearnerActivityForAdmin(
     userId: string,
     start: string,
@@ -216,7 +218,13 @@ export class UserService {
     const activity = await learnerActivities(`${user.id}:${start}:${end}`, () =>
       PostHogService.getLearnerActivityDetail(user.id, start, end)
     );
-    return { ...activity, user_type: user.user_type };
+    return {
+      ...activity,
+      username: user.username,
+      display_name:
+        user.real_name?.trim() || user.nickname?.trim() || user.username,
+      user_type: user.user_type,
+    };
   }
 
   /**

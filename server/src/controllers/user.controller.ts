@@ -14,7 +14,8 @@ import { createAuthCookieOptions } from '../utils/cookie-options.util.js';
 import { PostHogAnalyticsError } from '../services/posthog.service.js';
 import { resolveActivityDateRange } from '../utils/activity-range.util.js';
 
-const ADMIN_ACTIVITY_RANGE = { defaultDays: 7, maxSpanDays: 366 };
+const ADMIN_ACTIVITY_DASHBOARD_RANGE = { defaultDays: 7, maxSpanDays: 366 };
+const ADMIN_ACTIVITY_DETAIL_RANGE = { defaultDays: 30, maxSpanDays: 366 };
 
 export class UserController {
   /**
@@ -112,7 +113,11 @@ export class UserController {
   /** Get aggregate signed-in user activity for administrators. */
   static getActivityDashboardForAdmin = asyncHandler(
     async (req: Request, res: Response) => {
-      const range = resolveActivityDateRange(req.query.start, req.query.end, ADMIN_ACTIVITY_RANGE);
+      const range = resolveActivityDateRange(
+        req.query.start,
+        req.query.end,
+        ADMIN_ACTIVITY_DASHBOARD_RANGE
+      );
       if ('error' in range) {
         res.error(range.error, 'INVALID_ACTIVITY_RANGE', 400);
         return;
@@ -169,7 +174,11 @@ export class UserController {
   /** Get one learner's activity detail for administrators. */
   static getLearnerActivityForAdmin = asyncHandler(
     async (req: Request, res: Response) => {
-      const range = resolveActivityDateRange(req.query.start, req.query.end, ADMIN_ACTIVITY_RANGE);
+      const range = resolveActivityDateRange(
+        req.query.start,
+        req.query.end,
+        ADMIN_ACTIVITY_DETAIL_RANGE
+      );
       if ('error' in range) {
         res.error(range.error, 'INVALID_ACTIVITY_RANGE', 400);
         return;

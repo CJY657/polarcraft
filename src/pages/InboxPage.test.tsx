@@ -85,6 +85,13 @@ describe('InboxPage', () => {
         content: '周五前完成汇报',
         is_read: true,
       }),
+      createNotification({
+        id: 'notification-3',
+        type: 'leadership_transfer',
+        title: '课题组长转让邀请',
+        content: '请在 7 天内处理',
+        action_url: '/lab/projects/project-1#project-members',
+      }),
     ];
     mocks.fetchNotifications.mockReset();
     mocks.markAsRead.mockReset();
@@ -108,6 +115,19 @@ describe('InboxPage', () => {
     });
     await waitFor(() => {
       expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#discussion-comments');
+    });
+    expect(screen.getByTestId('notification-jump-state').textContent).toBe('jump');
+  });
+
+  it('renders leadership-transfer notifications and opens the member card anchor', async () => {
+    renderInbox();
+
+    expect(screen.getByText('组长转让')).toBeTruthy();
+    fireEvent.click(screen.getByText('课题组长转让邀请'));
+
+    await waitFor(() => {
+      expect(mocks.markAsRead).toHaveBeenCalledWith('notification-3');
+      expect(screen.getByTestId('location').textContent).toBe('/lab/projects/project-1#project-members');
     });
     expect(screen.getByTestId('notification-jump-state').textContent).toBe('jump');
   });

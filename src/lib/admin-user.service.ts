@@ -185,10 +185,15 @@ export interface AdminUserActivitySummary {
   meaningful_events: number;
   pageviews: number;
   learning_actions: number;
+  active_days: number;
+  average_meaningful_events_per_active_day: number;
+  learning_action_rate: number;
 }
 
 export interface AdminUserActivityResponse {
   status: 'ok' | 'disabled';
+  username: string;
+  display_name: string;
   user_type: UserType | null;
   range: {
     start: string;
@@ -218,6 +223,7 @@ export interface AdminUserActivityResponse {
     module: string;
     label: string;
     pageviews: number;
+    active_days: number;
   }>;
   /** weekday: 1 = 周一 … 7 = 周日, hour: 0-23，均为中国时区。 */
   hourly: Array<{

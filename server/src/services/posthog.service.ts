@@ -419,7 +419,9 @@ export class PostHogService {
     userId: string,
     start: string,
     end: string
-  ): Promise<Omit<AdminUserActivityDetailResponse, 'user_type'>> {
+  ): Promise<
+    Omit<AdminUserActivityDetailResponse, 'username' | 'display_name' | 'user_type'>
+  > {
     const generatedAt = new Date().toISOString();
     const range = this.computeRange(start, end);
     const previousRange = this.previousRange(range);
@@ -441,6 +443,7 @@ export class PostHogService {
 
     const filter = this.learnerFilter(userId, start, end);
     const dailyFilter = this.learnerFilter(userId, previousRange.start, end);
+    const modulePageviewColumns = this.modulePageviewColumns();
     const [dailyResponse, pagesResponse, hourlyResponse] = await Promise.all([
       this.runQuery(
         `
@@ -449,7 +452,8 @@ export class PostHogService {
               toString(max(timestamp)),
               count(),
               countIf(event = '$pageview'),
-              countIf(${this.LEARNING_EVENT_PREDICATE})
+              countIf(${this.LEARNING_EVENT_PREDICATE}),
+              ${modulePageviewColumns}
             FROM events
             WHERE ${dailyFilter}
             GROUP BY day
@@ -468,7 +472,7 @@ export class PostHogService {
               AND event = '$pageview'
             GROUP BY 1
             ORDER BY count() DESC
-            LIMIT 200
+            LIMIT 10
         `,
         'admin learner detail pages'
       ),
@@ -508,22 +512,8 @@ export class PostHogService {
       (date) =>
         byDate.get(date) ?? { date, events: 0, pageviews: 0, learning_actions: 0 }
     );
-    const summary = daily.reduce(
-      (totals, day) => ({
-        meaningful_events: totals.meaningful_events + day.events,
-        pageviews: totals.pageviews + day.pageviews,
-        learning_actions: totals.learning_actions + day.learning_actions,
-      }),
-      { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
-    );
-    const previousSummary = previousDaily.reduce(
-      (totals, day) => ({
-        meaningful_events: totals.meaningful_events + day.events,
-        pageviews: totals.pageviews + day.pageviews,
-        learning_actions: totals.learning_actions + day.learning_actions,
-      }),
-      { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
-    );
+    const summary = this.summarizeLearnerDays(daily);
+    const previousSummary = this.summarizeLearnerDays(previousDaily);
     const currentDailyRows = dailyRows.filter(
       (row) => (row[0] as string) >= start && (row[0] as string) <= end
     );
@@ -549,8 +539,8 @@ export class PostHogService {
       summary,
       previous_summary: previousSummary,
       daily,
-      top_pages: pageRows.slice(0, 10),
-      module_breakdown: this.buildLearnerModules(pageRows),
+      top_pages: pageRows,
+      module_breakdown: this.buildLearnerModules(currentDailyRows),
       hourly: this.extractRows(hourlyResponse)
         .map((row) => ({
           weekday: this.numberOrZero(row[0]),
@@ -561,24 +551,89 @@ export class PostHogService {
     };
   }
 
-  /** Roll one learner's per-path pageviews up into the six core modules. */
-  private static buildLearnerModules(
-    pages: Array<{ path: string; pageviews: number }>
-  ): AdminUserActivityDetailResponse['module_breakdown'] {
-    const totals = new Map<string, { module: string; label: string; pageviews: number }>();
-    for (const page of pages) {
-      const { module, label } = classifyModule(page.path);
-      const entry = totals.get(module);
-      if (entry) {
-        entry.pageviews += page.pageviews;
-      } else {
-        totals.set(module, { module, label, pageviews: page.pageviews });
-      }
-    }
+  /** Summarize one learner's daily rows into stable KPI fields. */
+  private static summarizeLearnerDays(
+    daily: AdminUserActivityDetailResponse['daily']
+  ): NonNullable<AdminUserActivityDetailResponse['summary']> {
+    const totals = daily.reduce(
+      (summary, day) => ({
+        meaningful_events: summary.meaningful_events + day.events,
+        pageviews: summary.pageviews + day.pageviews,
+        learning_actions: summary.learning_actions + day.learning_actions,
+      }),
+      { meaningful_events: 0, pageviews: 0, learning_actions: 0 }
+    );
+    const activeDays = daily.filter((day) => day.events > 0).length;
 
-    return [...MODULE_ROUTE_PREFIXES.map((entry) => entry.module), OTHER_MODULE.module]
-      .map((moduleKey) => totals.get(moduleKey))
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+    return {
+      ...totals,
+      active_days: activeDays,
+      average_meaningful_events_per_active_day:
+        activeDays === 0 ? 0 : this.roundOneDecimal(totals.meaningful_events / activeDays),
+      learning_action_rate:
+        totals.meaningful_events === 0
+          ? 0
+          : this.roundOneDecimal(
+              (totals.learning_actions / totals.meaningful_events) * 100
+            ),
+    };
+  }
+
+  /** Aggregate the six route families from the module columns in daily rows. */
+  private static buildLearnerModules(
+    rows: unknown[][]
+  ): AdminUserActivityDetailResponse['module_breakdown'] {
+    return MODULE_ROUTE_PREFIXES.map((entry, index) => {
+      let pageviews = 0;
+      let activeDays = 0;
+      for (const row of rows) {
+        const count = this.numberOrZero(row[5 + index]);
+        pageviews += count;
+        if (count > 0) activeDays += 1;
+      }
+
+      return {
+        module: entry.module,
+        label: entry.label,
+        pageviews,
+        active_days: activeDays,
+      };
+    });
+  }
+
+  private static modulePageviewColumns(): string {
+    return MODULE_ROUTE_PREFIXES.map(
+      (entry) =>
+        `countIf(event = '$pageview' AND (${this.modulePathPredicate(entry.prefixes)}))`
+    ).join(',\n              ');
+  }
+
+  private static modulePathPredicate(prefixes: string[]): string {
+    return prefixes
+      .map((prefix) => {
+        const path = this.PATH_EXPRESSION;
+        const relativePatterns = [prefix, `${prefix}/`, `${prefix}?`, `${prefix}#`];
+        const absolutePatterns = [
+          `%://%${prefix}`,
+          `%://%${prefix}/%`,
+          `%://%${prefix}?%`,
+          `%://%${prefix}#%`,
+        ];
+
+        return `(${relativePatterns
+          .map((pattern, index) =>
+            index === 0
+              ? `${path} = ${this.quoteLiteral(pattern)}`
+              : `startsWith(${path}, ${this.quoteLiteral(pattern)})`
+          )
+          .concat(
+            absolutePatterns.map(
+              (pattern) => `${path} LIKE ${this.quoteLiteral(pattern)}`
+            )
+          )
+          .join(' OR ')})`;
+      })
+      .join(' OR ');
   }
 
   /**
@@ -882,7 +937,8 @@ export class PostHogService {
             },
             name,
           }),
-        }
+        },
+        config.posthog.queryTimeoutMs
       );
     } finally {
       this.releaseQuerySlot();
@@ -911,11 +967,18 @@ export class PostHogService {
 
   private static async request<T>(
     path: string,
-    init: RequestInit = {}
+    init: RequestInit = {},
+    timeoutMs?: number
   ): Promise<T> {
+    const controller = timeoutMs ? new AbortController() : null;
+    const timeout = controller
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
     try {
       const response = await fetch(`${config.posthog.appHost}${path}`, {
         ...init,
+        signal: init.signal ?? controller?.signal,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${config.posthog.personalApiKey}`,
@@ -933,6 +996,8 @@ export class PostHogService {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new PostHogAnalyticsError();
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }
 
@@ -950,6 +1015,10 @@ export class PostHogService {
 
   private static numberOrZero(value: unknown): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  private static roundOneDecimal(value: number): number {
+    return Math.round(value * 10) / 10;
   }
 
   private static pathFrom(value: string): string {

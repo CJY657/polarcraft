@@ -1256,27 +1256,6 @@ export const PSRT_EVENT_MAPPINGS: PSRTEventMapping[] = [
 // ========================================
 
 /**
- * 获取单元的所有关联历史事件
- */
-export function getEventsForUnit(unitId: string): PSRTEventMapping[] {
-  return PSRT_EVENT_MAPPINGS.filter(m => m.unitId === unitId)
-}
-
-/**
- * 获取章节的所有关联历史事件
- */
-export function getEventsForSection(unitId: string, sectionId: string): PSRTEventMapping[] {
-  return PSRT_EVENT_MAPPINGS.filter(m => m.unitId === unitId && m.sectionId === sectionId)
-}
-
-/**
- * 获取与历史事件关联的所有课程章节
- */
-export function getSectionsForEvent(year: number, track: 'optics' | 'polarization'): PSRTEventMapping[] {
-  return PSRT_EVENT_MAPPINGS.filter(m => m.eventYear === year && m.eventTrack === track)
-}
-
-/**
  * 获取单元的所有关联演示
  */
 export function getDemosForUnit(unitId: string): string[] {

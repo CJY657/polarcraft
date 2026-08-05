@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectWithMembers } from "@/lib/research.service";
+import type {
+  PendingProjectLeadershipTransfer,
+  ProjectWithMembers,
+} from "@/lib/research.service";
 import type { ProjectSettings, PublicProjectDetail } from "@/lib/profile.service";
 import { ResearchProjectPage } from "./ResearchProjectPage";
 
@@ -15,6 +18,10 @@ const mockGetPublicProjectById = vi.fn();
 const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
+const mockNominateProjectLeadershipTransfer = vi.fn();
+const mockCancelProjectLeadershipTransfer = vi.fn();
+const mockAcceptProjectLeadershipTransfer = vi.fn();
+const mockDeclineProjectLeadershipTransfer = vi.fn();
 const mockProjectEditDialog = vi.fn();
 const mockProjectDiscussionSection = vi.fn();
 const mockResearchAgentPanel = vi.fn();
@@ -140,6 +147,10 @@ vi.mock("@/lib/research.service", () => ({
     addProjectMember: (...args: unknown[]) => mockAddProjectMember(...args),
     deleteProject: (...args: unknown[]) => mockDeleteProject(...args),
     removeProjectMember: (...args: unknown[]) => mockRemoveProjectMember(...args),
+    nominateProjectLeadershipTransfer: (...args: unknown[]) => mockNominateProjectLeadershipTransfer(...args),
+    cancelProjectLeadershipTransfer: (...args: unknown[]) => mockCancelProjectLeadershipTransfer(...args),
+    acceptProjectLeadershipTransfer: (...args: unknown[]) => mockAcceptProjectLeadershipTransfer(...args),
+    declineProjectLeadershipTransfer: (...args: unknown[]) => mockDeclineProjectLeadershipTransfer(...args),
   },
 }));
 
@@ -196,6 +207,7 @@ function renderPageWithSameHashProbe() {
 function createProject(overrides: Partial<ProjectWithMembers> = {}): ProjectWithMembers {
   return {
     id: "project-1",
+    owner_user_id: "owner-1",
     name_zh: "偏振课题",
     name_en: null,
     description_zh: "课题简介",
@@ -229,6 +241,75 @@ function createProject(overrides: Partial<ProjectWithMembers> = {}): ProjectWith
     has_pending_application: false,
     ...overrides,
   };
+}
+
+function createPendingLeadershipTransfer(
+  overrides: Partial<PendingProjectLeadershipTransfer> = {}
+): PendingProjectLeadershipTransfer {
+  return {
+    id: "transfer-1",
+    outgoing_owner: {
+      user_id: "owner-1",
+      username: "组长",
+      avatar_url: null,
+    },
+    nominee: {
+      user_id: "candidate-1",
+      username: "小林",
+      avatar_url: null,
+    },
+    initiator: {
+      user_id: "owner-1",
+      username: "组长",
+      avatar_url: null,
+    },
+    created_at: "2026-08-05T08:00:00.000Z",
+    expires_at: "2026-08-12T08:00:00.000Z",
+    can_accept: false,
+    can_decline: false,
+    can_cancel: false,
+    can_replace: false,
+    ...overrides,
+  };
+}
+
+function createLeadershipProject(overrides: Partial<ProjectWithMembers> = {}): ProjectWithMembers {
+  return createProject({
+    member_count: 3,
+    members: [
+      {
+        id: "member-owner",
+        project_id: "project-1",
+        user_id: "owner-1",
+        role: "owner",
+        member_role_label: "课题统筹",
+        joined_at: new Date().toISOString(),
+        username: "组长",
+        avatar_url: null,
+      },
+      {
+        id: "member-candidate",
+        project_id: "project-1",
+        user_id: "candidate-1",
+        role: "member",
+        member_role_label: "记录表达",
+        joined_at: new Date().toISOString(),
+        username: "小林",
+        avatar_url: null,
+      },
+      {
+        id: "member-second-candidate",
+        project_id: "project-1",
+        user_id: "candidate-2",
+        role: "member",
+        member_role_label: "数据整理",
+        joined_at: new Date().toISOString(),
+        username: "小周",
+        avatar_url: null,
+      },
+    ],
+    ...overrides,
+  });
 }
 
 function createProjectSettings(overrides: Partial<ProjectSettings> = {}): ProjectSettings {
@@ -288,6 +369,10 @@ describe("ResearchProjectPage", () => {
     mockAddProjectMember.mockReset();
     mockDeleteProject.mockReset();
     mockRemoveProjectMember.mockReset();
+    mockNominateProjectLeadershipTransfer.mockReset();
+    mockCancelProjectLeadershipTransfer.mockReset();
+    mockAcceptProjectLeadershipTransfer.mockReset();
+    mockDeclineProjectLeadershipTransfer.mockReset();
     mockProjectEditDialog.mockReset();
     mockProjectDiscussionSection.mockReset();
     mockResearchAgentPanel.mockReset();
@@ -308,6 +393,10 @@ describe("ResearchProjectPage", () => {
     mockAddProjectMember.mockResolvedValue(undefined);
     mockDeleteProject.mockResolvedValue(undefined);
     mockRemoveProjectMember.mockResolvedValue(undefined);
+    mockNominateProjectLeadershipTransfer.mockResolvedValue(undefined);
+    mockCancelProjectLeadershipTransfer.mockResolvedValue(undefined);
+    mockAcceptProjectLeadershipTransfer.mockResolvedValue(undefined);
+    mockDeclineProjectLeadershipTransfer.mockResolvedValue(undefined);
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
       value: vi.fn(),
@@ -670,6 +759,186 @@ describe("ResearchProjectPage", () => {
     expect(await screen.findByText("团队成员")).toBeTruthy();
     expect(screen.getByText("小林")).toBeTruthy();
     expect(screen.getByText("记录表达")).toBeTruthy();
+  });
+
+  it("confirms a leadership nomination before calling the API", async () => {
+    mockGetProject.mockResolvedValue(createLeadershipProject());
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    const candidateRow = (await screen.findByText("小林")).closest("li");
+    expect(candidateRow).toBeTruthy();
+    expect(within(candidateRow!).getByText("记录表达")).toBeTruthy();
+    fireEvent.click(within(candidateRow!).getByRole("button", { name: "转让组长" }));
+
+    expect(screen.getByRole("alertdialog", { name: "确认转让组长" })).toBeTruthy();
+    expect(screen.getByText(/对方需在 7 天内接受/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "确认转让" }));
+
+    await waitFor(() => {
+      expect(mockNominateProjectLeadershipTransfer).toHaveBeenCalledWith("project-1", "candidate-1");
+    });
+    await waitFor(() => {
+      expect(mockGetProject).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("shows nomination errors and lets the owner retry", async () => {
+    mockGetProject.mockResolvedValue(createLeadershipProject());
+    mockNominateProjectLeadershipTransfer.mockRejectedValue(
+      new Error("每小时最多发起 10 次组长转让")
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    const candidateRow = (await screen.findByText("小林")).closest("li");
+    fireEvent.click(within(candidateRow!).getByRole("button", { name: "转让组长" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认转让" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("每小时最多发起 10 次组长转让");
+    expect(
+      (within(candidateRow!).getByRole("button", { name: "转让组长" }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
+  it("lets the nominee immediately accept while preserving task-role labels", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "candidate-1", username: "candidate", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject
+      .mockResolvedValueOnce(
+        createLeadershipProject({
+          pending_leadership_transfer: createPendingLeadershipTransfer({
+            can_accept: true,
+            can_decline: true,
+          }),
+        })
+      )
+      .mockResolvedValueOnce(
+        createLeadershipProject({
+          owner_user_id: "candidate-1",
+          pending_leadership_transfer: null,
+        })
+      );
+    let resolveAccept: (() => void) | undefined;
+    mockAcceptProjectLeadershipTransfer.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        resolveAccept = resolve;
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    const acceptButton = await screen.findByRole("button", { name: "接受" });
+    const declineButton = screen.getByRole("button", { name: "拒绝" });
+    fireEvent.click(acceptButton);
+
+    await waitFor(() => {
+      expect((acceptButton as HTMLButtonElement).disabled).toBe(true);
+      expect((declineButton as HTMLButtonElement).disabled).toBe(true);
+    });
+    act(() => resolveAccept?.());
+
+    await waitFor(() => {
+      expect(mockAcceptProjectLeadershipTransfer).toHaveBeenCalledWith("project-1", "transfer-1");
+      expect(mockGetProject).toHaveBeenCalledTimes(2);
+    });
+
+    const newOwnerRow = screen.getByText("小林").closest("li");
+    const outgoingOwnerRow = screen.getByText("课题统筹").closest("li");
+    expect(within(newOwnerRow!).getByText("记录表达")).toBeTruthy();
+    expect(within(newOwnerRow!).getByText("组长")).toBeTruthy();
+    expect(within(outgoingOwnerRow!).getByText("课题统筹")).toBeTruthy();
+    expect(within(outgoingOwnerRow!).getByText("成员")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "协作设置" })).toBeTruthy();
+  });
+
+  it("lets the nominee immediately decline a pending transfer", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "candidate-1", username: "candidate", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createLeadershipProject({
+        pending_leadership_transfer: createPendingLeadershipTransfer({
+          can_accept: true,
+          can_decline: true,
+        }),
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    fireEvent.click(await screen.findByRole("button", { name: "拒绝" }));
+
+    await waitFor(() => {
+      expect(mockDeclineProjectLeadershipTransfer).toHaveBeenCalledWith("project-1", "transfer-1");
+    });
+  });
+
+  it("shows cancel and replace controls to the current leader", async () => {
+    mockGetProject.mockResolvedValue(
+      createLeadershipProject({
+        pending_leadership_transfer: createPendingLeadershipTransfer({
+          can_cancel: true,
+          can_replace: true,
+        }),
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByRole("button", { name: "取消转让" })).toBeTruthy();
+    const replacementRow = screen.getByText("小周").closest("li");
+    fireEvent.click(within(replacementRow!).getByRole("button", { name: "更换人选" }));
+
+    expect(screen.getByRole("alertdialog", { name: "确认更换组长人选" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "确认更换" }));
+
+    await waitFor(() => {
+      expect(mockNominateProjectLeadershipTransfer).toHaveBeenCalledWith("project-1", "candidate-2");
+    });
+  });
+
+  it("hides pending transfer data from ordinary non-actors", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: "candidate-2", username: "candidate-2", role: "user" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockGetProject.mockResolvedValue(
+      createLeadershipProject({
+        pending_leadership_transfer: createPendingLeadershipTransfer(),
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    await screen.findByText("团队成员");
+    expect(screen.queryByText(/已邀请.*接任组长/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "接受" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "拒绝" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "取消转让" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "更换人选" })).toBeNull();
+  });
+
+  it("scrolls to the member card for leadership-transfer notification links", async () => {
+    mockGetProject.mockResolvedValue(createLeadershipProject());
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
+
+    renderPage([{ pathname: "/lab/projects/project-1", hash: "#project-members" }]);
+
+    expect(await screen.findByText("团队成员")).toBeTruthy();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("project-members"));
   });
 
   it("does not render the AI advisor panel for authenticated public non-members", async () => {

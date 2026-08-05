@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import { Reorder, useDragControls } from 'framer-motion';
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   ExternalLink,
   FileText,
+  GripVertical,
   Image as ImageIcon,
   Link2,
   Loader2,
   Pencil,
   Plus,
   RefreshCw,
+  Star,
   Trash2,
   UploadCloud,
   X,
@@ -19,6 +24,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   researchApi,
   type ProjectEvidence,
+  type ProjectEvidenceAttachment,
   type ProjectEvidenceAttachmentCategory,
   type ProjectEvidenceType,
   type UpsertProjectEvidenceInput,
@@ -44,6 +50,22 @@ interface EvidenceFormState {
   externalUrl: string;
   attachmentNote: string;
 }
+
+type DraftAttachment =
+  | { id: string; status: 'saved'; attachment: ProjectEvidenceAttachment }
+  | { id: string; status: 'pending'; file: File; category: ProjectEvidenceAttachmentCategory };
+
+interface EvidenceOrderItemProps {
+  evidence: ProjectEvidence;
+  index: number;
+  isSaving: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}
+
+const MAX_EVIDENCE_ATTACHMENTS = 10;
+let draftAttachmentSequence = 0;
 
 const EVIDENCE_TYPE_OPTIONS: Array<{ value: ProjectEvidenceType; label: string }> = [
   { value: 'image_observation', label: '图像观察' },
@@ -117,8 +139,39 @@ function getAttachmentCategory(file: File): ProjectEvidenceAttachmentCategory | 
   return null;
 }
 
-function getAttachmentLabel(evidence: ProjectEvidence): string {
-  return evidence.attachment_original_name || evidence.attachment_url || '研究附件';
+function getEvidenceAttachments(evidence: ProjectEvidence): ProjectEvidenceAttachment[] {
+  if (Array.isArray(evidence.attachments)) {
+    return evidence.attachments;
+  }
+
+  return evidence.attachment_url
+    ? [{
+        url: evidence.attachment_url,
+        original_name: evidence.attachment_original_name,
+        size: evidence.attachment_size,
+        mime_type: evidence.attachment_mime_type,
+        category: evidence.attachment_category,
+      }]
+    : [];
+}
+
+function getAttachmentLabel(attachment: ProjectEvidenceAttachment): string {
+  return attachment.original_name || attachment.url || '研究附件';
+}
+
+function createDraftAttachmentId(): string {
+  draftAttachmentSequence += 1;
+  return `evidence-attachment-${draftAttachmentSequence}`;
+}
+
+function buildDraftAttachments(evidence?: ProjectEvidence | null): DraftAttachment[] {
+  return evidence
+    ? getEvidenceAttachments(evidence).map((attachment) => ({
+        id: createDraftAttachmentId(),
+        status: 'saved' as const,
+        attachment,
+      }))
+    : [];
 }
 
 function buildFormState(evidence?: ProjectEvidence | null): EvidenceFormState {
@@ -135,6 +188,68 @@ function buildFormState(evidence?: ProjectEvidence | null): EvidenceFormState {
   };
 }
 
+function EvidenceOrderItem({
+  evidence,
+  index,
+  isSaving,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+}: EvidenceOrderItemProps) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={evidence}
+      dragListener={false}
+      dragControls={dragControls}
+      whileDrag={{ scale: 1.01, boxShadow: '0 18px 40px rgba(15, 23, 42, 0.18)' }}
+      className="research-panel-soft flex items-center gap-3 rounded-2xl p-3"
+    >
+      <button
+        type="button"
+        aria-label={`拖动排序 ${evidence.title}`}
+        onPointerDown={(event) => {
+          if (!isSaving) {
+            dragControls.start(event);
+          }
+        }}
+        disabled={isSaving}
+        className="glass-button flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-xl text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <span className="w-7 shrink-0 text-center text-sm font-semibold text-[var(--glass-text-muted)]">
+        {index + 1}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-base font-semibold text-[var(--paper-foreground)]">
+        {evidence.title}
+      </span>
+      <div className="flex shrink-0 gap-1">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={isSaving || index === 0}
+          className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={`上移证据 ${evidence.title}`}
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={isSaving || isLast}
+          className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={`下移证据 ${evidence.title}`}
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      </div>
+    </Reorder.Item>
+  );
+}
+
 export function ProjectEvidenceSection({
   projectId,
   canManage,
@@ -149,10 +264,15 @@ export function ProjectEvidenceSection({
   const [editingEvidence, setEditingEvidence] = useState<ProjectEvidence | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formState, setFormState] = useState<EvidenceFormState>(emptyFormState);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [removeCurrentAttachment, setRemoveCurrentAttachment] = useState(false);
+  const [draftAttachments, setDraftAttachments] = useState<DraftAttachment[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ completed: number; total: number } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+  const [orderedEvidence, setOrderedEvidence] = useState<ProjectEvidence[]>([]);
+  const [expectedEvidenceIds, setExpectedEvidenceIds] = useState<string[]>([]);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectEvidence | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -179,9 +299,9 @@ export function ProjectEvidenceSection({
   function openCreateForm() {
     setFormMode('create');
     setEditingEvidence(null);
-    setFormState(emptyFormState);
-    setSelectedFile(null);
-    setRemoveCurrentAttachment(false);
+    setFormState({ ...emptyFormState });
+    setDraftAttachments([]);
+    setUploadProgress(null);
     setFormError(null);
     setIsFormOpen(true);
   }
@@ -190,8 +310,8 @@ export function ProjectEvidenceSection({
     setFormMode('edit');
     setEditingEvidence(evidence);
     setFormState(buildFormState(evidence));
-    setSelectedFile(null);
-    setRemoveCurrentAttachment(false);
+    setDraftAttachments(buildDraftAttachments(evidence));
+    setUploadProgress(null);
     setFormError(null);
     setIsFormOpen(true);
   }
@@ -203,28 +323,111 @@ export function ProjectEvidenceSection({
 
     setIsFormOpen(false);
     setEditingEvidence(null);
-    setSelectedFile(null);
-    setRemoveCurrentAttachment(false);
+    setDraftAttachments([]);
+    setUploadProgress(null);
     setFormError(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
 
-    if (!file) {
+    if (files.length === 0) {
       return;
     }
 
-    const category = getAttachmentCategory(file);
-    if (!category) {
+    const unsupportedFile = files.find((file) => !getAttachmentCategory(file));
+    if (unsupportedFile) {
       setFormError('当前附件仅支持图片、视频、PDF 和 PPTX 文件');
       return;
     }
+    if (draftAttachments.length + files.length > MAX_EVIDENCE_ATTACHMENTS) {
+      setFormError(`每条证据最多保留 ${MAX_EVIDENCE_ATTACHMENTS} 个附件`);
+      return;
+    }
 
-    setSelectedFile(file);
-    setRemoveCurrentAttachment(false);
+    setDraftAttachments((attachments) => [
+      ...attachments,
+      ...files.map((file) => ({
+        id: createDraftAttachmentId(),
+        status: 'pending' as const,
+        file,
+        category: getAttachmentCategory(file) as ProjectEvidenceAttachmentCategory,
+      })),
+    ]);
     setFormError(null);
+  }
+
+  function removeDraftAttachment(attachmentId: string) {
+    setDraftAttachments((attachments) => attachments.filter((attachment) => attachment.id !== attachmentId));
+  }
+
+  function moveDraftAttachment(attachmentId: string, offset: number) {
+    setDraftAttachments((attachments) => {
+      const index = attachments.findIndex((attachment) => attachment.id === attachmentId);
+      const nextIndex = index + offset;
+      if (index < 0 || nextIndex < 0 || nextIndex >= attachments.length) {
+        return attachments;
+      }
+
+      const next = [...attachments];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }
+
+  function moveEvidence(index: number, direction: -1 | 1) {
+    setOrderedEvidence((items) => {
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= items.length) {
+        return items;
+      }
+
+      const next = [...items];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }
+
+  function beginEvidenceReorder() {
+    if (!canManage || evidenceItems.length < 2) {
+      return;
+    }
+
+    setIsFormOpen(false);
+    setOrderedEvidence([...evidenceItems]);
+    setExpectedEvidenceIds(evidenceItems.map((evidence) => evidence.id));
+    setOrderError(null);
+    setIsReordering(true);
+  }
+
+  function cancelEvidenceReorder() {
+    if (isSavingOrder) {
+      return;
+    }
+    setIsReordering(false);
+    setOrderError(null);
+  }
+
+  async function saveEvidenceOrder() {
+    if (!isReordering) {
+      return;
+    }
+
+    setIsSavingOrder(true);
+    setOrderError(null);
+    try {
+      const saved = await researchApi.reorderProjectEvidence(projectId, {
+        expectedEvidenceIds,
+        evidenceIds: orderedEvidence.map((evidence) => evidence.id),
+      });
+      setEvidenceItems(Array.isArray(saved) && saved.length > 0 ? saved : orderedEvidence);
+      setIsReordering(false);
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : '保存证据顺序失败，请刷新后重试');
+    } finally {
+      setIsSavingOrder(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -244,33 +447,50 @@ export function ProjectEvidenceSection({
     setFormError(null);
 
     try {
+      let workingAttachments = [...draftAttachments];
+      const pendingAttachments = workingAttachments.filter((
+        attachment
+      ): attachment is Extract<DraftAttachment, { status: 'pending' }> => attachment.status === 'pending');
+      setUploadProgress(pendingAttachments.length > 0 ? { completed: 1, total: pendingAttachments.length } : null);
+
+      for (let index = 0; index < pendingAttachments.length; index += 1) {
+        const pendingAttachment = pendingAttachments[index];
+        setUploadProgress({ completed: index + 1, total: pendingAttachments.length });
+        const uploaded = await researchApi.uploadProjectEvidenceAttachment(
+          projectId,
+          pendingAttachment.category,
+          pendingAttachment.file
+        );
+        const savedAttachment: DraftAttachment = {
+          id: pendingAttachment.id,
+          status: 'saved',
+          attachment: {
+            url: uploaded.url,
+            original_name: uploaded.originalName,
+            size: uploaded.size,
+            mime_type: uploaded.mimeType,
+            category: uploaded.category,
+          },
+        };
+        workingAttachments = workingAttachments.map((attachment) => (
+          attachment.id === pendingAttachment.id ? savedAttachment : attachment
+        ));
+        setDraftAttachments(workingAttachments);
+      }
+
+      const attachments = workingAttachments
+        .filter((attachment): attachment is Extract<DraftAttachment, { status: 'saved' }> => (
+          attachment.status === 'saved'
+        ))
+        .map((attachment) => attachment.attachment);
       const payload: UpsertProjectEvidenceInput = {
         title,
         evidence_type: formState.evidenceType,
         description: formState.description.trim() || null,
         external_url: formState.externalUrl.trim() || null,
         attachment_note: formState.attachmentNote.trim() || null,
+        attachments,
       };
-
-      if (selectedFile) {
-        const category = getAttachmentCategory(selectedFile);
-        if (!category) {
-          throw new Error('当前附件仅支持图片、视频、PDF 和 PPTX 文件');
-        }
-
-        const uploaded = await researchApi.uploadProjectEvidenceAttachment(projectId, category, selectedFile);
-        payload.attachment_url = uploaded.url;
-        payload.attachment_original_name = uploaded.originalName;
-        payload.attachment_size = uploaded.size;
-        payload.attachment_mime_type = uploaded.mimeType;
-        payload.attachment_category = uploaded.category;
-      } else if (formMode === 'create' || removeCurrentAttachment) {
-        payload.attachment_url = null;
-        payload.attachment_original_name = null;
-        payload.attachment_size = null;
-        payload.attachment_mime_type = null;
-        payload.attachment_category = null;
-      }
 
       if (formMode === 'edit' && editingEvidence) {
         await researchApi.updateProjectEvidence(projectId, editingEvidence.id, payload);
@@ -278,7 +498,7 @@ export function ProjectEvidenceSection({
         await researchApi.createProjectEvidence(projectId, payload);
         capturePostHogEvent('research_evidence_submitted', {
           project_id: projectId,
-          has_attachment: Boolean(payload.attachment_url),
+          has_attachment: attachments.length > 0,
         });
       }
 
@@ -288,6 +508,7 @@ export function ProjectEvidenceSection({
       setFormError(err instanceof Error ? err.message : '保存证据失败');
     } finally {
       setIsSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -309,26 +530,53 @@ export function ProjectEvidenceSection({
     }
   }
 
-  const currentAttachmentVisible = Boolean(
-    formMode === 'edit'
-      && editingEvidence?.attachment_url
-      && !selectedFile
-      && !removeCurrentAttachment
-  );
-
   return (
     <ResearchSectionCard
       title="证据库"
       note="实验记录、数据与阶段性成果"
       actions={
         canManage && (
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="glass-button glass-button-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white"
-          >
-            新增证据
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {isReordering ? (
+              <>
+                <button
+                  type="button"
+                  onClick={cancelEvidenceReorder}
+                  disabled={isSavingOrder}
+                  className="glass-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void saveEvidenceOrder()}
+                  disabled={isSavingOrder}
+                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSavingOrder && <Loader2 className="h-4 w-4 animate-spin" />}
+                  保存顺序
+                </button>
+              </>
+            ) : evidenceItems.length >= 2 ? (
+              <button
+                type="button"
+                onClick={beginEvidenceReorder}
+                className="glass-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
+              >
+                <GripVertical className="h-4 w-4" />
+                调整顺序
+              </button>
+            ) : null}
+            {!isReordering && (
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="glass-button glass-button-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white"
+              >
+                新增证据
+              </button>
+            )}
+          </div>
         )
       }
     >
@@ -444,36 +692,104 @@ export function ProjectEvidenceSection({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.ppt,.pptx"
               onChange={handleFileChange}
               className="hidden"
             />
 
-            {selectedFile && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-[var(--glass-text-muted)]">
-                <FileText className="h-4 w-4 text-[var(--paper-link)]" />
-                <span>已选择：{selectedFile.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFile(null)}
-                  className="text-sm font-semibold text-[var(--color-destructive)]"
-                >
-                  移除
-                </button>
-              </div>
+            <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--glass-text-muted)]">
+              <span>附件队列</span>
+              <span>{draftAttachments.length}/{MAX_EVIDENCE_ATTACHMENTS}</span>
+            </div>
+
+            {draftAttachments.length > 0 && (
+              <Reorder.Group
+                axis="y"
+                as="div"
+                values={draftAttachments}
+                onReorder={setDraftAttachments}
+                className="mt-2 grid gap-2"
+              >
+                {draftAttachments.map((draftAttachment, index) => {
+                  const attachmentName = draftAttachment.status === 'pending'
+                    ? draftAttachment.file.name
+                    : getAttachmentLabel(draftAttachment.attachment);
+                  const attachmentSize = draftAttachment.status === 'pending'
+                    ? draftAttachment.file.size
+                    : draftAttachment.attachment.size;
+                  const isPrimary = index === 0;
+
+                  return (
+                    <Reorder.Item
+                      key={draftAttachment.id}
+                      as="div"
+                      value={draftAttachment}
+                      className="flex min-w-0 items-center gap-2 rounded-xl border border-[var(--glass-stroke)] bg-[var(--glass-chip)] px-3 py-2"
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-[var(--paper-foreground)]">
+                          <span className="max-w-full truncate">{attachmentName}</span>
+                          <span className="shrink-0 text-[var(--glass-text-muted)]">
+                            {isPrimary ? '主附件' : '支持材料'}
+                          </span>
+                          {draftAttachment.status === 'pending' && (
+                            <span className="shrink-0 text-[var(--paper-link)]">待上传</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-[var(--glass-text-muted)]">
+                          {formatFileSize(attachmentSize)}
+                        </span>
+                      </div>
+                      {!isPrimary && (
+                        <button
+                          type="button"
+                          onClick={() => moveDraftAttachment(draftAttachment.id, -index)}
+                          disabled={isSaving}
+                          className="glass-button rounded-full p-2 text-[var(--paper-link)] disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={`设为主附件 ${attachmentName}`}
+                        >
+                          <Star className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => moveDraftAttachment(draftAttachment.id, -1)}
+                        disabled={isSaving || isPrimary}
+                        className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`上移附件 ${attachmentName}`}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveDraftAttachment(draftAttachment.id, 1)}
+                        disabled={isSaving || index === draftAttachments.length - 1}
+                        className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`下移附件 ${attachmentName}`}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeDraftAttachment(draftAttachment.id)}
+                        disabled={isSaving}
+                        className="glass-button rounded-full p-2 text-[var(--color-destructive)] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label={`移除附件 ${attachmentName}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
             )}
 
-            {currentAttachmentVisible && editingEvidence && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-[var(--glass-text-muted)]">
-                <FileText className="h-4 w-4 text-[var(--paper-link)]" />
-                <span>当前附件：{getAttachmentLabel(editingEvidence)}</span>
-                <button
-                  type="button"
-                  onClick={() => setRemoveCurrentAttachment(true)}
-                  className="text-sm font-semibold text-[var(--color-destructive)]"
-                >
-                  移除
-                </button>
+            {uploadProgress && (
+              <div className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--paper-link)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                正在上传 {uploadProgress.completed}/{uploadProgress.total}
               </div>
             )}
           </div>
@@ -556,11 +872,40 @@ export function ProjectEvidenceSection({
         </div>
       )}
 
-      {!isLoading && !loadError && evidenceItems.length > 0 && (
+      {!isLoading && !loadError && isReordering && orderedEvidence.length > 0 && (
+        <div className="grid gap-3">
+          <Reorder.Group
+            axis="y"
+            as="div"
+            values={orderedEvidence}
+            onReorder={setOrderedEvidence}
+            className="grid gap-3"
+          >
+            {orderedEvidence.map((evidence, index) => (
+              <EvidenceOrderItem
+                key={evidence.id}
+                evidence={evidence}
+                index={index}
+                isSaving={isSavingOrder}
+                isLast={index === orderedEvidence.length - 1}
+                onMoveUp={() => moveEvidence(index, -1)}
+                onMoveDown={() => moveEvidence(index, 1)}
+              />
+            ))}
+          </Reorder.Group>
+          {orderError && (
+            <div className="research-error rounded-2xl px-4 py-3 text-base">
+              {orderError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isLoading && !loadError && !isReordering && evidenceItems.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {evidenceItems.map((evidence) => {
-            const fileSize = formatFileSize(evidence.attachment_size);
-            const hasAttachment = Boolean(evidence.attachment_url);
+            const attachments = getEvidenceAttachments(evidence);
+            const hasAttachment = attachments.length > 0;
 
             return (
               <article key={evidence.id} className="research-panel-soft rounded-2xl p-4">
@@ -628,18 +973,25 @@ export function ProjectEvidenceSection({
                         <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                       </a>
                     )}
-                    {evidence.attachment_url && (
-                      <a
-                        href={evidence.attachment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
-                      >
-                        <FileText className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{getAttachmentLabel(evidence)}</span>
-                        {fileSize && <span className="shrink-0 text-sm text-[var(--glass-text-muted)]">{fileSize}</span>}
-                      </a>
-                    )}
+                    {attachments.map((attachment, index) => {
+                      const fileSize = formatFileSize(attachment.size);
+                      return (
+                        <a
+                          key={`${evidence.id}-${attachment.url}`}
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
+                        >
+                          <FileText className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{getAttachmentLabel(attachment)}</span>
+                          <span className="shrink-0 text-sm text-[var(--glass-text-muted)]">
+                            {index === 0 ? '主附件' : '支持材料'}
+                          </span>
+                          {fileSize && <span className="shrink-0 text-sm text-[var(--glass-text-muted)]">{fileSize}</span>}
+                        </a>
+                      );
+                    })}
                   </div>
                 )}
 

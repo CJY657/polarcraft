@@ -12,7 +12,7 @@
  */
 
 import { pathToFileURL } from 'url';
-import { closeDatabase, connectDatabase } from '../database/connection.js';
+import { closeDatabase, connectDatabase, getDb } from '../database/connection.js';
 
 interface CollectionSpace {
   name: string;
@@ -38,7 +38,7 @@ function numberOrZero(value: unknown): number {
 }
 
 export async function collectDatabaseSpace(): Promise<CollectionSpace[]> {
-  const db = await connectDatabase();
+  const db = await connectDatabase({ ensureIndexes: false });
   const collections = await db.listCollections({}, { nameOnly: true }).toArray();
   const rows: CollectionSpace[] = [];
 
@@ -64,7 +64,7 @@ export async function collectDatabaseSpace(): Promise<CollectionSpace[]> {
 
 async function main(): Promise<void> {
   const rows = await collectDatabaseSpace();
-  const db = await connectDatabase();
+  const db = getDb();
   const dbStats = (await db.command({ dbStats: 1 })) as Record<string, unknown>;
 
   const header = ['collection', 'docs', 'data', 'on-disk', 'free', 'indexes'];

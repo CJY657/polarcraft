@@ -292,6 +292,71 @@ describe('UserController.getLearnerActivityForAdmin', () => {
     expect(res.success).toHaveBeenCalledWith(detail);
   });
 
+  it('uses a 30-day range ending today when no detail dates are given', async () => {
+    getLearnerActivityForAdmin.mockResolvedValue({ status: 'ok' });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      { params: { userId: 'user-1' }, query: {} } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const today = new Date().toISOString().slice(0, 10);
+    const expectedStart = new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect(getLearnerActivityForAdmin).toHaveBeenCalledWith(
+      'user-1',
+      expectedStart,
+      today
+    );
+  });
+
+  it('accepts an inclusive 366-day detail range', async () => {
+    getLearnerActivityForAdmin.mockResolvedValue({ status: 'ok' });
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      {
+        params: { userId: 'user-1' },
+        query: { start: '2025-08-05', end: '2026-08-05' },
+      } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getLearnerActivityForAdmin).toHaveBeenCalledWith(
+      'user-1',
+      '2025-08-05',
+      '2026-08-05'
+    );
+    expect(res.error).not.toHaveBeenCalled();
+  });
+
+  it('rejects a 367-day detail range', async () => {
+    const res = { success: vi.fn(), error: vi.fn() };
+
+    UserController.getLearnerActivityForAdmin(
+      {
+        params: { userId: 'user-1' },
+        query: { start: '2025-08-04', end: '2026-08-05' },
+      } as never,
+      res as never,
+      vi.fn() as never
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(res.error).toHaveBeenCalledWith(
+      '时间跨度不能超过 366 天',
+      'INVALID_ACTIVITY_RANGE',
+      400
+    );
+    expect(getLearnerActivityForAdmin).not.toHaveBeenCalled();
+  });
+
   it('rejects an inverted range without querying analytics', async () => {
     const res = { success: vi.fn(), error: vi.fn() };
 

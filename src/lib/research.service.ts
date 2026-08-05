@@ -17,6 +17,7 @@ export type { ProjectStatus } from '@/feature/research/projectLifecycle';
 
 export interface ResearchProject {
   id: string;
+  owner_user_id?: string | null;
   name_zh: string;
   name_en: string | null;
   description_zh: string | null;
@@ -71,10 +72,33 @@ export interface FormerProjectMember extends ProjectMember {
   removed_at: string | null;
 }
 
+export interface ProjectLeadershipTransferIdentity {
+  user_id: string;
+  username: string;
+  nickname?: string | null;
+  real_name?: string | null;
+  show_real_name_publicly?: boolean;
+  avatar_url: string | null;
+}
+
+export interface PendingProjectLeadershipTransfer {
+  id: string;
+  outgoing_owner: ProjectLeadershipTransferIdentity;
+  nominee: ProjectLeadershipTransferIdentity;
+  initiator: ProjectLeadershipTransferIdentity;
+  created_at: string;
+  expires_at: string;
+  can_accept: boolean;
+  can_decline: boolean;
+  can_cancel: boolean;
+  can_replace: boolean;
+}
+
 export interface ProjectWithMembers extends ResearchProject {
   members: ProjectMember[];
   former_members?: FormerProjectMember[];
   has_pending_application?: boolean;
+  pending_leadership_transfer?: PendingProjectLeadershipTransfer | null;
 }
 
 export interface ProjectDiscussionComment {
@@ -180,6 +204,14 @@ export type ProjectEvidenceType =
 
 export type ProjectEvidenceAttachmentCategory = 'image' | 'video' | 'pdf' | 'pptx';
 
+export interface ProjectEvidenceAttachment {
+  url: string;
+  original_name: string | null;
+  size: number | null;
+  mime_type: string | null;
+  category: ProjectEvidenceAttachmentCategory | string | null;
+}
+
 export interface ProjectEvidence {
   id: string;
   project_id: string;
@@ -193,6 +225,9 @@ export interface ProjectEvidence {
   attachment_mime_type: string | null;
   attachment_category: ProjectEvidenceAttachmentCategory | string | null;
   attachment_note: string | null;
+  attachments: ProjectEvidenceAttachment[];
+  attachment_urls?: string[];
+  sort_order: number;
   created_by: string;
   creator_username: string;
   creator_nickname?: string | null;
@@ -214,6 +249,12 @@ export interface UpsertProjectEvidenceInput {
   attachment_mime_type?: string | null;
   attachment_category?: ProjectEvidenceAttachmentCategory | null;
   attachment_note?: string | null;
+  attachments?: ProjectEvidenceAttachment[];
+}
+
+export interface ReorderProjectEvidenceInput {
+  expectedEvidenceIds: string[];
+  evidenceIds: string[];
 }
 
 export interface ResearchAgentMessage {
@@ -419,6 +460,50 @@ export const researchApi = {
   },
 
   /**
+   * Nominate or replace the next project leader
+   * 提名或更换下一任课题组长
+   */
+  nominateProjectLeadershipTransfer: async (projectId: string, targetUserId: string): Promise<void> => {
+    const response = await api.put(`/api/research/projects/${projectId}/leadership-transfer`, {
+      targetUserId,
+    });
+    ensureApiSuccess(response, '发起组长转让失败');
+  },
+
+  /**
+   * Cancel a pending project leadership transfer
+   * 取消待处理的课题组长转让
+   */
+  cancelProjectLeadershipTransfer: async (projectId: string, transferId: string): Promise<void> => {
+    const response = await api.delete(
+      `/api/research/projects/${projectId}/leadership-transfer/${transferId}`
+    );
+    ensureApiSuccess(response, '取消组长转让失败');
+  },
+
+  /**
+   * Accept a pending project leadership transfer
+   * 接受课题组长转让
+   */
+  acceptProjectLeadershipTransfer: async (projectId: string, transferId: string): Promise<void> => {
+    const response = await api.post(
+      `/api/research/projects/${projectId}/leadership-transfer/${transferId}/accept`
+    );
+    ensureApiSuccess(response, '接受组长转让失败');
+  },
+
+  /**
+   * Decline a pending project leadership transfer
+   * 拒绝课题组长转让
+   */
+  declineProjectLeadershipTransfer: async (projectId: string, transferId: string): Promise<void> => {
+    const response = await api.post(
+      `/api/research/projects/${projectId}/leadership-transfer/${transferId}/decline`
+    );
+    ensureApiSuccess(response, '拒绝组长转让失败');
+  },
+
+  /**
    * Get project discussion comments
    * 获取课题讨论评论
    */
@@ -586,6 +671,21 @@ export const researchApi = {
   ): Promise<ProjectEvidence> => {
     const response = await api.post<ProjectEvidence>(`/api/research/projects/${projectId}/evidence`, input);
     return unwrapApiData(response, '新增证据失败');
+  },
+
+  /**
+   * Reorder project evidence
+   * 调整课题证据顺序
+   */
+  reorderProjectEvidence: async (
+    projectId: string,
+    input: ReorderProjectEvidenceInput
+  ): Promise<ProjectEvidence[]> => {
+    const response = await api.put<ProjectEvidence[]>(
+      `/api/research/projects/${projectId}/evidence/order`,
+      input
+    );
+    return unwrapApiData(response, '更新证据顺序失败');
   },
 
   /**

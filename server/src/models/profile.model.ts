@@ -136,12 +136,31 @@ async function enrichPublicProjects(
 
   return projects.map((project) => {
     const setting = settingsMap.get(project.id);
-    const projectMembers = (membersByProject.get(project.id) || []).sort(compareMembersByRoleThenJoinedAt);
-    const owner = projectMembers.find((member) => member.role === 'owner');
+    const storedProjectMembers = membersByProject.get(project.id) || [];
+    const legacyOwnerIds = storedProjectMembers
+      .filter((member) => member.role === 'owner')
+      .map((member) => member.user_id);
+    const ownerUserId = typeof project.owner_user_id === 'string' && project.owner_user_id
+      ? project.owner_user_id
+      : legacyOwnerIds.length === 1 ? legacyOwnerIds[0] : null;
+    const projectMembers = storedProjectMembers
+      .map((member) => ({
+        ...member,
+        role: ownerUserId === member.user_id ? 'owner' : 'member',
+      }))
+      .sort(compareMembersByRoleThenJoinedAt);
+    const owner = ownerUserId
+      ? projectMembers.find((member) => member.user_id === ownerUserId)
+      : undefined;
     const ownerUser = owner ? userMap.get(owner.user_id) : undefined;
+    const {
+      owner_user_id: _ownerUserId,
+      pending_leadership_transfer: _pendingLeadershipTransfer,
+      ...publicProject
+    } = project;
 
     return decorateResearchProject({
-      ...project,
+      ...publicProject,
       cover_image: coverMap.get(project.id) ?? null,
       visibility: setting?.visibility,
       require_approval: setting?.require_approval,
@@ -484,14 +503,38 @@ export class ProfileModel {
       return [];
     }
 
-    const projectNameMap = await getProjectNameMap(
-      memberships.map((membership) => membership.project_id)
-    );
+    const projectIds = [...new Set(memberships.map((membership) => membership.project_id))];
+    const [projects, legacyOwners] = await Promise.all([
+      normalizeDocuments<{ id: string; name_zh?: string | null; owner_user_id?: string | null }>(
+        await researchProjectsCollection()
+          .find({ id: { $in: projectIds } })
+          .project({ _id: 0, id: 1, name_zh: 1, owner_user_id: 1 })
+          .toArray()
+      ),
+      normalizeDocuments<{ project_id: string; user_id: string }>(
+        await projectMembersCollection()
+          .find(buildActiveMembershipFilter({ project_id: { $in: projectIds }, role: 'owner' }))
+          .project({ _id: 0, project_id: 1, user_id: 1 })
+          .toArray()
+      ),
+    ]);
+    const projectMap = new Map(projects.map((project) => [project.id, project]));
+    const legacyOwnerIdsByProject = new Map<string, string[]>();
+    for (const owner of legacyOwners) {
+      const ownerIds = legacyOwnerIdsByProject.get(owner.project_id) ?? [];
+      ownerIds.push(owner.user_id);
+      legacyOwnerIdsByProject.set(owner.project_id, ownerIds);
+    }
 
     return memberships.map((membership) => ({
       project_id: membership.project_id,
-      project_name: projectNameMap.get(membership.project_id) ?? null,
-      role: normalizeProjectRole(membership.role) ?? 'member',
+      project_name: projectMap.get(membership.project_id)?.name_zh ?? null,
+      role: (
+        projectMap.get(membership.project_id)?.owner_user_id
+        || (legacyOwnerIdsByProject.get(membership.project_id)?.length === 1
+          ? legacyOwnerIdsByProject.get(membership.project_id)?.[0]
+          : null)
+      ) === userId ? 'owner' : 'member',
       joined_at: membership.joined_at ?? null,
     }));
   }

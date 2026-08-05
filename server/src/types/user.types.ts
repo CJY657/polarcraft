@@ -247,11 +247,16 @@ export interface AdminUserActivityDetailSummary {
   meaningful_events: number;
   pageviews: number;
   learning_actions: number;
+  active_days: number;
+  average_meaningful_events_per_active_day: number;
+  learning_action_rate: number;
 }
 
 /** Single-learner activity detail / 管理员查看的单个学生活动详情 */
 export interface AdminUserActivityDetailResponse {
   status: 'ok' | 'disabled';
+  username: string;
+  display_name: string;
   user_type: UserType | null;
   range: AdminUserActivityDateRange;
   previous_range: AdminUserActivityDateRange;
@@ -273,6 +278,7 @@ export interface AdminUserActivityDetailResponse {
     module: string;
     label: string;
     pageviews: number;
+    active_days: number;
   }>;
   /** weekday: 1 = Monday … 7 = Sunday, hour: 0-23, both in Asia/Shanghai. */
   hourly: Array<{

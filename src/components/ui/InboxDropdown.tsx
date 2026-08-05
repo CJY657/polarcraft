@@ -16,6 +16,7 @@ import {
   CheckCircle,
   XCircle,
   MessageCircle,
+  Crown,
   Megaphone,
   ChevronRight,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ const getNotificationIcon = (type: NotificationType) => {
     application_approved: CheckCircle,
     application_rejected: XCircle,
     comment_reply: MessageCircle,
+    leadership_transfer: Crown,
     system: Megaphone,
   };
   return icons[type] || Bell;
@@ -44,6 +46,7 @@ const getNotificationIconColor = (type: NotificationType, theme: string) => {
     application_approved: theme === 'dark' ? 'text-green-400' : 'text-green-500',
     application_rejected: theme === 'dark' ? 'text-red-400' : 'text-red-500',
     comment_reply: theme === 'dark' ? 'text-purple-400' : 'text-purple-500',
+    leadership_transfer: theme === 'dark' ? 'text-amber-300' : 'text-amber-600',
     system: theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500',
   };
   return colors[type] || (theme === 'dark' ? 'text-gray-400' : 'text-gray-500');

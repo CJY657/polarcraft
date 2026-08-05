@@ -20,84 +20,11 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-/**
-* 修改内容：
-*
-*- ✅ 删除了未使用的 REFRACTIVE_INDICES 和 getBirefringenceMaterial 的 import
-*- ✅ 保留了 BIREFRINGENT_MATERIALS 的 import（因为文件内部在使用）
-*- ✅ 保留了重新导出语句，维持向后兼容性
-*为什么这样改？
-*- BIREFRINGENT_MATERIALS 在文件内部被使用（第137、138、182、183行），所以需要 import
-*- REFRACTIVE_INDICES 和 getBirefringenceMaterial 只是为了重新导出，不需要 import
-*- 重新导出让其他模块可以从 GeometricOptics.ts 直接导入，不需要知道内部结构
-*/
 import * as THREE from "three";
 import { BIREFRINGENT_MATERIALS } from "./OpticsConstants";
 
-// Re-export types and constants for backward compatibility
 export type { BirefringenceMaterial } from "./OpticsConstants";
-export { REFRACTIVE_INDICES, BIREFRINGENT_MATERIALS, getBirefringenceMaterial } from "./OpticsConstants";
-
-// ============================================================================
-// 斯涅尔定律 | SNELL'S LAW
-// ============================================================================
-
-/**
- * 斯涅尔定律计算参数 | Parameters for Snell's law calculation
- */
-export interface SnellParams {
-  incidentAngle: number; // 入射角（度） | Angle of incidence in degrees
-  n1: number; // 入射介质折射率 | Refractive index of incident medium
-  n2: number; // 折射介质折射率 | Refractive index of refractive medium
-}
-
-/**
- * 使用斯涅尔定律计算折射角 | Calculate refraction angle using Snell's law
- * n1 * sin(θ1) = n2 * sin(θ2)
- * @param params - 斯涅尔定律参数 | Snell's law parameters
- * @returns 折射角（度），发生全反射时返回null | Refraction angle in degrees, or null if total internal reflection occurs
- */
-export function calculateRefractionAngle(params: SnellParams): number | null {
-  const { incidentAngle, n1, n2 } = params;
-  const theta1 = (incidentAngle * Math.PI) / 180;
-
-  // 检查全反射 | Check for total internal reflection
-  const criticalAngle = Math.asin(n2 / n1);
-  if (theta1 > criticalAngle && n1 > n2) {
-    return null; // 全反射 | Total internal reflection
-  }
-
-  const sinTheta2 = (n1 * Math.sin(theta1)) / n2;
-  const theta2 = Math.asin(Math.min(1, Math.max(-1, sinTheta2)));
-
-  return (theta2 * 180) / Math.PI;
-}
-
-/**
- * 计算全反射临界角 | Calculate critical angle for total internal reflection
- * @param n1 - 较密介质折射率 | Refractive index of denser medium
- * @param n2 - 较疏介质折射率 | Refractive index of rarer medium
- * @returns 临界角（度），若无全反射则返回null | Critical angle in degrees, or null if no total internal reflection possible
- */
-export function calculateCriticalAngle(n1: number, n2: number): number | null {
-  if (n1 <= n2) return null; // 不可能发生全反射 | No total internal reflection possible
-  return (Math.asin(n2 / n1) * 180) / Math.PI;
-}
-
-// ============================================================================
-// 布鲁斯特角 | BREWSTER'S ANGLE
-// ============================================================================
-
-/**
- * 计算布鲁斯特角 | Calculate Brewster's angle
- * tan(θ_B) = n2/n1
- * @param n1 - 入射介质折射率 | Refractive index of incident medium
- * @param n2 - 折射介质折射率 | Refractive index of refractive medium
- * @returns 布鲁斯特角（度） | Brewster angle in degrees
- */
-export function calculateBrewsterAngle(n1: number, n2: number): number {
-  return (Math.atan(n2 / n1) * 180) / Math.PI;
-}
+export { BIREFRINGENT_MATERIALS } from "./OpticsConstants";
 
 // ============================================================================
 // 双折射 | BIREFRINGENCE (DOUBLE REFRACTION)
@@ -289,40 +216,5 @@ export function calculateDoubleImageOffset(
   return {
     oRayOffset: oRayOffset * distance,
     eRayOffset: eRayOffset * distance,
-  };
-}
-
-/**
- * 格式化光线路径数据用于可视化 | Format ray path data for visualization
- * 将THREE.Vector3转换为简单的[x, y, z]数组，便于在组件中使用 | Converts THREE.Vector3 to simple [x, y, z] arrays for easier use in components
- * @param params - 双折射参数 | Birefringence parameters
- * @param rayLength - 用于可视化的光线长度 | Length of rays for visualization
- * @returns 格式化的光线路径数据 | Formatted ray path data
- */
-export function getFormattedRayPaths(
-  params: BirefringenceParams,
-  rayLength: number = 3
-): {
-  incidentRay: [number, number, number][]; // 入射光路径 | Incident ray path
-  oRay: [number, number, number][]; // o光路径 | O-ray path
-  eRay: [number, number, number][]; // e光路径 | E-ray path
-  walkOffAngle: number; // 走离角（度）| Walk-off angle in degrees
-} {
-  const paths = calculateBirefringenceRayPaths(params, rayLength);
-
-  return {
-    incidentRay: [
-      [paths.incidentStart.x, paths.incidentStart.y, paths.incidentStart.z],
-      [paths.incidentEnd.x, paths.incidentEnd.y, paths.incidentEnd.z],
-    ],
-    oRay: [
-      [paths.incidentEnd.x, paths.incidentEnd.y, paths.incidentEnd.z],
-      [paths.oRayEnd.x, paths.oRayEnd.y, paths.oRayEnd.z],
-    ],
-    eRay: [
-      [paths.incidentEnd.x, paths.incidentEnd.y, paths.incidentEnd.z],
-      [paths.eRayEnd.x, paths.eRayEnd.y, paths.eRayEnd.z],
-    ],
-    walkOffAngle: paths.walkOffAngle,
   };
 }

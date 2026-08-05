@@ -891,6 +891,9 @@ POSTHOG_ENVIRONMENT_ID=12345
 
 # Personal API Key（Settings → Personal API Keys，需具备 query / 读 person 权限）
 POSTHOG_PERSONAL_API_KEY=phx_xxxxxxxx
+
+# HogQL 查询超时（毫秒，默认 15000）
+POSTHOG_QUERY_TIMEOUT_MS=15000
 ```
 
 修改 `server/.env` 后：
@@ -994,7 +997,6 @@ polariscope/
 |--pnpm-workspace.yaml
 |--tsconfig.json
 |--tsconfig.node.json
-|--tsconfig.app.json
 |--vercel.json
 |--vite.config.ts
 `--vitest.config.ts

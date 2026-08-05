@@ -98,19 +98,37 @@ const activity = {
 
 const learnerDetail = {
   status: 'ok' as const,
+  username: 'learner-account',
+  display_name: '林晓光',
   user_type: 'student' as const,
   range: { ...presetRange(7), days: 30 },
   previous_range: { start: '2026-05-11', end: '2026-06-09', days: 30 },
   generated_at: '2026-07-10T08:00:00.000Z',
   last_activity: '2026-07-10T07:30:00.000Z',
-  summary: { meaningful_events: 32, pageviews: 12, learning_actions: 20 },
-  previous_summary: { meaningful_events: 16, pageviews: 10, learning_actions: 20 },
+  summary: {
+    meaningful_events: 32,
+    pageviews: 12,
+    learning_actions: 20,
+    active_days: 2,
+    average_meaningful_events_per_active_day: 16,
+    learning_action_rate: 62.5,
+  },
+  previous_summary: {
+    meaningful_events: 16,
+    pageviews: 10,
+    learning_actions: 20,
+    active_days: 1,
+    average_meaningful_events_per_active_day: 16,
+    learning_action_rate: 125,
+  },
   daily: [
     { date: '2026-07-09', events: 12, pageviews: 5, learning_actions: 7 },
     { date: '2026-07-10', events: 20, pageviews: 7, learning_actions: 13 },
   ],
   top_pages: [{ path: '/experiments/calcite', pageviews: 9 }],
-  module_breakdown: [{ module: 'module1', label: '实验内容', pageviews: 9 }],
+  module_breakdown: [
+    { module: 'module1', label: '实验内容', pageviews: 9, active_days: 2 },
+  ],
   hourly: [{ weekday: 4, hour: 20, count: 6 }],
 };
 
@@ -344,36 +362,6 @@ describe('AdminActivityPage', () => {
     });
   });
 
-  it('queries the dashboard and bookmarked drawer only once for an applied custom range', async () => {
-    renderPage('/admin/activity?user=learner-2');
-    await waitFor(() => {
-      expect(getActivity).toHaveBeenCalled();
-      expect(getActivityDetail).toHaveBeenCalled();
-    });
-    getActivity.mockClear();
-    getActivityDetail.mockClear();
-
-    fireEvent.change(screen.getByLabelText('开始日期'), {
-      target: { value: '2026-06-01' },
-    });
-    fireEvent.change(screen.getByLabelText('结束日期'), {
-      target: { value: '2026-06-30' },
-    });
-
-    expect(getActivity).not.toHaveBeenCalled();
-    expect(getActivityDetail).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '查询自定义日期' }));
-
-    await waitFor(() => {
-      expect(getActivity).toHaveBeenCalledTimes(1);
-      expect(getActivityDetail).toHaveBeenCalledTimes(1);
-    });
-    expect(getActivityDetail).toHaveBeenLastCalledWith('learner-2', {
-      start: '2026-06-01',
-      end: '2026-06-30',
-    });
-  });
-
   it('flags an inverted custom range instead of querying', async () => {
     renderPage();
     await waitFor(() => expect(getActivity).toHaveBeenCalled());
@@ -584,23 +572,15 @@ describe('AdminActivityPage', () => {
       expect(getActivityDetail).toHaveBeenCalledWith('learner-1', presetRange(7))
     );
     expect(within(drawer).getByText('32')).toBeDefined();
-    expect(within(drawer).getByText(/较上期 \+100%/)).toBeDefined();
+    expect(within(drawer).getAllByText(/较上期 \+100%/).length).toBeGreaterThanOrEqual(1);
     expect(within(drawer).getByText('实验内容 · 课程详情')).toBeDefined();
     expect(within(drawer).getByRole('table', { name: /按星期与时段统计的活动次数/ })).toBeDefined();
   });
 
-  it('opens the learner drawer straight from a bookmarked link', async () => {
-    renderPage('/admin/activity?user=learner-2');
-
-    expect(await screen.findByRole('dialog', { name: '王小雨 的活动详情' })).toBeDefined();
-    await waitFor(() =>
-      expect(getActivityDetail).toHaveBeenCalledWith('learner-2', presetRange(7))
-    );
-  });
-
   it('closes the learner drawer without losing the dashboard', async () => {
-    renderPage('/admin/activity?user=learner-1');
+    renderPage();
 
+    fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
     await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
     fireEvent.click(screen.getByRole('button', { name: '关闭账号活动详情' }));
 
@@ -611,7 +591,8 @@ describe('AdminActivityPage', () => {
   it('surfaces a drawer-level failure without breaking the dashboard', async () => {
     getActivityDetail.mockRejectedValue(new Error('行为数据查询失败，请稍后重试'));
 
-    renderPage('/admin/activity?user=learner-1');
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
 
     expect(await screen.findByText('加载账号活动详情失败')).toBeDefined();
     expect(screen.getByRole('heading', { name: '用户活动' })).toBeDefined();

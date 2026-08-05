@@ -1,13 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { databaseSession, withDatabaseTransaction } = vi.hoisted(() => {
+  const databaseSession = { id: 'database-session' };
+  return {
+    databaseSession,
+    withDatabaseTransaction: vi.fn(
+      async (operation: (session: typeof databaseSession) => Promise<unknown>) => operation(databaseSession)
+    ),
+  };
+});
+
 const membersFind = vi.fn();
 const membersFindOne = vi.fn();
 const membersInsertOne = vi.fn();
 const membersUpdateOne = vi.fn();
+const membersUpdateMany = vi.fn();
 const membersDeleteMany = vi.fn();
 const membersCountDocuments = vi.fn();
 const projectsFindOne = vi.fn();
 const projectsUpdateOne = vi.fn();
+const projectsFindOneAndUpdate = vi.fn();
 const projectsInsertOne = vi.fn();
 const projectsDeleteOne = vi.fn();
 const canvasesFind = vi.fn();
@@ -39,6 +51,7 @@ const evidenceInsertOne = vi.fn();
 const evidenceUpdateOne = vi.fn();
 const evidenceDeleteOne = vi.fn();
 const evidenceDeleteMany = vi.fn();
+const evidenceBulkWrite = vi.fn();
 const usersFind = vi.fn();
 const cycleDeleteMany = vi.fn();
 const charterDeleteMany = vi.fn();
@@ -48,6 +61,7 @@ const outcomeDeleteMany = vi.fn();
 const cycleInsertOne = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
+  withDatabaseTransaction,
   getCollection: (name: string) => {
     switch (name) {
       case 'research_project_members':
@@ -56,6 +70,7 @@ vi.mock('../database/connection.js', () => ({
           findOne: (...args: unknown[]) => membersFindOne(...args),
           insertOne: (...args: unknown[]) => membersInsertOne(...args),
           updateOne: (...args: unknown[]) => membersUpdateOne(...args),
+          updateMany: (...args: unknown[]) => membersUpdateMany(...args),
           deleteMany: (...args: unknown[]) => membersDeleteMany(...args),
           countDocuments: (...args: unknown[]) => membersCountDocuments(...args),
         };
@@ -63,6 +78,7 @@ vi.mock('../database/connection.js', () => ({
         return {
           findOne: (...args: unknown[]) => projectsFindOne(...args),
           updateOne: (...args: unknown[]) => projectsUpdateOne(...args),
+          findOneAndUpdate: (...args: unknown[]) => projectsFindOneAndUpdate(...args),
           insertOne: (...args: unknown[]) => projectsInsertOne(...args),
           deleteOne: (...args: unknown[]) => projectsDeleteOne(...args),
           find: () => ({ sort: () => ({ toArray: async () => [] }) }),
@@ -126,6 +142,7 @@ vi.mock('../database/connection.js', () => ({
           findOne: (...args: unknown[]) => evidenceFindOne(...args),
           insertOne: (...args: unknown[]) => evidenceInsertOne(...args),
           updateOne: (...args: unknown[]) => evidenceUpdateOne(...args),
+          bulkWrite: (...args: unknown[]) => evidenceBulkWrite(...args),
           deleteOne: (...args: unknown[]) => evidenceDeleteOne(...args),
           deleteMany: (...args: unknown[]) => evidenceDeleteMany(...args),
         };
@@ -232,6 +249,7 @@ describe('ResearchModel.createProject', () => {
       name_zh: '新课题',
       status: 'draft',
       is_public: true,
+      owner_user_id: 'owner-1',
       last_activity_at: expect.any(Date),
     }));
     expect(cycleInsertOne).toHaveBeenCalledWith(expect.objectContaining({
@@ -537,6 +555,229 @@ describe('ResearchModel.getActiveProjectMembership', () => {
   });
 });
 
+describe('ResearchModel leadership transfers', () => {
+  const transfer = {
+    id: 'transfer-1',
+    outgoing_owner_user_id: 'owner-1',
+    nominee_user_id: 'member-1',
+    initiated_by_user_id: 'owner-1',
+    invitation_notification_id: 'notification-1',
+    created_at: new Date('2026-08-05T00:00:00.000Z'),
+    expires_at: new Date('2026-08-12T00:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    membersFindOne.mockResolvedValue({ user_id: 'member-1', active: true });
+    membersUpdateMany.mockResolvedValue({ matchedCount: 1 });
+    membersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('requires exactly one active owner for a legacy project', async () => {
+    membersFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [{ user_id: 'owner-1' }, { user_id: 'owner-2' }],
+      }),
+    });
+
+    await expect(ResearchModel.getLegacyProjectOwnerState('project-1')).resolves.toEqual({
+      ownerUserId: null,
+      valid: false,
+      source: 'invalid',
+    });
+
+    expect(membersFind).toHaveBeenCalledWith({
+      project_id: 'project-1',
+      role: 'owner',
+      $or: [{ active: true }, { active: { $exists: false } }],
+    });
+  });
+
+  it('materializes the legacy owner while replacing the one bounded pending request', async () => {
+    projectsFindOneAndUpdate.mockResolvedValue({
+      id: 'project-1',
+      pending_leadership_transfer: { ...transfer, id: 'old-transfer' },
+    });
+
+    await expect(
+      ResearchModel.replacePendingLeadershipTransfer('project-1', 'owner-1', transfer)
+    ).resolves.toEqual(expect.objectContaining({ id: 'old-transfer' }));
+
+    expect(projectsFindOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'project-1',
+        $or: expect.arrayContaining([{ owner_user_id: { $exists: false } }]),
+      }),
+      {
+        $set: {
+          owner_user_id: 'owner-1',
+          pending_leadership_transfer: transfer,
+        },
+      },
+      { returnDocument: 'before', session: databaseSession }
+    );
+  });
+
+  it('does not nominate a member who became inactive during the request', async () => {
+    membersFindOne.mockResolvedValueOnce(null);
+
+    await expect(
+      ResearchModel.replacePendingLeadershipTransfer('project-1', 'owner-1', transfer)
+    ).resolves.toBe(false);
+
+    expect(projectsFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('switches authority and membership roles in one transaction', async () => {
+    projectsFindOneAndUpdate.mockResolvedValue({
+      id: 'project-1',
+      owner_user_id: 'owner-1',
+      pending_leadership_transfer: transfer,
+    });
+    const now = new Date('2026-08-06T00:00:00.000Z');
+
+    await expect(
+      ResearchModel.acceptLeadershipTransfer(
+        'project-1',
+        'transfer-1',
+        'owner-1',
+        'member-1',
+        now
+      )
+    ).resolves.toEqual(transfer);
+
+    expect(projectsFindOneAndUpdate).toHaveBeenCalledWith(
+      {
+        id: 'project-1',
+        owner_user_id: 'owner-1',
+        'pending_leadership_transfer.id': 'transfer-1',
+        'pending_leadership_transfer.outgoing_owner_user_id': 'owner-1',
+        'pending_leadership_transfer.nominee_user_id': 'member-1',
+        'pending_leadership_transfer.expires_at': { $gt: now },
+      },
+      {
+        $set: { owner_user_id: 'member-1' },
+        $unset: { pending_leadership_transfer: '' },
+      },
+      { returnDocument: 'before', session: databaseSession }
+    );
+    expect(membersUpdateMany).toHaveBeenCalledWith(
+      {
+        project_id: 'project-1',
+        user_id: { $ne: 'member-1' },
+        $or: [{ active: true }, { active: { $exists: false } }],
+      },
+      { $set: { role: 'member' } },
+      { session: databaseSession }
+    );
+    expect(membersUpdateOne).toHaveBeenCalledWith(
+      {
+        project_id: 'project-1',
+        user_id: 'member-1',
+        $or: [{ active: true }, { active: { $exists: false } }],
+      },
+      { $set: { role: 'owner' } },
+      { session: databaseSession }
+    );
+  });
+
+  it('does not transfer authority when the nominee is no longer active', async () => {
+    membersUpdateOne.mockResolvedValueOnce({ matchedCount: 0 });
+
+    await expect(
+      ResearchModel.acceptLeadershipTransfer(
+        'project-1',
+        'transfer-1',
+        'owner-1',
+        'member-1'
+      )
+    ).resolves.toBeNull();
+
+    expect(projectsFindOneAndUpdate).not.toHaveBeenCalled();
+    expect(membersUpdateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchModel.removeProjectMember', () => {
+  const pendingTransfer = {
+    id: 'transfer-1',
+    outgoing_owner_user_id: 'owner-1',
+    nominee_user_id: 'member-1',
+    initiated_by_user_id: 'owner-1',
+    invitation_notification_id: 'notification-1',
+    created_at: new Date('2026-08-05T00:00:00.000Z'),
+    expires_at: new Date('2026-08-12T00:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectsFindOne.mockResolvedValue({
+      owner_user_id: 'owner-1',
+      pending_leadership_transfer: pendingTransfer,
+    });
+    membersUpdateOne.mockResolvedValue({ matchedCount: 1 });
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('removes a nominee and clears the pending transfer in one transaction', async () => {
+    await expect(
+      ResearchModel.removeProjectMember('project-1', 'member-1', 'owner-1')
+    ).resolves.toEqual({
+      removed: true,
+      ownerConflict: false,
+      clearedLeadershipTransfer: pendingTransfer,
+    });
+
+    expect(membersUpdateOne).toHaveBeenCalledWith(
+      {
+        project_id: 'project-1',
+        user_id: 'member-1',
+        $or: [{ active: true }, { active: { $exists: false } }],
+      },
+      { $set: { active: false, removed_at: expect.any(Date) } },
+      { session: databaseSession }
+    );
+    expect(projectsUpdateOne).toHaveBeenCalledWith(
+      { id: 'project-1', owner_user_id: { $ne: 'member-1' } },
+      {
+        $set: {
+          updated_at: expect.any(Date),
+          last_activity_at: expect.any(Date),
+        },
+        $unset: { pending_leadership_transfer: '' },
+      },
+      { session: databaseSession }
+    );
+  });
+
+  it('refuses removal when the target became the authoritative owner', async () => {
+    projectsFindOne.mockResolvedValueOnce({ owner_user_id: 'member-1' });
+
+    await expect(
+      ResearchModel.removeProjectMember('project-1', 'member-1', 'owner-1')
+    ).resolves.toEqual({
+      removed: false,
+      ownerConflict: true,
+      clearedLeadershipTransfer: null,
+    });
+
+    expect(membersUpdateOne).not.toHaveBeenCalled();
+    expect(projectsUpdateOne).not.toHaveBeenCalled();
+  });
+
+  it('rolls back removal when the owner changes before the project write', async () => {
+    projectsUpdateOne.mockResolvedValueOnce({ matchedCount: 0 });
+
+    await expect(
+      ResearchModel.removeProjectMember('project-1', 'member-1', 'owner-1')
+    ).resolves.toEqual({
+      removed: false,
+      ownerConflict: true,
+      clearedLeadershipTransfer: null,
+    });
+  });
+});
+
 describe('ResearchModel.getProjectMemberCapacity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -576,9 +817,14 @@ describe('ResearchModel.getProjectMemberCapacity', () => {
 describe('ResearchModel project evidence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    evidenceFind.mockReturnValue({
+      project: () => ({ toArray: async () => [] }),
+      sort: () => ({ toArray: async () => [] }),
+    });
     evidenceInsertOne.mockResolvedValue({});
     evidenceUpdateOne.mockResolvedValue({ matchedCount: 1 });
     evidenceDeleteOne.mockResolvedValue({ deletedCount: 1 });
+    evidenceBulkWrite.mockResolvedValue({});
   });
 
   it('lists project evidence with creator profile data', async () => {
@@ -614,6 +860,101 @@ describe('ResearchModel project evidence', () => {
     ]);
   });
 
+  it('normalizes a legacy attachment and preserves created-desc order when sort order is missing', async () => {
+    evidenceFind.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          {
+            id: 'evidence-newer',
+            project_id: 'project-1',
+            title: '较新的记录',
+            evidence_type: 'experiment_log',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-03T00:00:00Z'),
+            attachment_url: '/uploads/courses/project-evidence-project-1/pdf/new.pdf',
+            attachment_original_name: 'new.pdf',
+            attachment_size: 2,
+            attachment_mime_type: 'application/pdf',
+            attachment_category: 'pdf',
+          },
+          {
+            id: 'evidence-older',
+            project_id: 'project-1',
+            title: '较早的记录',
+            evidence_type: 'experiment_log',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-02T00:00:00Z'),
+          },
+        ],
+      }),
+    });
+    usersFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [{ id: 'user-1', username: '小林' }],
+      }),
+    });
+
+    const evidence = await ResearchModel.getProjectEvidence('project-1');
+
+    expect(evidence.map((item) => item.id)).toEqual(['evidence-newer', 'evidence-older']);
+    expect(evidence[0]).toEqual(expect.objectContaining({
+      sort_order: 0,
+      attachments: [{
+        url: '/uploads/courses/project-evidence-project-1/pdf/new.pdf',
+        original_name: 'new.pdf',
+        size: 2,
+        mime_type: 'application/pdf',
+        category: 'pdf',
+      }],
+      attachment_urls: ['/uploads/courses/project-evidence-project-1/pdf/new.pdf'],
+    }));
+  });
+
+  it('keeps legacy created-desc order ahead of a newly appended sorted record', async () => {
+    evidenceFind.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          {
+            id: 'evidence-appended',
+            project_id: 'project-1',
+            title: '新追加',
+            evidence_type: 'other',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-04T00:00:00Z'),
+            sort_order: 2,
+          },
+          {
+            id: 'evidence-newer-legacy',
+            project_id: 'project-1',
+            title: '较新旧记录',
+            evidence_type: 'other',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-03T00:00:00Z'),
+          },
+          {
+            id: 'evidence-older-legacy',
+            project_id: 'project-1',
+            title: '较早旧记录',
+            evidence_type: 'other',
+            created_by: 'user-1',
+            created_at: new Date('2026-01-02T00:00:00Z'),
+          },
+        ],
+      }),
+    });
+    usersFind.mockReturnValue({
+      project: () => ({ toArray: async () => [{ id: 'user-1', username: '小林' }] }),
+    });
+
+    const evidence = await ResearchModel.getProjectEvidence('project-1');
+
+    expect(evidence.map((item) => item.id)).toEqual([
+      'evidence-newer-legacy',
+      'evidence-older-legacy',
+      'evidence-appended',
+    ]);
+  });
+
   it('creates evidence with nullable optional attachment fields', async () => {
     projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
     await ResearchModel.createProjectEvidence('project-1', 'user-1', {
@@ -641,6 +982,47 @@ describe('ResearchModel project evidence', () => {
         created_by: 'user-1',
       })
     );
+  });
+
+  it('stores ordered attachments and mirrors the first attachment into legacy fields', async () => {
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+
+    await ResearchModel.createProjectEvidence('project-1', 'user-1', {
+      title: '多附件证据',
+      evidence_type: 'data_table',
+      attachments: [
+        {
+          url: '/uploads/courses/project-evidence-project-1/pdf/primary.pdf',
+          original_name: 'primary.pdf',
+          size: 128,
+          mime_type: 'application/pdf',
+          category: 'pdf',
+        },
+        {
+          url: '/uploads/courses/project-evidence-project-1/image/support.png',
+          original_name: 'support.png',
+          size: 256,
+          mime_type: 'image/png',
+          category: 'image',
+        },
+      ],
+    });
+
+    expect(evidenceInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      attachments: [
+        expect.objectContaining({ url: '/uploads/courses/project-evidence-project-1/pdf/primary.pdf' }),
+        expect.objectContaining({ url: '/uploads/courses/project-evidence-project-1/image/support.png' }),
+      ],
+      attachment_urls: [
+        '/uploads/courses/project-evidence-project-1/pdf/primary.pdf',
+        '/uploads/courses/project-evidence-project-1/image/support.png',
+      ],
+      attachment_url: '/uploads/courses/project-evidence-project-1/pdf/primary.pdf',
+      attachment_original_name: 'primary.pdf',
+      attachment_size: 128,
+      attachment_mime_type: 'application/pdf',
+      attachment_category: 'pdf',
+    }));
   });
 
   it('updates evidence attachment metadata', async () => {
@@ -676,6 +1058,12 @@ describe('ResearchModel project evidence', () => {
       project: () => ({
         toArray: async () => [
           { attachment_url: '/uploads/courses/project-evidence-project-1/image/a.png' },
+          {
+            attachment_urls: [
+              '/uploads/courses/project-evidence-project-1/pdf/b.pdf',
+              '/uploads/courses/project-evidence-project-1/image/a.png',
+            ],
+          },
           { attachment_url: null },
           { attachment_url: '   ' },
         ],
@@ -684,7 +1072,75 @@ describe('ResearchModel project evidence', () => {
 
     const urls = await ResearchModel.getProjectEvidenceAttachmentUrls('project-1');
 
-    expect(urls).toEqual(['/uploads/courses/project-evidence-project-1/image/a.png']);
+    expect(urls).toEqual([
+      '/uploads/courses/project-evidence-project-1/image/a.png',
+      '/uploads/courses/project-evidence-project-1/pdf/b.pdf',
+    ]);
+  });
+
+  it('appends newly created evidence after the current visible records', async () => {
+    evidenceFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [
+          { sort_order: 0 },
+          { sort_order: 2 },
+        ],
+      }),
+      sort: () => ({ toArray: async () => [] }),
+    });
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+
+    await ResearchModel.createProjectEvidence('project-1', 'user-1', {
+      title: '追加记录',
+      evidence_type: 'other',
+      attachments: [],
+    });
+
+    expect(evidenceInsertOne).toHaveBeenCalledWith(expect.objectContaining({
+      sort_order: 3,
+      attachments: [],
+      attachment_urls: [],
+      attachment_url: null,
+    }));
+  });
+
+  it('writes dense sort positions transactionally and rejects a stale visible order', async () => {
+    evidenceFind.mockReturnValue({
+      sort: () => ({
+        toArray: async () => [
+          { id: 'evidence-1', created_at: new Date('2026-01-02T00:00:00Z'), sort_order: 0 },
+          { id: 'evidence-2', created_at: new Date('2026-01-01T00:00:00Z'), sort_order: 1 },
+        ],
+      }),
+    });
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+
+    await expect(ResearchModel.reorderProjectEvidence(
+      'project-1',
+      ['evidence-1', 'evidence-2'],
+      ['evidence-2', 'evidence-1']
+    )).resolves.toBe(true);
+    expect(evidenceBulkWrite).toHaveBeenCalledWith([
+      {
+        updateOne: {
+          filter: { id: 'evidence-2', project_id: 'project-1' },
+          update: { $set: { sort_order: 0 } },
+        },
+      },
+      {
+        updateOne: {
+          filter: { id: 'evidence-1', project_id: 'project-1' },
+          update: { $set: { sort_order: 1 } },
+        },
+      },
+    ], { session: databaseSession });
+
+    await expect(ResearchModel.reorderProjectEvidence(
+      'project-1',
+      ['evidence-2', 'evidence-1'],
+      ['evidence-2', 'evidence-1']
+    )).resolves.toBe(false);
+    expect(evidenceBulkWrite).toHaveBeenCalledTimes(1);
   });
 
   it('deletes evidence rows when deleting a project', async () => {

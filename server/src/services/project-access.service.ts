@@ -24,6 +24,8 @@ export interface ResearchProjectAccess {
   project: any | null;
   membership: any | null;
   role: ResearchProjectRole | null;
+  ownerUserId: string | null;
+  ownerStateValid: boolean;
   isAdmin: boolean;
   isMember: boolean;
   canRead: boolean;
@@ -49,6 +51,8 @@ export class ProjectAccessService {
         project: null,
         membership: null,
         role: null,
+        ownerUserId: null,
+        ownerStateValid: false,
         isAdmin: false,
         isMember: false,
         canRead: false,
@@ -62,7 +66,15 @@ export class ProjectAccessService {
     const membership = userId
       ? await ResearchModel.getActiveProjectMembership(projectId, userId)
       : null;
-    const role = membership?.role ?? null;
+    const storedOwnerUserId = typeof project.owner_user_id === 'string' && project.owner_user_id
+      ? project.owner_user_id
+      : null;
+    const ownerState = storedOwnerUserId
+      ? { ownerUserId: storedOwnerUserId, valid: true }
+      : await ResearchModel.getLegacyProjectOwnerState(projectId);
+    const role = membership
+      ? ownerState.ownerUserId === membership.user_id ? 'owner' : 'member'
+      : null;
     const isMember = Boolean(membership);
     const isAdmin = userRole === 'admin';
 
@@ -70,6 +82,8 @@ export class ProjectAccessService {
       project,
       membership,
       role,
+      ownerUserId: ownerState.ownerUserId,
+      ownerStateValid: ownerState.valid,
       isAdmin,
       isMember,
       canRead: isAdmin || isMember || project.visibility === 'public',

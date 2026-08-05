@@ -4,6 +4,7 @@ const { mockResearchModel, mockProfileModel } = vi.hoisted(() => ({
   mockResearchModel: {
     getProjectById: vi.fn(),
     getActiveProjectMembership: vi.fn(),
+    getLegacyProjectOwnerState: vi.fn(),
     setLegacyProjectVisibility: vi.fn(),
   },
   mockProfileModel: {
@@ -30,8 +31,14 @@ describe('ProjectAccessService.getProjectAccess', () => {
       id: 'project-1',
       name_zh: '私有课题',
       visibility: 'private',
+      owner_user_id: 'owner-1',
     });
     mockResearchModel.getActiveProjectMembership.mockResolvedValue(null);
+    mockResearchModel.getLegacyProjectOwnerState.mockResolvedValue({
+      ownerUserId: 'owner-1',
+      valid: true,
+      source: 'legacy',
+    });
   });
 
   it('denies everything when the project does not exist', async () => {
@@ -131,6 +138,72 @@ describe('ProjectAccessService.getProjectAccess', () => {
     );
   });
 
+  it('does not let a stale membership owner role retain management access', async () => {
+    mockResearchModel.getProjectById.mockResolvedValue({
+      id: 'project-1',
+      visibility: 'private',
+      owner_user_id: 'member-1',
+    });
+    mockResearchModel.getActiveProjectMembership.mockResolvedValue({
+      user_id: 'owner-1',
+      role: 'owner',
+    });
+
+    const access = await ProjectAccessService.getProjectAccess('project-1', 'owner-1', 'user');
+
+    expect(access).toEqual(expect.objectContaining({
+      ownerUserId: 'member-1',
+      role: 'member',
+      canManage: false,
+      canModerate: false,
+    }));
+  });
+
+  it('grants management to the authoritative owner even before membership roles synchronize', async () => {
+    mockResearchModel.getProjectById.mockResolvedValue({
+      id: 'project-1',
+      visibility: 'private',
+      owner_user_id: 'member-1',
+    });
+    mockResearchModel.getActiveProjectMembership.mockResolvedValue({
+      user_id: 'member-1',
+      role: 'member',
+    });
+
+    const access = await ProjectAccessService.getProjectAccess('project-1', 'member-1', 'user');
+
+    expect(access).toEqual(expect.objectContaining({
+      role: 'owner',
+      canManage: true,
+      canModerate: true,
+    }));
+  });
+
+  it('marks malformed legacy ownership invalid without granting management', async () => {
+    mockResearchModel.getProjectById.mockResolvedValue({
+      id: 'project-1',
+      visibility: 'private',
+    });
+    mockResearchModel.getLegacyProjectOwnerState.mockResolvedValue({
+      ownerUserId: null,
+      valid: false,
+      source: 'invalid',
+    });
+    mockResearchModel.getActiveProjectMembership.mockResolvedValue({
+      user_id: 'owner-1',
+      role: 'owner',
+    });
+
+    const access = await ProjectAccessService.getProjectAccess('project-1', 'owner-1', 'user');
+
+    expect(access).toEqual(expect.objectContaining({
+      ownerUserId: null,
+      ownerStateValid: false,
+      role: 'member',
+      canManage: false,
+    }));
+  });
+
   it('skips the membership lookup for anonymous callers', async () => {
     await ProjectAccessService.getProjectAccess('project-1');
 
@@ -143,6 +216,8 @@ describe('ProjectAccessService.hasPermission', () => {
     project: { id: 'project-1' },
     membership: null,
     role: null,
+    ownerUserId: 'owner-1',
+    ownerStateValid: true,
     isAdmin: false,
     isMember: false,
     canRead: true,

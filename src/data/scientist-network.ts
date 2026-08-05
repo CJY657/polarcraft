@@ -977,18 +977,6 @@ export const RELATION_STYLES: Record<RelationType, { color: string; labelEn: str
   'contemporary': { color: 'gray', labelEn: 'Contemporary', labelZh: '同时代', icon: '👥' },
 }
 
-// 辅助函数：获取科学家的所有关系
 export function getScientistRelations(scientistId: string): ScientistRelation[] {
   return SCIENTIST_RELATIONS.filter(r => r.from === scientistId || r.to === scientistId)
-}
-
-// 辅助函数：获取与某科学家直接相关的其他科学家
-export function getConnectedScientists(scientistId: string): Scientist[] {
-  const relations = getScientistRelations(scientistId)
-  const connectedIds = new Set<string>()
-  relations.forEach(r => {
-    if (r.from === scientistId) connectedIds.add(r.to)
-    if (r.to === scientistId) connectedIds.add(r.from)
-  })
-  return SCIENTISTS.filter(s => connectedIds.has(s.id))
 }

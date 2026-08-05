@@ -5,6 +5,7 @@ const mockedConfig = vi.hoisted(() => ({
     appHost: 'https://us.posthog.com',
     environmentId: 'env-123',
     personalApiKey: 'phx_secret',
+    queryTimeoutMs: 15000,
   },
 }));
 
@@ -47,6 +48,7 @@ describe('PostHogService', () => {
     mockedConfig.posthog.appHost = 'https://us.posthog.com';
     mockedConfig.posthog.environmentId = 'env-123';
     mockedConfig.posthog.personalApiKey = 'phx_secret';
+    mockedConfig.posthog.queryTimeoutMs = 15000;
   });
 
   afterEach(() => {
@@ -653,15 +655,15 @@ describe('PostHogService', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           results: [
-            ['2026-07-07', '2026-07-07T10:00:00.000Z', 4, 2, 1],
-            ['2026-07-09', '2026-07-09T11:30:00.000Z', 9, 5, 2],
+            ['2026-07-07', '2026-07-07T10:00:00.000Z', 4, 2, 1, 2, 0, 0, 0, 0, 0],
+            ['2026-07-09', '2026-07-09T11:30:00.000Z', 9, 5, 2, 3, 0, 0, 0, 0, 2],
           ],
         })
       )
       .mockResolvedValueOnce(
         jsonResponse({
           results: [
-            ['/experiments/calcite', 3],
+            ['https://polariscope.fun/experiments/calcite?lesson=1', 3],
             ['/lab/explore', 2],
           ],
         })
@@ -684,8 +686,22 @@ describe('PostHogService', () => {
       previous_range: { start: '2026-07-06', end: '2026-07-07', days: 2 },
       generated_at: expect.any(String),
       last_activity: '2026-07-09T11:30:00.000Z',
-      summary: { meaningful_events: 9, pageviews: 5, learning_actions: 2 },
-      previous_summary: { meaningful_events: 4, pageviews: 2, learning_actions: 1 },
+      summary: {
+        meaningful_events: 9,
+        pageviews: 5,
+        learning_actions: 2,
+        active_days: 1,
+        average_meaningful_events_per_active_day: 9,
+        learning_action_rate: 22.2,
+      },
+      previous_summary: {
+        meaningful_events: 4,
+        pageviews: 2,
+        learning_actions: 1,
+        active_days: 1,
+        average_meaningful_events_per_active_day: 4,
+        learning_action_rate: 25,
+      },
       daily: [
         { date: '2026-07-08', events: 0, pageviews: 0, learning_actions: 0 },
         { date: '2026-07-09', events: 9, pageviews: 5, learning_actions: 2 },
@@ -695,8 +711,12 @@ describe('PostHogService', () => {
         { path: '/lab/explore', pageviews: 2 },
       ],
       module_breakdown: [
-        { module: 'module1', label: '实验内容', pageviews: 3 },
-        { module: 'module6', label: '虚拟课题', pageviews: 2 },
+        { module: 'module1', label: '实验内容', pageviews: 3, active_days: 1 },
+        { module: 'module2', label: '偏振挑战', pageviews: 0, active_days: 0 },
+        { module: 'module3', label: '理论模拟', pageviews: 0, active_days: 0 },
+        { module: 'module4', label: '游戏挑战', pageviews: 0, active_days: 0 },
+        { module: 'module5', label: '成果展示', pageviews: 0, active_days: 0 },
+        { module: 'module6', label: '虚拟课题', pageviews: 2, active_days: 1 },
       ],
       // weekday 0 is out of the 1-7 range PostHog reports, so it is dropped
       hourly: [
@@ -720,7 +740,13 @@ describe('PostHogService', () => {
       "timestamp < toDate('2026-07-09') + INTERVAL 1 DAY"
     );
     expect(queryBodies[0]?.query.query).toContain('LIMIT 4');
+    expect(queryBodies[0]?.query.query).toContain("startsWith(");
+    expect(queryBodies[0]?.query.query).toContain("'/experiments/'");
+    expect(queryBodies[0]?.query.query).toContain(
+      "LIKE '%://%/experiments/%'"
+    );
     expect(queryBodies[1]?.query.query).toContain("timestamp >= toDate('2026-07-08')");
+    expect(queryBodies[1]?.query.query).toContain('LIMIT 10');
     expect(queryBodies[2]?.query.query).toContain("timestamp >= toDate('2026-07-08')");
     expect(queryBodies[2]?.query.query).toContain(
       "toDayOfWeek(toTimeZone(timestamp, 'Asia/Shanghai'))"
@@ -756,6 +782,9 @@ describe('PostHogService', () => {
       meaningful_events: 0,
       pageviews: 0,
       learning_actions: 0,
+      active_days: 0,
+      average_meaningful_events_per_active_day: 0,
+      learning_action_rate: 0,
     });
     expect(detail.daily).toHaveLength(2);
   });
@@ -771,5 +800,31 @@ describe('PostHogService', () => {
     for (const body of queryBodies) {
       expect(body.query.query).toContain("distinct_id = 'o''brien'");
     }
+  });
+
+  it('times out learner queries with the sanitized analytics error', async () => {
+    vi.useFakeTimers();
+    mockedConfig.posthog.queryTimeoutMs = 25;
+    fetchMock.mockImplementation(
+      (_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        })
+    );
+
+    const request = PostHogService.getLearnerActivityDetail(
+      'timeout-user',
+      '2026-07-08',
+      '2026-07-09'
+    );
+    const expectation = expect(request).rejects.toEqual(
+      expect.objectContaining({
+        name: 'PostHogAnalyticsError',
+        message: '行为数据查询失败，请稍后重试',
+      })
+    );
+
+    await vi.advanceTimersByTimeAsync(25);
+    await expectation;
   });
 });

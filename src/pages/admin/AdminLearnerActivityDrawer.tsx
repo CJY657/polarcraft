@@ -8,8 +8,10 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  CalendarDays,
   Eye,
   MousePointerClick,
+  Percent,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -41,7 +43,7 @@ function deltaClass(direction: 'up' | 'down' | 'flat', isDark: boolean): string 
   return isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
 }
 
-function UserTypeBadge({
+export function UserTypeBadge({
   userType,
   isDark,
 }: {
@@ -130,6 +132,7 @@ export default function AdminLearnerActivityDrawer({
   const strong = isDark ? 'text-slate-50' : 'text-[#0a0a0a]';
   const hasResolvedUserType = detail !== null || userType !== undefined;
   const selectedUserType = detail ? detail.user_type : userType;
+  const selectedUserName = detail?.display_name || userName;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -141,7 +144,7 @@ export default function AdminLearnerActivityDrawer({
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={`${userName} 的活动详情`}
+        aria-label={`${selectedUserName} 的活动详情`}
         className={cn(
           'relative flex h-full w-full max-w-2xl flex-col border-l shadow-2xl',
           surface
@@ -155,12 +158,17 @@ export default function AdminLearnerActivityDrawer({
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className={cn('truncate text-2xl font-semibold', strong)}>{userName}</h2>
+              <h2 className={cn('truncate text-2xl font-semibold', strong)}>
+                {selectedUserName}
+              </h2>
               {hasResolvedUserType ? (
                 <UserTypeBadge userType={selectedUserType ?? null} isDark={isDark} />
               ) : null}
             </div>
             <p className={cn('mt-1 text-sm', muted)}>
+              {detail?.username && detail.username !== selectedUserName
+                ? `账号 ${detail.username} · `
+                : ''}
               账号活动详情 · {range.start} 至 {range.end}
               {detail?.last_activity
                 ? ` · 最近活动 ${formatShortDateTime(detail.last_activity)}`
@@ -243,7 +251,7 @@ export default function AdminLearnerActivityDrawer({
   );
 }
 
-function UserActivityDetail({
+export function UserActivityDetail({
   detail,
   isDark,
 }: {
@@ -255,6 +263,28 @@ function UserActivityDetail({
   const panel = isDark ? 'border-slate-800 bg-slate-950/60' : 'border-[#f0f0f0] bg-[#fdfbf4]';
   const muted = isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
   const strong = isDark ? 'text-slate-50' : 'text-[#0a0a0a]';
+  const activeDays =
+    summary.active_days ?? detail.daily.filter((day) => day.events > 0).length;
+  const previousActiveDays = previous?.active_days;
+  const averagePerActiveDay =
+    summary.average_meaningful_events_per_active_day ??
+    (activeDays === 0 ? 0 : summary.meaningful_events / activeDays);
+  const previousAveragePerActiveDay =
+    previous?.average_meaningful_events_per_active_day;
+  const learningActionRate =
+    summary.learning_action_rate ??
+    (summary.meaningful_events === 0
+      ? 0
+      : (summary.learning_actions / summary.meaningful_events) * 100);
+  const previousLearningActionRate =
+    previous?.learning_action_rate ??
+    (previous
+      ? previous.meaningful_events === 0
+        ? 0
+        : (previous.learning_actions / previous.meaningful_events) * 100
+      : undefined);
+  const formatOneDecimal = (value: number) =>
+    value.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
 
   const metrics = [
     {
@@ -278,11 +308,35 @@ function UserActivityDetail({
       Icon: MousePointerClick,
       color: '#e8b94a',
     },
+    {
+      label: '活跃天数',
+      value: activeDays,
+      previous: previousActiveDays,
+      Icon: CalendarDays,
+      color: '#ff4d8b',
+      format: (value: number) => `${value.toLocaleString('zh-CN')} 天`,
+    },
+    {
+      label: '活跃日均活动',
+      value: averagePerActiveDay,
+      previous: previousAveragePerActiveDay,
+      Icon: Activity,
+      color: '#2f8f83',
+      format: (value: number) => `${formatOneDecimal(value)} 次`,
+    },
+    {
+      label: '学习行为占比',
+      value: learningActionRate,
+      previous: previousLearningActionRate,
+      Icon: Percent,
+      color: '#d23f63',
+      format: (value: number) => `${formatOneDecimal(value)}%`,
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-3" aria-label="账号活动指标">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="账号活动指标">
         {metrics.map((metric) => {
           const Icon = metric.Icon;
           const delta = formatActivityDelta(metric.value, metric.previous);
@@ -301,7 +355,9 @@ function UserActivityDetail({
                 <Icon aria-hidden="true" className="h-5 w-5" style={{ color: metric.color }} />
               </div>
               <p className={cn('mt-3 text-3xl font-semibold tabular-nums', strong)}>
-                {metric.value.toLocaleString('zh-CN')}
+                {'format' in metric && metric.format
+                  ? metric.format(metric.value)
+                  : metric.value.toLocaleString('zh-CN')}
               </p>
               {delta ? (
                 <p className={cn('mt-1 text-sm font-medium', deltaClass(delta.direction, isDark))}>
@@ -322,34 +378,54 @@ function UserActivityDetail({
         {detail.module_breakdown.length === 0 ? (
           <InlineEmpty isDark={isDark}>暂无模块访问数据</InlineEmpty>
         ) : (
-          <div className="space-y-3">
-            {detail.module_breakdown.map((entry) => {
-              const max = Math.max(
-                1,
-                ...detail.module_breakdown.map((item) => item.pageviews)
+          <div>
+            {(() => {
+              const modulePageviews = detail.module_breakdown.reduce(
+                (total, entry) => total + entry.pageviews,
+                0
               );
+              const coverage =
+                summary.pageviews === 0
+                  ? 0
+                  : Math.min(100, (modulePageviews / summary.pageviews) * 100);
               return (
-                <div key={entry.module}>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className={cn('font-medium', strong)}>{entry.label}</span>
-                    <span className={cn('shrink-0 tabular-nums', muted)}>
-                      {entry.pageviews} 次
-                    </span>
-                  </div>
-                  <div
-                    className={cn(
-                      'mt-2 h-2 overflow-hidden rounded-full',
-                      isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]'
-                    )}
-                  >
-                    <div
-                      className="h-full rounded-full bg-[#ff4d8b]"
-                      style={{ width: `${(entry.pageviews / max) * 100}%` }}
-                    />
-                  </div>
-                </div>
+                <p className={cn('mb-4 text-sm', muted)}>
+                  六大模块覆盖 {modulePageviews.toLocaleString('zh-CN')} /{' '}
+                  {summary.pageviews.toLocaleString('zh-CN')} 次页面访问（
+                  {formatOneDecimal(coverage)}%）
+                </p>
               );
-            })}
+            })()}
+            <div className="space-y-3">
+              {detail.module_breakdown.map((entry) => {
+                const share =
+                  summary.pageviews === 0
+                    ? 0
+                    : Math.min(100, (entry.pageviews / summary.pageviews) * 100);
+                return (
+                  <div key={entry.module}>
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className={cn('font-medium', strong)}>{entry.label}</span>
+                      <span className={cn('shrink-0 tabular-nums', muted)}>
+                        {entry.pageviews} 次 · {entry.active_days ?? 0} 天 ·{' '}
+                        {formatOneDecimal(share)}%
+                      </span>
+                    </div>
+                    <div
+                      className={cn(
+                        'mt-2 h-2 overflow-hidden rounded-full',
+                        isDark ? 'bg-slate-800' : 'bg-[#f5f0e0]'
+                      )}
+                    >
+                      <div
+                        className="h-full rounded-full bg-[#ff4d8b]"
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </Section>

@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle,
   MessageCircle,
+  Crown,
   Megaphone,
   Check,
   Trash2,
@@ -34,6 +35,7 @@ const getNotificationIcon = (type: NotificationType) => {
     application_approved: CheckCircle,
     application_rejected: XCircle,
     comment_reply: MessageCircle,
+    leadership_transfer: Crown,
     system: Megaphone,
   };
   return icons[type] || Bell;
@@ -46,6 +48,7 @@ const getNotificationIconColor = (type: NotificationType, theme: string) => {
     application_approved: theme === 'dark' ? 'text-green-400 bg-green-900/30' : 'text-green-500 bg-green-100',
     application_rejected: theme === 'dark' ? 'text-red-400 bg-red-900/30' : 'text-red-500 bg-red-100',
     comment_reply: theme === 'dark' ? 'text-purple-400 bg-purple-900/30' : 'text-purple-500 bg-purple-100',
+    leadership_transfer: theme === 'dark' ? 'text-amber-300 bg-amber-900/30' : 'text-amber-600 bg-amber-100',
     system: theme === 'dark' ? 'text-yellow-400 bg-yellow-900/30' : 'text-yellow-500 bg-yellow-100',
   };
   return colors[type] || (theme === 'dark' ? 'text-gray-400 bg-gray-700' : 'text-gray-500 bg-gray-100');
@@ -58,6 +61,7 @@ const getNotificationTypeText = (type: NotificationType, t: TFunction) => {
     application_approved: t('inbox.types.applicationApproved', '申请通过'),
     application_rejected: t('inbox.types.applicationRejected', '申请被拒'),
     comment_reply: t('inbox.types.commentReply', '评论回复'),
+    leadership_transfer: t('inbox.types.leadershipTransfer', '组长转让'),
     system: t('inbox.types.system', '系统通知'),
   };
   return texts[type] || type;

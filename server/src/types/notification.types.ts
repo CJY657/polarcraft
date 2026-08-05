@@ -12,6 +12,7 @@ export type NotificationType =
   | 'application_approved'
   | 'application_rejected'
   | 'comment_reply'
+  | 'leadership_transfer'
   | 'system';
 
 // =====================================================
@@ -28,6 +29,7 @@ export interface UserNotification {
   is_read: boolean;
   action_url: string | null;
   created_at: Date;
+  expires_at?: Date | null;
 }
 
 export interface CreateNotificationInput {
@@ -37,6 +39,7 @@ export interface CreateNotificationInput {
   content?: string | null;
   data?: Record<string, any>;
   action_url?: string;
+  expires_at?: Date;
 }
 
 // =====================================================

@@ -320,20 +320,3 @@ export function PersistentHeader({
     </header>
   );
 }
-
-export function MiniLogo({ size = 24, className }: { size?: number; className?: string }) {
-  const { theme } = useTheme();
-
-  return (
-    <Link
-      to="/"
-      className={cn("inline-flex items-center", className)}
-    >
-      <PolariScopeLogo
-        size={size}
-        theme={theme}
-        animated={false}
-      />
-    </Link>
-  );
-}

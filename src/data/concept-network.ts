@@ -586,27 +586,12 @@ export const CONCEPT_POSITIONS: Record<string, { x: number; y: number }> = {
   'quantum-optics': { x: 88, y: 60 }
 }
 
-// Helper function to get concept by ID
 export function getConceptById(id: string): ConceptNode | undefined {
   return CONCEPT_NODES.find(c => c.id === id)
 }
 
-// Helper function to get connections for a concept
 export function getConceptConnections(conceptId: string): ConceptConnection[] {
   return CONCEPT_CONNECTIONS.filter(
     c => c.source === conceptId || c.target === conceptId
   )
-}
-
-// Helper function to get connected concepts
-export function getConnectedConcepts(conceptId: string): ConceptNode[] {
-  const connections = getConceptConnections(conceptId)
-  const connectedIds = new Set<string>()
-
-  connections.forEach(c => {
-    if (c.source === conceptId) connectedIds.add(c.target)
-    if (c.target === conceptId) connectedIds.add(c.source)
-  })
-
-  return CONCEPT_NODES.filter(c => connectedIds.has(c.id))
 }

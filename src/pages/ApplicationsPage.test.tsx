@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApplicationsPage } from "./ApplicationsPage";
+import { CoursesPage } from "./CoursesPage";
 
 const { mockUnitStore, mockGetPublicUnitCourses, mockCoursesByUnit } = vi.hoisted(() => ({
   mockUnitStore: {
@@ -104,7 +104,7 @@ vi.mock("@/feature/unit/CourseSelector", () => ({
   ),
 }));
 
-describe("ApplicationsPage", () => {
+describe("CoursesPage applications variant", () => {
   beforeEach(() => {
     mockGetPublicUnitCourses.mockReset();
     mockGetPublicUnitCourses.mockImplementation((unitId: keyof typeof mockCoursesByUnit) =>
@@ -115,7 +115,7 @@ describe("ApplicationsPage", () => {
   it("shows only optical-device content on the applications shelf", async () => {
     render(
       <MemoryRouter>
-        <ApplicationsPage />
+        <CoursesPage variant="applications" />
       </MemoryRouter>
     );
 

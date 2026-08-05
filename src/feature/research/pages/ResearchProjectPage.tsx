@@ -13,6 +13,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { formatUserIdentity } from "@/lib/identity";
+import { ApiRequestError } from "@/lib/api";
 import {
   researchApi,
   type ProjectWithMembers,
@@ -104,6 +107,9 @@ export function ResearchProjectPage() {
   const [removeMemberError, setRemoveMemberError] = useState<string | null>(null);
   const [isAddingFormerMemberId, setIsAddingFormerMemberId] = useState<string | null>(null);
   const [restoreMemberError, setRestoreMemberError] = useState<string | null>(null);
+  const [leadershipTransferCandidate, setLeadershipTransferCandidate] = useState<ProjectMember | null>(null);
+  const [leadershipTransferAction, setLeadershipTransferAction] = useState<string | null>(null);
+  const [leadershipTransferError, setLeadershipTransferError] = useState<string | null>(null);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [discussionJumpRequest, setDiscussionJumpRequest] = useState<ProjectDiscussionJumpRequest | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -142,6 +148,9 @@ export function ResearchProjectPage() {
     setDiscussionJumpRequest(null);
     setActiveTab("overview");
     setIsDescriptionExpanded(false);
+    setLeadershipTransferCandidate(null);
+    setLeadershipTransferAction(null);
+    setLeadershipTransferError(null);
   }, [projectId]);
 
   useEffect(() => {
@@ -222,6 +231,17 @@ export function ResearchProjectPage() {
   }, [isLoading, location.hash, location.key, projectId]);
 
   useEffect(() => {
+    if (isLoading || location.hash !== "#project-members") {
+      return;
+    }
+
+    document.getElementById("project-members")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [isLoading, location.hash, location.key, location.state?.notificationJumpAt, projectId]);
+
+  useEffect(() => {
     if (
       isLoading
       || location.hash !== "#project-peer-review"
@@ -283,6 +303,55 @@ export function ResearchProjectPage() {
     } finally {
       setIsAddingFormerMemberId(null);
     }
+  };
+
+  const runLeadershipTransferAction = async (
+    action: string,
+    request: () => Promise<void>,
+    fallbackMessage: string
+  ) => {
+    setLeadershipTransferAction(action);
+    setLeadershipTransferError(null);
+
+    try {
+      await request();
+      await refreshProjectData();
+    } catch (err) {
+      console.error("Failed to update project leadership transfer:", err);
+      setLeadershipTransferError(err instanceof Error ? err.message : fallbackMessage);
+      if (err instanceof ApiRequestError && (err.status === 409 || err.status === 410)) {
+        await refreshProjectData();
+      }
+    } finally {
+      setLeadershipTransferCandidate(null);
+      setLeadershipTransferAction(null);
+    }
+  };
+
+  const handleNominateLeadershipTransfer = () => {
+    if (!projectId || !leadershipTransferCandidate) return;
+
+    const targetUserId = leadershipTransferCandidate.user_id;
+    void runLeadershipTransferAction(
+      `nominate:${targetUserId}`,
+      () => researchApi.nominateProjectLeadershipTransfer(projectId, targetUserId),
+      "发起组长转让失败"
+    );
+  };
+
+  const handlePendingLeadershipTransfer = (
+    action: "accept" | "decline" | "cancel",
+    fallbackMessage: string
+  ) => {
+    const transferId = project?.pending_leadership_transfer?.id;
+    if (!projectId || !transferId) return;
+
+    const requests = {
+      accept: () => researchApi.acceptProjectLeadershipTransfer(projectId, transferId),
+      decline: () => researchApi.declineProjectLeadershipTransfer(projectId, transferId),
+      cancel: () => researchApi.cancelProjectLeadershipTransfer(projectId, transferId),
+    };
+    void runLeadershipTransferAction(action, requests[action], fallbackMessage);
   };
 
   const handleDeleteProject = async (confirmationText: string) => {
@@ -760,9 +829,25 @@ export function ResearchProjectPage() {
                 pendingApplicationCount={pendingApplicationCount}
                 restoreMemberError={restoreMemberError}
                 isAddingFormerMemberId={isAddingFormerMemberId}
+                pendingLeadershipTransfer={project?.pending_leadership_transfer}
+                leadershipTransferError={leadershipTransferError}
+                leadershipTransferAction={leadershipTransferAction}
                 onOpenApplications={() => setIsApplicationDialogOpen(true)}
                 onRequestRemoveMember={setMemberToRemove}
                 onRestoreFormerMember={handleRestoreFormerMember}
+                onRequestLeadershipTransfer={(member) => {
+                  setLeadershipTransferError(null);
+                  setLeadershipTransferCandidate(member);
+                }}
+                onAcceptLeadershipTransfer={() => {
+                  handlePendingLeadershipTransfer("accept", "接受组长转让失败");
+                }}
+                onDeclineLeadershipTransfer={() => {
+                  handlePendingLeadershipTransfer("decline", "拒绝组长转让失败");
+                }}
+                onCancelLeadershipTransfer={() => {
+                  handlePendingLeadershipTransfer("cancel", "取消组长转让失败");
+                }}
               />
 
               {canShowDiscussionSection && projectId && (
@@ -857,6 +942,22 @@ export function ResearchProjectPage() {
           onConfirm={handleRemoveMember}
         />
       )}
+
+      <ConfirmDialog
+        open={leadershipTransferCandidate !== null}
+        title={project?.pending_leadership_transfer ? "确认更换组长人选" : "确认转让组长"}
+        description={
+          leadershipTransferCandidate
+            ? `将邀请 ${formatUserIdentity(leadershipTransferCandidate)} 接任组长。对方需在 7 天内接受；完成后现任组长会保留为普通成员。`
+            : undefined
+        }
+        confirmLabel={project?.pending_leadership_transfer ? "确认更换" : "确认转让"}
+        cancelLabel="取消"
+        onCancel={() => setLeadershipTransferCandidate(null)}
+        onConfirm={handleNominateLeadershipTransfer}
+        isPending={leadershipTransferAction?.startsWith("nominate:") === true}
+        theme={theme === "dark" ? "dark" : "light"}
+      />
     </div>
   );
 }

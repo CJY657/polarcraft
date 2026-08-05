@@ -3,7 +3,7 @@
  * 虚拟课题组数据模型
  */
 
-import { getCollection } from '../database/connection.js';
+import { getCollection, withDatabaseTransaction } from '../database/connection.js';
 import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
@@ -53,6 +53,9 @@ const projectOutcomesCollection = () => getCollection('research_project_outcomes
  */
 const MAX_ACTIVITY_CHANGES_JSON_LENGTH = 2_000;
 
+class LeadershipTransferStaleError extends Error {}
+class ProjectOwnerChangedError extends Error {}
+
 function clampActivityChanges(changes: unknown): unknown {
   if (changes === undefined || changes === null) {
     return null;
@@ -66,6 +69,122 @@ function clampActivityChanges(changes: unknown): unknown {
 
 function normalizeVideoUrls(value: unknown): string[] {
   return normalizeImageUrls(value);
+}
+
+function normalizeEvidenceAttachment(value: unknown): ProjectEvidenceAttachment | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const attachment = value as Record<string, unknown>;
+  const url = typeof attachment.url === 'string' ? attachment.url.trim() : '';
+  if (!url) {
+    return null;
+  }
+
+  const normalizeText = (input: unknown): string | null => {
+    const text = typeof input === 'string' ? input.trim() : '';
+    return text || null;
+  };
+  const size = typeof attachment.size === 'number'
+    && Number.isFinite(attachment.size)
+    && attachment.size >= 0
+    ? Math.floor(attachment.size)
+    : null;
+
+  return {
+    url,
+    original_name: normalizeText(attachment.original_name),
+    size,
+    mime_type: normalizeText(attachment.mime_type),
+    category: normalizeText(attachment.category),
+  };
+}
+
+function normalizeEvidenceAttachments(
+  evidence: Record<string, unknown>
+): ProjectEvidenceAttachment[] {
+  if (Array.isArray(evidence.attachments)) {
+    return evidence.attachments
+      .map(normalizeEvidenceAttachment)
+      .filter((attachment): attachment is ProjectEvidenceAttachment => Boolean(attachment));
+  }
+
+  if (Array.isArray(evidence.attachment_urls)) {
+    return evidence.attachment_urls
+      .map((url) => normalizeEvidenceAttachment({ url }))
+      .filter((attachment): attachment is ProjectEvidenceAttachment => Boolean(attachment));
+  }
+
+  const legacyAttachment = normalizeEvidenceAttachment({
+    url: evidence.attachment_url,
+    original_name: evidence.attachment_original_name,
+    size: evidence.attachment_size,
+    mime_type: evidence.attachment_mime_type,
+    category: evidence.attachment_category,
+  });
+  return legacyAttachment ? [legacyAttachment] : [];
+}
+
+function buildEvidenceAttachmentFields(attachments: ProjectEvidenceAttachment[]) {
+  const normalizedAttachments = attachments
+    .map(normalizeEvidenceAttachment)
+    .filter((attachment): attachment is ProjectEvidenceAttachment => Boolean(attachment));
+  const primaryAttachment = normalizedAttachments[0] ?? null;
+
+  return {
+    attachments: normalizedAttachments,
+    attachment_urls: normalizedAttachments.map((attachment) => attachment.url),
+    attachment_url: primaryAttachment?.url ?? null,
+    attachment_original_name: primaryAttachment?.original_name ?? null,
+    attachment_size: primaryAttachment?.size ?? null,
+    attachment_mime_type: primaryAttachment?.mime_type ?? null,
+    attachment_category: primaryAttachment?.category ?? null,
+  };
+}
+
+function normalizeProjectEvidenceDocument<T extends Record<string, unknown>>(evidence: T) {
+  const attachmentFields = buildEvidenceAttachmentFields(normalizeEvidenceAttachments(evidence));
+  const sortOrder = typeof evidence.sort_order === 'number'
+    && Number.isFinite(evidence.sort_order)
+    && evidence.sort_order >= 0
+    ? Math.floor(evidence.sort_order)
+    : null;
+
+  return {
+    ...evidence,
+    ...attachmentFields,
+    sort_order: sortOrder,
+  };
+}
+
+function orderProjectEvidenceDocuments<T extends Record<string, unknown>>(evidenceItems: T[]) {
+  const createdDescending = [...evidenceItems].sort((left, right) => {
+    const leftTime = left.created_at ? new Date(left.created_at as Date | string).getTime() : 0;
+    const rightTime = right.created_at ? new Date(right.created_at as Date | string).getTime() : 0;
+    return rightTime - leftTime;
+  });
+  let legacyPosition = 0;
+
+  return createdDescending
+    .map((item, fallbackIndex) => {
+      const persistedPosition = typeof item.sort_order === 'number'
+        && Number.isFinite(item.sort_order)
+        && item.sort_order >= 0
+        ? Math.floor(item.sort_order)
+        : null;
+      const position = persistedPosition ?? legacyPosition;
+      if (persistedPosition === null) {
+        legacyPosition += 1;
+      }
+
+      return { item, fallbackIndex, position };
+    })
+    .sort((left, right) => left.position - right.position || left.fallbackIndex - right.fallbackIndex)
+    .map(({ item }, index) => ({
+      ...normalizeProjectEvidenceDocument(item),
+      sort_order: index,
+    }));
 }
 
 function compareByRemovedAtDesc(
@@ -85,6 +204,28 @@ type LegacyFormerMemberSource = {
 };
 
 export type ResearchProjectRole = 'owner' | 'member';
+export interface PendingLeadershipTransfer {
+  id: string;
+  outgoing_owner_user_id: string;
+  nominee_user_id: string;
+  initiated_by_user_id: string;
+  invitation_notification_id: string;
+  created_at: Date;
+  expires_at: Date;
+}
+
+export interface ProjectOwnerState {
+  ownerUserId: string | null;
+  valid: boolean;
+  source: 'project' | 'legacy' | 'invalid';
+}
+
+export interface ProjectMemberRemovalResult {
+  removed: boolean;
+  ownerConflict: boolean;
+  clearedLeadershipTransfer: PendingLeadershipTransfer | null;
+}
+
 export type ResearchProjectEvidenceType =
   | 'image_observation'
   | 'data_table'
@@ -93,6 +234,14 @@ export type ResearchProjectEvidenceType =
   | 'code_prototype'
   | 'failure_record'
   | 'other';
+
+export interface ProjectEvidenceAttachment {
+  url: string;
+  original_name: string | null;
+  size: number | null;
+  mime_type: string | null;
+  category: string | null;
+}
 
 export interface ResearchProjectEvidenceInput {
   title: string;
@@ -105,6 +254,7 @@ export interface ResearchProjectEvidenceInput {
   attachment_mime_type?: string | null;
   attachment_category?: string | null;
   attachment_note?: string | null;
+  attachments?: ProjectEvidenceAttachment[];
 }
 
 export interface ResearchProjectReviewInput {
@@ -197,7 +347,7 @@ export class ResearchModel {
 
     const projectIds = projects.map((project) => project.id);
     const [members, canvases, coverMap] = await Promise.all([
-      normalizeDocuments<{ project_id: string; user_id: string }>(
+      normalizeDocuments<{ project_id: string; user_id: string; role?: string | null }>(
         await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: { $in: projectIds } })).toArray()
       ),
       normalizeDocuments<{ id: string; project_id: string }>(
@@ -208,27 +358,49 @@ export class ResearchModel {
 
     const memberCountMap = new Map<string, number>();
     const canvasCountMap = new Map<string, number>();
-    const currentUserRoleMap = new Map<string, ResearchProjectRole>();
+    const ownerUserIdMap = new Map<string, string>();
+    const legacyOwnerIdsByProject = new Map<string, string[]>();
 
     for (const member of members) {
       memberCountMap.set(member.project_id, (memberCountMap.get(member.project_id) ?? 0) + 1);
+      if (member.role === 'owner') {
+        const ownerIds = legacyOwnerIdsByProject.get(member.project_id) ?? [];
+        ownerIds.push(member.user_id);
+        legacyOwnerIdsByProject.set(member.project_id, ownerIds);
+      }
     }
 
-    for (const membership of memberships) {
-      currentUserRoleMap.set(membership.project_id, coerceProjectRole(membership.role));
+    for (const project of projects) {
+      if (typeof project.owner_user_id === 'string' && project.owner_user_id) {
+        ownerUserIdMap.set(project.id, project.owner_user_id);
+        continue;
+      }
+
+      const legacyOwnerIds = legacyOwnerIdsByProject.get(project.id) ?? [];
+      if (legacyOwnerIds.length === 1) {
+        ownerUserIdMap.set(project.id, legacyOwnerIds[0]);
+      }
     }
 
     for (const canvas of canvases) {
       canvasCountMap.set(canvas.project_id, (canvasCountMap.get(canvas.project_id) ?? 0) + 1);
     }
 
-    return projects.map((project) => decorateResearchProject({
-      ...project,
-      cover_image: coverMap.get(project.id) ?? null,
-      member_count: memberCountMap.get(project.id) ?? 0,
-      canvas_count: canvasCountMap.get(project.id) ?? 0,
-      current_user_role: currentUserRoleMap.get(project.id) ?? null,
-    }));
+    return projects.map((project) => {
+      const {
+        pending_leadership_transfer: _pendingLeadershipTransfer,
+        ...projectListItem
+      } = project;
+      return decorateResearchProject({
+        ...projectListItem,
+        cover_image: coverMap.get(project.id) ?? null,
+        member_count: memberCountMap.get(project.id) ?? 0,
+        canvas_count: canvasCountMap.get(project.id) ?? 0,
+        current_user_role: memberships.some((membership) => membership.project_id === project.id)
+          ? ownerUserIdMap.get(project.id) === userId ? 'owner' : 'member'
+          : null,
+      });
+    });
   }
 
   /**
@@ -303,6 +475,7 @@ export class ResearchModel {
       allow_guest_comments: data.allow_guest_comments || false,
       enable_task_board: data.enable_task_board !== undefined ? data.enable_task_board : true,
       default_canvas_id: data.default_canvas_id || null,
+      owner_user_id: ownerId,
       created_at: now,
       updated_at: now,
       last_activity_at: now,
@@ -770,21 +943,78 @@ export class ResearchModel {
    * Remove project member
    * 移除项目成员
    */
-  static async removeProjectMember(projectId: string, userId: string): Promise<boolean> {
-    const result = await projectMembersCollection().updateOne(
-      buildActiveMembershipFilter({ project_id: projectId, user_id: userId }),
-      {
-        $set: {
-          active: false,
-          removed_at: new Date(),
-        },
+  static async removeProjectMember(
+    projectId: string,
+    userId: string,
+    legacyOwnerUserId: string | null = null
+  ): Promise<ProjectMemberRemovalResult> {
+    const now = new Date();
+    try {
+      const result = await withDatabaseTransaction(async (session) => {
+        const project = normalizeDocument<{
+          owner_user_id?: string | null;
+          pending_leadership_transfer?: PendingLeadershipTransfer | null;
+        }>(await researchProjectsCollection().findOne(
+          { id: projectId },
+          {
+            projection: { _id: 0, owner_user_id: 1, pending_leadership_transfer: 1 },
+            session,
+          }
+        ));
+        if (!project) {
+          return { removed: false, ownerConflict: false, clearedLeadershipTransfer: null };
+        }
+
+        const ownerUserId = typeof project.owner_user_id === 'string' && project.owner_user_id
+          ? project.owner_user_id
+          : legacyOwnerUserId;
+        if (ownerUserId === userId) {
+          return { removed: false, ownerConflict: true, clearedLeadershipTransfer: null };
+        }
+
+        const memberUpdate = await projectMembersCollection().updateOne(
+          buildActiveMembershipFilter({ project_id: projectId, user_id: userId }),
+          { $set: { active: false, removed_at: now } },
+          { session }
+        );
+        if (memberUpdate.matchedCount === 0) {
+          return { removed: false, ownerConflict: false, clearedLeadershipTransfer: null };
+        }
+
+        const pendingTransfer = project.pending_leadership_transfer?.nominee_user_id === userId
+          ? project.pending_leadership_transfer
+          : null;
+        const projectUpdate: Record<string, unknown> = {
+          $set: { updated_at: now, last_activity_at: now },
+        };
+        if (pendingTransfer) {
+          projectUpdate.$unset = { pending_leadership_transfer: '' };
+        }
+        const projectResult = await researchProjectsCollection().updateOne(
+          { id: projectId, owner_user_id: { $ne: userId } },
+          projectUpdate,
+          { session }
+        );
+        if (projectResult.matchedCount === 0) {
+          throw new ProjectOwnerChangedError();
+        }
+
+        return {
+          removed: true,
+          ownerConflict: false,
+          clearedLeadershipTransfer: pendingTransfer,
+        };
+      });
+      if (result.removed) {
+        logger.info(`Member removed from project: ${projectId} - ${userId}`);
       }
-    );
-    if (result.matchedCount > 0) {
-      await this.touchProjectActivity(projectId);
+      return result;
+    } catch (error) {
+      if (error instanceof ProjectOwnerChangedError) {
+        return { removed: false, ownerConflict: true, clearedLeadershipTransfer: null };
+      }
+      throw error;
     }
-    logger.info(`Member removed from project: ${projectId} - ${userId}`);
-    return result.matchedCount > 0;
   }
 
   /**
@@ -794,10 +1024,28 @@ export class ResearchModel {
   static async getProjectMembers(projectId: string): Promise<any[]> {
     const members = normalizeDocuments<any>(
       await projectMembersCollection().find(buildActiveMembershipFilter({ project_id: projectId })).toArray()
-    ).map((member) => normalizeMembershipRecord(member)).sort(compareMembersByRoleThenJoinedAt);
-    const userMap = await getUserIdentityMap(members.map((member) => member.user_id));
+    );
+    const project = normalizeDocument<{ owner_user_id?: string | null }>(
+      await researchProjectsCollection().findOne(
+        { id: projectId },
+        { projection: { _id: 0, owner_user_id: 1 } }
+      )
+    );
+    const legacyOwnerIds = members
+      .filter((member) => member.role === 'owner')
+      .map((member) => member.user_id);
+    const ownerUserId = typeof project?.owner_user_id === 'string' && project.owner_user_id
+      ? project.owner_user_id
+      : legacyOwnerIds.length === 1 ? legacyOwnerIds[0] : null;
+    const normalizedMembers = members
+      .map((member) => normalizeMembershipRecord({
+        ...member,
+        role: ownerUserId === member.user_id ? 'owner' : 'member',
+      }))
+      .sort(compareMembersByRoleThenJoinedAt);
+    const userMap = await getUserIdentityMap(normalizedMembers.map((member) => member.user_id));
 
-    return members.map((member) => ({
+    return normalizedMembers.map((member) => ({
       ...member,
       member_role_label: member.member_role_label ?? null,
       username: userMap.get(member.user_id)?.username || '',
@@ -817,6 +1065,196 @@ export class ResearchModel {
     );
 
     return [...new Set(members.map((member) => member.user_id).filter(Boolean))];
+  }
+
+  static async getLegacyProjectOwnerState(projectId: string): Promise<ProjectOwnerState> {
+    const legacyOwners = normalizeDocuments<{ user_id: string }>(
+      await projectMembersCollection()
+        .find(buildActiveMembershipFilter({ project_id: projectId, role: 'owner' }))
+        .project({ _id: 0, user_id: 1 })
+        .toArray()
+    );
+    const ownerUserIds = [...new Set(legacyOwners.map((member) => member.user_id).filter(Boolean))];
+
+    return ownerUserIds.length === 1
+      ? { ownerUserId: ownerUserIds[0], valid: true, source: 'legacy' }
+      : { ownerUserId: null, valid: false, source: 'invalid' };
+  }
+
+  static async replacePendingLeadershipTransfer(
+    projectId: string,
+    ownerUserId: string,
+    transfer: PendingLeadershipTransfer
+  ): Promise<PendingLeadershipTransfer | null | false> {
+    return withDatabaseTransaction(async (session) => {
+      const nominee = await projectMembersCollection().findOne(
+        buildActiveMembershipFilter({ project_id: projectId, user_id: transfer.nominee_user_id }),
+        { projection: { _id: 0, user_id: 1 }, session }
+      );
+      if (!nominee) {
+        return false;
+      }
+
+      const previousProject = normalizeDocument<any>(
+        await researchProjectsCollection().findOneAndUpdate(
+          {
+            id: projectId,
+            $or: [
+              { owner_user_id: ownerUserId },
+              { owner_user_id: { $exists: false } },
+              { owner_user_id: null },
+            ],
+          },
+          {
+            $set: {
+              owner_user_id: ownerUserId,
+              pending_leadership_transfer: transfer,
+            },
+          },
+          { returnDocument: 'before', session }
+        )
+      );
+
+      if (!previousProject) {
+        return false;
+      }
+
+      return previousProject.pending_leadership_transfer ?? null;
+    });
+  }
+
+  static async clearPendingLeadershipTransfer(
+    projectId: string,
+    transferId: string,
+    ownerUserId: string,
+    nomineeUserId?: string,
+    now: Date = new Date()
+  ): Promise<PendingLeadershipTransfer | null> {
+    const filter: Record<string, unknown> = {
+      id: projectId,
+      owner_user_id: ownerUserId,
+      'pending_leadership_transfer.id': transferId,
+      'pending_leadership_transfer.outgoing_owner_user_id': ownerUserId,
+      'pending_leadership_transfer.expires_at': { $gt: now },
+    };
+    if (nomineeUserId) {
+      filter['pending_leadership_transfer.nominee_user_id'] = nomineeUserId;
+    }
+
+    const previousProject = normalizeDocument<any>(
+      await researchProjectsCollection().findOneAndUpdate(
+        filter,
+        { $unset: { pending_leadership_transfer: '' } },
+        { returnDocument: 'before' }
+      )
+    );
+
+    return previousProject?.pending_leadership_transfer ?? null;
+  }
+
+  static async clearExpiredLeadershipTransfer(
+    projectId: string,
+    transferId: string,
+    now: Date = new Date()
+  ): Promise<PendingLeadershipTransfer | null> {
+    const previousProject = normalizeDocument<any>(
+      await researchProjectsCollection().findOneAndUpdate(
+        {
+          id: projectId,
+          'pending_leadership_transfer.id': transferId,
+          'pending_leadership_transfer.expires_at': { $lte: now },
+        },
+        { $unset: { pending_leadership_transfer: '' } },
+        { returnDocument: 'before' }
+      )
+    );
+
+    return previousProject?.pending_leadership_transfer ?? null;
+  }
+
+  static async acceptLeadershipTransfer(
+    projectId: string,
+    transferId: string,
+    ownerUserId: string,
+    nomineeUserId: string,
+    now: Date = new Date()
+  ): Promise<PendingLeadershipTransfer | null> {
+    try {
+      return await withDatabaseTransaction(async (session) => {
+        const nomineeUpdate = await projectMembersCollection().updateOne(
+          buildActiveMembershipFilter({ project_id: projectId, user_id: nomineeUserId }),
+          { $set: { role: 'owner' } },
+          { session }
+        );
+        if (nomineeUpdate.matchedCount === 0) {
+          throw new LeadershipTransferStaleError();
+        }
+
+        const previousProject = normalizeDocument<any>(
+          await researchProjectsCollection().findOneAndUpdate(
+            {
+              id: projectId,
+              owner_user_id: ownerUserId,
+              'pending_leadership_transfer.id': transferId,
+              'pending_leadership_transfer.outgoing_owner_user_id': ownerUserId,
+              'pending_leadership_transfer.nominee_user_id': nomineeUserId,
+              'pending_leadership_transfer.expires_at': { $gt: now },
+            },
+            {
+              $set: { owner_user_id: nomineeUserId },
+              $unset: { pending_leadership_transfer: '' },
+            },
+            { returnDocument: 'before', session }
+          )
+        );
+        if (!previousProject?.pending_leadership_transfer) {
+          throw new LeadershipTransferStaleError();
+        }
+
+        await projectMembersCollection().updateMany(
+          buildActiveMembershipFilter({ project_id: projectId, user_id: { $ne: nomineeUserId } }),
+          { $set: { role: 'member' } },
+          { session }
+        );
+
+        return previousProject.pending_leadership_transfer as PendingLeadershipTransfer;
+      });
+    } catch (error) {
+      if (error instanceof LeadershipTransferStaleError) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  static async getLeadershipTransferIdentityView(
+    transfer: PendingLeadershipTransfer
+  ): Promise<Record<string, unknown>> {
+    const userMap = await getUserIdentityMap([
+      transfer.outgoing_owner_user_id,
+      transfer.nominee_user_id,
+      transfer.initiated_by_user_id,
+    ]);
+    const toIdentity = (userId: string) => {
+      const identity = userMap.get(userId);
+      return {
+        user_id: userId,
+        username: identity?.username || '',
+        nickname: identity?.nickname ?? null,
+        real_name: identity?.real_name ?? null,
+        show_real_name_publicly: identity?.show_real_name_publicly ?? false,
+        avatar_url: identity?.avatar_url || null,
+      };
+    };
+
+    return {
+      id: transfer.id,
+      outgoing_owner: toIdentity(transfer.outgoing_owner_user_id),
+      nominee: toIdentity(transfer.nominee_user_id),
+      initiator: toIdentity(transfer.initiated_by_user_id),
+      created_at: transfer.created_at,
+      expires_at: transfer.expires_at,
+    };
   }
 
   /**
@@ -940,9 +1378,10 @@ export class ResearchModel {
       return [];
     }
 
-    const userMap = await getUserIdentityMap(evidenceItems.map((item) => item.created_by));
+    const normalizedItems = evidenceItems.map((item) => normalizeProjectEvidenceDocument(item));
+    const userMap = await getUserIdentityMap(normalizedItems.map((item) => item.created_by));
 
-    return evidenceItems.map((item) => ({
+    return normalizedItems.map((item) => ({
       ...item,
       creator_username: userMap.get(item.created_by)?.username || '',
       creator_nickname: userMap.get(item.created_by)?.nickname ?? null,
@@ -964,7 +1403,7 @@ export class ResearchModel {
         .toArray()
     );
 
-    return this.enrichProjectEvidence(evidenceItems);
+    return this.enrichProjectEvidence(orderProjectEvidenceDocuments(evidenceItems));
   }
 
   static async getProjectEvidenceById(evidenceId: string): Promise<any | null> {
@@ -992,16 +1431,41 @@ export class ResearchModel {
   }
 
   static async getProjectEvidenceAttachmentUrls(projectId: string): Promise<string[]> {
-    const evidenceItems = normalizeDocuments<{ attachment_url?: string | null }>(
+    const evidenceItems = normalizeDocuments<Record<string, unknown>>(
       await evidenceCollection()
         .find({ project_id: projectId })
-        .project({ _id: 0, attachment_url: 1 })
+        .project({
+          _id: 0,
+          attachments: 1,
+          attachment_urls: 1,
+          attachment_url: 1,
+          attachment_original_name: 1,
+          attachment_size: 1,
+          attachment_mime_type: 1,
+          attachment_category: 1,
+        })
         .toArray()
     );
 
-    return evidenceItems
-      .map((item) => (typeof item.attachment_url === 'string' ? item.attachment_url.trim() : ''))
-      .filter(Boolean);
+    return [...new Set(
+      evidenceItems.flatMap((item) => normalizeProjectEvidenceDocument(item).attachment_urls)
+    )];
+  }
+
+  private static async getNextProjectEvidenceSortOrder(projectId: string): Promise<number> {
+    const evidenceItems = normalizeDocuments<{ sort_order?: number | null }>(
+      await evidenceCollection()
+        .find({ project_id: projectId })
+        .project({ _id: 0, sort_order: 1 })
+        .toArray()
+    );
+    const highestSortOrder = evidenceItems.reduce((highest, item) => (
+      typeof item.sort_order === 'number' && Number.isFinite(item.sort_order)
+        ? Math.max(highest, Math.floor(item.sort_order))
+        : highest
+    ), -1);
+
+    return Math.max(evidenceItems.length, highestSortOrder + 1);
   }
 
   /**
@@ -1015,6 +1479,10 @@ export class ResearchModel {
   ): Promise<string> {
     const now = new Date();
     const evidenceId = generateId();
+    const attachments = data.attachments
+      ?? normalizeEvidenceAttachments(data as unknown as Record<string, unknown>);
+    const attachmentFields = buildEvidenceAttachmentFields(attachments);
+    const sortOrder = await this.getNextProjectEvidenceSortOrder(projectId);
 
     await evidenceCollection().insertOne({
       id: evidenceId,
@@ -1023,12 +1491,9 @@ export class ResearchModel {
       evidence_type: data.evidence_type,
       description: data.description ?? null,
       external_url: data.external_url ?? null,
-      attachment_url: data.attachment_url ?? null,
-      attachment_original_name: data.attachment_original_name ?? null,
-      attachment_size: data.attachment_size ?? null,
-      attachment_mime_type: data.attachment_mime_type ?? null,
-      attachment_category: data.attachment_category ?? null,
+      ...attachmentFields,
       attachment_note: data.attachment_note ?? null,
+      sort_order: sortOrder,
       created_by: createdBy,
       created_at: now,
       updated_at: now,
@@ -1052,13 +1517,16 @@ export class ResearchModel {
       evidence_type: data.evidence_type,
       description: data.description,
       external_url: data.external_url,
-      attachment_url: data.attachment_url,
-      attachment_original_name: data.attachment_original_name,
-      attachment_size: data.attachment_size,
-      attachment_mime_type: data.attachment_mime_type,
-      attachment_category: data.attachment_category,
       attachment_note: data.attachment_note,
     });
+    const attachmentChange = data.attachments !== undefined
+      ? buildEvidenceAttachmentFields(data.attachments)
+      : data.attachment_url !== undefined
+        ? buildEvidenceAttachmentFields(normalizeEvidenceAttachments(data as Record<string, unknown>))
+        : null;
+    if (attachmentChange) {
+      Object.assign(updateDoc, attachmentChange);
+    }
 
     if (Object.keys(updateDoc).length === 0) {
       return false;
@@ -1076,6 +1544,49 @@ export class ResearchModel {
 
     logger.info(`Project evidence updated: ${evidenceId}`);
     return result.matchedCount > 0;
+  }
+
+  static async reorderProjectEvidence(
+    projectId: string,
+    expectedEvidenceIds: string[],
+    evidenceIds: string[]
+  ): Promise<boolean> {
+    return withDatabaseTransaction(async (session) => {
+      const evidenceItems = normalizeDocuments<Record<string, unknown>>(
+        await evidenceCollection()
+          .find({ project_id: projectId }, { session })
+          .sort({ created_at: -1 })
+          .toArray()
+      );
+      const currentEvidenceIds = orderProjectEvidenceDocuments(evidenceItems)
+        .map((item) => String(item.id));
+      const orderIsCurrent = currentEvidenceIds.length === expectedEvidenceIds.length
+        && currentEvidenceIds.every((id, index) => id === expectedEvidenceIds[index]);
+      if (!orderIsCurrent) {
+        return false;
+      }
+
+      if (evidenceIds.length > 0) {
+        await evidenceCollection().bulkWrite(
+          evidenceIds.map((id, index) => ({
+            updateOne: {
+              filter: { id, project_id: projectId },
+              update: { $set: { sort_order: index } },
+            },
+          })),
+          { session }
+        );
+      }
+      const now = new Date();
+      await researchProjectsCollection().updateOne(
+        { id: projectId },
+        { $set: { updated_at: now, last_activity_at: now } },
+        { session }
+      );
+
+      logger.info(`Project evidence reordered: ${projectId}`);
+      return true;
+    });
   }
 
   /**

@@ -303,6 +303,30 @@ describe('ProfileModel.getPublicProjectById', () => {
     );
   });
 
+  it('uses owner_user_id for public leader identity even when membership roles are stale', async () => {
+    researchProjectsCollection.findOne.mockResolvedValue({
+      id: 'project-1',
+      owner_user_id: 'member-1',
+      name_zh: '公开课题',
+      status: 'active',
+      is_public: true,
+      created_at: new Date('2026-01-01T00:00:00Z'),
+      updated_at: new Date('2026-01-02T00:00:00Z'),
+    });
+
+    const project = await ProfileModel.getPublicProjectById('project-1');
+
+    expect(project).toEqual(expect.objectContaining({
+      owner_username: '成员',
+      members: [
+        expect.objectContaining({ username: '成员', role: 'owner', member_role_label: '数据整理' }),
+        expect.objectContaining({ username: '组长', role: 'member', member_role_label: null }),
+      ],
+    }));
+    expect(project).not.toHaveProperty('owner_user_id');
+    expect(project).not.toHaveProperty('pending_leadership_transfer');
+  });
+
   it('keeps incomplete and dormant public projects visible', async () => {
     researchProjectsCollection.findOne.mockResolvedValue({
       id: 'project-1',

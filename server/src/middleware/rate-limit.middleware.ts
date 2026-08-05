@@ -191,6 +191,31 @@ export const researchAgentRateLimiter = rateLimit({
 });
 
 /**
+ * Research leadership nomination rate limiter
+ * 课题组长转让提名限流
+ */
+export const leadershipTransferRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: '组长转让提名过于频繁，请稍后再试',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => {
+    const userId = req.user?.sub;
+    return userId ? `user:${userId}` : getClientIp(req);
+  },
+  handler: (req: Request, res: Response) => {
+    sendError(res, '组长转让提名过于频繁，请稍后再试', 'RATE_LIMIT_EXCEEDED', 429);
+  },
+});
+
+/**
  * CAPTCHA rate limiter
  * 验证码速率限制器
  */
