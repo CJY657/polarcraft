@@ -8,9 +8,8 @@ import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Menu, X } from "lucide-react";
 
-import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/utils/classNames";
-import { ModuleIconMap, PolariScopeLogo, type ModuleIconKey } from "@/components/icons";
+import { ModuleIconMap, type ModuleIconKey } from "@/components/icons";
 import { AuthThemeSwitcher } from "../ui/AuthThemeSwitcher";
 
 const MODULE_THEMES: Record<
@@ -91,7 +90,6 @@ export function PersistentHeader({
   showBreadcrumb = true,
 }: PersistentHeaderProps) {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -127,25 +125,14 @@ export function PersistentHeader({
           >
             <div
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                !isTransparent && "bg-clay-surface-card",
+                "flex h-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white px-1.5",
+                compact ? "w-[4.5rem]" : "w-[5.5rem]",
               )}
-              style={
-                isTransparent
-                  ? {
-                      borderColor: "rgba(255,255,255,0.22)",
-                      backgroundColor: "rgba(5, 14, 22, 0.38)",
-                    }
-                  : undefined
-              }
             >
-              <PolariScopeLogo
-                size={compact ? 26 : 30}
-                theme={theme}
-                animated={false}
-                beamActive={!isTransparent}
-                activeColor={moduleTheme?.primary ?? "#ff4d8b"}
-                className="transition-transform duration-200 group-hover:scale-105"
+              <img
+                src="/images/polariscope-navbar-logo.png"
+                alt=""
+                className="h-auto w-full transition-transform duration-200 group-hover:scale-105"
               />
             </div>
 

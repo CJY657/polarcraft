@@ -1127,8 +1127,8 @@ export function ExperimentDiscussionSection({
               className={cn(
                 "border-b px-4 py-3 sm:px-5 sm:py-4 lg:border-b-0 lg:border-r",
                 theme === "dark"
-                  ? "border-slate-700/70 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.12),transparent_46%),linear-gradient(180deg,rgba(15,23,42,0.8),rgba(15,23,42,0.92))]"
-                  : "border-slate-200 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_42%),linear-gradient(180deg,rgba(255,251,235,0.92),rgba(255,255,255,0.98))]",
+                  ? "border-slate-700/70 bg-slate-800/50"
+                  : "border-slate-200 bg-slate-50",
               )}
             >
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
@@ -1143,32 +1143,6 @@ export function ExperimentDiscussionSection({
               >
                 {isZh ? "围绕课件和资源直接讨论" : "Discuss the deck and resources in context"}
               </h2>
-              <p
-                className={cn(
-                  "mt-3 text-sm leading-6",
-                  theme === "dark" ? "text-slate-300" : "text-slate-600",
-                )}
-              >
-                {isZh
-                  ? `你可以围绕课件页面、实验现象和资源细节追问。当前实验：${courseTitle}`
-                  : `Ask follow-up questions about slides, observed effects, and resource details. Current experiment: ${courseTitle}`}
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {prompts.map((prompt) => (
-                  <span
-                    key={prompt}
-                    className={cn(
-                      "rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                      theme === "dark"
-                        ? "border-slate-600 bg-slate-800/70 text-slate-200"
-                        : "border-slate-200 bg-white/90 text-slate-700",
-                    )}
-                  >
-                    {prompt}
-                  </span>
-                ))}
-              </div>
 
               <div
                 className={cn(
@@ -1192,16 +1166,7 @@ export function ExperimentDiscussionSection({
                   >
                     {isZh ? "发一条留言" : "Start a comment"}
                   </p>
-                  <p
-                    className={cn(
-                      "mt-1 text-sm",
-                      theme === "dark" ? "text-slate-400" : "text-slate-500",
-                    )}
-                  >
-                    {isZh
-                      ? "支持图文留言、追评和折叠。建议每条留言聚焦一个问题。"
-                      : "Supports text/image comments, threaded replies, and collapse. Keep each comment focused on one question."}
-                  </p>
+            
                 </div>
 
                 {!canParticipate && (
