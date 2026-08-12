@@ -174,12 +174,12 @@ function ScrollToTopOnRouteChange() {
   const navigationType = useNavigationType();
 
   useEffect(() => {
-    if (navigationType === "POP") {
+    if (!shouldResetScrollOnNavigation(navigationType, location.hash)) {
       return;
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [location.pathname, navigationType]);
+  }, [location.hash, location.pathname, navigationType]);
 
   return null;
 }
@@ -219,6 +219,10 @@ export function shouldHideGlobalFooter(pathname: string) {
       matchPath("/applications/:applicationId", pathname) ||
       matchPath("/courses/:courseId", pathname)
   );
+}
+
+export function shouldResetScrollOnNavigation(navigationType: string, hash: string) {
+  return navigationType !== "POP" && hash === "";
 }
 
 export function shouldRequireStudentAuth(pathname: string) {

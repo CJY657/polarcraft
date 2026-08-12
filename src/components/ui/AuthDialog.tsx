@@ -444,6 +444,7 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         >
           {isLoading ? t('auth.registering', '注册中...') : t('auth.register', '注册')}
         </button>
+        <p className="text-center text-xs text-clay-muted">平台会收集您的行为活动信息，用于学习分析与体验改进。</p>
       </form>
 
       {/* Switch to Login */}

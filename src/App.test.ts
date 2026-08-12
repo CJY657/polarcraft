@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldHideGlobalFooter, shouldRequireStudentAuth } from "./App";
+import {
+  shouldHideGlobalFooter,
+  shouldRequireStudentAuth,
+  shouldResetScrollOnNavigation,
+} from "./App";
 
 describe("shouldHideGlobalFooter", () => {
   it("hides the footer on experiment detail pages", () => {
@@ -49,5 +53,16 @@ describe("shouldRequireStudentAuth", () => {
     expect(shouldRequireStudentAuth("/feedback")).toBe(false);
     expect(shouldRequireStudentAuth("/lab/explore")).toBe(false);
     expect(shouldRequireStudentAuth("/lab/projects/project-1")).toBe(false);
+  });
+});
+
+describe("shouldResetScrollOnNavigation", () => {
+  it("keeps hash destinations in control of cross-page scrolling", () => {
+    expect(shouldResetScrollOnNavigation("PUSH", "#discussion-comment-comment-1")).toBe(false);
+  });
+
+  it("still resets ordinary forward navigation and preserves browser history scroll", () => {
+    expect(shouldResetScrollOnNavigation("PUSH", "")).toBe(true);
+    expect(shouldResetScrollOnNavigation("POP", "")).toBe(false);
   });
 });
