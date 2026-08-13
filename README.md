@@ -514,7 +514,7 @@ cd /var/www/polarcraft
 
 # 1G 机型限制 V8 堆
 NODE_OPTIONS='--max-old-space-size=384' \
-  pm2 start server/dist/index.js --name polariscope
+  pm2 start server/dist/index.js --name polarcraft
 
 pm2 save
 pm2 startup
@@ -525,7 +525,7 @@ pm2 startup
 
 ```bash
 pm2 status
-pm2 logs polariscope --lines 80
+pm2 logs polarcraft --lines 80
 curl -sS http://127.0.0.1:3001/api/health
 ```
 
@@ -538,8 +538,8 @@ curl -sS http://127.0.0.1:3001/api/health
 常用运维：
 
 ```bash
-pm2 restart polariscope
-pm2 logs polariscope --lines 100
+pm2 restart polarcraft
+pm2 logs polarcraft --lines 100
 pm2 monit
 ```
 
@@ -599,7 +599,7 @@ sudo certbot renew --dry-run
 简要：
 
 1. 在 PostHog 创建项目，复制 Project API Key（`phc_...`）写入根目录 `.env.production` 的 `VITE_PUBLIC_POSTHOG_KEY`。
-2. `pnpm build` 后 `pm2 restart polariscope`。
+2. `pnpm build` 后 `pm2 restart polarcraft`。
 3. 若要管理员查看用户行为：再在 `server/.env` 配 `POSTHOG_APP_HOST`、`POSTHOG_ENVIRONMENT_ID`、`POSTHOG_PERSONAL_API_KEY` 并重启。
 
 ---
@@ -640,8 +640,12 @@ pnpm build
 pnpm build:api
 
 # 若只改了 server/.env，rebuild 可省略，直接：
-pm2 restart polariscope
+pm2 restart polarcraft
 ```
+
+如需在推送到 GitHub `main` 后自动完成构建、校验、rsync 暂存、受控切换、
+健康检查和失败回滚，请按 [deploy/README.md](deploy/README.md) 完成一次性 SSH
+密钥、服务器 helper 与 GitHub `production` environment 配置。
 
 ---
 
@@ -899,7 +903,7 @@ POSTHOG_QUERY_TIMEOUT_MS=15000
 修改 `server/.env` 后：
 
 ```bash
-pm2 restart polariscope
+pm2 restart polarcraft
 ```
 
 ### 4. 行为与验收
@@ -937,7 +941,7 @@ curl -sS https://你的域名/api/health | jq .
 
 # 3）进程与日志
 pm2 status
-pm2 logs polariscope --lines 100
+pm2 logs polarcraft --lines 100
 
 # 4）磁盘与内存（1G 机型）
 free -h
