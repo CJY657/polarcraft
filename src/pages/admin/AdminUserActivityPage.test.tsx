@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { getActivity, getActivityDetail } = vi.hoisted(() => ({
   getActivity: vi.fn(),
@@ -109,8 +109,15 @@ function ActivityTestRoute() {
 
 describe('AdminUserActivityPage', () => {
   beforeEach(() => {
+    // 固定“今天”为夹具日期，避免依赖真实时钟（shouldAdvanceTime 保证 waitFor 正常）
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-08-05T12:00:00'))
     vi.clearAllMocks()
     getActivityDetail.mockResolvedValue(detail)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('loads only the 30-day user detail and renders identity, KPIs, module shares and active days', async () => {

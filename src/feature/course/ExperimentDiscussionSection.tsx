@@ -302,7 +302,6 @@ function CommentImageGrid({
 
 export function ExperimentDiscussionSection({
   courseId,
-  courseTitle,
   theme,
   accentColor = "#C9A227",
   questionResource = null,
@@ -1106,10 +1105,6 @@ export function ExperimentDiscussionSection({
       </div>
     );
   }
-
-  const prompts = isZh
-    ? ["追问某一页课件", "补充实验现象", "提出改进建议"]
-    : ["Ask about a slide", "Add an observation", "Suggest an improvement"];
 
   return (
     <>
