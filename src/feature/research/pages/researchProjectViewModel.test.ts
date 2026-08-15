@@ -265,6 +265,7 @@ describe("buildResearchProjectViewModel", () => {
       canManageEvidence: true,
       canShowDiscussionSection: true,
       canShowTasksSection: true,
+      canShowMeetingsSection: true,
       canShowAgentPanel: true,
       currentTab: "design",
       usePublicEndpoint: false,
@@ -274,6 +275,7 @@ describe("buildResearchProjectViewModel", () => {
       "design",
       "evidence",
       "tasks",
+      "meetings",
       "discussion",
     ]);
     expect(result.researchOutline).toMatchObject({
@@ -311,6 +313,7 @@ describe("buildResearchProjectViewModel", () => {
       canShowEvidenceSection: true,
       canShowPeerReviewSection: true,
       canShowTasksSection: false,
+      canShowMeetingsSection: false,
       canShowDiscussionSection: false,
       currentTab: "overview",
       usePublicEndpoint: true,

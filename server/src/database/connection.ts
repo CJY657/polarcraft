@@ -230,6 +230,27 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
+    name: 'research_project_meetings',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      { key: { project_id: 1, scheduled_at: -1 }, name: 'idx_project_scheduled' },
+    ],
+  },
+  {
+    name: 'research_meeting_member_ratings',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      // 每位实到成员对同一会议的同一成员只保留一条互评，配合 upsert 语义防止重复写入
+      {
+        key: { meeting_id: 1, rater_id: 1, ratee_id: 1 },
+        unique: true,
+        name: 'unique_meeting_rater_ratee',
+      },
+      // 排行榜按课题聚合被评人得分
+      { key: { project_id: 1, ratee_id: 1 }, name: 'idx_project_ratee' },
+    ],
+  },
+  {
     name: 'research_activity_log',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

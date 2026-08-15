@@ -55,6 +55,7 @@ const UPLOAD_REFERENCE_FIELDS: CollectionFieldRef[] = [
   { collection: 'research_project_evidence', field: 'attachment_url' },
   { collection: 'research_project_evidence', field: 'attachment_urls' },
   { collection: 'research_project_evidence', field: 'attachments.url' },
+  { collection: 'research_project_meetings', field: 'raw_file.url' },
 ];
 
 const uploadRootDir = path.resolve(uploadConfig.uploadDir);

@@ -643,7 +643,7 @@ async function notifyApplicationResult({
  * maps a denial onto the matching response. The policy itself lives in the
  * service; this only translates it into HTTP.
  */
-async function ensureProjectAccess(
+export async function ensureProjectAccess(
   res: Response,
   projectId: string,
   userId: string,

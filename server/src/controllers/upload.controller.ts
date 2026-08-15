@@ -36,9 +36,11 @@ export class UploadController {
     const category = req.params.category as FileCategory;
     const unitId = (req.body.unitId as string) || 'general';
 
-    // Validate category
-    // 验证类别
-    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx'];
+    // Validate category (defense in depth — each route additionally enforces
+    // its own allow-list, e.g. 'document' is only reachable via the research
+    // meeting-record route)
+    // 验证类别（兜底校验；各路由另有自己的类别白名单，如 document 仅会议记录路由可用）
+    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx', 'document'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,

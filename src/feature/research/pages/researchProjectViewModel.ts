@@ -298,6 +298,7 @@ export function buildResearchProjectViewModel({
   const canShowEvidenceSection = Boolean(!isExampleProject && projectId && (project || publicProject));
   const canShowPeerReviewSection = canShowEvidenceSection;
   const canShowTasksSection = canShowDiscussionSection;
+  const canShowMeetingsSection = canShowDiscussionSection;
   const researchOutline: ResearchProjectOutline = {
     topicSummary: displayProject?.description_zh || "",
     questions: splitResearchItems(displayProject?.research_questions_zh),
@@ -315,6 +316,7 @@ export function buildResearchProjectViewModel({
       ? [{ id: "review", label: "同伴评审" }]
       : []),
     ...(canShowTasksSection ? [{ id: "tasks", label: "任务分工" }] : []),
+    ...(canShowMeetingsSection ? [{ id: "meetings", label: "会议" }] : []),
     ...(canShowDiscussionSection ? [{ id: "discussion", label: "参与讨论" }] : []),
   ];
   const currentTab = projectTabs.find((tab) => tab.id === activeTab)?.id ?? "overview";
@@ -348,6 +350,7 @@ export function buildResearchProjectViewModel({
     canShowEvidenceSection,
     canShowPeerReviewSection,
     canShowTasksSection,
+    canShowMeetingsSection,
     researchOutline,
     showResearchInfo,
     showMembersRail,

@@ -5,7 +5,7 @@
 
 import { appPaths } from './paths.js';
 
-export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx';
+export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx' | 'document';
 
 export const uploadConfig = {
   // Storage path - relative to project root
@@ -23,6 +23,7 @@ export const uploadConfig = {
     image: 25 * 1024 * 1024,     // 25MB for images
     video: 500 * 1024 * 1024,    // 500MB for videos
     pptx: 100 * 1024 * 1024,     // 100MB for PowerPoint
+    document: 25 * 1024 * 1024,  // 25MB for text documents (meeting records)
     default: 50 * 1024 * 1024,   // 50MB default
   },
 
@@ -37,6 +38,12 @@ export const uploadConfig = {
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
     ],
+    document: [
+      'text/plain',
+      'text/markdown',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ],
   },
 
   // File extensions for validation
@@ -46,5 +53,6 @@ export const uploadConfig = {
     image: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
     video: ['.mp4', '.webm', '.mov'],
     pptx: ['.pptx', '.ppt'],
+    document: ['.txt', '.md', '.doc', '.docx'],
   },
 };

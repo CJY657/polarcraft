@@ -363,6 +363,162 @@ export interface UpdateProjectInput {
   is_public?: boolean;
 }
 
+export type ProjectMeetingStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export type MeetingRecordFileCategory = 'pdf' | 'image' | 'document';
+
+export interface MeetingRecordFile {
+  url: string;
+  original_name: string | null;
+  mime_type: string | null;
+  size: number | null;
+}
+
+export interface MeetingAiScore {
+  user_id: string;
+  /** 0-100 */
+  score: number;
+  comment: string;
+}
+
+export interface MeetingMinutes {
+  /** 纪要正文：会议列表端点不返回，需走会议详情端点获取 */
+  content?: string;
+  generated_by_ai: boolean;
+  model: string | null;
+  archived_at: string;
+  archived_by: string;
+}
+
+export interface ProjectMeeting {
+  id: string;
+  project_id: string;
+  title: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  location: string | null;
+  agenda: string | null;
+  status: ProjectMeetingStatus;
+  created_by: string;
+  /** 原始文字记录：仅会议详情端点返回 */
+  raw_notes?: string | null;
+  raw_file: MeetingRecordFile | null;
+  attendee_ids: string[];
+  /** 非组长/管理员仅含本人条目 */
+  ai_scores: MeetingAiScore[] | null;
+  minutes: MeetingMinutes | null;
+  /** 会议列表端点附带的归档标志 */
+  has_minutes?: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateProjectMeetingInput {
+  title: string;
+  scheduled_at: string;
+  duration_minutes?: number | null;
+  location?: string | null;
+  agenda?: string | null;
+}
+
+export interface UpdateProjectMeetingInput {
+  title?: string;
+  scheduled_at?: string;
+  duration_minutes?: number | null;
+  location?: string | null;
+  agenda?: string | null;
+  status?: 'cancelled';
+}
+
+export interface GenerateMeetingMinutesInput {
+  raw_notes: string;
+  attendee_ids: string[];
+}
+
+export interface MeetingMinutesPreview {
+  minutes_content: string;
+  ai_scores: MeetingAiScore[];
+}
+
+export interface ArchiveMeetingMinutesInput {
+  content: string;
+  attendee_ids: string[];
+  ai_scores?: MeetingAiScore[] | null;
+  generated_by_ai: boolean;
+  raw_notes?: string | null;
+  raw_file?: MeetingRecordFile | null;
+}
+
+export interface MeetingRecordFileUploadResult {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  category: MeetingRecordFileCategory;
+  unitId: string;
+}
+
+export interface UpsertMeetingRatingInput {
+  ratee_id: string;
+  /** 整数 1-5 */
+  score: number;
+  comment?: string | null;
+}
+
+export interface MeetingMemberRating {
+  id: string;
+  project_id: string;
+  meeting_id: string;
+  rater_id: string;
+  ratee_id: string;
+  score: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingRatingAggregate {
+  ratee_id: string;
+  avg: number;
+  count: number;
+}
+
+export interface MeetingRatingsView {
+  /** 我提交的互评（用于预填表单） */
+  my_given: MeetingMemberRating[];
+  /** 匿名聚合：各实到成员的平均星级与评分数 */
+  aggregates: MeetingRatingAggregate[];
+  /** 我收到的匿名短评列表（仅本人可见） */
+  my_received_comments: string[];
+}
+
+export interface ProjectLeaderboardStanding {
+  rank: number;
+  /** 综合分（5 分制） */
+  composite: number;
+  /** AI 分均值（已折算 5 分制），无 AI 分时为 null */
+  ai_avg: number | null;
+  peer_avg: number | null;
+  rated_meetings: number;
+}
+
+export interface ProjectLeaderboardEntry extends ProjectLeaderboardStanding {
+  user_id: string;
+  username: string;
+  nickname?: string | null;
+  real_name?: string | null;
+  show_real_name_publicly?: boolean;
+  avatar_url: string | null;
+}
+
+export interface ProjectLeaderboard {
+  top: ProjectLeaderboardEntry[];
+  me: ProjectLeaderboardStanding | null;
+  /** 完整榜单：仅组长/管理员返回 */
+  all?: ProjectLeaderboardEntry[];
+}
+
 // =====================================================
 // Research API Methods / 研究 API 方法
 // =====================================================
@@ -781,5 +937,143 @@ export const researchApi = {
   getProjectActivity: async (projectId: string, limit: number = 50): Promise<ProjectActivityItem[]> => {
     const response = await api.get<ProjectActivityItem[]>(`/api/research/projects/${projectId}/activity?limit=${limit}`);
     return unwrapApiData(response, '获取活动日志失败');
+  },
+
+  // =====================================================
+  // Meetings & Member Ratings / 会议与成员互评
+  // =====================================================
+
+  /**
+   * Get project meetings (newest first; list omits minutes content and raw notes)
+   * 获取课题会议列表（倒序，列表不含纪要正文与原始记录）
+   */
+  getProjectMeetings: async (projectId: string): Promise<ProjectMeeting[]> => {
+    const response = await api.get<ProjectMeeting[]>(`/api/research/projects/${projectId}/meetings`);
+    return unwrapApiData(response, '获取会议列表失败');
+  },
+
+  /**
+   * Get single meeting detail (full minutes content and raw record)
+   * 获取会议详情（含纪要全文与原始记录）
+   */
+  getProjectMeeting: async (projectId: string, meetingId: string): Promise<ProjectMeeting> => {
+    const response = await api.get<ProjectMeeting>(
+      `/api/research/projects/${projectId}/meetings/${meetingId}`
+    );
+    return unwrapApiData(response, '获取会议详情失败');
+  },
+
+  /**
+   * Create project meeting (owner/admin)
+   * 创建课题会议（组长/管理员）
+   */
+  createProjectMeeting: async (
+    projectId: string,
+    input: CreateProjectMeetingInput
+  ): Promise<ProjectMeeting> => {
+    const response = await api.post<ProjectMeeting>(`/api/research/projects/${projectId}/meetings`, input);
+    return unwrapApiData(response, '创建会议失败');
+  },
+
+  /**
+   * Update or cancel project meeting (owner/admin)
+   * 编辑或取消课题会议（组长/管理员）
+   */
+  updateProjectMeeting: async (
+    projectId: string,
+    meetingId: string,
+    patch: UpdateProjectMeetingInput
+  ): Promise<ProjectMeeting> => {
+    const response = await api.patch<ProjectMeeting>(
+      `/api/research/projects/${projectId}/meetings/${meetingId}`,
+      patch
+    );
+    return unwrapApiData(response, '更新会议失败');
+  },
+
+  /**
+   * Generate AI meeting minutes preview (not persisted)
+   * AI 生成会议纪要预览（不落库，归档时再回传）
+   */
+  generateMeetingMinutes: async (
+    projectId: string,
+    meetingId: string,
+    input: GenerateMeetingMinutesInput
+  ): Promise<MeetingMinutesPreview> => {
+    const response = await api.post<MeetingMinutesPreview>(
+      `/api/research/projects/${projectId}/meetings/${meetingId}/minutes/generate`,
+      input
+    );
+    return unwrapApiData(response, 'AI 生成纪要失败');
+  },
+
+  /**
+   * Archive meeting minutes (meeting becomes completed)
+   * 归档会议纪要（会议随之标记完成）
+   */
+  archiveMeetingMinutes: async (
+    projectId: string,
+    meetingId: string,
+    input: ArchiveMeetingMinutesInput
+  ): Promise<void> => {
+    const response = await api.post(
+      `/api/research/projects/${projectId}/meetings/${meetingId}/minutes`,
+      input
+    );
+    ensureApiSuccess(response, '归档会议纪要失败');
+  },
+
+  /**
+   * Upload meeting record file
+   * 上传会议记录文件
+   */
+  uploadMeetingRecordFile: async (
+    projectId: string,
+    category: MeetingRecordFileCategory,
+    file: File
+  ): Promise<MeetingRecordFileUploadResult> => {
+    const response = await api.upload<MeetingRecordFileUploadResult>(
+      `/api/research/projects/${projectId}/meetings/record-file/${category}`,
+      file
+    );
+    return unwrapApiData(response, '上传会议记录文件失败');
+  },
+
+  /**
+   * Create or update own rating for an attendee
+   * 提交或更新自己对实到成员的互评
+   */
+  upsertMyMeetingRating: async (
+    projectId: string,
+    meetingId: string,
+    input: UpsertMeetingRatingInput
+  ): Promise<void> => {
+    const response = await api.put(
+      `/api/research/projects/${projectId}/meetings/${meetingId}/ratings/me`,
+      input
+    );
+    ensureApiSuccess(response, '提交互评失败');
+  },
+
+  /**
+   * Get meeting ratings (own given rows + anonymous aggregates)
+   * 获取会议互评（我提交的评分与匿名聚合结果）
+   */
+  getMeetingRatings: async (projectId: string, meetingId: string): Promise<MeetingRatingsView> => {
+    const response = await api.get<MeetingRatingsView>(
+      `/api/research/projects/${projectId}/meetings/${meetingId}/ratings`
+    );
+    return unwrapApiData(response, '获取互评结果失败');
+  },
+
+  /**
+   * Get project performance leaderboard (Top 3 + own standing)
+   * 获取课题表现榜（Top 3 与我的名次）
+   */
+  getProjectLeaderboard: async (projectId: string): Promise<ProjectLeaderboard> => {
+    const response = await api.get<ProjectLeaderboard>(
+      `/api/research/projects/${projectId}/leaderboard`
+    );
+    return unwrapApiData(response, '获取表现榜失败');
   },
 };

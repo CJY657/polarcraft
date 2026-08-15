@@ -28,6 +28,7 @@ const mockResearchAgentPanel = vi.fn();
 const mockProjectEvidenceSection = vi.fn();
 const mockProjectPeerReviewSection = vi.fn();
 const mockProjectTasksSection = vi.fn();
+const mockProjectMeetingsSection = vi.fn();
 const mockProjectActivityFeed = vi.fn();
 const openDialog = vi.fn();
 
@@ -119,6 +120,13 @@ vi.mock("../components/project/ProjectTasksSection", () => ({
   ProjectTasksSection: (props: Record<string, unknown>) => {
     mockProjectTasksSection(props);
     return <div data-testid="project-tasks-section" />;
+  },
+}));
+
+vi.mock("../components/project/ProjectMeetingsSection", () => ({
+  ProjectMeetingsSection: (props: Record<string, unknown>) => {
+    mockProjectMeetingsSection(props);
+    return <div data-testid="project-meetings-section" />;
   },
 }));
 
@@ -379,6 +387,7 @@ describe("ResearchProjectPage", () => {
     mockProjectEvidenceSection.mockReset();
     mockProjectPeerReviewSection.mockReset();
     mockProjectTasksSection.mockReset();
+    mockProjectMeetingsSection.mockReset();
     mockProjectActivityFeed.mockReset();
     openDialog.mockReset();
     vi.clearAllMocks();
@@ -614,11 +623,20 @@ describe("ResearchProjectPage", () => {
 
     expect(await screen.findByTestId("project-tasks-section")).toBeTruthy();
     expect(screen.getByTestId("project-activity-feed")).toBeTruthy();
+    expect(screen.getByTestId("project-meetings-section")).toBeTruthy();
     expect(mockProjectTasksSection).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: "project-1",
         currentUserId: "owner-1",
         canManage: true,
+      })
+    );
+    expect(mockProjectMeetingsSection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: "project-1",
+        currentUserId: "owner-1",
+        canManage: true,
+        theme: "light",
       })
     );
     expect(mockProjectActivityFeed).toHaveBeenCalledWith(
@@ -656,6 +674,7 @@ describe("ResearchProjectPage", () => {
       })
     );
     expect(screen.queryByTestId("project-tasks-section")).toBeNull();
+    expect(screen.queryByTestId("project-meetings-section")).toBeNull();
     expect(screen.queryByTestId("project-activity-feed")).toBeNull();
   });
 
@@ -689,6 +708,29 @@ describe("ResearchProjectPage", () => {
     expect(reviewPanel?.hidden).toBe(false);
     expect(screen.getByRole("tab", { name: "同伴评审" }).getAttribute("aria-selected")).toBe("true");
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("project-peer-review"));
+  });
+
+  it("switches to the meetings tab and scrolls for meeting notification deep-links", async () => {
+    mockGetProject.mockResolvedValue(createProject());
+    const scrollIntoView = HTMLElement.prototype.scrollIntoView as ReturnType<typeof vi.fn>;
+
+    renderPage([{
+      pathname: "/lab/projects/project-1",
+      hash: "#project-meetings",
+      state: { notificationJumpAt: 1723708800000 },
+    }]);
+
+    expect(await screen.findByTestId("project-meetings-section")).toBeTruthy();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    const meetingsPanel = document.getElementById("project-panel-meetings");
+    expect(meetingsPanel?.hidden).toBe(false);
+    expect(screen.getByRole("tab", { name: "会议" }).getAttribute("aria-selected")).toBe("true");
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("project-meetings"));
   });
 
   it("renders the full challenge card on the project detail page", async () => {

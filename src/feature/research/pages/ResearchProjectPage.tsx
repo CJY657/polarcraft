@@ -33,6 +33,7 @@ import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCa
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
 import { ProjectPeerReviewSection } from "../components/project/ProjectPeerReviewSection";
 import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
+import { ProjectMeetingsSection } from "../components/project/ProjectMeetingsSection";
 import { ProjectActivityFeed } from "../components/project/ProjectActivityFeed";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
 import {
@@ -229,6 +230,39 @@ export function ResearchProjectPage() {
 
     setActiveTab("review");
   }, [isLoading, location.hash, location.key, projectId]);
+
+  useEffect(() => {
+    if (isLoading || location.hash !== "#project-meetings") {
+      return;
+    }
+
+    setActiveTab("meetings");
+  }, [isLoading, location.hash, location.key, location.state?.notificationJumpAt, projectId]);
+
+  useEffect(() => {
+    if (isLoading || location.hash !== "#project-meetings" || activeTab !== "meetings") {
+      return;
+    }
+
+    const meetingsPanel = document.getElementById("project-panel-meetings");
+    const meetingsSection = document.getElementById("project-meetings");
+
+    if (!meetingsPanel || meetingsPanel.hidden || !meetingsSection) {
+      return;
+    }
+
+    meetingsSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [
+    activeTab,
+    isLoading,
+    location.hash,
+    location.key,
+    location.state?.notificationJumpAt,
+    projectId,
+  ]);
 
   useEffect(() => {
     if (isLoading || location.hash !== "#project-members") {
@@ -464,6 +498,7 @@ export function ResearchProjectPage() {
     canShowEvidenceSection,
     canShowPeerReviewSection,
     canShowTasksSection,
+    canShowMeetingsSection,
     researchOutline,
     showResearchInfo,
     showMembersRail,
@@ -793,6 +828,25 @@ export function ResearchProjectPage() {
                   canManage={isOwner || isAdmin}
                   theme={theme === "dark" ? "dark" : "light"}
                 />
+              </div>
+            )}
+
+            {canShowMeetingsSection && projectId && project && (
+              <div
+                role="tabpanel"
+                id="project-panel-meetings"
+                aria-labelledby="project-tab-meetings"
+                hidden={currentTab !== "meetings"}
+              >
+                <div id="project-meetings" className="scroll-mt-36">
+                  <ProjectMeetingsSection
+                    projectId={projectId}
+                    members={project.members}
+                    currentUserId={user?.id}
+                    canManage={isOwner || isAdmin}
+                    theme={theme === "dark" ? "dark" : "light"}
+                  />
+                </div>
               </div>
             )}
 

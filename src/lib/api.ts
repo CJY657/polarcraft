@@ -280,6 +280,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  patch: <T = any>(endpoint: string, body?: any) =>
+    request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   delete: <T = any>(endpoint: string, body?: any) =>
     request<T>(endpoint, {
       method: 'DELETE',

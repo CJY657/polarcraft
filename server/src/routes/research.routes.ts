@@ -5,6 +5,7 @@
 
 import { NextFunction, Request, Response, Router } from 'express';
 import { ResearchController } from '../controllers/research.controller.js';
+import { ResearchMeetingController } from '../controllers/research-meeting.controller.js';
 import { UploadController } from '../controllers/upload.controller.js';
 import type { FileCategory } from '../config/upload.config.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -18,7 +19,11 @@ import { logger } from '../utils/logger.js';
 
 const router = Router();
 
-type ProjectUploadScopePrefix = 'project-discussion' | 'project-cover' | 'project-evidence';
+type ProjectUploadScopePrefix =
+  | 'project-discussion'
+  | 'project-cover'
+  | 'project-evidence'
+  | 'project-meeting-record';
 
 function buildProjectUploadScope(prefix: ProjectUploadScopePrefix, projectId: string): string {
   const sanitizedProjectId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -28,6 +33,8 @@ function buildProjectUploadScope(prefix: ProjectUploadScopePrefix, projectId: st
 function isEvidenceUploadCategory(value: string): value is FileCategory {
   return value === 'image' || value === 'video' || value === 'pdf' || value === 'pptx';
 }
+
+const MEETING_RECORD_UPLOAD_CATEGORIES: readonly FileCategory[] = ['pdf', 'image', 'document'];
 
 /**
  * Build an upload authorizer middleware: validates the project id, optionally
@@ -40,6 +47,9 @@ function createProjectUploadAuthorizer(options: {
   hasPermission: (access: ResearchProjectAccess) => boolean;
   forbiddenMessage: string;
   requireEvidenceCategory?: boolean;
+  /** Restrict req.params.category to an explicit allow-list (meeting record files). */
+  allowedCategories?: readonly string[];
+  invalidCategoryMessage?: string;
 }) {
   return async function authorizeProjectUpload(
     req: Request,
@@ -57,6 +67,11 @@ function createProjectUploadAuthorizer(options: {
 
       if (options.requireEvidenceCategory && !isEvidenceUploadCategory(req.params.category)) {
         res.error('证据附件类别无效', 'INVALID_CATEGORY', 400);
+        return;
+      }
+
+      if (options.allowedCategories && !options.allowedCategories.includes(req.params.category)) {
+        res.error(options.invalidCategoryMessage ?? '附件类别无效', 'INVALID_CATEGORY', 400);
         return;
       }
 
@@ -100,6 +115,14 @@ const authorizeProjectEvidenceUpload = createProjectUploadAuthorizer({
   hasPermission: (access) => access.canWrite,
   forbiddenMessage: '只有课题成员可以上传证据附件',
   requireEvidenceCategory: true,
+});
+
+const authorizeProjectMeetingRecordUpload = createProjectUploadAuthorizer({
+  scopePrefix: 'project-meeting-record',
+  hasPermission: (access) => access.canManage,
+  forbiddenMessage: '只有组长可以上传会议记录文件',
+  allowedCategories: MEETING_RECORD_UPLOAD_CATEGORIES,
+  invalidCategoryMessage: '会议记录文件类别无效',
 });
 
 /**
@@ -298,6 +321,103 @@ router.put('/projects/:projectId/reviews/me', ResearchController.upsertMyProject
  * @access  Private
  */
 router.delete('/reviews/:id', ResearchController.deleteProjectReview);
+
+/**
+ * =====================================================
+ * Meetings & Member Ratings Routes / 会议与成员互评路由
+ * =====================================================
+ */
+
+/**
+ * @route   POST /api/research/projects/:projectId/meetings/record-file/:category
+ * @desc    Upload a meeting record file (pdf/image/document)
+ * @access  Private (owner or admin)
+ *
+ * Declared before the :meetingId routes so "record-file" is never captured
+ * as a meeting id.
+ */
+router.post(
+  '/projects/:projectId/meetings/record-file/:category',
+  authorizeProjectMeetingRecordUpload,
+  createScopedUploadHandler({ logMessage: 'Meeting record file upload started' }),
+  UploadController.uploadFile
+);
+
+/**
+ * @route   GET /api/research/projects/:projectId/meetings
+ * @desc    List project meetings (newest first, large text fields omitted)
+ * @access  Private (members)
+ */
+router.get('/projects/:projectId/meetings', ResearchMeetingController.getProjectMeetings);
+
+/**
+ * @route   POST /api/research/projects/:projectId/meetings
+ * @desc    Schedule a meeting
+ * @access  Private (owner or admin)
+ */
+router.post('/projects/:projectId/meetings', ResearchMeetingController.createProjectMeeting);
+
+/**
+ * @route   GET /api/research/projects/:projectId/meetings/:meetingId
+ * @desc    Get single meeting with full minutes content and raw record
+ * @access  Private (members)
+ */
+router.get('/projects/:projectId/meetings/:meetingId', ResearchMeetingController.getProjectMeeting);
+
+/**
+ * @route   PATCH /api/research/projects/:projectId/meetings/:meetingId
+ * @desc    Update meeting fields or cancel the meeting
+ * @access  Private (owner or admin)
+ */
+router.patch('/projects/:projectId/meetings/:meetingId', ResearchMeetingController.updateProjectMeeting);
+
+/**
+ * @route   POST /api/research/projects/:projectId/meetings/:meetingId/minutes/generate
+ * @desc    Generate AI meeting minutes preview (not persisted)
+ * @access  Private (owner or admin)
+ */
+router.post(
+  '/projects/:projectId/meetings/:meetingId/minutes/generate',
+  researchAgentRateLimiter,
+  ResearchMeetingController.generateMeetingMinutesPreview
+);
+
+/**
+ * @route   POST /api/research/projects/:projectId/meetings/:meetingId/minutes
+ * @desc    Archive meeting minutes (meeting becomes completed)
+ * @access  Private (owner or admin)
+ */
+router.post(
+  '/projects/:projectId/meetings/:meetingId/minutes',
+  ResearchMeetingController.archiveMeetingMinutes
+);
+
+/**
+ * @route   PUT /api/research/projects/:projectId/meetings/:meetingId/ratings/me
+ * @desc    Create or update own rating of one attendee
+ * @access  Private (meeting attendees)
+ */
+router.put(
+  '/projects/:projectId/meetings/:meetingId/ratings/me',
+  ResearchMeetingController.upsertMyMeetingRating
+);
+
+/**
+ * @route   GET /api/research/projects/:projectId/meetings/:meetingId/ratings
+ * @desc    Get meeting ratings (own rows + anonymous aggregates)
+ * @access  Private (members)
+ */
+router.get(
+  '/projects/:projectId/meetings/:meetingId/ratings',
+  ResearchMeetingController.getMeetingRatings
+);
+
+/**
+ * @route   GET /api/research/projects/:projectId/leaderboard
+ * @desc    Project performance leaderboard (Top 3 + own standing)
+ * @access  Private (members)
+ */
+router.get('/projects/:projectId/leaderboard', ResearchMeetingController.getProjectLeaderboard);
 
 /**
  * =====================================================

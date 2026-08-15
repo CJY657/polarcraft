@@ -42,6 +42,14 @@ export function getActivityLabel(item: ProjectActivityItem): string {
         : '完成了任务';
     case 'review_submitted':
       return '提交了同伴评审';
+    case 'meeting_scheduled':
+      return typeof changes.title === 'string' && changes.title
+        ? `安排了会议「${changes.title}」`
+        : '安排了会议';
+    case 'meeting_minutes_archived':
+      return typeof changes.title === 'string' && changes.title
+        ? `归档了会议纪要「${changes.title}」`
+        : '归档了会议纪要';
     case 'project_leadership_transferred':
       return '接受转让并成为新组长';
     case 'create_node':
