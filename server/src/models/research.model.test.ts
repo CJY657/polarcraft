@@ -59,6 +59,8 @@ const taskDeleteMany = vi.fn();
 const reviewDeleteMany = vi.fn();
 const outcomeDeleteMany = vi.fn();
 const cycleInsertOne = vi.fn();
+const projectMeetingsDeleteMany = vi.fn();
+const meetingRatingsDeleteMany = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
   withDatabaseTransaction,
@@ -159,6 +161,10 @@ vi.mock('../database/connection.js', () => ({
         return { deleteMany: (...args: unknown[]) => reviewDeleteMany(...args) };
       case 'research_project_outcomes':
         return { deleteMany: (...args: unknown[]) => outcomeDeleteMany(...args) };
+      case 'research_project_meetings':
+        return { deleteMany: (...args: unknown[]) => projectMeetingsDeleteMany(...args) };
+      case 'research_meeting_member_ratings':
+        return { deleteMany: (...args: unknown[]) => meetingRatingsDeleteMany(...args) };
       case 'users':
         return {
           find: (...args: unknown[]) => usersFind(...args),
@@ -1167,6 +1173,8 @@ describe('ResearchModel project evidence', () => {
     taskDeleteMany.mockResolvedValue({});
     reviewDeleteMany.mockResolvedValue({});
     outcomeDeleteMany.mockResolvedValue({});
+    projectMeetingsDeleteMany.mockResolvedValue({});
+    meetingRatingsDeleteMany.mockResolvedValue({});
 
     const deleted = await ResearchModel.deleteProject('project-1');
 
@@ -1177,5 +1185,7 @@ describe('ResearchModel project evidence', () => {
     expect(taskDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
     expect(reviewDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
     expect(outcomeDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(projectMeetingsDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
+    expect(meetingRatingsDeleteMany).toHaveBeenCalledWith({ project_id: 'project-1' });
   });
 });

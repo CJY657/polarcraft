@@ -372,6 +372,16 @@ router.get('/projects/:projectId/meetings/:meetingId', ResearchMeetingController
 router.patch('/projects/:projectId/meetings/:meetingId', ResearchMeetingController.updateProjectMeeting);
 
 /**
+ * @route   DELETE /api/research/projects/:projectId/meetings/:meetingId
+ * @desc    Permanently delete a meeting, ratings, and owned content
+ * @access  Private (owner or admin)
+ */
+router.delete(
+  '/projects/:projectId/meetings/:meetingId',
+  ResearchMeetingController.deleteProjectMeeting
+);
+
+/**
  * @route   POST /api/research/projects/:projectId/meetings/:meetingId/minutes/generate
  * @desc    Generate AI meeting minutes preview (not persisted)
  * @access  Private (owner or admin)

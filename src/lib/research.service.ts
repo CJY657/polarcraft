@@ -992,6 +992,17 @@ export const researchApi = {
   },
 
   /**
+   * Permanently delete a project meeting and its owned content
+   * 永久删除课题会议及其关联内容
+   */
+  deleteProjectMeeting: async (projectId: string, meetingId: string): Promise<void> => {
+    const response = await api.delete(
+      `/api/research/projects/${projectId}/meetings/${meetingId}`
+    );
+    ensureApiSuccess(response, '删除会议失败');
+  },
+
+  /**
    * Generate AI meeting minutes preview (not persisted)
    * AI 生成会议纪要预览（不落库，归档时再回传）
    */

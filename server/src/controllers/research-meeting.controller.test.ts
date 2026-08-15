@@ -9,11 +9,13 @@ const {
   mockResearchAgentService,
   mockGenerateMeetingMinutes,
   mockGetUserIdentityMap,
+  mockManagedUploadCleanupService,
 } = vi.hoisted(() => ({
   mockResearchMeetingModel: {
     createMeeting: vi.fn(),
     getMeetingById: vi.fn(),
     listProjectMeetings: vi.fn(),
+    deleteMeeting: vi.fn(),
     updateMeeting: vi.fn(),
     archiveMeetingMinutes: vi.fn(),
     upsertMeetingRating: vi.fn(),
@@ -50,6 +52,9 @@ const {
   },
   mockGenerateMeetingMinutes: vi.fn(),
   mockGetUserIdentityMap: vi.fn(),
+  mockManagedUploadCleanupService: {
+    cleanupUrls: vi.fn(),
+  },
 }));
 
 vi.mock('../models/research-meeting.model.js', () => ({
@@ -74,7 +79,7 @@ vi.mock('../models/user-identity.util.js', () => ({
 }));
 
 vi.mock('../services/managed-upload-cleanup.service.js', () => ({
-  ManagedUploadCleanupService: {},
+  ManagedUploadCleanupService: mockManagedUploadCleanupService,
 }));
 
 vi.mock('../services/project-access.service.js', () => ({
@@ -186,6 +191,7 @@ beforeEach(() => {
   ]);
   mockResearchModel.logActivity.mockResolvedValue('activity-1');
   mockNotificationModel.createNotificationForUsers.mockResolvedValue(undefined);
+  mockManagedUploadCleanupService.cleanupUrls.mockResolvedValue(undefined);
   mockGetUserIdentityMap.mockResolvedValue(new Map());
   mockResearchAgentService.isEnabled.mockReturnValue(true);
 });
@@ -224,6 +230,127 @@ describe('ResearchMeetingController access control', () => {
 
     expect(res.error).toHaveBeenCalledWith('只有组长可以安排会议', 'FORBIDDEN', 403);
     expect(mockResearchMeetingModel.createMeeting).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchMeetingController meeting deletion', () => {
+  function buildDeleteRequest(user: { sub: string; username: string; role: 'user' | 'admin' }) {
+    return {
+      params: { projectId: 'project-1', meetingId: 'meeting-1' },
+      user,
+    };
+  }
+
+  it('rejects ordinary members without touching meeting data', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildAccess());
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'member-1', username: 'alice', role: 'user' }),
+      res
+    );
+
+    expect(res.error).toHaveBeenCalledWith('只有管理员或组长可以删除会议', 'FORBIDDEN', 403);
+    expect(mockResearchMeetingModel.deleteMeeting).not.toHaveBeenCalled();
+    expect(mockManagedUploadCleanupService.cleanupUrls).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-members with the same server-side boundary', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildAccess({
+      membership: null,
+      role: null,
+      isMember: false,
+      canWrite: false,
+      canManage: false,
+      canAccessDiscussion: false,
+    }));
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'outsider-1', username: 'out', role: 'user' }),
+      res
+    );
+
+    expect(res.error).toHaveBeenCalledWith('只有管理员或组长可以删除会议', 'FORBIDDEN', 403);
+    expect(mockResearchMeetingModel.deleteMeeting).not.toHaveBeenCalled();
+  });
+
+  it('allows the authoritative owner and cleans the returned raw file after deletion', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildOwnerAccess());
+    mockResearchMeetingModel.deleteMeeting.mockResolvedValue({
+      rawFileUrl: '/uploads/meetings/meeting-1.docx',
+    });
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'owner-1', username: 'boss', role: 'user' }),
+      res
+    );
+
+    expect(mockResearchMeetingModel.deleteMeeting).toHaveBeenCalledWith('project-1', 'meeting-1');
+    expect(mockManagedUploadCleanupService.cleanupUrls).toHaveBeenCalledWith(
+      ['/uploads/meetings/meeting-1.docx'],
+      { reason: 'research.project-meeting.delete:meeting-1' }
+    );
+    expect(mockResearchModel.logActivity).not.toHaveBeenCalled();
+    expect(mockNotificationModel.createNotificationForUsers).not.toHaveBeenCalled();
+    expect(res.success).toHaveBeenCalledWith(null, '会议已删除');
+  });
+
+  it('allows a global admin when legacy owner state is malformed', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildAccess({
+      ownerStateValid: false,
+      isAdmin: true,
+      membership: null,
+      isMember: false,
+      canManage: false,
+    }));
+    mockResearchMeetingModel.deleteMeeting.mockResolvedValue({ rawFileUrl: null });
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'admin-1', username: 'admin', role: 'admin' }),
+      res
+    );
+
+    expect(mockResearchMeetingModel.deleteMeeting).toHaveBeenCalledWith('project-1', 'meeting-1');
+    expect(res.success).toHaveBeenCalledWith(null, '会议已删除');
+  });
+
+  it('returns not found without cleanup when the meeting is absent or from another project', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildOwnerAccess());
+    mockResearchMeetingModel.deleteMeeting.mockResolvedValue(null);
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'owner-1', username: 'boss', role: 'user' }),
+      res
+    );
+
+    expect(res.error).toHaveBeenCalledWith('会议未找到', 'MEETING_NOT_FOUND', 404);
+    expect(mockManagedUploadCleanupService.cleanupUrls).not.toHaveBeenCalled();
+  });
+
+  it('keeps delete success when post-commit cleanup fails', async () => {
+    mockProjectAccessService.getProjectAccess.mockResolvedValue(buildOwnerAccess());
+    mockResearchMeetingModel.deleteMeeting.mockResolvedValue({
+      rawFileUrl: '/uploads/meetings/meeting-1.docx',
+    });
+    mockManagedUploadCleanupService.cleanupUrls.mockRejectedValue(new Error('disk unavailable'));
+
+    const res = createResponse();
+    await invokeHandler(
+      ResearchMeetingController.deleteProjectMeeting,
+      buildDeleteRequest({ sub: 'owner-1', username: 'boss', role: 'user' }),
+      res
+    );
+
+    expect(res.success).toHaveBeenCalledWith(null, '会议已删除');
   });
 });
 

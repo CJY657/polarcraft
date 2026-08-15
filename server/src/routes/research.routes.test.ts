@@ -19,6 +19,7 @@ const doubles = vi.hoisted(() => {
     reorderProjectEvidence: vi.fn(passthrough),
     generateMeetingMinutesPreview: vi.fn(passthrough),
     archiveMeetingMinutes: vi.fn(passthrough),
+    deleteProjectMeeting: vi.fn(passthrough),
     uploadFile: vi.fn(passthrough),
   };
 });
@@ -144,5 +145,11 @@ describe('research meeting routes', () => {
     expect(
       findRoute('post', '/projects/:projectId/meetings/:meetingId/minutes')?.stack.at(-1)?.handle
     ).toBe(doubles.archiveMeetingMinutes);
+  });
+
+  it('wires the project-scoped meeting delete endpoint', () => {
+    expect(
+      findRoute('delete', '/projects/:projectId/meetings/:meetingId')?.stack.at(-1)?.handle
+    ).toBe(doubles.deleteProjectMeeting);
   });
 });

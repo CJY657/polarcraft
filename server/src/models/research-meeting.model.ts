@@ -8,7 +8,7 @@
  * peer-review feature (组外同伴评审).
  */
 
-import { getCollection } from '../database/connection.js';
+import { getCollection, withDatabaseTransaction } from '../database/connection.js';
 import { normalizeDocument, normalizeDocuments, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
@@ -221,6 +221,49 @@ export class ResearchMeetingModel {
         minutes: minutesMeta,
         has_minutes: Boolean(minutesMeta),
       } as ResearchMeetingListItem;
+    });
+  }
+
+  static async getProjectMeetingRawFileUrls(projectId: string): Promise<string[]> {
+    const meetings = await meetingsCollection()
+      .find({ project_id: projectId })
+      .project({ _id: 0, 'raw_file.url': 1 })
+      .toArray();
+
+    return meetings
+      .map((meeting) => (typeof meeting.raw_file?.url === 'string' ? meeting.raw_file.url.trim() : ''))
+      .filter(Boolean);
+  }
+
+  static async deleteMeeting(
+    projectId: string,
+    meetingId: string
+  ): Promise<{ rawFileUrl: string | null } | null> {
+    const now = new Date();
+
+    return withDatabaseTransaction(async (session) => {
+      const deletedMeeting = normalizeDocument<{ raw_file?: { url?: unknown } }>(
+        await meetingsCollection().findOneAndDelete(
+          { id: meetingId, project_id: projectId },
+          { projection: { _id: 0, 'raw_file.url': 1 }, session }
+        )
+      );
+
+      if (!deletedMeeting) {
+        return null;
+      }
+
+      await meetingRatingsCollection().deleteMany(
+        { project_id: projectId, meeting_id: meetingId },
+        { session }
+      );
+      await ResearchModel.touchProjectActivity(projectId, now, session);
+
+      const rawFileUrl = typeof deletedMeeting.raw_file?.url === 'string'
+        ? deletedMeeting.raw_file.url.trim() || null
+        : null;
+      logger.info(`Research meeting deleted: ${meetingId} in project ${projectId}`);
+      return { rawFileUrl };
     });
   }
 

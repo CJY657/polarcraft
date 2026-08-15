@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, ChevronDown, Download, Loader2, Star, Trophy } from 'lucide-react';
+import { CalendarPlus, ChevronDown, Download, Loader2, Star, Trash2, Trophy } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/utils/classNames';
@@ -122,6 +122,8 @@ export function ProjectMeetingsSection({
   const [ratingMeeting, setRatingMeeting] = useState<ProjectMeeting | null>(null);
   const [cancelTarget, setCancelTarget] = useState<ProjectMeeting | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectMeeting | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const membersById = useMemo(() => {
     const map = new Map<string, ProjectMember>();
@@ -273,6 +275,52 @@ export function ProjectMeetingsSection({
     }
   }
 
+  function clearMeetingState(meetingId: string) {
+    if (expandedId === meetingId || detail?.id === meetingId) {
+      if (expandedId === meetingId) {
+        setExpandedId(null);
+      }
+      setDetail(null);
+      setRatings(null);
+      setDetailError(null);
+    }
+    if (editingMeeting?.id === meetingId) {
+      setEditingMeeting(null);
+      setIsScheduleDialogOpen(false);
+    }
+    if (minutesMeeting?.id === meetingId) {
+      setMinutesMeeting(null);
+    }
+    if (ratingMeeting?.id === meetingId) {
+      setRatingMeeting(null);
+    }
+    if (cancelTarget?.id === meetingId) {
+      setCancelTarget(null);
+    }
+    setDeleteTarget(null);
+  }
+
+  async function handleDeleteMeeting() {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const meetingId = deleteTarget.id;
+    setIsDeleting(true);
+    setActionError(null);
+
+    try {
+      await researchApi.deleteProjectMeeting(projectId, meetingId);
+      clearMeetingState(meetingId);
+      await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : '删除会议失败');
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   function canRateMeeting(meeting: ProjectMeeting): boolean {
     return (
       meeting.status === 'completed'
@@ -318,6 +366,17 @@ export function ProjectMeetingsSection({
               整理纪要
             </button>
           </>
+        )}
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(meeting)}
+            aria-label={`删除会议 ${meeting.title}`}
+            className={cn(linkClass, 'text-[var(--color-destructive)]')}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            删除
+          </button>
         )}
         {canRateMeeting(meeting) && (
           <button
@@ -745,6 +804,26 @@ export function ProjectMeetingsSection({
           }
         }}
         isPending={isCancelling}
+        theme={theme}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="永久删除这场会议？"
+        description={
+          deleteTarget
+            ? `「${deleteTarget.title}」及其会议纪要、原始记录、AI 表现分和成员互评将被永久删除，无法恢复。`
+            : undefined
+        }
+        confirmLabel="确认删除会议"
+        cancelLabel="返回"
+        onConfirm={() => void handleDeleteMeeting()}
+        onCancel={() => {
+          if (!isDeleting) {
+            setDeleteTarget(null);
+          }
+        }}
+        isPending={isDeleting}
         theme={theme}
       />
     </ResearchSectionCard>

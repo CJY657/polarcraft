@@ -1,18 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { databaseSession, withDatabaseTransaction } = vi.hoisted(() => {
+  const databaseSession = { id: 'database-session' };
+  return {
+    databaseSession,
+    withDatabaseTransaction: vi.fn(
+      async (operation: (session: typeof databaseSession) => Promise<unknown>) => operation(databaseSession)
+    ),
+  };
+});
 const meetingsFind = vi.fn();
 const meetingsFindOne = vi.fn();
 const meetingsInsertOne = vi.fn();
 const meetingsUpdateOne = vi.fn();
+const meetingsFindOneAndDelete = vi.fn();
 const meetingsSort = vi.fn();
 const meetingsProject = vi.fn();
+const ratingsDeleteMany = vi.fn();
 const ratingsFind = vi.fn();
 const ratingsFindOne = vi.fn();
 const ratingsUpdateOne = vi.fn();
 const projectsUpdateOne = vi.fn();
 
 vi.mock('../database/connection.js', () => ({
-  withDatabaseTransaction: vi.fn(),
+  withDatabaseTransaction,
   getCollection: (name: string) => {
     switch (name) {
       case 'research_project_meetings':
@@ -21,12 +32,14 @@ vi.mock('../database/connection.js', () => ({
           findOne: (...args: unknown[]) => meetingsFindOne(...args),
           insertOne: (...args: unknown[]) => meetingsInsertOne(...args),
           updateOne: (...args: unknown[]) => meetingsUpdateOne(...args),
+          findOneAndDelete: (...args: unknown[]) => meetingsFindOneAndDelete(...args),
         };
       case 'research_meeting_member_ratings':
         return {
           find: (...args: unknown[]) => ratingsFind(...args),
           findOne: (...args: unknown[]) => ratingsFindOne(...args),
           updateOne: (...args: unknown[]) => ratingsUpdateOne(...args),
+          deleteMany: (...args: unknown[]) => ratingsDeleteMany(...args),
         };
       case 'research_projects':
         return {
@@ -177,6 +190,69 @@ describe('ResearchMeetingModel.listProjectMeetings', () => {
       attendee_ids: [],
       ai_scores: null,
     });
+  });
+});
+
+describe('ResearchMeetingModel.deleteMeeting', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ratingsDeleteMany.mockResolvedValue({ deletedCount: 2 });
+    projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
+  });
+
+  it('deletes the meeting and ratings with project-scoped filters in one transaction', async () => {
+    meetingsFindOneAndDelete.mockResolvedValue({
+      raw_file: { url: ' /uploads/meetings/record.docx ' },
+    });
+
+    await expect(ResearchMeetingModel.deleteMeeting('project-1', 'meeting-1')).resolves.toEqual({
+      rawFileUrl: '/uploads/meetings/record.docx',
+    });
+
+    expect(meetingsFindOneAndDelete).toHaveBeenCalledWith(
+      { id: 'meeting-1', project_id: 'project-1' },
+      { projection: { _id: 0, 'raw_file.url': 1 }, session: databaseSession }
+    );
+    expect(ratingsDeleteMany).toHaveBeenCalledWith(
+      { project_id: 'project-1', meeting_id: 'meeting-1' },
+      { session: databaseSession }
+    );
+    expect(projectsUpdateOne).toHaveBeenCalledWith(
+      { id: 'project-1' },
+      { $set: { last_activity_at: expect.any(Date) } },
+      { session: databaseSession }
+    );
+  });
+
+  it('returns null without cascading when the meeting is missing from the project', async () => {
+    meetingsFindOneAndDelete.mockResolvedValue(null);
+
+    await expect(ResearchMeetingModel.deleteMeeting('project-1', 'meeting-404')).resolves.toBeNull();
+
+    expect(ratingsDeleteMany).not.toHaveBeenCalled();
+    expect(projectsUpdateOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResearchMeetingModel.getProjectMeetingRawFileUrls', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    meetingsFind.mockReturnValue({
+      project: () => ({
+        toArray: async () => [
+          { raw_file: { url: ' /uploads/meetings/one.docx ' } },
+          { raw_file: null },
+          { raw_file: { url: '' } },
+        ],
+      }),
+    });
+  });
+
+  it('collects only non-empty project-scoped meeting raw-file URLs', async () => {
+    await expect(ResearchMeetingModel.getProjectMeetingRawFileUrls('project-1')).resolves.toEqual([
+      '/uploads/meetings/one.docx',
+    ]);
+    expect(meetingsFind).toHaveBeenCalledWith({ project_id: 'project-1' });
   });
 });
 

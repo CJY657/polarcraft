@@ -70,3 +70,17 @@ describe('researchApi evidence ordering', () => {
     expect(unwrapApiData).toHaveBeenCalledWith(response, '更新证据顺序失败');
   });
 });
+
+describe('researchApi meeting deletion', () => {
+  it('uses the project-scoped meeting delete endpoint', async () => {
+    const response = { success: true };
+    deleteRequest.mockResolvedValue(response);
+
+    await researchApi.deleteProjectMeeting('project-1', 'meeting-1');
+
+    expect(deleteRequest).toHaveBeenCalledWith(
+      '/api/research/projects/project-1/meetings/meeting-1'
+    );
+    expect(ensureApiSuccess).toHaveBeenCalledWith(response, '删除会议失败');
+  });
+});

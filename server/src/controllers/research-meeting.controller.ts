@@ -24,6 +24,8 @@ import { ResearchModel } from '../models/research.model.js';
 import { NotificationModel } from '../models/notification.model.js';
 import { getUserIdentityMap } from '../models/user-identity.util.js';
 import { generateMeetingMinutes } from '../services/meeting-ai.service.js';
+import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
+import { ProjectAccessService } from '../services/project-access.service.js';
 import {
   ResearchAgentDisabledError,
   ResearchAgentService,
@@ -420,6 +422,49 @@ export class ResearchMeetingController {
     }
 
     res.success(restrictAiScoresToViewer(meeting, req.user!.sub, access.canManage));
+  });
+
+  /**
+   * Permanently delete a meeting and its member ratings (owner/admin).
+   * 永久删除会议及其成员互评；托管记录文件在事务提交后回收。
+   */
+  static deleteProjectMeeting = asyncHandler(async (req: Request, res: Response) => {
+    const { projectId, meetingId } = req.params;
+    const access = await ProjectAccessService.getProjectAccess(
+      projectId,
+      req.user!.sub,
+      req.user!.role
+    );
+
+    if (!access.project) {
+      return res.error('项目未找到', 'PROJECT_NOT_FOUND', 404);
+    }
+
+    // This route intentionally keeps the admin malformed-owner override local;
+    // other manage endpoints retain ensureProjectAccess's owner-state guard.
+    if (req.user!.role !== 'admin' && !access.canManage) {
+      return res.error('只有管理员或组长可以删除会议', 'FORBIDDEN', 403);
+    }
+
+    const deleted = await ResearchMeetingModel.deleteMeeting(projectId, meetingId);
+    if (!deleted) {
+      return res.error('会议未找到', 'MEETING_NOT_FOUND', 404);
+    }
+
+    try {
+      await ManagedUploadCleanupService.cleanupUrls([deleted.rawFileUrl], {
+        reason: `research.project-meeting.delete:${meetingId}`,
+      });
+    } catch (error) {
+      logger.error('Research meeting raw-file cleanup failed after deletion', {
+        projectId,
+        meetingId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    logger.info(`Research meeting deleted by user ${req.user!.username}: ${meetingId}`);
+    res.success(null, '会议已删除');
   });
 
   /**

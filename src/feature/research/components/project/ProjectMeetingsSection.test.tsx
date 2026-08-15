@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   ProjectLeaderboardEntry,
@@ -13,6 +13,7 @@ const mockGetProjectMeetings = vi.fn();
 const mockGetProjectMeeting = vi.fn();
 const mockCreateProjectMeeting = vi.fn();
 const mockUpdateProjectMeeting = vi.fn();
+const mockDeleteProjectMeeting = vi.fn();
 const mockGenerateMeetingMinutes = vi.fn();
 const mockArchiveMeetingMinutes = vi.fn();
 const mockUploadMeetingRecordFile = vi.fn();
@@ -26,6 +27,7 @@ vi.mock('@/lib/research.service', () => ({
     getProjectMeeting: (...args: unknown[]) => mockGetProjectMeeting(...args),
     createProjectMeeting: (...args: unknown[]) => mockCreateProjectMeeting(...args),
     updateProjectMeeting: (...args: unknown[]) => mockUpdateProjectMeeting(...args),
+    deleteProjectMeeting: (...args: unknown[]) => mockDeleteProjectMeeting(...args),
     generateMeetingMinutes: (...args: unknown[]) => mockGenerateMeetingMinutes(...args),
     archiveMeetingMinutes: (...args: unknown[]) => mockArchiveMeetingMinutes(...args),
     uploadMeetingRecordFile: (...args: unknown[]) => mockUploadMeetingRecordFile(...args),
@@ -114,6 +116,7 @@ describe('ProjectMeetingsSection', () => {
     mockGetProjectMeeting.mockReset();
     mockCreateProjectMeeting.mockReset();
     mockUpdateProjectMeeting.mockReset();
+    mockDeleteProjectMeeting.mockReset();
     mockGenerateMeetingMinutes.mockReset();
     mockArchiveMeetingMinutes.mockReset();
     mockUploadMeetingRecordFile.mockReset();
@@ -206,6 +209,125 @@ describe('ProjectMeetingsSection', () => {
     expect(await screen.findByText('第一次例会')).toBeTruthy();
     expect(screen.queryByText(/尚未安排下次讨论/)).toBeNull();
     expect(screen.queryByRole('button', { name: '安排会议' })).toBeNull();
+  });
+
+  it('shows deletion for managers on every meeting status and hides it from members', async () => {
+    mockGetProjectMeetings.mockResolvedValue([
+      createMeeting({ id: 'meeting-scheduled', title: '待举行会议', status: 'scheduled' }),
+      createMeeting({ id: 'meeting-completed', title: '已完成会议', status: 'completed' }),
+      createMeeting({ id: 'meeting-cancelled', title: '已取消会议', status: 'cancelled' }),
+    ]);
+
+    const { unmount } = render(
+      <ProjectMeetingsSection
+        projectId="project-1"
+        members={members}
+        currentUserId="owner-1"
+        canManage
+      />
+    );
+
+    expect(await screen.findByText('待举行会议')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除会议 待举行会议' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除会议 已完成会议' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除会议 已取消会议' })).toBeTruthy();
+    unmount();
+
+    render(
+      <ProjectMeetingsSection
+        projectId="project-1"
+        members={members}
+        currentUserId="member-a"
+        canManage={false}
+      />
+    );
+
+    expect(await screen.findByText('待举行会议')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '删除会议 待举行会议' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除会议 已完成会议' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除会议 已取消会议' })).toBeNull();
+  });
+
+  it('confirms deletion, reloads meetings and leaderboard, and removes the deleted row', async () => {
+    const meeting = createMeeting({ title: '待删除会议', status: 'completed' });
+    mockGetProjectMeetings
+      .mockResolvedValueOnce([meeting])
+      .mockResolvedValueOnce([]);
+    mockDeleteProjectMeeting.mockResolvedValue(undefined);
+
+    render(
+      <ProjectMeetingsSection
+        projectId="project-1"
+        members={members}
+        currentUserId="owner-1"
+        canManage
+      />
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除会议 待删除会议' }));
+    expect(screen.getByRole('alertdialog', { name: '永久删除这场会议？' })).toBeTruthy();
+    expect(screen.getByText(/会议纪要、原始记录、AI 表现分和成员互评/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: '确认删除会议' }));
+
+    await waitFor(() => {
+      expect(mockDeleteProjectMeeting).toHaveBeenCalledWith('project-1', 'meeting-1');
+      expect(mockGetProjectMeetings).toHaveBeenCalledTimes(2);
+      expect(mockGetProjectLeaderboard).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText('待删除会议')).toBeNull();
+    });
+  });
+
+  it('locks the destructive confirmation while deletion is pending', async () => {
+    const meeting = createMeeting({ title: '处理中会议', status: 'scheduled' });
+    let resolveDelete: (() => void) | undefined;
+    mockGetProjectMeetings.mockResolvedValue([meeting]);
+    mockDeleteProjectMeeting.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      })
+    );
+
+    render(
+      <ProjectMeetingsSection
+        projectId="project-1"
+        members={members}
+        currentUserId="owner-1"
+        canManage
+      />
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除会议 处理中会议' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认删除会议' }));
+
+    const confirmButton = screen.getByRole('button', { name: '确认删除会议' });
+    await waitFor(() => expect((confirmButton as HTMLButtonElement).disabled).toBe(true));
+    expect(mockDeleteProjectMeeting).toHaveBeenCalledTimes(1);
+
+    resolveDelete?.();
+    await waitFor(() => expect(screen.queryByRole('alertdialog', { name: '永久删除这场会议？' })).toBeNull());
+  });
+
+  it('retains the meeting and shows the action error when deletion fails', async () => {
+    const meeting = createMeeting({ title: '删除失败会议', status: 'cancelled' });
+    mockGetProjectMeetings.mockResolvedValue([meeting]);
+    mockDeleteProjectMeeting.mockRejectedValue(new Error('服务器拒绝删除'));
+
+    render(
+      <ProjectMeetingsSection
+        projectId="project-1"
+        members={members}
+        currentUserId="owner-1"
+        canManage
+      />
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除会议 删除失败会议' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认删除会议' }));
+
+    expect(await screen.findByText('服务器拒绝删除')).toBeTruthy();
+    expect(screen.getByText('删除失败会议')).toBeTruthy();
+    expect(screen.queryByRole('alertdialog', { name: '永久删除这场会议？' })).toBeNull();
   });
 
   it('prompts managers to schedule the first meeting when none exists', async () => {

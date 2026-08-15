@@ -4,6 +4,7 @@
  */
 
 import { getCollection, withDatabaseTransaction } from '../database/connection.js';
+import type { ClientSession } from 'mongodb';
 import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
@@ -42,6 +43,8 @@ const projectChartersCollection = () => getCollection('research_project_charters
 const projectTasksCollection = () => getCollection('research_project_tasks');
 const projectReviewsCollection = () => getCollection('research_project_reviews');
 const projectOutcomesCollection = () => getCollection('research_project_outcomes');
+const projectMeetingsCollection = () => getCollection('research_project_meetings');
+const meetingRatingsCollection = () => getCollection('research_meeting_member_ratings');
 
 /**
  * The activity log is appended on every project mutation and its payload is
@@ -551,7 +554,20 @@ export class ResearchModel {
     return await researchProjectsCollection().findOne({ id: projectId }) ? 'conflict' : 'not_found';
   }
 
-  static async touchProjectActivity(projectId: string, at: Date = new Date()): Promise<void> {
+  static async touchProjectActivity(
+    projectId: string,
+    at: Date = new Date(),
+    session?: ClientSession
+  ): Promise<void> {
+    if (session) {
+      await researchProjectsCollection().updateOne(
+        { id: projectId },
+        { $set: { last_activity_at: at } },
+        { session }
+      );
+      return;
+    }
+
     await researchProjectsCollection().updateOne(
       { id: projectId },
       { $set: { last_activity_at: at } }
@@ -873,6 +889,8 @@ export class ResearchModel {
       projectTasksCollection().deleteMany({ project_id: projectId }),
       projectReviewsCollection().deleteMany({ project_id: projectId }),
       projectOutcomesCollection().deleteMany({ project_id: projectId }),
+      projectMeetingsCollection().deleteMany({ project_id: projectId }),
+      meetingRatingsCollection().deleteMany({ project_id: projectId }),
       agentMessagesCollection().deleteMany({ project_id: projectId }),
       activityLogCollection().deleteMany({ project_id: projectId }),
       projectSettingsCollection().deleteMany({ project_id: projectId }),

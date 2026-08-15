@@ -17,6 +17,7 @@ import {
   type ResearchProjectEvidenceType,
   type UpdateResearchProjectTaskInput,
 } from '../models/research.model.js';
+import { ResearchMeetingModel } from '../models/research-meeting.model.js';
 import type {
   ResearchProjectReviewVerdict,
   ResearchProjectTaskStatus,
@@ -1377,11 +1378,15 @@ export class ResearchController {
 
     const coverUrl = access.project.thumbnail;
     const evidenceAttachmentUrls = await ResearchModel.getProjectEvidenceAttachmentUrls(id);
+    const meetingRawFileUrls = await ResearchMeetingModel.getProjectMeetingRawFileUrls(id);
     await ResearchModel.deleteProject(id);
     await deleteLeadershipTransferInvitation(getPendingLeadershipTransfer(access.project));
-    await ManagedUploadCleanupService.cleanupUrls([coverUrl, ...evidenceAttachmentUrls], {
-      reason: `research.project.delete:${id}`,
-    });
+    await ManagedUploadCleanupService.cleanupUrls(
+      [coverUrl, ...evidenceAttachmentUrls, ...meetingRawFileUrls],
+      {
+        reason: `research.project.delete:${id}`,
+      }
+    );
     logger.info(`Project deleted by user ${req.user!.username}: ${id}`);
     res.success(null, '项目删除成功');
   });

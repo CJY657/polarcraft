@@ -7,6 +7,7 @@ const {
   mockManagedUploadCleanupService,
   mockResearchAgentService,
   mockProjectAccessService,
+  mockResearchMeetingModel,
 } = vi.hoisted(() => ({
   mockResearchModel: {
     getUserProjects: vi.fn(),
@@ -79,6 +80,9 @@ const {
     isEnabled: vi.fn(),
     createChatCompletion: vi.fn(),
   },
+  mockResearchMeetingModel: {
+    getProjectMeetingRawFileUrls: vi.fn(),
+  },
   mockProjectAccessService: {
     getProjectAccess: vi.fn(),
     // The level → capability mapping is policy the controller relies on, so the
@@ -97,6 +101,10 @@ const {
 
 vi.mock('../models/research.model.js', () => ({
   ResearchModel: mockResearchModel,
+}));
+
+vi.mock('../models/research-meeting.model.js', () => ({
+  ResearchMeetingModel: mockResearchMeetingModel,
 }));
 
 vi.mock('../models/notification.model.js', () => ({
@@ -157,6 +165,7 @@ describe('ResearchController member management', () => {
       isFull: false,
     });
     mockResearchModel.getProjectEvidenceAttachmentUrls.mockResolvedValue([]);
+    mockResearchMeetingModel.getProjectMeetingRawFileUrls.mockResolvedValue([]);
     mockProfileModel.getOrCreateProjectSettings.mockResolvedValue({ visibility: 'private' });
     mockResearchAgentService.isEnabled.mockReturnValue(false);
   });
@@ -544,6 +553,9 @@ describe('ResearchController member management', () => {
       '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
       '/uploads/courses/project-evidence-project-1/image/support.png',
     ]);
+    mockResearchMeetingModel.getProjectMeetingRawFileUrls.mockResolvedValue([
+      '/uploads/meetings/project-1/record.docx',
+    ]);
     mockResearchModel.deleteProject.mockResolvedValue(true);
 
     const req = {
@@ -560,6 +572,7 @@ describe('ResearchController member management', () => {
         '/uploads/courses/project-cover-project-1/image/cover.png',
         '/uploads/courses/project-evidence-project-1/pdf/record.pdf',
         '/uploads/courses/project-evidence-project-1/image/support.png',
+        '/uploads/meetings/project-1/record.docx',
       ],
       { reason: 'research.project.delete:project-1' }
     );
