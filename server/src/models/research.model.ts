@@ -589,10 +589,6 @@ export class ResearchModel {
     );
   }
 
-  static async cycleBelongsToProject(projectId: string, cycleId: string): Promise<boolean> {
-    return Boolean(await projectCyclesCollection().findOne({ id: cycleId, project_id: projectId }));
-  }
-
   /**
    * Get the current cycle, lazily creating cycle 1 for legacy projects that
    * were created before cycles existed. No migration needed.

@@ -6,5 +6,5 @@
 export * from './SearchFilter'
 export * from './PersistentHeader'
 export * from './LearningSectionNav'
-export * from './SecureVideoPlayer'
+export * from './SecureImageViewer'
 export * from './Footer'

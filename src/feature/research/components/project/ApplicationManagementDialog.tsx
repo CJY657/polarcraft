@@ -135,7 +135,7 @@ export function ApplicationManagementDialog({
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog isOpen={isOpen} onClose={onClose}>
       <div className={cn(
         "w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"

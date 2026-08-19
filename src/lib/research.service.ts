@@ -317,28 +317,6 @@ export interface ProjectEvidenceAttachmentUploadResult {
   unitId: string;
 }
 
-export interface CreateProjectInput {
-  name_zh: string;
-  name_en?: string;
-  description_zh?: string;
-  description_en?: string;
-  research_questions_zh?: string;
-  research_hypotheses_zh?: string;
-  basic_plan_zh?: string;
-  extended_plan_zh?: string;
-  challenge_value_zh?: string;
-  challenge_objectives_zh?: string;
-  challenge_beginner_steps_zh?: string;
-  challenge_min_deliverables_zh?: string;
-  challenge_review_criteria_zh?: string;
-  challenge_timeline_zh?: string;
-  challenge_difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  challenge_roles_zh?: string;
-  challenge_missing_roles_zh?: string;
-  challenge_progress_zh?: string;
-  is_public?: boolean;
-}
-
 export interface UpdateProjectInput {
   name_zh?: string;
   name_en?: string;
@@ -544,15 +522,6 @@ export const researchApi = {
   getProject: async (projectId: string): Promise<ProjectWithMembers> => {
     const response = await api.get<ProjectWithMembers>(`/api/research/projects/${projectId}`);
     return unwrapApiData(response, '获取课题详情失败');
-  },
-
-  /**
-   * Create new project
-   * 创建新课题
-   */
-  createProject: async (input: CreateProjectInput): Promise<ResearchProject> => {
-    const response = await api.post<ResearchProject>('/api/research/projects', input);
-    return unwrapApiData(response, '创建课题失败');
   },
 
   /**
@@ -913,17 +882,6 @@ export const researchApi = {
       { content, history }
     );
     return unwrapApiData(response, 'AI 顾问暂时不可用');
-  },
-
-  /**
-   * Clear project AI advisor messages
-   * 清空课题 AI 顾问消息
-   */
-  clearProjectAgentMessages: async (projectId: string): Promise<{ deletedCount: number }> => {
-    const response = await api.delete<{ deletedCount: number }>(
-      `/api/research/projects/${projectId}/agent/messages`
-    );
-    return unwrapApiData(response, '清空 AI 顾问消息失败');
   },
 
   // =====================================================

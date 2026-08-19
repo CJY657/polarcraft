@@ -168,46 +168,6 @@ export function PresetButtons({ options, value, onChange, columns = 2 }: PresetB
   );
 }
 
-// 按钮组
-interface ButtonGroupProps {
-  label: string;
-  options: { value: string | number; label: Record<string, string> }[];
-  value: string | number;
-  onChange: (value: string | number) => void;
-}
-
-export function ButtonGroup({ label, options, value, onChange }: ButtonGroupProps) {
-  const { theme } = useTheme();
-  const { i18n } = useTranslation();
-  return (
-    <div className="space-y-2">
-      <span className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-        {label}
-      </span>
-      <div className="flex gap-2 flex-wrap">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "px-3 py-1.5 rounded-md text-sm transition-all",
-              value === option.value
-                ? theme === "dark"
-                  ? "bg-cyan-400/30 text-cyan-400 border border-cyan-400/50"
-                  : "bg-cyan-100 text-cyan-700 border border-cyan-300"
-                : theme === "dark"
-                  ? "bg-slate-700/50 text-gray-400 border border-slate-600 hover:border-cyan-400/30"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-cyan-300",
-            )}
-          >
-            {option.label[i18n.language]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // 切换开关
 interface ToggleProps {
   label: string | ReactNode;
@@ -249,40 +209,6 @@ export function Toggle({ label, checked, onChange }: ToggleProps) {
         {label}
       </span>
     </label>
-  );
-}
-
-// 信息面板
-interface InfoPanelProps {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}
-
-export function InfoPanel({ title, children, className }: InfoPanelProps) {
-  const { theme } = useTheme();
-  return (
-    <div
-      className={cn(
-        "rounded-lg p-4 border",
-        theme === "dark"
-          ? "bg-slate-800/50 border-slate-700/50"
-          : "bg-white border-gray-200 shadow-sm",
-        className,
-      )}
-    >
-      <h4
-        className={cn(
-          "text-sm font-semibold mb-2",
-          theme === "dark" ? "text-cyan-400" : "text-cyan-600",
-        )}
-      >
-        {title}
-      </h4>
-      <div className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -536,38 +462,6 @@ export function ListItem({ icon, children, className }: ListItemProps) {
         </span>
       )}
       <span>{children}</span>
-    </div>
-  );
-}
-
-// 简单图表 - 用于展示简单的示意图
-interface SimpleDiagramProps {
-  src?: string;
-  alt?: string;
-  children?: ReactNode;
-  className?: string;
-}
-
-export function SimpleDiagram({ src, alt, children, className }: SimpleDiagramProps) {
-  const { theme } = useTheme();
-  return (
-    <div
-      className={cn(
-        "rounded-lg p-3 border",
-        "flex items-center justify-center min-h-[100px]",
-        theme === "dark" ? "bg-slate-900/50 border-slate-700/50" : "bg-gray-50 border-gray-200",
-        className,
-      )}
-    >
-      {src ? (
-        <img
-          src={src}
-          alt={alt}
-          className="max-w-full max-h-[120px] object-contain"
-        />
-      ) : (
-        children
-      )}
     </div>
   );
 }

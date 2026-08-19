@@ -1,1 +1,0 @@
-export { MediaGallery } from "./MediaGallery";

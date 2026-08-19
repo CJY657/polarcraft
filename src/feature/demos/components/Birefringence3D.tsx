@@ -12,10 +12,7 @@ import { useFrame } from "@react-three/fiber";
 import { Text, Line, Grid, MeshTransmissionMaterial, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import type { BirefringenceParams } from "@/lib/physics/GeometricOptics";
-import {
-  calculateBirefringenceRayPaths,
-  calculateDoubleImageOffset,
-} from "@/lib/physics/GeometricOptics";
+import { calculateBirefringenceRayPaths } from "@/lib/physics/GeometricOptics";
 
 // ============================================================================
 // 晶体组件 | CRYSTAL COMPONENTS
@@ -102,86 +99,6 @@ export function CalciteCrystal({
         <lineBasicMaterial color="#bae6fd" transparent opacity={0.55} />
       </lineSegments>
     </group>
-  );
-}
-
-/**
- * 石英晶体（预留） | Quartz Crystal
- * 石英的双折射率较小 | Quartz has lower birefringence
- *
- * @param props.rotation - 晶体旋转角度 [x, y, z]（弧度）| Crystal rotation angles [x, y, z] in radians
- */
-export function QuartzCrystal({
-  rotation,
-}: {
-  rotation: [number, number, number];
-}) {
-  // 石英通常呈六方柱状 | Quartz typically forms hexagonal prisms
-  const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-
-    const radius = 1.2;
-    const height = 1.5;
-    const segments = 6;
-
-    const vertices: number[] = [];
-    const indices: number[] = [];
-
-    // 生成六方柱顶点 | Generate hexagonal prism vertices
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const x = radius * Math.cos(angle);
-      const z = radius * Math.sin(angle);
-
-      // 底面顶点 | Bottom vertices
-      vertices.push(x, -height, z);
-      // 顶面顶点 | Top vertices
-      vertices.push(x, height, z);
-    }
-
-    // 生成面 | Generate faces
-    for (let i = 0; i < segments; i++) {
-      const next = (i + 1) % segments;
-      const i0 = i * 2;
-      const i1 = i * 2 + 1;
-      const i2 = next * 2;
-      const i3 = next * 2 + 1;
-
-      // 侧面 | Side faces
-      indices.push(i0, i2, i1);
-      indices.push(i1, i2, i3);
-    }
-
-    // 顶面 | Top face
-    for (let i = 1; i < segments - 1; i++) {
-      indices.push(1, i * 2 + 1, (i + 1) * 2 + 1);
-    }
-    // 底面 | Bottom face
-    for (let i = 1; i < segments - 1; i++) {
-      indices.push(0, (i + 1) * 2, i * 2);
-    }
-
-    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(vertices), 3));
-    geo.setIndex(indices);
-    geo.computeVertexNormals();
-
-    return geo;
-  }, []);
-
-  return (
-    <mesh geometry={geometry} rotation={rotation}>
-      <meshPhysicalMaterial
-        color="#ffffff"
-        transmission={0.8}
-        opacity={0.5}
-        metalness={0}
-        roughness={0.1}
-        ior={1.544} // 石英折射率 | Quartz refractive index
-        thickness={0.4}
-        transparent={true}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
   );
 }
 
@@ -921,91 +838,6 @@ export function AngleArc({
 }
 
 // ============================================================================
-// 双像组件 | DOUBLE IMAGE COMPONENTS
-// ============================================================================
-
-/**
- * 双像文字样本 - 展示双像效应 | Double Text Sample - Shows the double image effect
- * 通过方解石观看文字时会产生两个偏移的像 | Viewing text through calcite creates two offset images
- *
- * @param show - 是否显示 | Whether to show
- * @param params - 双折射参数 | Birefringence parameters
- */
-export function DoubleTextSample({
-  show,
-  params,
-}: {
-  show: boolean;
-  params: BirefringenceParams;
-}) {
-  if (!show) return null;
-
-  // 计算偏移量 | Calculate offsets
-  const { oRayOffset, eRayOffset } = calculateDoubleImageOffset(params);
-
-  return (
-    <group position={[0, -1.5, 0]}>
-      {/* 原始文字参考位置 | Original text reference position */}
-      <Text
-        position={[0, 0, 0]}
-        fontSize={0.25}
-        color="#444444"
-        anchorX="center"
-        anchorY="middle"
-      >
-        原始文字
-      </Text>
-
-      {/* o光像（偏移一个方向）| O-ray image (offset one way) */}
-      <Text
-        position={[oRayOffset, 0, 0]}
-        fontSize={0.3}
-        color="#00ffff"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.02}
-        outlineColor="#006666"
-      >
-        双折射 (o光)
-      </Text>
-
-      {/* e光像（偏移另一个方向）| E-ray image (offset other way) */}
-      <Text
-        position={[eRayOffset, 0, 0]}
-        fontSize={0.3}
-        color="#ff00ff"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.02}
-        outlineColor="#660066"
-      >
-        双折射 (e光)
-      </Text>
-
-      {/* 标签 | Labels */}
-      <Text
-        position={[oRayOffset, -0.5, 0]}
-        fontSize={0.12}
-        color="#00ffff"
-        anchorX="center"
-        anchorY="middle"
-      >
-        o光像
-      </Text>
-      <Text
-        position={[eRayOffset, -0.5, 0]}
-        fontSize={0.12}
-        color="#ff00ff"
-        anchorX="center"
-        anchorY="middle"
-      >
-        e光像
-      </Text>
-    </group>
-  );
-}
-
-// ============================================================================
 // 环境组件 | ENVIRONMENT COMPONENTS
 // ============================================================================
 
@@ -1118,57 +950,3 @@ export function SceneLabels({
     </>
   );
 }
-
-// ============================================================================
-// 预留扩展组件 - 未来可添加的功能 | RESERVED EXTENSION COMPONENTS
-// ============================================================================
-
-// /**
-//  * 反射光组件 | Reflected Ray Component
-//  * 用于演示晶体表面的反射 | For demonstrating reflection at crystal surface
-//  *
-//  * TODO: 实现反射光计算和可视化 | Implement reflected ray calculation and visualization
-//  */
-// export function ReflectedRay({ params, animate }: { params: BirefringenceParams; animate: boolean }) {
-//   return null;
-// }
-
-// /**
-//  * 波前组件 | Wavefront Component
-//  * 可视化o光和e光的波前差异 | Visualize wavefront differences between o-ray and e-ray
-//  *
-//  * TODO: 实现波前动画 | Implement wavefront animation
-//  */
-// export function WavefrontVisualization({ params, time }: { params: BirefringenceParams; time: number }) {
-//   return null;
-// }
-
-// /**
-//  * 相位延迟组件 | Phase Retardation Component
-//  * 显示o光和e光之间的相位差 | Display phase difference between o-ray and e-ray
-//  *
-//  * TODO: 实现相位延迟计算 | Implement phase retardation calculation
-//  */
-// export function PhaseRetardationIndicator({ params }: { params: BirefringenceParams }) {
-//   return null;
-// }
-
-// /**
-//  * 折射率椭球组件 | Refractive Index Ellipsoid Component
-//  * 3D可视化折射率椭球 | 3D visualization of refractive index ellipsoid
-//  *
-//  * TODO: 实现3D椭球可视化 | Implement 3D ellipsoid visualization
-//  */
-// export function IndexEllipsoid({ params }: { params: BirefringenceParams }) {
-//   return null;
-// }
-
-// /**
-//  * 偏振椭圆可视化 | Polarization Ellipse Visualization
-//  * 显示光的偏振态椭圆 | Show polarization ellipse of light
-//  *
-//  * TODO: 实现偏振椭圆可视化 | Implement polarization ellipse visualization
-//  */
-// export function PolarizationEllipse({ params }: { params: BirefringenceParams }) {
-//   return null;
-// }

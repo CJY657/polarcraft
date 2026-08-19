@@ -16,17 +16,6 @@ import {
   normalizeKnowledgeTag,
 } from "@/lib/course.service";
 
-interface CourseState {
-  courses: Course[];
-  isLoading: boolean;
-  error: string | null;
-
-  // Actions
-  fetchCourses: () => Promise<void>;
-  getCourseById: (id: string) => Course | undefined;
-  clearError: () => void;
-}
-
 function normalizeCourse(course: Course): Course {
   return {
     ...course,
@@ -44,29 +33,6 @@ function normalizeCourse(course: Course): Course {
   };
 }
 
-export const useCourseStore = create<CourseState>((set, get) => ({
-  courses: [],
-  isLoading: false,
-  error: null,
-
-  fetchCourses: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const courses = await courseApi.getPublicCourses();
-      set({ courses: courses.map(normalizeCourse), isLoading: false });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to fetch courses";
-      set({ error: message, isLoading: false });
-    }
-  },
-
-  getCourseById: (id: string) => {
-    return get().courses.find((c) => c.id === id);
-  },
-
-  clearError: () => set({ error: null }),
-}));
-
 // =====================================================
 // Course Detail Store (for individual course page)
 // 课程详情 Store (用于单个课程页面)
@@ -82,7 +48,6 @@ interface CourseDetailState {
 
   // Actions
   fetchCourse: (courseId: string) => Promise<void>;
-  clearError: () => void;
   reset: () => void;
 }
 
@@ -112,7 +77,6 @@ export const useCourseDetailStore = create<CourseDetailState>((set) => ({
     }
   },
 
-  clearError: () => set({ error: null }),
   reset: () =>
     set({
       course: null,

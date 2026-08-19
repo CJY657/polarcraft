@@ -26,7 +26,12 @@ import { formatActivityDelta, formatEventName, formatPagePath } from '@/lib/acti
 import { buildValueAxis, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
 import AdminLearnerActivityDrawer from '@/pages/admin/AdminLearnerActivityDrawer';
 import { cn } from '@/utils/classNames';
-import { formatShortDateTime } from '@/lib/datetime.util';
+import {
+  formatMonthDay,
+  formatShortDateTime,
+  lastDaysRange,
+  toDateInput,
+} from '@/lib/datetime.util';
 
 const RANGES: Array<{ days: number; label: string }> = [
   { days: 7, label: '近 7 天' },
@@ -49,30 +54,9 @@ const USER_TYPE_COPY: Record<AdminActivityUserType, { noun: string }> = {
 
 const CHART_COLORS = ['#ff4d8b', '#1a3a3a', '#b8a4ed', '#ffb084', '#e8b94a'];
 
-function toDateInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function presetRange(days: number): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
-  return { start: toDateInput(start), end: toDateInput(end) };
-}
-
-function formatDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-  });
-}
-
 export default function AdminActivityPage() {
   const { theme } = useTheme();
-  const [range, setRange] = useState(() => presetRange(7));
+  const [range, setRange] = useState(() => lastDaysRange(7));
   const [customRange, setCustomRange] = useState(range);
   const [userType, setUserType] = useState<AdminActivityUserType>('student');
   const [limit, setLimit] = useState<AdminActivityLimit>(10);
@@ -125,7 +109,7 @@ export default function AdminActivityPage() {
   };
 
   const selectPresetRange = (days: number) => {
-    const nextRange = presetRange(days);
+    const nextRange = lastDaysRange(days);
     setCustomRange(nextRange);
     setRange(nextRange);
   };
@@ -240,7 +224,7 @@ export default function AdminActivityPage() {
               aria-label="统计时间范围"
             >
               {RANGES.map((preset) => {
-                const presetDates = presetRange(preset.days);
+                const presetDates = lastDaysRange(preset.days);
                 const selected =
                   range.start === presetDates.start && range.end === presetDates.end;
                 return (
@@ -745,7 +729,7 @@ function DailyTrend({
               fill={tickColor}
               fontSize="13"
             >
-              {formatDate(daily[index].date)}
+              {formatMonthDay(daily[index].date)}
             </text>
           </g>
         ))}

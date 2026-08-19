@@ -18,10 +18,6 @@ import { logger } from '../utils/logger.js';
 export class EmailService {
   private static transporter: nodemailer.Transporter | null = null;
 
-  static isEnabled(): boolean {
-    return config.email.enabled;
-  }
-
   /**
    * Initialize email transporter
    * 初始化邮件传输器
@@ -266,25 +262,4 @@ If you did not add this email to PolariScope, please ignore this email.
     });
   }
 
-  /**
-   * Test email configuration
-   * 测试邮件配置
-   */
-  static async testConnection(): Promise<boolean> {
-    const transporter = this.getTransporter();
-
-    if (!transporter) {
-      logger.warn('Email service is disabled or not configured');
-      return false;
-    }
-
-    try {
-      await transporter.verify();
-      logger.info('Email server connection verified');
-      return true;
-    } catch (error) {
-      logger.error('Email server connection failed:', error);
-      return false;
-    }
-  }
 }

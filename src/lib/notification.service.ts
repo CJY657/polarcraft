@@ -36,16 +36,6 @@ export interface NotificationListResponse {
   unread_count: number;
 }
 
-export interface CreateNotificationInput {
-  user_id: string;
-  type: NotificationType;
-  title: string;
-  content?: string;
-  data?: Record<string, any>;
-  action_url?: string;
-  expires_at?: string;
-}
-
 // =====================================================
 // Notification API Methods / 通知 API 方法
 // =====================================================

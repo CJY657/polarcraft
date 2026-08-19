@@ -2,9 +2,8 @@
  * Quiz tier presentation helpers (client-side).
  * 测验评级的前端展示辅助。
  *
- * Tier thresholds/ids come from the server; this maps a tier id to display
- * colors and shares a percent→tier fallback for rendering historical rows.
- * 评级阈值与 id 来自服务端；此处将 id 映射到展示颜色，并提供百分比→评级的兜底。
+ * Tier thresholds/ids come from the server; this maps a tier id to display colors.
+ * 评级阈值与 id 来自服务端；此处将 id 映射到展示颜色。
  */
 
 import type { QuizTier } from '@/lib/quiz.service';
@@ -31,20 +30,6 @@ export const DEFAULT_TIER_STYLE: TierStyle = TIER_STYLES.novice;
 export function tierStyle(tierId: string | null | undefined): TierStyle {
   if (!tierId) return DEFAULT_TIER_STYLE;
   return TIER_STYLES[tierId] ?? DEFAULT_TIER_STYLE;
-}
-
-/**
- * Resolve a percent to its tier from the server-provided ladder.
- * 依据服务端提供的评级阶梯，将百分比解析为对应评级。
- */
-export function tierForPercent(percent: number, tiers: QuizTier[]): QuizTier | null {
-  if (!tiers.length) return null;
-  const ascending = [...tiers].sort((a, b) => a.minPercent - b.minPercent);
-  let resolved = ascending[0];
-  for (const tier of ascending) {
-    if (percent >= tier.minPercent) resolved = tier;
-  }
-  return resolved;
 }
 
 /** Look up a tier's Chinese label by id. 按 id 查评级中文名。 */

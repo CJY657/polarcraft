@@ -102,7 +102,6 @@ export function ProfileCompletionModal() {
       onClose={() => undefined}
       closeOnEsc={false}
       closeOnOverlayClick={false}
-      showCloseButton={false}
       className="border-clay-surface-strong bg-clay-canvas"
     >
       <div className="p-6 sm:p-7">

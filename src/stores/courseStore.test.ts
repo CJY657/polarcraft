@@ -6,11 +6,7 @@ import { useCourseDetailStore } from "./courseStore";
 
 const { mockCourseApi } = vi.hoisted(() => ({
   mockCourseApi: {
-    getPublicCourses: vi.fn(),
     getPublicCourse: vi.fn(),
-    getPublicMainSlide: vi.fn(),
-    getPublicMediaList: vi.fn(),
-    getPublicHyperlinks: vi.fn(),
   },
 }));
 
@@ -23,11 +19,7 @@ vi.mock("@/lib/course.service", () => ({
 describe("useCourseDetailStore", () => {
   beforeEach(() => {
     useCourseDetailStore.getState().reset();
-    mockCourseApi.getPublicCourses.mockReset();
     mockCourseApi.getPublicCourse.mockReset();
-    mockCourseApi.getPublicMainSlide.mockReset();
-    mockCourseApi.getPublicMediaList.mockReset();
-    mockCourseApi.getPublicHyperlinks.mockReset();
   });
 
   it("loads experiment detail from the single public course payload", async () => {
@@ -75,9 +67,6 @@ describe("useCourseDetailStore", () => {
     const state = useCourseDetailStore.getState();
     expect(mockCourseApi.getPublicCourse).toHaveBeenCalledTimes(1);
     expect(mockCourseApi.getPublicCourse).toHaveBeenCalledWith("course1");
-    expect(mockCourseApi.getPublicMainSlide).not.toHaveBeenCalled();
-    expect(mockCourseApi.getPublicMediaList).not.toHaveBeenCalled();
-    expect(mockCourseApi.getPublicHyperlinks).not.toHaveBeenCalled();
     expect(state.course).toEqual({
       ...course,
       knowledgeTag: "foundation",

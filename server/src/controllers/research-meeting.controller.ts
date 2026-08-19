@@ -10,7 +10,6 @@
  */
 
 import { Request, Response } from 'express';
-import { uploadConfig } from '../config/upload.config.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import {
   ResearchMeetingModel,
@@ -32,6 +31,10 @@ import {
   ResearchAgentUpstreamError,
 } from '../services/research-agent.service.js';
 import { logger } from '../utils/logger.js';
+import {
+  managedUploadUrlPrefix,
+  normalizeManagedUploadUrl,
+} from '../utils/managed-upload-url.util.js';
 import { ensureProjectAccess } from './research.controller.js';
 
 const MAX_MEETING_TITLE_LENGTH = 100;
@@ -46,38 +49,6 @@ const MAX_MEETING_DURATION_MINUTES = 600;
 const MAX_MEETING_RAW_FILE_NAME_LENGTH = 300;
 const MAX_MEETING_RAW_FILE_MIME_LENGTH = 160;
 const MEETING_LEADERBOARD_TOP_SIZE = 3;
-
-const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
-
-/**
- * Duplicated from research.controller.ts (not exported there): only accept
- * URLs pointing into the managed upload tree.
- * 仅接受指向站内托管上传目录的地址。
- */
-function normalizeManagedUploadUrl(value: unknown): string | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed !== managedUploadUrlPrefix && !trimmed.startsWith(`${managedUploadUrlPrefix}/`)) {
-    return undefined;
-  }
-
-  return trimmed;
-}
 
 /**
  * null → null; string → trimmed (empty becomes null); anything else or an

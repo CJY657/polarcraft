@@ -24,11 +24,10 @@ import {
 } from "@/feature/course/experimentHierarchy";
 import { useExperimentHierarchy } from "@/feature/course/useExperimentHierarchy";
 import { normalizeKnowledgeTag, type KnowledgeTag } from "@/lib/course.service";
-import { loadCourseViewerModule } from "@/lib/routePreload";
 import { capturePostHogEventOnce } from "@/lib/posthog";
 
 const CourseViewer = lazy(() =>
-  loadCourseViewerModule().then((module) => ({ default: module.CourseViewer }))
+  import("@/feature/course/CourseViewer").then((module) => ({ default: module.CourseViewer }))
 );
 
 const EMPTY_PRESENTATION_FILES: ExperimentFile[] = [];

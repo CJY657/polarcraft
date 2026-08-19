@@ -96,11 +96,6 @@ export const captchaValidation = body('captcha')
   .notEmpty()
   .withMessage('请提供验证码');
 
-export const userIdParamValidation = param('userId')
-  .trim()
-  .notEmpty()
-  .withMessage('用户 ID 不能为空');
-
 export const sessionIdParamValidation = param('sessionId')
   .trim()
   .notEmpty()

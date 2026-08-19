@@ -203,7 +203,7 @@ export function ProjectApplicationForm({
   if (!project) return null;
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog isOpen={isOpen} onClose={onClose}>
       <div className={cn(
         "w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"

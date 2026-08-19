@@ -260,48 +260,6 @@ export const courseApi = {
   },
 
   /**
-   * Get main slide for a course (public)
-   * 获取课程的主课件 (公开)
-   */
-  async getPublicMainSlide(courseId: string): Promise<MainSlide | null> {
-    const response = await api.get<MainSlide | null>(
-      `/api/courses/public/${courseId}/main-slide`
-    );
-    if (response.success) {
-      return response.data || null;
-    }
-    throw new Error(response.error?.message || "Failed to fetch main slide");
-  },
-
-  /**
-   * Get all media for a course (public)
-   * 获取课程的所有媒体 (公开)
-   */
-  async getPublicMediaList(courseId: string): Promise<CourseMedia[]> {
-    const response = await api.get<CourseMedia[]>(
-      `/api/courses/public/${courseId}/media`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch media list");
-  },
-
-  /**
-   * Get all hyperlinks for a course (public)
-   * 获取课程的所有超链接 (公开)
-   */
-  async getPublicHyperlinks(courseId: string): Promise<CourseHyperlink[]> {
-    const response = await api.get<CourseHyperlink[]>(
-      `/api/courses/public/${courseId}/hyperlinks`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch hyperlinks");
-  },
-
-  /**
    * Get public discussion comments for a course
    * 获取课程公开讨论评论
    */
@@ -381,20 +339,6 @@ export const courseApi = {
   // =====================================================
   // Main Slide / 主课件
   // =====================================================
-
-  /**
-   * Get main slide for a course
-   * 获取课程的主课件
-   */
-  async getMainSlide(courseId: string): Promise<MainSlide | null> {
-    const response = await api.get<MainSlide | null>(
-      `/api/courses/${courseId}/main-slide`
-    );
-    if (response.success) {
-      return response.data || null;
-    }
-    throw new Error(response.error?.message || "Failed to fetch main slide");
-  },
 
   /**
    * Upsert main slide
@@ -477,30 +421,6 @@ export const courseApi = {
   // =====================================================
 
   /**
-   * Get all media for a course
-   * 获取课程的所有媒体
-   */
-  async getMediaList(courseId: string): Promise<CourseMedia[]> {
-    const response = await api.get<CourseMedia[]>(`/api/courses/${courseId}/media`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch media list");
-  },
-
-  /**
-   * Get media by ID
-   * 获取单个媒体
-   */
-  async getMedia(mediaId: string): Promise<CourseMedia> {
-    const response = await api.get<CourseMedia>(`/api/courses/media/${mediaId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch media");
-  },
-
-  /**
    * Create media
    * 创建媒体资源
    */
@@ -575,37 +495,6 @@ export const courseApi = {
   // =====================================================
   // Hyperlinks / 超链接
   // =====================================================
-
-  /**
-   * Get all hyperlinks for a course
-   * 获取课程的所有超链接
-   */
-  async getHyperlinks(courseId: string): Promise<CourseHyperlink[]> {
-    const response = await api.get<CourseHyperlink[]>(
-      `/api/courses/${courseId}/hyperlinks`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch hyperlinks");
-  },
-
-  /**
-   * Get hyperlinks by page
-   * 获取特定页面的超链接
-   */
-  async getHyperlinksByPage(
-    courseId: string,
-    page: number
-  ): Promise<CourseHyperlink[]> {
-    const response = await api.get<CourseHyperlink[]>(
-      `/api/courses/${courseId}/hyperlinks/page/${page}`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch hyperlinks");
-  },
 
   /**
    * Create hyperlink

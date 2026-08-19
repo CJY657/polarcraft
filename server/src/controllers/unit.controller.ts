@@ -21,9 +21,7 @@ import type {
 } from "../types/unit.types.js";
 import type {
   CourseRow,
-  MainSlideRow,
   MediaRow,
-  HyperlinkRow,
   KnowledgeTag,
 } from "../types/course.types.js";
 

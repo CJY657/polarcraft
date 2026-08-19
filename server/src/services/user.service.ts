@@ -327,16 +327,6 @@ export class UserService {
     return await TokenService.revokeAllTokens(userId);
   }
 
-  /**
-   * Delete user account (soft delete by deactivating)
- * 删除用户账号（通过停用进行软删除）
-   */
-  static async deleteAccount(userId: string): Promise<boolean> {
-    // TODO: Implement soft delete
-    // TODO: 实现软删除
-    throw new Error('Account deletion not implemented');
-  }
-
   private static normalizeLimit(limit?: number): number {
     if (!Number.isFinite(limit)) {
       return 20;

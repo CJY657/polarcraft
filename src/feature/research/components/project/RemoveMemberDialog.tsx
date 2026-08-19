@@ -31,7 +31,7 @@ export function RemoveMemberDialog({
   onConfirm: () => void;
 }) {
   return (
-    <Dialog isOpen={true} onClose={onCancel} showCloseButton={false}>
+    <Dialog isOpen={true} onClose={onCancel}>
       <div className={cn(
         "w-full max-w-md p-6 rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"

@@ -97,32 +97,6 @@ export const unitApi = {
   },
 
   /**
-   * Get unit by ID (public)
-   * 获取单个单元 (公开)
-   */
-  async getPublicUnit(unitId: string): Promise<Unit> {
-    const response = await api.get<Unit>(`/api/units/public/${unitId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch unit");
-  },
-
-  /**
-   * Get main slide for a unit (public)
-   * 获取单元的主课件 (公开)
-   */
-  async getPublicMainSlide(unitId: string): Promise<UnitMainSlide | null> {
-    const response = await api.get<UnitMainSlide | null>(
-      `/api/units/public/${unitId}/main-slide`
-    );
-    if (response.success) {
-      return response.data || null;
-    }
-    throw new Error(response.error?.message || "Failed to fetch main slide");
-  },
-
-  /**
    * Get all courses for a unit (public)
    * 获取单元的所有课程 (公开)
    */
@@ -215,20 +189,6 @@ export const unitApi = {
   // =====================================================
 
   /**
-   * Get main slide for a unit
-   * 获取单元的主课件
-   */
-  async getMainSlide(unitId: string): Promise<UnitMainSlide | null> {
-    const response = await api.get<UnitMainSlide | null>(
-      `/api/units/${unitId}/main-slide`
-    );
-    if (response.success) {
-      return response.data || null;
-    }
-    throw new Error(response.error?.message || "Failed to fetch main slide");
-  },
-
-  /**
    * Upsert main slide
    * 创建或更新主课件
    */
@@ -257,21 +217,4 @@ export const unitApi = {
     }
   },
 
-  // =====================================================
-  // Unit Courses / 单元课程
-  // =====================================================
-
-  /**
-   * Get all courses for a unit
-   * 获取单元的所有课程
-   */
-  async getUnitCourses(unitId: string): Promise<UnitCourse[]> {
-    const response = await api.get<UnitCourse[]>(
-      `/api/units/${unitId}/courses`
-    );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch unit courses");
-  },
 };

@@ -16,7 +16,6 @@ interface NotificationState {
   unreadCount: number;
   total: number;
   isLoading: boolean;
-  error: string | null;
 
   // Actions
   fetchNotifications: (options?: {
@@ -29,9 +28,6 @@ interface NotificationState {
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
 
-  // Utility
-  clearError: () => void;
-  reset: () => void;
 }
 
 const initialState = {
@@ -39,7 +35,6 @@ const initialState = {
   unreadCount: 0,
   total: 0,
   isLoading: false,
-  error: null,
 };
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -50,7 +45,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   // =====================================================
 
   fetchNotifications: async (options) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       const result = await notificationApi.getNotifications(options);
       set({
@@ -61,10 +56,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       });
       return result;
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '获取通知失败',
-        isLoading: false,
-      });
+      set({ isLoading: false });
       throw error;
     }
   },
@@ -83,62 +75,34 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   // =====================================================
 
   markAsRead: async (notificationId: string) => {
-    try {
-      await notificationApi.markAsRead(notificationId);
-      set((state) => ({
-        notifications: state.notifications.map((n) =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        ),
-        unreadCount: Math.max(0, state.unreadCount - 1),
-      }));
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '标记已读失败',
-      });
-      throw error;
-    }
+    await notificationApi.markAsRead(notificationId);
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === notificationId ? { ...n, is_read: true } : n
+      ),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    }));
   },
 
   markAllAsRead: async () => {
-    try {
-      await notificationApi.markAllAsRead();
-      set((state) => ({
-        notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
-        unreadCount: 0,
-      }));
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '标记已读失败',
-      });
-      throw error;
-    }
+    await notificationApi.markAllAsRead();
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
+      unreadCount: 0,
+    }));
   },
 
   deleteNotification: async (notificationId: string) => {
-    try {
-      await notificationApi.deleteNotification(notificationId);
-      set((state) => {
-        const notification = state.notifications.find((n) => n.id === notificationId);
-        const wasUnread = notification && !notification.is_read;
-        return {
-          notifications: state.notifications.filter((n) => n.id !== notificationId),
-          total: Math.max(0, state.total - 1),
-          unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
-        };
-      });
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '删除通知失败',
-      });
-      throw error;
-    }
+    await notificationApi.deleteNotification(notificationId);
+    set((state) => {
+      const notification = state.notifications.find((n) => n.id === notificationId);
+      const wasUnread = notification && !notification.is_read;
+      return {
+        notifications: state.notifications.filter((n) => n.id !== notificationId),
+        total: Math.max(0, state.total - 1),
+        unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+      };
+    });
   },
 
-  // =====================================================
-  // Utility / 工具方法
-  // =====================================================
-
-  clearError: () => set({ error: null }),
-
-  reset: () => set(initialState),
 }));

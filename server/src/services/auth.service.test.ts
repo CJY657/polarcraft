@@ -4,7 +4,6 @@ const doubles = vi.hoisted(() => ({
   createUser: vi.fn(),
   findById: vi.fn(),
   findByUsername: vi.fn(),
-  findByEmail: vi.fn(),
   updateProfile: vi.fn(),
   verifyPassword: vi.fn(),
   updateLastLogin: vi.fn(),
@@ -21,7 +20,6 @@ vi.mock('../models/user.model.js', () => ({
     create: doubles.createUser,
     findById: doubles.findById,
     findByUsername: doubles.findByUsername,
-    findByEmail: doubles.findByEmail,
     updateProfile: doubles.updateProfile,
     verifyPassword: doubles.verifyPassword,
     updateLastLogin: doubles.updateLastLogin,
@@ -160,7 +158,7 @@ describe('AuthService.forgotPassword', () => {
     vi.clearAllMocks();
   });
 
-  it('returns the generic response without falling back to an email lookup for unknown usernames', async () => {
+  it('returns the generic response for unknown usernames', async () => {
     doubles.findByUsername.mockResolvedValue(null);
 
     await expect(
@@ -170,7 +168,6 @@ describe('AuthService.forgotPassword', () => {
       } as ForgotPasswordInput & { email: string })
     ).resolves.toEqual(genericResponse);
 
-    expect(doubles.findByEmail).not.toHaveBeenCalled();
     expect(doubles.updateProfile).not.toHaveBeenCalled();
     expect(doubles.invalidateAllForUser).not.toHaveBeenCalled();
     expect(doubles.createResetToken).not.toHaveBeenCalled();

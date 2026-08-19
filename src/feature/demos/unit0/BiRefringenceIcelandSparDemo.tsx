@@ -9,8 +9,6 @@
  *
  * 3D组件来自: @/feature/demos/components/Birefringence3D | 3D components from: @/feature/demos/components/Birefringence3D
  * 物理计算来自: @/lib/physics/GeometricOptics | Physics calculations from: @/lib/physics/GeometricOptics
- * 
- * 优化方向：Add Jones calculus for polarization state visualization (future feature)
  */
 
 import { useState, useRef, useMemo } from "react";
@@ -50,7 +48,6 @@ import {
   ExitRayMarkers,
   ObservationScreen,
   AngleArc,
-  // DoubleTextSample, // Disabled: hides the light
   SceneGrid,
   SceneLabels,
 } from "../components/Birefringence3D";
@@ -65,7 +62,6 @@ interface BiRefringenceCanvasProps {
   crystalRotation: number;
   showORay: boolean;
   showERay: boolean;
-  // showText: boolean; // Disabled: hides the light
   animate: boolean;
   onResetCamera: () => void;
 }
@@ -244,9 +240,6 @@ function BiRefringenceCanvas({
           <CalciteCrystal rotation={[0, (crystalRotation * Math.PI) / 180, 0]} />
           <CrystalInternalPaths params={params} showORay={showORay} showERay={showERay} />
 
-          {/* 双像文字样本 | Double text sample - Disabled: hides the light */}
-          {/* <DoubleTextSample show={false} params={params} /> */}
-
           {/* 光线 | Light rays */}
           <IncidentRay params={params} animate={animate} />
           {showORay && <OrdinaryRay params={params} animate={animate} />}
@@ -274,10 +267,6 @@ function BiRefringenceCanvas({
           {/* 场景标签 | Scene labels */}
           <SceneLabels params={params} showORay={showORay} showERay={showERay} />
 
-          {/* 预留：反射光（未来功能）| Reserved: Reflected ray (future feature) */}
-          {/* <ReflectedRay params={params} animate={animate} /> */}
-          {/* 预留：波前可视化（未来功能）| Reserved: Wavefront visualization (future feature) */}
-          {/* <WavefrontVisualization params={params} time={0} /> */}
         </Canvas>
       ) : (
         <BirefringenceFallbackGraphic
@@ -333,15 +322,7 @@ export function BiRefringenceIcelandSparDemo() {
   const [crystalRotation, setCrystalRotation] = useState(0);
   const [showORay, setShowORay] = useState(true);
   const [showERay, setShowERay] = useState(true);
-  // Double text permanently disabled since the toggle was removed (hides the light)
-  // const showText = false;
   const [animate, setAnimate] = useState(true);
-
-  // 预留状态（未来功能）| Reserved state (future features)
-  // const [showReflectedRay, setShowReflectedRay] = useState(false);
-  // const [showWavefront, setShowWavefront] = useState(false);
-  // const [showJonesMatrix, setShowJonesMatrix] = useState(false);
-  // const [materialPreset, setMaterialPreset] = useState("calcite");
 
   // 双折射参数 | Birefringence parameters
   const params: BirefringenceParams = useMemo(
@@ -510,9 +491,6 @@ export function BiRefringenceIcelandSparDemo() {
               {`$\\Delta n = n_o - n_e = ${calcite.deltaN.toFixed(3)}$`}
             </Formula>
 
-            {/* 预留：更多物理参数显示（未来功能）| Reserved: More physics parameter display (future feature) */}
-            {/* <ValueDisplay label="相位延迟" value={`${phaseRetardation.toFixed(2)} rad`} color="green" /> */}
-            {/* <ValueDisplay label="e光有效折射率" value={effectiveNe.toFixed(3)} color="purple" /> */}
           </div>
         </div>
       </div>
@@ -633,19 +611,6 @@ export function BiRefringenceIcelandSparDemo() {
             </button>
           </div>
 
-          {/* 预留：材料选择器（未来功能）| Reserved: Material selector (future feature) */}
-          {/* <div className="mt-4 pt-4 border-t border-slate-700">
-            <p className="text-xs text-gray-500 mb-2">材料选择</p>
-            <select
-              value={materialPreset}
-              onChange={(e) => setMaterialPreset(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs text-gray-300"
-            >
-              <option value="calcite">方解石</option>
-              <option value="quartz">石英</option>
-              <option value="ice">冰</option>
-            </select>
-          </div> */}
         </ControlPanel>
 
         {/* 显示选项 | Display options */}
@@ -668,10 +633,6 @@ export function BiRefringenceIcelandSparDemo() {
             </p>
           </div>
 
-          {/* 预留：更多显示选项（未来功能）| Reserved: More display options (future feature) */}
-          {/* <Toggle label="显示反射光" checked={showReflectedRay} onChange={setShowReflectedRay} />
-          <Toggle label="显示波前" checked={showWavefront} onChange={setShowWavefront} />
-          <Toggle label="显示琼斯矩阵" checked={showJonesMatrix} onChange={setShowJonesMatrix} /> */}
         </ControlPanel>
       </div>
 
@@ -726,18 +687,6 @@ export function BiRefringenceIcelandSparDemo() {
         </div>
       </DemoSection>
 
-      {/* 预留：DIY实验部分（未来功能）| Reserved: DIY experiment section (future feature) */}
-      {/* <div className="bg-slate-900/50 rounded-xl border border-cyan-400/20 p-4">
-        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          <FlaskConical className="w-4 h-4 text-cyan-400" />
-          DIY实验：塑料中的应力花纹
-        </h3>
-        <div className="text-xs text-gray-300 space-y-2">
-          <p>材料：透明塑料尺、两片偏振片、手机闪光灯</p>
-          <p>步骤：将一片偏振片放在光源上，放上透明塑料，上方放第二片偏振片观察</p>
-          <p className="text-orange-400">观察：彩虹色的应力花纹显示了塑料受力的位置</p>
-        </div>
-      </div> */}
     </div>
   );
 }

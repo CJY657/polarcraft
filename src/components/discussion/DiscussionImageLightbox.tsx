@@ -251,7 +251,6 @@ export function DiscussionImageLightbox({
     <Dialog
       isOpen={Boolean(image)}
       onClose={handleClose}
-      showCloseButton={false}
       containerClassName="p-0"
       className="h-screen w-screen max-w-none overflow-hidden rounded-none border-0 bg-transparent shadow-none"
     >

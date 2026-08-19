@@ -98,24 +98,6 @@ export class RefreshTokenModel {
   }
 
   /**
-   * Revoke all refresh tokens except the current one
-   * 撤销除当前令牌外的所有刷新令牌
-   */
-  static async revokeAllExcept(currentTokenId: string, userId: string): Promise<number> {
-    const result = await refreshTokensCollection().updateMany(
-      {
-        user_id: userId,
-        id: { $ne: currentTokenId },
-        revoked_at: null,
-      },
-      { $set: { revoked_at: new Date() } }
-    );
-
-    logger.info(`Revoked ${result.modifiedCount} other refresh tokens for user: ${userId}`);
-    return result.modifiedCount;
-  }
-
-  /**
    * Get session info for a user
    * 获取用户的会话信息
    */
@@ -142,19 +124,4 @@ export class RefreshTokenModel {
     return result.deletedCount > 0;
   }
 
-  /**
-   * Clean up expired tokens (should be run periodically)
-   * 清理过期令牌（应定期运行）
-   */
-  static async cleanupExpired(): Promise<number> {
-    const result = await refreshTokensCollection().deleteMany({
-      $or: [
-        { expires_at: { $lt: new Date() } },
-        { revoked_at: { $ne: null } },
-      ],
-    });
-
-    logger.info(`Cleaned up ${result.deletedCount} expired refresh tokens`);
-    return result.deletedCount;
-  }
 }

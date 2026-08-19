@@ -3,7 +3,6 @@ import { generateId } from '../utils/crypto.util.js';
 import { normalizeDocument } from '../database/mongo.util.js';
 import type {
   FeedbackCategory,
-  FeedbackEmailStatus,
   FeedbackSubmission,
 } from '../types/feedback.types.js';
 
@@ -21,24 +20,6 @@ export class FeedbackModel {
 
     await feedbackCollection().insertOne(feedback as unknown as Record<string, unknown>);
     return feedback;
-  }
-
-  static async updateEmailDelivery(
-    id: string,
-    status: FeedbackEmailStatus,
-    recipientEmail: string | null,
-    sentAt: Date | null,
-  ): Promise<void> {
-    await feedbackCollection().updateOne(
-      { id },
-      {
-        $set: {
-          email_status: status,
-          recipient_email: recipientEmail,
-          email_sent_at: sentAt,
-        },
-      },
-    );
   }
 
   static async getById(id: string): Promise<FeedbackSubmission | null> {

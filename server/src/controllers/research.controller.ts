@@ -7,7 +7,6 @@
  */
 
 import { Request, Response } from 'express';
-import { uploadConfig } from '../config/upload.config.js';
 import {
   ResearchModel,
   type CreateResearchProjectTaskInput,
@@ -40,6 +39,10 @@ import {
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import {
+  managedUploadUrlPrefix,
+  normalizeManagedUploadUrl,
+} from '../utils/managed-upload-url.util.js';
+import {
   isProjectStatusRollback,
   type ProjectStatus,
   validateProjectStatusTransition,
@@ -56,7 +59,6 @@ const PROJECT_REVIEW_QUORUM = 2;
 const LEADERSHIP_TRANSFER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PROJECT_REVIEW_VERDICTS: ResearchProjectReviewVerdict[] = ['approve', 'request_changes'];
 const PROJECT_TASK_STATUSES: ResearchProjectTaskStatus[] = ['todo', 'doing', 'done'];
-const managedUploadUrlPrefix = uploadConfig.publicUrlPrefix.replace(/\/+$/, '');
 const DELETE_PROJECT_CONFIRMATION_KEYWORD = 'DELETE';
 const RESEARCH_PROJECT_EVIDENCE_TYPES: ResearchProjectEvidenceType[] = [
   'image_observation',
@@ -291,31 +293,6 @@ function preservesDiscussedQuestionPositions(
 
     return !previousQuestionMoved && !nextQuestionMoved;
   });
-}
-
-function normalizeManagedUploadUrl(value: unknown): string | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed !== managedUploadUrlPrefix && !trimmed.startsWith(`${managedUploadUrlPrefix}/`)) {
-    return undefined;
-  }
-
-  return trimmed;
 }
 
 function normalizeOptionalString(

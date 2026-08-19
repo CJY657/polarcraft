@@ -30,6 +30,7 @@ import {
   type UpsertProjectEvidenceInput,
 } from '@/lib/research.service';
 import { profileApi } from '@/lib/profile.service';
+import { formatResearchDateTime } from '@/lib/datetime.util';
 import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { ResearchSectionCard } from '../shared/ResearchSectionCard';
@@ -88,16 +89,6 @@ const emptyFormState: EvidenceFormState = {
   externalUrl: '',
   attachmentNote: '',
 };
-
-function formatEvidenceTime(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
 
 function formatFileSize(bytes: number | null): string | null {
   if (bytes === null || !Number.isFinite(bytes)) {
@@ -956,7 +947,7 @@ export function ProjectEvidenceSection({
                       show_real_name_publicly: evidence.creator_show_real_name_publicly,
                     }, '成员')}
                   </span>
-                  <span>{formatEvidenceTime(evidence.created_at)}</span>
+                  <span>{formatResearchDateTime(evidence.created_at)}</span>
                 </div>
 
                 {(evidence.external_url || hasAttachment) && (

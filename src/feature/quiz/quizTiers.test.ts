@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tierForPercent, tierLabelZh, tierStyle, DEFAULT_TIER_STYLE, TIER_STYLES } from './quizTiers';
+import { tierLabelZh, tierStyle, DEFAULT_TIER_STYLE, TIER_STYLES } from './quizTiers';
 import type { QuizTier } from '@/lib/quiz.service';
 
 const TIERS: QuizTier[] = [
@@ -9,19 +9,6 @@ const TIERS: QuizTier[] = [
   { id: 'expert', label: { zh: '融会贯通', en: 'Expert' }, minPercent: 75 },
   { id: 'master', label: { zh: '偏振大师', en: 'Master' }, minPercent: 90 },
 ];
-
-describe('tierForPercent', () => {
-  it('resolves boundary percents to the right tier', () => {
-    expect(tierForPercent(0, TIERS)?.id).toBe('novice');
-    expect(tierForPercent(59, TIERS)?.id).toBe('apprentice');
-    expect(tierForPercent(60, TIERS)?.id).toBe('adept');
-    expect(tierForPercent(100, TIERS)?.id).toBe('master');
-  });
-
-  it('returns null for an empty ladder', () => {
-    expect(tierForPercent(50, [])).toBeNull();
-  });
-});
 
 describe('tierStyle', () => {
   it('maps every known tier id to a style and falls back for unknown ids', () => {

@@ -57,7 +57,7 @@ const GamesPage = lazy(() => import("@/pages/GamesPage"));
 // Module 5: 成果展示
 // 课程成果 × 文创作品
 const GalleryPage = lazy(() => import("@/pages/GalleryPage"));
-const WorkDetailPage = lazy(() => import("@/feature/gallery/detail").then(m => ({ default: m.WorkDetailPage })));
+const WorkDetailPage = lazy(() => import("@/feature/gallery/detail/WorkDetailPage").then(m => ({ default: m.WorkDetailPage })));
 
 // Module 6: 虚拟课题
 // 开放研究 × 课题实践
@@ -68,7 +68,7 @@ const ResearchProjectPage = lazy(() => import("@/feature/research/pages/Research
 const PublicProjectExplorePage = lazy(() => import("@/feature/research/pages/PublicProjectExplorePage").then(m => ({ default: m.PublicProjectExplorePage })));
 const MyProjectsPage = lazy(() => import("@/feature/research/pages/MyProjectsPage").then(m => ({ default: m.MyProjectsPage })));
 
-function LegacyUnitCourseRouteRedirect() {
+function LegacyCourseRedirect() {
   const { courseId } = useParams();
 
   return <Navigate to={courseId ? `/experiments/${courseId}` : "/experiments"} replace />;
@@ -76,12 +76,6 @@ function LegacyUnitCourseRouteRedirect() {
 
 function LegacyCoursesIndexRedirect() {
   return <Navigate to="/experiments" replace />;
-}
-
-function LegacyCourseViewerRedirect() {
-  const { courseId } = useParams();
-
-  return <Navigate to={courseId ? `/experiments/${courseId}` : "/experiments"} replace />;
 }
 
 function LegacyAdminCoursesRedirect() {
@@ -225,25 +219,6 @@ export function shouldResetScrollOnNavigation(navigationType: string, hash: stri
   return navigationType !== "POP" && hash === "";
 }
 
-export function shouldRequireStudentAuth(pathname: string) {
-  const isPublicResearchRoute =
-    pathname === "/lab/explore" || Boolean(matchPath({ path: "/lab/projects/:projectId", end: true }, pathname));
-
-  return Boolean(
-    pathname === "/experiments" ||
-      matchPath("/experiments/:experimentId", pathname) ||
-      pathname === "/applications" ||
-      matchPath("/applications/:applicationId", pathname) ||
-      pathname === "/units" ||
-      matchPath("/units/:unitId", pathname) ||
-      matchPath("/units/:unitId/courses/:courseId", pathname) ||
-      pathname === "/profile" ||
-      pathname === "/inbox" ||
-      pathname === "/pulse" ||
-      (!isPublicResearchRoute && (pathname === "/lab" || pathname.startsWith("/lab/")))
-  );
-}
-
 function AppRouterContent() {
   const location = useLocation();
   const shouldHideFooter = shouldHideGlobalFooter(location.pathname);
@@ -306,7 +281,7 @@ function AppRouterContent() {
             />
             <Route
               path="/units/:unitId/courses/:courseId"
-              element={<LegacyUnitCourseRouteRedirect />}
+              element={<LegacyCourseRedirect />}
             />
             <Route
               path="/units/:unitId"
@@ -372,7 +347,7 @@ function AppRouterContent() {
           />
           <Route
             path="/courses/:courseId"
-            element={<LegacyCourseViewerRedirect />}
+            element={<LegacyCourseRedirect />}
           />
 
           {/* Module 2: 偏振挑战 */}

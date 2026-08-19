@@ -21,6 +21,7 @@ import {
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ResearchSectionCard } from '@/feature/research/components/shared/ResearchSectionCard';
+import { formatResearchDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import {
@@ -49,16 +50,6 @@ interface ProjectPeerReviewSectionProps {
   theme?: 'light' | 'dark';
   /** 通知页面本区块是否有内容可展示（用于导航条目的显隐） */
   onContentChange?: (hasContent: boolean) => void;
-}
-
-function formatReviewTime(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
 }
 
 function VerdictChip({ verdict }: { verdict: ProjectReviewVerdict }) {
@@ -412,7 +403,7 @@ export function ProjectPeerReviewSection({
                         )}
                       </p>
                       <p className="text-sm text-[var(--glass-text-muted)]">
-                        {formatReviewTime(review.updated_at)}
+                        {formatResearchDateTime(review.updated_at)}
                         {isEdited && ' · 已修改'}
                       </p>
                     </div>

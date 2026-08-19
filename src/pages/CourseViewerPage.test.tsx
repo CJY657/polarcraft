@@ -146,9 +146,8 @@ vi.mock("@/components/shared", () => ({
   ),
 }));
 
-vi.mock("@/lib/routePreload", () => ({
-  loadCourseViewerModule: async () => ({
-    CourseViewer: ({
+vi.mock("@/feature/course/CourseViewer", () => ({
+  CourseViewer: ({
       course,
       canDownloadResources,
       backPath,
@@ -189,7 +188,6 @@ vi.mock("@/lib/routePreload", () => ({
         )}
       </div>
     ),
-  }),
 }));
 
 function LocationProbe() {

@@ -97,19 +97,4 @@ export class CaptchaService {
     return isValid;
   }
 
-  /**
-   * Clean up all CAPTCHAs (for testing)
- * 清理所有验证码（用于测试）
-   */
-  static clear(): void {
-    captchaStore.clear();
-  }
-
-  /**
-   * Get the number of active CAPTCHAs
- * 获取活跃验证码数量
-   */
-  static getActiveCount(): number {
-    return captchaStore.size;
-  }
 }

@@ -115,23 +115,6 @@ export interface CreateApplicationInput {
   motivation?: string;
 }
 
-export interface ProjectCreatorProfile {
-  id: string;
-  project_id: string;
-  user_id: string;
-  display_name: string;
-  organization: string;
-  education_id: string | null;
-  major: string | null;
-  grade: string | null;
-  created_at: string;
-  updated_at: string;
-  username?: string;
-  nickname?: string | null;
-  real_name?: string | null;
-  show_real_name_publicly?: boolean;
-}
-
 export interface CreateProjectWithProfileInput {
   project: {
     name_zh: string;
@@ -365,17 +348,6 @@ export const profileApi = {
   // =====================================================
   // Project Creator Profile / 课题创建者资料
   // =====================================================
-
-  /**
-   * Get project creator profiles
-   * 获取课题创建者资料
-   */
-  getCreatorProfiles: async (projectId: string): Promise<ProjectCreatorProfile[]> => {
-    const response = await api.get<ProjectCreatorProfile[]>(
-      `/api/research/projects/${projectId}/creator-profiles`
-    );
-    return unwrapApiData(response, '获取创建者资料失败');
-  },
 
   /**
    * Create project with creator profile

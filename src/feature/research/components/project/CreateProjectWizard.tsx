@@ -186,7 +186,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
   ];
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog isOpen={isOpen} onClose={onClose}>
       <div className={cn(
         "w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"

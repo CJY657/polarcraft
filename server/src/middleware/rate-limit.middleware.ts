@@ -36,13 +36,6 @@ function getAuthRateLimitKey(req: Request): string {
 export const apiRateLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.maxRequests,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'API 请求过于频繁，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => getClientIp(req),
@@ -58,13 +51,6 @@ export const apiRateLimiter = rateLimit({
 export const authRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '登录尝试次数过多，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: getAuthRateLimitKey,
@@ -81,13 +67,6 @@ export const authRateLimiter = rateLimit({
 export const registerRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '注册次数过多，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => getClientIp(req),
@@ -103,13 +82,6 @@ export const registerRateLimiter = rateLimit({
 export const passwordResetRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '密码重置请求过多，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: getAuthRateLimitKey,
@@ -125,13 +97,6 @@ export const passwordResetRateLimiter = rateLimit({
 export const feedbackRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 8,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '反馈提交过于频繁，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => getClientIp(req),
@@ -147,13 +112,6 @@ export const feedbackRateLimiter = rateLimit({
 export const discussionRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '讨论留言提交过于频繁，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
@@ -172,13 +130,6 @@ export const discussionRateLimiter = rateLimit({
 export const researchAgentRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'AI 顾问请求过于频繁，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
@@ -197,13 +148,6 @@ export const researchAgentRateLimiter = rateLimit({
 export const leadershipTransferRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '组长转让提名过于频繁，请稍后再试',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
@@ -222,13 +166,6 @@ export const leadershipTransferRateLimiter = rateLimit({
 export const captchaRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: '验证码请求过于频繁',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => getClientIp(req),
@@ -245,13 +182,6 @@ export const captchaRateLimiter = rateLimit({
 export const tokenRefreshRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Token 刷新过于频繁',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => getClientIp(req),

@@ -3,31 +3,6 @@
  * 单元相关类型定义
  */
 
-import type { LabelI18n, Course } from "./course.types.js";
-
-// =====================================================
-// Unit Types / 单元类型
-// =====================================================
-
-export interface UnitMainSlide {
-  id: string;
-  url: string;
-  title: LabelI18n;
-}
-
-export interface Unit {
-  id: string;
-  title: LabelI18n;
-  description: LabelI18n;
-  coverImage?: string;
-  color: string;
-  sortOrder: number;
-  mainSlide?: UnitMainSlide;
-  courses?: Course[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 // =====================================================
 // Input Types / 输入类型
 // =====================================================

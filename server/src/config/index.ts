@@ -4,7 +4,6 @@
  */
 
 import { config as loadEnv } from 'dotenv';
-import { PasswordPolicy } from '../types/auth.types.js';
 
 // Load environment variables
 loadEnv();
@@ -137,15 +136,10 @@ export const config = {
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
 
-  // Password Policy / 密码策略
+  // Password hashing / 密码哈希
   password: {
-    minLength: parseInt(process.env.PASSWORD_MIN_LENGTH || '8', 10),
-    requireUppercase: process.env.PASSWORD_REQUIRE_UPPERCASE !== 'false',
-    requireLowercase: process.env.PASSWORD_REQUIRE_LOWERCASE !== 'false',
-    requireNumber: process.env.PASSWORD_REQUIRE_NUMBER !== 'false',
-    requireSpecialChar: process.env.PASSWORD_REQUIRE_SPECIAL_CHAR !== 'false',
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
-  } as PasswordPolicy & { bcryptRounds: number },
+  },
 
   // Rate Limiting / 速率限制
   rateLimit: {

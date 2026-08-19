@@ -190,31 +190,3 @@ export function calculateBirefringenceRayPaths(
     walkOffAngle,
   };
 }
-
-/**
- * 计算通过双折射晶体观看文字时的双像偏移 | Calculate double image offset for text viewed through birefringent crystal
- * @param params - 双折射参数 | Birefringence parameters
- * @param distance - 文字距离晶体的距离（默认1单位）| Distance of text from crystal (default 1 unit)
- * @returns o光和e光像的偏移位置 | Offset positions for o-ray and e-ray images
- */
-export function calculateDoubleImageOffset(
-  params: BirefringenceParams,
-  distance: number = 1
-): {
-  oRayOffset: number; // o光像偏移 | O-ray image offset
-  eRayOffset: number; // e光像偏移 | E-ray image offset
-} {
-  const { crystalRotation } = params;
-
-  // 偏移量随晶体旋转变化 | Offset varies with crystal rotation
-  // o光偏移（一个方向）| O-ray offset (one direction)
-  const oRayOffset = 0.4 + 0.1 * Math.sin((crystalRotation * Math.PI) / 180);
-
-  // e光偏移（另一个方向）| E-ray offset (other direction)
-  const eRayOffset = -0.3 - 0.1 * Math.cos((crystalRotation * Math.PI) / 180);
-
-  return {
-    oRayOffset: oRayOffset * distance,
-    eRayOffset: eRayOffset * distance,
-  };
-}

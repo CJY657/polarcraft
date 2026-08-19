@@ -951,7 +951,6 @@ function UserDetailDialog({
           ? 'border-slate-700 bg-slate-900 text-slate-100'
           : 'border-slate-200 bg-white text-slate-900'
       )}
-      showCloseButton={false}
     >
       <div className="max-h-[85vh] overflow-y-auto p-6">
         <div className="flex items-start justify-between gap-4">

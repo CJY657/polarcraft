@@ -173,7 +173,6 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      showCloseButton={false}
       className="max-w-2xl overflow-hidden border-0 bg-transparent shadow-none"
       containerClassName="items-end sm:items-center"
     >

@@ -135,7 +135,7 @@ export function EducationFormDialog({
   const monthOptions = generateMonthOptions();
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog isOpen={isOpen} onClose={onClose}>
       <div className={cn(
         "w-full max-w-md p-6 rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"

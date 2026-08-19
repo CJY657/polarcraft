@@ -296,17 +296,6 @@ export const authApi = {
     return response.data?.message || '验证邮件已发送，请查收';
   },
 
-  /**
-   * Get CAPTCHA
-   * 获取验证码
-   */
-  getCaptcha: async (): Promise<{ id: string; dataUrl: string }> => {
-    const response = await api.get<{ id: string; dataUrl: string }>('/api/auth/captcha');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error('Failed to get captcha');
-  },
 };
 
 // Re-export password utilities for use in components

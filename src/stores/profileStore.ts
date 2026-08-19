@@ -10,14 +10,12 @@ import {
   CreateEducationInput,
   UpdateEducationInput,
   ProjectApplication,
-  PublicProject,
 } from '@/lib/profile.service';
 
 interface ProfileState {
   // State
   educations: UserEducation[];
   applications: ProjectApplication[];
-  publicProjects: PublicProject[];
   isLoading: boolean;
   error: string | null;
 
@@ -29,17 +27,13 @@ interface ProfileState {
   // Application Actions
   fetchApplications: () => Promise<void>;
   withdrawApplication: (id: string) => Promise<void>;
-  // Public Projects Actions
-  fetchPublicProjects: (filters?: { recruiting?: boolean; search?: string }) => Promise<void>;
   // Utility
   clearError: () => void;
-  reset: () => void;
 }
 
 const initialState = {
   educations: [],
   applications: [],
-  publicProjects: [],
   isLoading: false,
   error: null,
 };
@@ -158,27 +152,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
   },
 
   // =====================================================
-  // Public Projects Actions
-  // =====================================================
-
-  fetchPublicProjects: async (filters?: { recruiting?: boolean; search?: string }) => {
-    set({ isLoading: true, error: null });
-    try {
-      const publicProjects = await profileApi.getPublicProjects(filters);
-      set({ publicProjects, isLoading: false });
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : '获取公开课题失败',
-        isLoading: false,
-      });
-    }
-  },
-
-  // =====================================================
   // Utility
   // =====================================================
 
   clearError: () => set({ error: null }),
-
-  reset: () => set(initialState),
 }));

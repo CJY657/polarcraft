@@ -145,7 +145,7 @@ export function PasswordChangeDialog({ isOpen, onClose, username }: PasswordChan
   const passwordRequirements = getPasswordRequirements();
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} showCloseButton={false}>
+    <Dialog isOpen={isOpen} onClose={onClose}>
       <div
         className={cn(
           'w-full max-w-md p-6 rounded-xl',

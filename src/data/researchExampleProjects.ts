@@ -1762,11 +1762,3 @@ export const EXAMPLE_PROJECTS: ExampleProject[] = [BUBBLE_POLARIZATION_PROJECT];
 export function getExampleProjectById(id: string): ExampleProject | undefined {
   return EXAMPLE_PROJECTS.find((project) => project.id === id);
 }
-
-/**
- * Get all example project IDs
- * 获取所有示例课题ID
- */
-export function getExampleProjectIds(): string[] {
-  return EXAMPLE_PROJECTS.map((project) => project.id);
-}

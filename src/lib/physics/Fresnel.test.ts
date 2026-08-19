@@ -8,6 +8,7 @@
  * - Grazing incidence approaches full reflection
  */
 
+import { describe, expect, it } from 'vitest';
 import {
   fresnelCoefficients,
   unpolarizedReflectance,

@@ -20,6 +20,7 @@ import {
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
 import { formatPagePath } from "@/lib/activity-labels";
 import { buildValueAxis, formatAxisValue, pickTickIndices } from "@/lib/chart-axis";
+import { formatMonthDay, lastDaysRange, toDateInput } from "@/lib/datetime.util";
 import { publicStatsApi, type PublicActivityResponse } from "@/lib/stats.service";
 import { cn } from "@/utils/classNames";
 
@@ -32,20 +33,6 @@ const MEDAL_STYLE = [
   "bg-clay-peach text-[#10201f]",
 ];
 
-function toDateInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function lastDays(days: number): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - (days - 1));
-  return { start: toDateInput(start), end: toDateInput(end) };
-}
-
 function spanDays(start: string, end: string): number {
   return (
     Math.round(
@@ -54,15 +41,8 @@ function spanDays(start: string, end: string): number {
   );
 }
 
-function formatDay(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("zh-CN", {
-    month: "numeric",
-    day: "numeric",
-  });
-}
-
 export function PulsePage() {
-  const [range, setRange] = useState(() => lastDays(7));
+  const [range, setRange] = useState(() => lastDaysRange(7));
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<PublicActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +130,7 @@ export function PulsePage() {
             />
             <button
               type="button"
-              onClick={() => setRange(lastDays(7))}
+              onClick={() => setRange(lastDaysRange(7))}
               className="h-11 rounded-xl px-4 text-sm font-semibold text-clay-body underline-offset-4 hover:underline"
             >
               重置为近 7 天
@@ -407,7 +387,7 @@ function DailyBars({ daily }: { daily: PublicActivityResponse["daily"] }) {
                 key={day.date}
                 className="min-w-0 flex-1 whitespace-nowrap text-center text-xs tabular-nums text-clay-muted"
               >
-                {labelled.has(index) ? formatDay(day.date) : ""}
+                {labelled.has(index) ? formatMonthDay(day.date) : ""}
               </span>
             ))}
           </div>

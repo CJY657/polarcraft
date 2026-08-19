@@ -38,19 +38,6 @@ function normalizeOptionalText(value: string | null | undefined): string | undef
   return trimmed || undefined;
 }
 
-function normalizeNullableText(value: string | null | undefined): string | null | undefined {
-  if (value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed || null;
-}
-
 export class UserModel {
   /**
    * Find user by ID
@@ -121,14 +108,6 @@ export class UserModel {
    */
   static async findByUsername(username: string): Promise<User | null> {
     return normalizeDocument<User>(await usersCollection().findOne({ username }));
-  }
-
-  /**
-   * Find user by email
-   * 根据邮箱查找用户
-   */
-  static async findByEmail(email: string): Promise<User | null> {
-    return normalizeDocument<User>(await usersCollection().findOne({ email }));
   }
 
   /**
@@ -370,27 +349,6 @@ export class UserModel {
 
     logger.info(`Email verified for user: ${id}`);
     return true;
-  }
-
-  /**
-   * Update password
-   * 更新密码
-   */
-  static async updatePassword(id: string, newPassword: string): Promise<boolean> {
-    const passwordHash = await hashPassword(newPassword);
-
-    const result = await usersCollection().updateOne(
-      { id },
-      {
-        $set: {
-          password_hash: passwordHash,
-          updated_at: new Date(),
-        },
-      }
-    );
-
-    logger.info(`Password updated for user: ${id}`);
-    return result.matchedCount > 0;
   }
 
   /**

@@ -194,31 +194,6 @@ export interface LoginResponse extends AuthResponse {
 }
 
 // =====================================================
-// Audit Log Types / 审计日志类型
-// =====================================================
-
-/** Audit action type / 审计操作类型 */
-export type AuditAction =
-  | 'login'
-  | 'logout'
-  | 'register'
-  | 'password_change'
-  | 'password_reset'
-  | 'token_refresh';
-
-/** Audit log entity / 审计日志实体 */
-export interface AuditLog {
-  id: number;
-  user_id: string | null;
-  action: AuditAction;
-  ip_address: string | null;
-  user_agent: string | null;
-  success: boolean;
-  failure_reason: string | null;
-  created_at: Date;
-}
-
-// =====================================================
 // Error Types / 错误类型
 // =====================================================
 
@@ -250,24 +225,4 @@ export class AuthError extends Error {
     super(message);
     this.name = 'AuthError';
   }
-}
-
-// =====================================================
-// Password Validation Types / 密码验证类型
-// =====================================================
-
-/** Password validation result / 密码验证结果 */
-export interface PasswordValidationResult {
-  valid: boolean;
-  errors: string[];
-  strength: 'weak' | 'medium' | 'strong';
-}
-
-/** Password policy configuration / 密码策略配置 */
-export interface PasswordPolicy {
-  minLength: number;
-  requireUppercase: boolean;
-  requireLowercase: boolean;
-  requireNumber: boolean;
-  requireSpecialChar: boolean;
 }

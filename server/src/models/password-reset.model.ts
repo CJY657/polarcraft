@@ -40,16 +40,6 @@ export class PasswordResetModel {
   }
 
   /**
-   * Find password reset token by token value
-   * 根据令牌值查找密码重置令牌
-   */
-  static async findByToken(token: string): Promise<PasswordResetToken | null> {
-    return normalizeDocument<PasswordResetToken>(
-      await passwordResetCollection().findOne({ token, used_at: null })
-    );
-  }
-
-  /**
    * Find valid (not expired and not used) password reset token
    * 查找有效（未过期且未使用）的密码重置令牌
    */
@@ -91,28 +81,4 @@ export class PasswordResetModel {
     return result.modifiedCount;
   }
 
-  /**
-   * Clean up expired and used tokens
-   * 清理过期和已使用的令牌
-   */
-  static async cleanup(): Promise<number> {
-    const result = await passwordResetCollection().deleteMany({
-      $or: [
-        { used_at: { $ne: null } },
-        { expires_at: { $lt: new Date() } },
-      ],
-    });
-
-    logger.info(`Cleaned up ${result.deletedCount} password reset tokens`);
-    return result.deletedCount;
-  }
-
-  /**
-   * Check if a token is valid
-   * 检查令牌是否有效
-   */
-  static async isValid(token: string): Promise<boolean> {
-    const resetToken = await this.findValidToken(token);
-    return resetToken !== null;
-  }
 }

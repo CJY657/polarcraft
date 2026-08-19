@@ -158,40 +158,4 @@ export class TokenService {
     return await RefreshTokenModel.delete(sessionId, userId);
   }
 
-  /**
-   * Verify and get refresh token record
- * 验证并获取刷新令牌记录
-   */
-  static async verifyRefreshTokenRecord(
-    refreshToken: string
-  ): Promise<{ token: RefreshTokenModel; payload: TokenPayload } | null> {
-    // Verify JWT
-    // 验证 JWT
-    let payload: TokenPayload;
-    try {
-      payload = verifyRefreshToken(refreshToken);
-    } catch (error) {
-      return null;
-    }
-
-    // Check database record
-    // 检查数据库记录
-    const tokenRecord = await RefreshTokenModel.findByToken(refreshToken);
-    if (!tokenRecord) {
-      return null;
-    }
-
-    return {
-      token: tokenRecord as any,
-      payload,
-    };
-  }
-
-  /**
-   * Clean up expired tokens (should be run periodically)
- * 清理过期令牌（应定期运行）
-   */
-  static async cleanupExpired(): Promise<number> {
-    return await RefreshTokenModel.cleanupExpired();
-  }
 }

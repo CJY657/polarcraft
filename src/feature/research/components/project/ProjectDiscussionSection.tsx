@@ -28,11 +28,6 @@ export interface ProjectDiscussionOutline {
 
 export type ProjectDiscussionJumpSection = 'topic' | 'basic' | 'extended' | 'comments';
 
-export interface ProjectDiscussionJumpTarget {
-  section: ProjectDiscussionJumpSection;
-  index?: number;
-}
-
 export interface ProjectDiscussionJumpRequest {
   section: ProjectDiscussionJumpSection;
   index?: number;

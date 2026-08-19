@@ -7,7 +7,7 @@ import { api } from './api';
 
 export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx';
 
-export interface UploadResult {
+interface UploadResult {
   url: string;
   filename: string;
   originalName: string;
@@ -17,7 +17,7 @@ export interface UploadResult {
   unitId: string;
 }
 
-export interface UploadConfig {
+interface UploadConfig {
   maxFileSize: Record<string, number>;
   allowedExtensions: Record<string, string[]>;
 }
@@ -42,23 +42,6 @@ export const uploadApi = {
       return response.data;
     }
     throw new Error(response.error?.message || 'Upload failed');
-  },
-
-  /**
-   * Delete an uploaded file
-   * 删除已上传的文件
-   */
-  async deleteFile(
-    category: FileCategory,
-    unitId: string,
-    filename: string
-  ): Promise<void> {
-    const response = await api.delete(
-      `/api/upload/${category}/${unitId}/${filename}`
-    );
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Delete failed');
-    }
   },
 
   /**
@@ -99,7 +82,7 @@ export function getFileCategory(file: File): FileCategory | null {
  * Get file category from extension
  * 根据扩展名获取文件类别
  */
-export function getFileCategoryFromExtension(filename: string): FileCategory | null {
+function getFileCategoryFromExtension(filename: string): FileCategory | null {
   const ext = filename.toLowerCase().split('.').pop();
 
   const extToCategory: Record<string, FileCategory> = {

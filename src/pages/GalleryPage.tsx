@@ -10,7 +10,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/classNames";
 import { PersistentHeader, Tabs } from "@/components/shared";
-import { WorksGrid } from "@/feature/gallery";
+import { WorksGrid } from "@/feature/gallery/WorksGrid";
 import { getPublicWorks } from "@/data/gallery";
 import { courseApi, type Course } from "@/lib/course.service";
 import {

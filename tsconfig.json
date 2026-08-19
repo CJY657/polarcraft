@@ -23,8 +23,6 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "allowSyntheticDefaultImports": true,
 
     /* Aliases */
     "baseUrl": ".",
@@ -35,10 +33,10 @@
 
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }],
-  "exclude": ["node_modules",
-  "dist",
-  "**/*.spec.ts",
-  "**/*.spec.tsx",
-  "**/*.test.ts",
-  "**/*.test.tsx"]
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
 }

@@ -29,16 +29,13 @@ function copyPublicAssetsWithoutUploads() {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), copyPublicAssetsWithoutUploads()],
-  base: '/',
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
     },
   },
   build: {
-    outDir: 'dist',
     copyPublicDir: false,
-    sourcemap: false,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

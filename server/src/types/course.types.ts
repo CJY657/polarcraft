@@ -4,15 +4,6 @@
  */
 
 // =====================================================
-// Label Types / 标签类型
-// =====================================================
-
-export interface LabelI18n {
-  'zh-CN'?: string;
-  'en-US'?: string;
-}
-
-// =====================================================
 // Media Types / 媒体类型
 // =====================================================
 
@@ -24,55 +15,6 @@ export type KnowledgeTag =
   | 'student_ppt'
   | 'student_poster'
   | 'student_project';
-
-// =====================================================
-// Course Types / 课程类型
-// =====================================================
-
-export interface CourseMainSlide {
-  id: string;
-  url: string;
-  title: LabelI18n;
-  knowledgeTag: KnowledgeTag;
-}
-
-export interface CourseMedia {
-  id: string;
-  type: MediaType;
-  url: string;
-  previewPdfUrl?: string;
-  title: LabelI18n;
-  knowledgeTag: KnowledgeTag;
-  duration?: number;
-  sortOrder: number;
-}
-
-export interface CourseHyperlink {
-  id: string;
-  sourceMediaId?: string;
-  page: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  targetMediaId: string;
-}
-
-export interface Course {
-  id: string;
-  unitId: string;
-  title: LabelI18n;
-  description: LabelI18n;
-  coverImage?: string;
-  color: string;
-  knowledgeTag: KnowledgeTag;
-  sortOrder: number;
-  mainSlide?: CourseMainSlide;
-  media: CourseMedia[];
-  hyperlinks: CourseHyperlink[];
-  createdAt: string;
-  updatedAt: string;
-}
 
 // =====================================================
 // Input Types / 输入类型
@@ -149,13 +91,6 @@ export interface UpdateHyperlinkInput {
   targetMediaId?: string;
 }
 
-export interface CreateCourseDiscussionCommentInput {
-  content: string;
-  parentCommentId?: string;
-  imageUrls?: string[];
-  resourceId?: string;
-}
-
 // =====================================================
 // Database Row Types / 数据库行类型
 // =====================================================
@@ -229,14 +164,4 @@ export interface CourseDiscussionCommentRow {
   is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
-}
-
-export interface CourseDiscussionImageUploadResult {
-  url: string;
-  filename: string;
-  originalName: string;
-  size: number;
-  mimeType: string;
-  category: 'image';
-  unitId: string;
 }

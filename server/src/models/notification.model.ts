@@ -4,7 +4,7 @@
  */
 
 import { getCollection } from '../database/connection.js';
-import { normalizeDocument, normalizeDocuments } from '../database/mongo.util.js';
+import { normalizeDocuments } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -55,22 +55,6 @@ export class NotificationModel {
       notifications: normalizeDocuments<UserNotification>(notifications),
       total,
     };
-  }
-
-  /**
-   * Get notification by ID
-   * 根据ID获取通知
-   */
-  static async getNotificationById(
-    notificationId: string,
-    userId: string
-  ): Promise<UserNotification | null> {
-    return normalizeDocument<UserNotification>(
-      await notificationsCollection().findOne({
-        id: notificationId,
-        ...buildVisibleNotificationFilter(userId),
-      })
-    );
   }
 
   /**

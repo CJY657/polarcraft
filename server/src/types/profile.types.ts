@@ -158,8 +158,3 @@ export interface CreateApplicationInput {
   expertise?: string;
   motivation?: string;
 }
-
-export interface UpdateApplicationStatusInput {
-  status: 'approved' | 'rejected';
-  review_notes?: string;
-}

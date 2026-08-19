@@ -60,8 +60,6 @@ function SeriesCard({ series, onClick }: SeriesCardProps) {
           src={series.thumbnail}
           alt={series.name[lang] || series.name["zh-CN"]}
           className="w-full h-full"
-          objectFit="cover"
-          showLoading={true}
         />
         {/* Overlay gradient */}
         <div
@@ -149,8 +147,6 @@ function MediaCard({ media, onClick, viewMode = "grid" }: MediaCardProps) {
             src={isVideo ? media.thumbnail || "/images/video-placeholder.jpg" : media.path}
             alt={media.name[lang] || media.name["zh-CN"]}
             className="w-full h-full"
-            objectFit="cover"
-            showLoading={true}
           />
           {isVideo && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -223,8 +219,6 @@ function MediaCard({ media, onClick, viewMode = "grid" }: MediaCardProps) {
           src={isVideo ? media.thumbnail || "/images/video-placeholder.jpg" : media.path}
           alt={name}
           className="w-full h-full"
-          objectFit="cover"
-          showLoading={true}
         />
         {isVideo && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors duration-300">

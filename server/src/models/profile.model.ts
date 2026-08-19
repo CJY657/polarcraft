@@ -367,16 +367,6 @@ export class ProfileModel {
   }
 
   /**
-   * Get creator profile for a project
-   * 获取项目的创建者资料
-   */
-  static async getCreatorProfile(projectId: string, userId: string): Promise<ProjectCreatorProfile | null> {
-    return normalizeDocument<ProjectCreatorProfile>(
-      await creatorProfilesCollection().findOne({ project_id: projectId, user_id: userId })
-    );
-  }
-
-  /**
    * Get all creator profiles for a project
    * 获取项目的所有创建者资料
    */

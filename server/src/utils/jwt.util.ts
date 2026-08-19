@@ -6,7 +6,7 @@
  * 处理 JWT token 的生成和验证
  */
 
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 import { TokenPayload } from '../types/auth.types.js';
 import { generateId } from './crypto.util.js';

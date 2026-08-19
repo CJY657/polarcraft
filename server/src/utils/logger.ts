@@ -10,11 +10,6 @@ import { config } from '../config/index.js';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LoggerConfig {
-  enabled: boolean;
-  minLevel: LogLevel;
-}
-
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
   info: 1,
@@ -22,12 +17,9 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   error: 3,
 };
 
-// Get log level from config
-const configLevel = config.logging.level as LogLevel;
-
-const loggerConfig: LoggerConfig = {
+const loggerConfig = {
   enabled: config.logging.enabled,
-  minLevel: configLevel,
+  minLevel: config.logging.level,
 };
 
 function shouldLog(level: LogLevel): boolean {
@@ -37,7 +29,7 @@ function shouldLog(level: LogLevel): boolean {
   );
 }
 
-function formatMessage(level: LogLevel, message: string, ...args: unknown[]): string {
+function formatMessage(level: LogLevel, message: string): string {
   const timestamp = new Date().toISOString();
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
   return `${prefix} ${message}`;
@@ -67,30 +59,4 @@ export const logger = {
       console.error(formatMessage('error', message), ...args);
     }
   },
-
-  /**
-   * Configure logger settings
-   * 配置日志记录器设置
-   */
-  configure: (newConfig: Partial<LoggerConfig>) => {
-    Object.assign(loggerConfig, newConfig);
-  },
-
-  /**
-   * Enable/disable logging
-   * 启用/禁用日志记录
-   */
-  setEnabled: (enabled: boolean) => {
-    loggerConfig.enabled = enabled;
-  },
-
-  /**
-   * Set minimum log level
-   * 设置最低日志级别
-   */
-  setMinLevel: (level: LogLevel) => {
-    loggerConfig.minLevel = level;
-  },
 };
-
-export default logger;

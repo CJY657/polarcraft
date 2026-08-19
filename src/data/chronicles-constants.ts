@@ -3,46 +3,6 @@
  * 光的编年史 - 常量配置
  */
 
-// 类别颜色配置 - 光谱色系
-export const CATEGORY_COLORS = {
-  foundation: { dark: { bg: '#1e1b4b', stroke: '#818cf8', text: '#a5b4fc' }, light: { bg: '#eef2ff', stroke: '#6366f1', text: '#4f46e5' } },
-  geometric: { dark: { bg: '#451a03', stroke: '#f97316', text: '#fb923c' }, light: { bg: '#fff7ed', stroke: '#ea580c', text: '#c2410c' } },
-  wave: { dark: { bg: '#052e16', stroke: '#22c55e', text: '#4ade80' }, light: { bg: '#f0fdf4', stroke: '#16a34a', text: '#15803d' } },
-  polarization: { dark: { bg: '#083344', stroke: '#22d3ee', text: '#67e8f9' }, light: { bg: '#ecfeff', stroke: '#06b6d4', text: '#0891b2' } },
-  quantum: { dark: { bg: '#3b0764', stroke: '#a855f7', text: '#c084fc' }, light: { bg: '#faf5ff', stroke: '#9333ea', text: '#7e22ce' } },
-  application: { dark: { bg: '#1f2937', stroke: '#9ca3af', text: '#d1d5db' }, light: { bg: '#f3f4f6', stroke: '#6b7280', text: '#4b5563' } },
-}
-
-/**
- * 分支对应的光谱区域
- *
- * 科学说明：这是一种概念性/教学性映射，而非严格的物理对应关系。
- * 实际上，光学的各个分支并不严格对应特定的电磁波谱区域：
- * - 几何光学：适用于波长远小于物体尺寸的情况，在整个可见光谱都有效
- * - 波动光学：衍射和干涉效应在波长与物体尺寸可比时显著
- * - 偏振光学：是光的横波特性，适用于所有电磁波
- * - 量子光学：处理单光子行为，能量尺度由E=hν决定
- *
- * 这里的映射是为了在可视化中建立直观的"尺度-分支"关联。
- */
-export const BRANCH_SPECTRUM_REGIONS = {
-  geometric: { start: 22, end: 38, label: 'mm-μm' },  // 宏观尺度，光线近似
-  wave: { start: 36, end: 52, label: 'μm-nm' },       // 波长尺度，衍射干涉
-  polarization: { start: 48, end: 68, label: 'nm scale' }, // 光波矢量尺度
-  quantum: { start: 66, end: 82, label: 'photon' },   // 单光子/量子尺度
-}
-
-/**
- * 分支在光谱上的位置映射（横向排列映射到光谱）
- * 这是UI可视化用的位置参数，center值表示在光谱条上的百分比位置
- */
-export const BRANCH_SPECTRUM_POSITIONS = {
-  geometric: { center: 30, labelEn: 'Geometric', labelZh: '几何光学' },
-  wave: { center: 44, labelEn: 'Wave', labelZh: '波动光学' },
-  polarization: { center: 58, labelEn: 'Polarization', labelZh: '偏振光学' },
-  quantum: { center: 74, labelEn: 'Quantum', labelZh: '量子光学' },
-}
-
 // Category labels for timeline events
 export const CATEGORY_LABELS = {
   discovery: { en: 'Discovery', zh: '发现', color: 'blue' as const },
@@ -96,8 +56,3 @@ export const ILLUSTRATION_TO_BENCH_MAP: Record<string, { route: string; labelEn:
   'faraday': { route: '/bench?experiment=faraday-rotation', labelEn: 'Recreate in Lab', labelZh: '在实验室复现' },
   'opticalactivity': { route: '/bench?experiment=optical-rotation', labelEn: 'Recreate in Lab', labelZh: '在实验室复现' },
 }
-
-// Type exports for external use
-export type CategoryColorKey = keyof typeof CATEGORY_COLORS
-export type BranchKey = keyof typeof BRANCH_SPECTRUM_POSITIONS
-export type CategoryKey = keyof typeof CATEGORY_LABELS

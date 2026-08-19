@@ -197,7 +197,6 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      showCloseButton={false}
       className="max-w-2xl border-0 bg-transparent shadow-none"
       containerClassName="research-project-detail"
     >

@@ -41,17 +41,3 @@ export interface CreateNotificationInput {
   action_url?: string;
   expires_at?: Date;
 }
-
-// =====================================================
-// API Response Types / API 响应类型
-// =====================================================
-
-export interface NotificationListResponse {
-  notifications: UserNotification[];
-  total: number;
-  unread_count: number;
-}
-
-export interface UnreadCountResponse {
-  count: number;
-}

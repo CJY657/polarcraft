@@ -39,6 +39,41 @@ export function formatShortDateTime(value: string): string {
   });
 }
 
+/** YYYY-MM-DD in the local timezone, suitable for date inputs. */
+export function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/** Inclusive range ending today. */
+export function lastDaysRange(days: number): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+  return { start: toDateInput(start), end: toDateInput(end) };
+}
+
+/** Localized month/day used by both activity charts. */
+export function formatMonthDay(value: string): string {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+  });
+}
+
+/** Research record timestamp; preserves the existing Intl formatter behavior. */
+export function formatResearchDateTime(value: string): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 /** 刚刚 / N 分钟前 / N 小时前 / N 天前，超过 7 天回落到本地日期 */
 export function formatRelativeTime(dateString: string, t: TFunction): string {
   const date = new Date(dateString);
