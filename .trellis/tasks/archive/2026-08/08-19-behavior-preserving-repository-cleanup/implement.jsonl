@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend repository conventions and scope index"}
+{"file":".trellis/spec/backend/index.md","reason":"Backend contracts and explicit compatibility rules"}
+{"file":".trellis/spec/backend/research-meetings.md","reason":"Preserve live meeting routes deletion behavior ratings and cleanup"}
+{"file":".trellis/spec/backend/upload-files.md","reason":"Preserve managed upload validation and cleanup registration"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Consolidate exact duplicates without speculative abstraction"}
+{"file":".trellis/tasks/08-19-behavior-preserving-repository-cleanup/research/audit-findings.md","reason":"Approved candidate list boundaries and exclusions"}

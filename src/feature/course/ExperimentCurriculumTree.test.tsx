@@ -120,6 +120,22 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole("button", { name: /补充资料/ })).toBeTruthy();
   });
 
+  it("gives each hierarchy level its own active style", () => {
+    renderTree();
+
+    const activeExperiment = screen.getByRole("button", { name: /冰洲石实验/ });
+    const activePresentation = screen.getByRole("button", { name: /课件一/ });
+    const activeData = screen.getByRole("button", { name: /实验视频/ });
+
+    expect(activeExperiment.getAttribute("aria-current")).toBe("true");
+    expect(activePresentation.getAttribute("aria-current")).toBe("true");
+    expect(activeData.getAttribute("aria-current")).toBe("true");
+
+    // 三个层级不能共用同一套选中配色
+    expect(activeExperiment.className).not.toBe(activePresentation.className);
+    expect(activePresentation.className).not.toBe(activeData.className);
+  });
+
   it("uses application terminology without changing the hierarchy", () => {
     renderTree({ navigation: { contentKind: "application" } });
 

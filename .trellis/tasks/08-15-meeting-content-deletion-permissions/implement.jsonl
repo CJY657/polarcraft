@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/research-meetings.md","reason":"Existing meeting collection, route, access, response, and test contracts to extend with deletion semantics."}
+{"file":".trellis/spec/backend/upload-files.md","reason":"Existing managed-upload reference and post-delete cleanup contract for meeting raw files."}
+{"file":".trellis/tasks/08-15-meeting-content-deletion-permissions/research/backend-deletion.md","reason":"Repository-grounded backend authorization, transaction, cascade, cleanup, and project-delete findings."}
+{"file":".trellis/tasks/08-15-meeting-content-deletion-permissions/research/frontend-deletion.md","reason":"Repository-grounded frontend action, API-client, confirmation, reload, and test findings."}

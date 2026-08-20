@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/research-meetings.md","reason":"Check the shipped DELETE route, authorization matrix, cascade, cleanup, and focused test requirements against the implementation."}
+{"file":".trellis/spec/backend/upload-files.md","reason":"Check that meeting raw-file references and reference-safe cleanup remain registered and are invoked after deletion."}
+{"file":".trellis/tasks/08-15-meeting-content-deletion-permissions/research/backend-deletion.md","reason":"Use the recorded backend risk list for authorization, cross-project filters, transaction behavior, and project-delete regression review."}
+{"file":".trellis/tasks/08-15-meeting-content-deletion-permissions/research/frontend-deletion.md","reason":"Use the recorded frontend risk list for manager-only visibility, pending confirmation, reload, and failure-state review."}

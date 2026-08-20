@@ -1,0 +1,6 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/tasks/08-15-research-meetings-peer-eval/research/backend-patterns.md", "reason": "调研结论：backend-patterns"}
+{"file": ".trellis/tasks/08-15-research-meetings-peer-eval/research/ai-and-notifications.md", "reason": "调研结论：ai-and-notifications"}
+{"file": ".trellis/tasks/08-15-research-meetings-peer-eval/research/peer-review-and-digest.md", "reason": "调研结论：peer-review-and-digest"}
+{"file": ".trellis/tasks/08-15-research-meetings-peer-eval/research/frontend-patterns.md", "reason": "调研结论：frontend-patterns"}
+{"file": ".trellis/tasks/08-15-research-meetings-peer-eval/research/notifications-deeplinks.md", "reason": "调研结论：notifications-deeplinks"}

@@ -105,9 +105,30 @@ export function ExperimentCurriculumTree({
     : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600";
   const rowBaseClass = `flex w-full items-center gap-2 rounded-xl text-left transition-colors ${focusRingClass}`;
   const hoverClass = isDark ? "hover:bg-slate-700/50" : "hover:bg-slate-100";
-  const activeRowClass = isDark
-    ? "bg-cyan-500/15 text-cyan-100"
-    : "bg-cyan-50 text-cyan-900";
+
+  // 层级配色：单元(墨色) → 实验(靛蓝) → 分组(静音标签) → 文件(跟随所属分组)
+  const guideLineClass = isDark ? "border-slate-700/70" : "border-slate-200";
+  const nestedListClass = `mt-0.5 ml-2.5 space-y-0.5 border-l pl-1 ${guideLineClass}`;
+
+  const unitRowClass = isDark
+    ? "bg-slate-800/60 text-white hover:bg-slate-800"
+    : "bg-slate-100 text-slate-900 hover:bg-slate-200/70";
+  const unitRowActiveClass = isDark
+    ? "bg-slate-700/80 text-white"
+    : "bg-slate-200 text-slate-900";
+  const unitBarClass = isDark ? "bg-slate-500" : "bg-slate-400";
+  const unitBarActiveClass = isDark ? "bg-white" : "bg-slate-900";
+
+  const experimentActiveClass = isDark
+    ? "bg-indigo-500/25 text-indigo-50"
+    : "bg-indigo-100 text-indigo-950";
+
+  const presentationFileActiveClass = isDark
+    ? "bg-amber-400/20 text-amber-50"
+    : "bg-amber-100 text-amber-950";
+  const dataFileActiveClass = isDark
+    ? "bg-cyan-400/20 text-cyan-50"
+    : "bg-cyan-100 text-cyan-950";
 
   const isApplication = contentKind === "application";
   const headingLabel = isZh
@@ -222,6 +243,7 @@ export function ExperimentCurriculumTree({
     isExpanded,
     onToggle,
     folderIconClass,
+    activeFileClass,
   }: {
     experimentId: string;
     folderKey: "presentation" | "experimental-data";
@@ -232,6 +254,7 @@ export function ExperimentCurriculumTree({
     isExpanded: boolean;
     onToggle: () => void;
     folderIconClass: string;
+    activeFileClass: string;
   }) => {
     const panelId = `${idPrefix}-folder-${folderKey}-${experimentId}`;
     const FolderIcon = isExpanded ? FolderOpen : FolderClosed;
@@ -243,8 +266,8 @@ export function ExperimentCurriculumTree({
           onClick={onToggle}
           aria-expanded={isExpanded}
           aria-controls={panelId}
-          className={`${rowBaseClass} ${hoverClass} px-2 py-1.5 pl-5 text-[12px] font-bold ${
-            isDark ? "text-slate-200" : "text-slate-700"
+          className={`${rowBaseClass} ${hoverClass} px-2 py-1.5 text-[11.5px] font-bold tracking-[0.06em] ${
+            isDark ? "text-slate-400" : "text-slate-500"
           }`}
         >
           <ChevronRight
@@ -266,10 +289,10 @@ export function ExperimentCurriculumTree({
         <ul
           id={panelId}
           hidden={!isExpanded}
-          className="mt-0.5 space-y-0.5"
+          className={nestedListClass}
         >
           {files.length === 0 ? (
-            <li className={`px-2 py-1.5 pl-11 text-[11px] ${mutedTextClass}`}>
+            <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
               {emptyLabel}
             </li>
           ) : (
@@ -287,9 +310,9 @@ export function ExperimentCurriculumTree({
                       onAfterSelect?.();
                     }}
                     aria-current={isActiveFile ? "true" : undefined}
-                    className={`${rowBaseClass} px-2 py-1.5 pl-9 text-[12px] ${
+                    className={`${rowBaseClass} px-2 py-1.5 text-[12.5px] ${
                       isActiveFile
-                        ? `${activeRowClass} font-bold`
+                        ? `${activeFileClass} font-semibold`
                         : `${hoverClass} font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`
                     }`}
                   >
@@ -326,6 +349,7 @@ export function ExperimentCurriculumTree({
       <ul className="space-y-1">
         {units.map((unit) => {
           const isUnitExpanded = expandedUnitId === unit.id;
+          const isUnitActive = unit.id === activeUnitId;
           const unitPanelId = `${idPrefix}-unit-${unit.id}`;
 
           return (
@@ -335,8 +359,8 @@ export function ExperimentCurriculumTree({
                 onClick={() => toggleUnit(unit.id)}
                 aria-expanded={isUnitExpanded}
                 aria-controls={unitPanelId}
-                className={`${rowBaseClass} ${hoverClass} px-2 py-2 text-[13px] font-bold ${
-                  isDark ? "text-white" : "text-slate-900"
+                className={`${rowBaseClass} px-2.5 py-2.5 text-[14px] font-bold ${
+                  isUnitActive ? unitRowActiveClass : unitRowClass
                 }`}
               >
                 {isUnitExpanded ? (
@@ -352,8 +376,9 @@ export function ExperimentCurriculumTree({
                 )}
                 <span
                   aria-hidden="true"
-                  className="h-4 w-1 shrink-0 rounded-full"
-                  style={{ backgroundColor: unit.color }}
+                  className={`h-5 w-1.5 shrink-0 rounded-full ${
+                    isUnitActive ? unitBarActiveClass : unitBarClass
+                  }`}
                 />
                 <span className="min-w-0 flex-1 truncate">
                   {unit.title[isZh ? "zh-CN" : "en-US"] ||
@@ -369,10 +394,10 @@ export function ExperimentCurriculumTree({
               <ul
                 id={unitPanelId}
                 hidden={!isUnitExpanded}
-                className="mt-0.5 space-y-0.5"
+                className={nestedListClass}
               >
                 {unit.experiments.length === 0 ? (
-                  <li className={`px-2 py-1.5 pl-7 text-[11px] ${mutedTextClass}`}>
+                  <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
                     {emptyUnitLabel}
                   </li>
                 ) : (
@@ -397,9 +422,9 @@ export function ExperimentCurriculumTree({
                           aria-expanded={isExpanded}
                           aria-controls={isExpanded ? experimentPanelId : undefined}
                           aria-current={isActiveExperiment ? "true" : undefined}
-                          className={`${rowBaseClass} px-2 py-1.5 pl-3 text-[12.5px] ${
+                          className={`${rowBaseClass} px-2 py-2 text-[13px] ${
                             isActiveExperiment
-                              ? `${activeRowClass} font-bold`
+                              ? `${experimentActiveClass} font-bold`
                               : `${hoverClass} font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`
                           }`}
                         >
@@ -420,7 +445,7 @@ export function ExperimentCurriculumTree({
                         {isExpanded ? (
                           <ul
                             id={experimentPanelId}
-                            className="mt-0.5 space-y-0.5"
+                            className={nestedListClass}
                           >
                             {renderResourceFolder({
                               experimentId: experiment.id,
@@ -433,6 +458,7 @@ export function ExperimentCurriculumTree({
                               onToggle: () =>
                                 setIsPresentationFolderExpanded((current) => !current),
                               folderIconClass: isDark ? "text-amber-300" : "text-amber-600",
+                              activeFileClass: presentationFileActiveClass,
                             })}
                             {renderResourceFolder({
                               experimentId: experiment.id,
@@ -445,6 +471,7 @@ export function ExperimentCurriculumTree({
                               onToggle: () =>
                                 setIsExperimentalDataFolderExpanded((current) => !current),
                               folderIconClass: isDark ? "text-cyan-300" : "text-cyan-700",
+                              activeFileClass: dataFileActiveClass,
                             })}
                           </ul>
                         ) : null}

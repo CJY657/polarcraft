@@ -30,7 +30,7 @@ const EXPLORE_LINKS: FooterLink[] = [
 ];
 
 const RESOURCE_LINKS: FooterLink[] = [
-  { label: "GitHub", path: "https://github.com/amatke31/polarcraft", external: true },
+  { label: "GitHub", path: "https://github.com/CJY657/polarcraft", external: true },
   { label: "首页", path: "/" },
 ];
 
