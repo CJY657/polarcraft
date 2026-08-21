@@ -638,8 +638,11 @@ describe("CourseViewer hierarchical workspace", () => {
     });
 
     expect(screen.queryByText("资源总览")).toBeNull();
-    expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("2");
-    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("2");
+    const tree = screen.getByTestId("curriculum-tree");
+    expect(within(tree).queryByRole("button", { name: /课件材料/ })).toBeNull();
+    expect(within(tree).queryByRole("button", { name: /实验数据/ })).toBeNull();
+    expect(within(tree).getByRole("button", { name: /第二课件/ })).toBeTruthy();
+    expect(within(tree).getByRole("button", { name: /实验视频/ })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "补充课件" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
   });
@@ -656,7 +659,7 @@ describe("CourseViewer hierarchical workspace", () => {
     });
 
     const curriculumTree = screen.getByTestId("curriculum-tree");
-    expect(within(curriculumTree).getByRole("button", { name: /实验数据/ })).toBeTruthy();
+    expect(within(curriculumTree).queryByRole("button", { name: /实验数据/ })).toBeNull();
     expect(within(curriculumTree).getByRole("button", { name: /实验视频/ })).toBeTruthy();
     expect(within(curriculumTree).getByRole("button", { name: /实验图片/ })).toBeTruthy();
     expect(document.querySelector("video")).toBeTruthy();
@@ -719,8 +722,10 @@ describe("CourseViewer hierarchical workspace", () => {
       expect(screen.getByTestId("mock-pdf-viewer:/slides/main.pdf")).toBeTruthy();
     });
 
-    expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("1");
-    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("2");
+    const tree = screen.getByTestId("curriculum-tree");
+    expect(within(tree).queryByRole("button", { name: /课件材料/ })).toBeNull();
+    expect(within(tree).getByRole("button", { name: /主课件/ })).toBeTruthy();
+    expect(within(tree).getByRole("button", { name: /实验视频/ })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "主课件" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "实验视频" })).toBeTruthy();
   });

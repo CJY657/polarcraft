@@ -1,7 +1,7 @@
 /**
  * ExperimentCurriculumTree - 实验目录层级导航
  *
- * 固定层级：单元 → 实验 → 课件材料 / 实验数据 → 文件
+ * 固定层级：单元 → 实验 → 文件
  * 使用嵌套列表 + 展开按钮（aria-expanded / aria-controls），而不是自定义 tree 控件，
  * 以便键盘与读屏行为保持原生语义。
  */
@@ -11,8 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  FolderClosed,
-  FolderOpen,
   Image as ImageIcon,
   Layers,
   Play,
@@ -80,8 +78,6 @@ export function ExperimentCurriculumTree({
   const activeUnitId = findUnitIdForExperiment(units, activeExperimentId);
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(activeUnitId);
   const [isActiveExperimentExpanded, setIsActiveExperimentExpanded] = useState(true);
-  const [isPresentationFolderExpanded, setIsPresentationFolderExpanded] = useState(true);
-  const [isExperimentalDataFolderExpanded, setIsExperimentalDataFolderExpanded] = useState(true);
 
   // 只保持激活路径展开：单元与实验跟随当前实验同步
   useEffect(() => {
@@ -90,8 +86,6 @@ export function ExperimentCurriculumTree({
 
   useEffect(() => {
     setIsActiveExperimentExpanded(true);
-    setIsPresentationFolderExpanded(true);
-    setIsExperimentalDataFolderExpanded(true);
   }, [activeExperimentId]);
 
   const toggleUnit = useCallback((unitId: string) => {
@@ -103,32 +97,35 @@ export function ExperimentCurriculumTree({
   const focusRingClass = isDark
     ? "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
     : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600";
-  const rowBaseClass = `flex w-full items-center gap-2 rounded-xl text-left transition-colors ${focusRingClass}`;
-  const hoverClass = isDark ? "hover:bg-slate-700/50" : "hover:bg-slate-100";
+  const rowBaseClass = `flex w-full items-center gap-2 rounded-xl px-2 text-left transition-colors ${focusRingClass}`;
 
-  // 层级配色：单元(墨色) → 实验(靛蓝) → 分组(静音标签) → 文件(跟随所属分组)
-  const guideLineClass = isDark ? "border-slate-700/70" : "border-slate-200";
-  const nestedListClass = `mt-0.5 ml-2.5 space-y-0.5 border-l pl-1 ${guideLineClass}`;
+  // 层级配色：单元(靛蓝) → 实验(青) → 分组与文件(中性灰，不着色)
+  // 缩进 ml-4 让竖向引导线正好落在上一层折叠箭头的中心（px-2 + 半个 h-4 图标）。
+  const guideLineClass = isDark ? "border-slate-700" : "border-slate-200";
+  const nestedListClass = `mt-0.5 ml-4 space-y-0.5 border-l pl-3 ${guideLineClass}`;
 
+  // 第一层：单元
   const unitRowClass = isDark
-    ? "bg-slate-800/60 text-white hover:bg-slate-800"
-    : "bg-slate-100 text-slate-900 hover:bg-slate-200/70";
+    ? "bg-indigo-500/10 text-indigo-100 hover:bg-indigo-500/20"
+    : "bg-indigo-50 text-indigo-950 hover:bg-indigo-100";
   const unitRowActiveClass = isDark
-    ? "bg-slate-700/80 text-white"
-    : "bg-slate-200 text-slate-900";
-  const unitBarClass = isDark ? "bg-slate-500" : "bg-slate-400";
-  const unitBarActiveClass = isDark ? "bg-white" : "bg-slate-900";
-
-  const experimentActiveClass = isDark
-    ? "bg-indigo-500/25 text-indigo-50"
+    ? "bg-indigo-500/25 text-white"
     : "bg-indigo-100 text-indigo-950";
+  const unitBarClass = isDark ? "bg-indigo-400/50" : "bg-indigo-300";
+  const unitBarActiveClass = isDark ? "bg-indigo-300" : "bg-indigo-600";
 
-  const presentationFileActiveClass = isDark
-    ? "bg-amber-400/20 text-amber-50"
-    : "bg-amber-100 text-amber-950";
-  const dataFileActiveClass = isDark
+  // 第二层：实验
+  const experimentRowClass = isDark
+    ? "text-cyan-100/85 hover:bg-cyan-500/15"
+    : "text-cyan-900 hover:bg-cyan-50";
+  const experimentActiveClass = isDark
     ? "bg-cyan-400/20 text-cyan-50"
     : "bg-cyan-100 text-cyan-950";
+
+  // 第三层：文件不着色也不压灰，用正文色 + 白底选中态
+  const fileRowClass = isDark ? "text-white" : "text-slate-900";
+  const fileHoverClass = isDark ? "hover:bg-white/10" : "hover:bg-white";
+  const fileActiveClass = isDark ? "bg-white/15 text-white" : "bg-white text-slate-900";
 
   const isApplication = contentKind === "application";
   const headingLabel = isZh
@@ -182,7 +179,7 @@ export function ExperimentCurriculumTree({
           <div
             key={row}
             className={`h-9 animate-pulse rounded-xl ${isDark ? "bg-slate-700/50" : "bg-slate-200/70"}`}
-            style={{ marginLeft: row % 3 === 0 ? 0 : row % 3 === 1 ? 12 : 24 }}
+            style={{ marginLeft: row % 3 === 0 ? 0 : row % 3 === 1 ? 16 : 32 }}
           />
         ))}
         <span className="sr-only">{loadingLabel}</span>
@@ -233,105 +230,39 @@ export function ExperimentCurriculumTree({
     );
   }
 
-  const renderResourceFolder = ({
-    experimentId,
-    folderKey,
-    label,
-    emptyLabel,
-    files,
-    activeFileId,
-    isExpanded,
-    onToggle,
-    folderIconClass,
-    activeFileClass,
-  }: {
-    experimentId: string;
-    folderKey: "presentation" | "experimental-data";
-    label: string;
-    emptyLabel: string;
-    files: ExperimentFile[];
-    activeFileId: string | null;
-    isExpanded: boolean;
-    onToggle: () => void;
-    folderIconClass: string;
-    activeFileClass: string;
-  }) => {
-    const panelId = `${idPrefix}-folder-${folderKey}-${experimentId}`;
-    const FolderIcon = isExpanded ? FolderOpen : FolderClosed;
+  // 课件材料 / 实验数据两个分组不再显示，文件直接挂在实验下面
+  const activeExperimentFiles = [...presentationFiles, ...experimentalDataFiles];
+  const isActiveFileId = (fileId: string) =>
+    fileId === activePresentationFileId || fileId === activeExperimentalDataFileId;
+
+  const renderFile = (file: ExperimentFile) => {
+    const isActiveFile = isActiveFileId(file.id);
+    const FileIcon = file.type === "video" ? Play : file.type === "image" ? ImageIcon : FileText;
 
     return (
-      <li>
+      <li key={file.id}>
         <button
           type="button"
-          onClick={onToggle}
-          aria-expanded={isExpanded}
-          aria-controls={panelId}
-          className={`${rowBaseClass} ${hoverClass} px-2 py-1.5 text-[11.5px] font-bold tracking-[0.06em] ${
-            isDark ? "text-slate-400" : "text-slate-500"
+          onClick={() => {
+            onSelectFile(file);
+            onAfterSelect?.();
+          }}
+          aria-current={isActiveFile ? "true" : undefined}
+          className={`${rowBaseClass} ${fileRowClass} ${fileHoverClass} py-1.5 text-[12.5px] ${
+            isActiveFile ? `${fileActiveClass} font-bold` : "font-medium"
           }`}
         >
-          <ChevronRight
+          <FileIcon
             aria-hidden="true"
-            className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-              isExpanded ? "rotate-90" : ""
-            }`}
+            className="h-3.5 w-3.5 shrink-0"
           />
-          <FolderIcon
-            aria-hidden="true"
-            className={`h-3.5 w-3.5 shrink-0 ${folderIconClass}`}
-          />
-          <span className="min-w-0 flex-1 truncate">{label}</span>
-          <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>
-            {files.length}
+          <span className="min-w-0 flex-1 truncate">
+            {file.title[isZh ? "zh-CN" : "en-US"] ||
+              file.title["zh-CN"] ||
+              file.title["en-US"] ||
+              ""}
           </span>
         </button>
-
-        <ul
-          id={panelId}
-          hidden={!isExpanded}
-          className={nestedListClass}
-        >
-          {files.length === 0 ? (
-            <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
-              {emptyLabel}
-            </li>
-          ) : (
-            files.map((file) => {
-              const isActiveFile = file.id === activeFileId;
-              const FileIcon =
-                file.type === "video" ? Play : file.type === "image" ? ImageIcon : FileText;
-
-              return (
-                <li key={file.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectFile(file);
-                      onAfterSelect?.();
-                    }}
-                    aria-current={isActiveFile ? "true" : undefined}
-                    className={`${rowBaseClass} px-2 py-1.5 text-[12.5px] ${
-                      isActiveFile
-                        ? `${activeFileClass} font-semibold`
-                        : `${hoverClass} font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`
-                    }`}
-                  >
-                    <FileIcon
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 shrink-0"
-                    />
-                    <span className="min-w-0 flex-1 truncate">
-                      {file.title[isZh ? "zh-CN" : "en-US"] ||
-                        file.title["zh-CN"] ||
-                        file.title["en-US"] ||
-                        ""}
-                    </span>
-                  </button>
-                </li>
-              );
-            })
-          )}
-        </ul>
       </li>
     );
   };
@@ -359,7 +290,7 @@ export function ExperimentCurriculumTree({
                 onClick={() => toggleUnit(unit.id)}
                 aria-expanded={isUnitExpanded}
                 aria-controls={unitPanelId}
-                className={`${rowBaseClass} px-2.5 py-2.5 text-[14px] font-bold ${
+                className={`${rowBaseClass} py-2.5 text-[14px] font-bold ${
                   isUnitActive ? unitRowActiveClass : unitRowClass
                 }`}
               >
@@ -422,15 +353,15 @@ export function ExperimentCurriculumTree({
                           aria-expanded={isExpanded}
                           aria-controls={isExpanded ? experimentPanelId : undefined}
                           aria-current={isActiveExperiment ? "true" : undefined}
-                          className={`${rowBaseClass} px-2 py-2 text-[13px] ${
+                          className={`${rowBaseClass} py-2 text-[13px] ${
                             isActiveExperiment
                               ? `${experimentActiveClass} font-bold`
-                              : `${hoverClass} font-semibold ${isDark ? "text-slate-300" : "text-slate-700"}`
+                              : `${experimentRowClass} font-semibold`
                           }`}
                         >
                           <ChevronRight
                             aria-hidden="true"
-                            className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                            className={`h-4 w-4 shrink-0 transition-transform ${
                               isExpanded ? "rotate-90" : ""
                             }`}
                           />
@@ -447,32 +378,13 @@ export function ExperimentCurriculumTree({
                             id={experimentPanelId}
                             className={nestedListClass}
                           >
-                            {renderResourceFolder({
-                              experimentId: experiment.id,
-                              folderKey: "presentation",
-                              label: isZh ? "课件材料" : "Presentation materials",
-                              emptyLabel: isZh ? "暂无课件" : "No courseware",
-                              files: presentationFiles,
-                              activeFileId: activePresentationFileId,
-                              isExpanded: isPresentationFolderExpanded,
-                              onToggle: () =>
-                                setIsPresentationFolderExpanded((current) => !current),
-                              folderIconClass: isDark ? "text-amber-300" : "text-amber-600",
-                              activeFileClass: presentationFileActiveClass,
-                            })}
-                            {renderResourceFolder({
-                              experimentId: experiment.id,
-                              folderKey: "experimental-data",
-                              label: isZh ? "实验数据" : "Experimental data",
-                              emptyLabel: isZh ? "暂无资源" : "No resources",
-                              files: experimentalDataFiles,
-                              activeFileId: activeExperimentalDataFileId,
-                              isExpanded: isExperimentalDataFolderExpanded,
-                              onToggle: () =>
-                                setIsExperimentalDataFolderExpanded((current) => !current),
-                              folderIconClass: isDark ? "text-cyan-300" : "text-cyan-700",
-                              activeFileClass: dataFileActiveClass,
-                            })}
+                            {activeExperimentFiles.length === 0 ? (
+                              <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
+                                {isZh ? "暂无资源" : "No resources"}
+                              </li>
+                            ) : (
+                              activeExperimentFiles.map(renderFile)
+                            )}
                           </ul>
                         ) : null}
                       </li>

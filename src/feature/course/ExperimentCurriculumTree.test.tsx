@@ -96,44 +96,52 @@ describe("ExperimentCurriculumTree", () => {
     expect((otherUnitPanel as HTMLElement).hidden).toBe(true);
   });
 
-  it("renders the presentation-materials folder with counts and file rows", () => {
+  it("lists every file of the active experiment directly under it, without group folders", () => {
     renderTree();
 
-    const presentationFolder = screen.getByRole("button", { name: /课件材料/ });
-    expect(presentationFolder.getAttribute("aria-expanded")).toBe("true");
-    expect(presentationFolder.textContent).toContain("2");
+    // 课件材料 / 实验数据 两个分组不再出现
+    expect(screen.queryByRole("button", { name: /课件材料/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /实验数据/ })).toBeNull();
+
+    const panelId =
+      screen.getByRole("button", { name: /冰洲石实验/ }).getAttribute("aria-controls") || "";
+    const fileNames = Array.from(
+      document.getElementById(panelId)?.querySelectorAll("button") ?? []
+    ).map((button) => button.textContent);
+    expect(fileNames).toEqual(["课件一", "课件二", "实验视频", "实验图片", "补充资料"]);
+  });
+
+  it("marks the active presentation and the active data file as current", () => {
+    renderTree();
 
     expect(screen.getByRole("button", { name: /课件一/ }).getAttribute("aria-current")).toBe("true");
     expect(screen.getByRole("button", { name: /课件二/ }).getAttribute("aria-current")).toBeNull();
-  });
-
-  it("renders the experimental-data folder with image, video, and PDF resources", () => {
-    renderTree();
-
-    const experimentalDataFolder = screen.getByRole("button", { name: /实验数据/ });
-    expect(experimentalDataFolder.getAttribute("aria-expanded")).toBe("true");
-    expect(experimentalDataFolder.textContent).toContain("3");
     expect(screen.getByRole("button", { name: /实验视频/ }).getAttribute("aria-current")).toBe(
       "true"
     );
-    expect(screen.getByRole("button", { name: /实验图片/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /补充资料/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验图片/ }).getAttribute("aria-current")).toBeNull();
   });
 
-  it("gives each hierarchy level its own active style", () => {
+  it("colors the first two levels differently and leaves files uncolored", () => {
     renderTree();
 
-    const activeExperiment = screen.getByRole("button", { name: /冰洲石实验/ });
-    const activePresentation = screen.getByRole("button", { name: /课件一/ });
-    const activeData = screen.getByRole("button", { name: /实验视频/ });
+    const unit = screen.getByRole("button", { name: /第一单元/ });
+    const experiment = screen.getByRole("button", { name: /冰洲石实验/ });
+    const file = screen.getByRole("button", { name: /课件一/ });
 
-    expect(activeExperiment.getAttribute("aria-current")).toBe("true");
-    expect(activePresentation.getAttribute("aria-current")).toBe("true");
-    expect(activeData.getAttribute("aria-current")).toBe("true");
+    // 第一层靛蓝、第二层青，两级配色必须不同
+    expect(unit.className).toMatch(/indigo/);
+    expect(experiment.className).toMatch(/cyan-(?!300|600)/);
+    expect(experiment.className).not.toMatch(/indigo/);
 
-    // 三个层级不能共用同一套选中配色
-    expect(activeExperiment.className).not.toBe(activePresentation.className);
-    expect(activePresentation.className).not.toBe(activeData.className);
+    // 第三层（文件）不使用任何彩色，也不压成灰色
+    const fileColorClasses = file.className
+      .split(/\s+/)
+      .filter((token) => !token.startsWith("focus-visible:"))
+      .join(" ");
+    expect(fileColorClasses).not.toMatch(/indigo|cyan|amber|rose|emerald/);
+    expect(fileColorClasses).not.toMatch(/text-slate-[1-7]00\b/);
+    expect(fileColorClasses).not.toMatch(/bg-slate-/);
   });
 
   it("uses application terminology without changing the hierarchy", () => {
@@ -142,21 +150,20 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole("navigation", { name: "应用目录" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /第一单元/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /冰洲石实验/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /课件材料/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /实验数据/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /课件一/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /实验视频/ })).toBeTruthy();
   });
 
-  it("collapses the folder through its disclosure button", () => {
+  it("collapses the active experiment through its disclosure button", () => {
     renderTree();
 
-    const presentationFolder = screen.getByRole("button", { name: /课件材料/ });
-    const panelId = presentationFolder.getAttribute("aria-controls") || "";
-    expect((document.getElementById(panelId) as HTMLElement).hidden).toBe(false);
+    const activeExperiment = screen.getByRole("button", { name: /冰洲石实验/ });
+    expect(screen.getByRole("button", { name: /课件一/ })).toBeTruthy();
 
-    fireEvent.click(presentationFolder);
+    fireEvent.click(activeExperiment);
 
-    expect(presentationFolder.getAttribute("aria-expanded")).toBe("false");
-    expect((document.getElementById(panelId) as HTMLElement).hidden).toBe(true);
+    expect(activeExperiment.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: /课件一/ })).toBeNull();
   });
 
   it("discloses another unit without changing the active experiment", () => {
@@ -190,7 +197,7 @@ describe("ExperimentCurriculumTree", () => {
     );
   });
 
-  it("uses the same folder layout when the second unit is active", () => {
+  it("uses the same flat layout when the second unit is active", () => {
     renderTree({
       navigation: { activeExperimentId: "course-3" },
       activePresentationFileId: "ppt-2",
@@ -203,8 +210,8 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole("button", { name: /色偏振/ }).getAttribute("aria-expanded")).toBe(
       "true"
     );
-    expect(screen.getByRole("button", { name: /课件材料/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /实验数据/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /课件材料/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /课件二/ }).getAttribute("aria-current")).toBe("true");
     expect(screen.getByRole("button", { name: /实验图片/ }).getAttribute("aria-current")).toBe(
       "true"
     );
@@ -258,17 +265,9 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("光学设备应用");
   });
 
-  it("renders an empty folder when the active experiment has no presentation files", () => {
-    renderTree({ presentationFiles: [] });
-
-    expect(screen.getByText("暂无课件")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /课件材料/ }).textContent).toContain("0");
-  });
-
-  it("renders an empty experimental-data folder when the experiment has no resources", () => {
-    renderTree({ experimentalDataFiles: [] });
+  it("shows a single empty hint when the active experiment has no files at all", () => {
+    renderTree({ presentationFiles: [], experimentalDataFiles: [] });
 
     expect(screen.getByText("暂无资源")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /实验数据/ }).textContent).toContain("0");
   });
 });

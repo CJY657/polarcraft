@@ -2,7 +2,7 @@
  * CourseViewerPage - 实验与前沿应用层级工作台
  *
  * /experiments 与 /applications 按 knowledgeTag 分流，但共用同一套：
- * 单元 → 内容条目 → 课件材料 / 实验数据 → 文件。
+ * 单元 → 内容条目 → 文件。
  */
 
 import { Suspense, lazy, useCallback, useEffect, useMemo, type ReactNode } from "react";
