@@ -1,0 +1,333 @@
+.immersive-timeline,
+body:has(.immersive-timeline) {
+  background-color: oklch(22% 0.045 232);
+}
+
+.immersive-timeline {
+  position: relative;
+  min-height: 100vh;
+  overflow: clip;
+  color: oklch(96% 0.012 196);
+  color-scheme: dark;
+  font-family: var(--font-sans-ui);
+  background:
+    radial-gradient(circle at 52% 68%, oklch(46% 0.09 50 / 0.55), transparent 38%),
+    oklch(22% 0.045 232);
+}
+
+.immersive-timeline::after {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(180deg, oklch(13% 0.035 237 / 0.25), transparent 32%),
+    radial-gradient(circle at center, transparent 45%, oklch(10% 0.03 235 / 0.72));
+}
+
+.immersive-timeline__canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.immersive-timeline__hero {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  z-index: 10;
+  width: min(41rem, calc(100vw - 3rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.immersive-timeline__hero svg {
+  margin-bottom: clamp(1rem, 3vh, 2rem);
+  filter: drop-shadow(0 0 1.75rem oklch(78% 0.14 195 / 0.42));
+}
+
+.immersive-timeline__eyebrow {
+  margin: 0 0 0.9rem;
+  color: oklch(85% 0.12 192);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.immersive-timeline__hero h1 {
+  max-width: 12ch;
+  margin: 0;
+  color: oklch(97% 0.018 190);
+  font-size: clamp(2.75rem, 7vw, 6.75rem);
+  font-weight: 760;
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+  text-shadow: 0 0.2rem 2.5rem oklch(10% 0.025 235 / 0.58);
+}
+
+.immersive-timeline__intro {
+  max-width: 42rem;
+  margin: clamp(1.2rem, 3vh, 2rem) 0 0;
+  color: oklch(89% 0.025 196);
+  font-size: clamp(1rem, 1.8vw, 1.25rem);
+  line-height: 1.65;
+}
+
+.immersive-timeline__scroll-cue {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: clamp(1.5rem, 5vh, 3.5rem) 0 0;
+  color: oklch(83% 0.03 198);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.immersive-timeline__scroll-cue span {
+  display: block;
+  width: 2.5rem;
+  height: 1px;
+  background: currentColor;
+  transform-origin: left;
+  animation: immersive-timeline-pulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.immersive-timeline__explore {
+  position: fixed;
+  top: max(1.25rem, env(safe-area-inset-top));
+  right: max(1.25rem, env(safe-area-inset-right));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  gap: 0.8rem;
+  padding: 0.75rem 1rem 0.75rem 1.15rem;
+  border: 1px solid oklch(87% 0.035 192 / 0.5);
+  border-radius: 999px;
+  color: oklch(18% 0.025 220);
+  background: oklch(94% 0.025 188 / 0.94);
+  box-shadow: 0 0.9rem 2.6rem oklch(8% 0.025 235 / 0.24);
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.immersive-timeline__explore:hover {
+  color: oklch(98% 0.01 190);
+  border-color: oklch(79% 0.12 194);
+  background: oklch(43% 0.105 196);
+}
+
+.immersive-timeline__explore:focus-visible,
+.immersive-timeline__marker:focus-visible,
+.immersive-timeline__fallback a:focus-visible {
+  outline: 3px solid oklch(86% 0.17 91);
+  outline-offset: 4px;
+}
+
+.immersive-timeline__markers {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.immersive-timeline__marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  width: min(16rem, 36vw);
+  min-height: 3.75rem;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid oklch(84% 0.04 198 / 0.42);
+  border-radius: 0.8rem;
+  color: oklch(95% 0.012 195);
+  background: oklch(17% 0.04 226 / 0.9);
+  box-shadow: 0 0.8rem 2.4rem oklch(7% 0.03 235 / 0.36);
+  cursor: pointer;
+  opacity: 0;
+  will-change: transform, opacity;
+  transition:
+    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.immersive-timeline__marker:hover,
+.immersive-timeline__marker:focus-visible {
+  border-color: var(--marker-accent);
+  background: oklch(23% 0.052 224 / 0.96);
+}
+
+.immersive-timeline__marker--optics {
+  --marker-accent: oklch(83% 0.15 82);
+}
+
+.immersive-timeline__marker--polarization {
+  --marker-accent: oklch(79% 0.15 191);
+}
+
+.immersive-timeline__marker-year {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.6rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  color: oklch(15% 0.028 228);
+  background: var(--marker-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.73rem;
+  font-weight: 800;
+}
+
+.immersive-timeline__marker-copy {
+  min-width: 0;
+  text-align: left;
+}
+
+.immersive-timeline__marker-title,
+.immersive-timeline__marker-scientist {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.immersive-timeline__marker-title {
+  font-size: 0.8rem;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.immersive-timeline__marker-scientist {
+  margin-top: 0.16rem;
+  color: oklch(79% 0.03 198);
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.immersive-timeline__fallback {
+  position: fixed;
+  bottom: max(2rem, calc(env(safe-area-inset-bottom) + 1rem));
+  left: clamp(1.5rem, 8vw, 8rem);
+  z-index: 30;
+  max-width: 36rem;
+  color: oklch(86% 0.025 196);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.immersive-timeline__fallback p {
+  margin: 0 0 0.6rem;
+}
+
+.immersive-timeline__fallback a {
+  color: oklch(88% 0.13 193);
+  font-weight: 750;
+  text-underline-offset: 0.25rem;
+}
+
+@keyframes immersive-timeline-pulse {
+  0%, 100% { opacity: 0.35; transform: scaleX(0.35); }
+  55% { opacity: 1; transform: scaleX(1); }
+}
+
+@media (max-width: 640px) {
+  .immersive-timeline__hero {
+    top: 40%;
+    left: 50%;
+    width: calc(100vw - 2.5rem);
+  }
+
+  .immersive-timeline__hero svg {
+    width: 4.25rem;
+    height: 4.25rem;
+  }
+
+  .immersive-timeline__hero h1 {
+    max-width: 10ch;
+    font-size: clamp(2.6rem, 14vw, 4.25rem);
+  }
+
+  .immersive-timeline__intro {
+    max-width: 30rem;
+    font-size: 0.92rem;
+  }
+
+  .immersive-timeline__explore {
+    width: 3rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .immersive-timeline__explore span:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .immersive-timeline__marker {
+    width: min(11.5rem, 48vw);
+    min-height: 3.2rem;
+    gap: 0.5rem;
+    padding: 0.55rem;
+  }
+
+  .immersive-timeline__marker-year {
+    min-width: 3rem;
+    min-height: 1.75rem;
+    font-size: 0.66rem;
+  }
+
+  .immersive-timeline__marker-title {
+    font-size: 0.72rem;
+  }
+
+  .immersive-timeline--fallback .immersive-timeline__hero {
+    top: 42%;
+  }
+
+  .immersive-timeline__fallback {
+    right: 1.25rem;
+    bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem));
+    left: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immersive-timeline *,
+  .immersive-timeline *::before,
+  .immersive-timeline *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

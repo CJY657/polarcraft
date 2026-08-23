@@ -36,6 +36,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 // Module 1: 实验内容
 // 科学原理 × 历史故事
 const TimelinePage = lazy(() => import("@/pages/TimelinePage"));
+const ImmersiveTimelinePage = lazy(() => import("@/pages/ImmersiveTimelinePage"));
 
 // Module 1b: 实验课单元
 // 单元列表（旧单元详情页已收敛为课程入口）
@@ -207,7 +208,8 @@ function AnalyticsBridge() {
 
 export function shouldHideGlobalFooter(pathname: string) {
   return Boolean(
-    pathname === "/experiments" ||
+    pathname === "/chronicles" ||
+      pathname === "/experiments" ||
       matchPath("/experiments/:experimentId", pathname) ||
       pathname === "/applications" ||
       matchPath("/applications/:applicationId", pathname) ||
@@ -335,6 +337,10 @@ function AppRouterContent() {
 
           <Route
             path="/chronicles"
+            element={<ImmersiveTimelinePage />}
+          />
+          <Route
+            path="/chronicles/explore"
             element={<TimelinePage />}
           />
           <Route

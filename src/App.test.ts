@@ -25,6 +25,11 @@ describe("shouldHideGlobalFooter", () => {
   it("keeps the footer on unrelated pages", () => {
     expect(shouldHideGlobalFooter("/about")).toBe(false);
   });
+
+  it("hides the footer only on the immersive timeline entrance", () => {
+    expect(shouldHideGlobalFooter("/chronicles")).toBe(true);
+    expect(shouldHideGlobalFooter("/chronicles/explore")).toBe(false);
+  });
 });
 
 describe("shouldResetScrollOnNavigation", () => {

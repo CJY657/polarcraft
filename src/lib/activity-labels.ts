@@ -72,8 +72,9 @@ const PAGE_RULES: PageRule[] = [
   { pattern: /^\/units(\/|$)/, module: '实验内容', page: '学习单元' },
   { pattern: /^\/courses\/[^/]+$/, module: '实验内容', page: '课程详情' },
   { pattern: /^\/courses$/, module: '实验内容', page: '课程列表' },
-  { pattern: /^\/timeline$/, module: '实验内容', page: '历史时间线' },
-  { pattern: /^\/chronicles$/, module: '实验内容', page: '编年史' },
+  { pattern: /^\/timeline$/, module: '实验内容', page: '沉浸式时间线' },
+  { pattern: /^\/chronicles\/explore$/, module: '实验内容', page: '历史时间线详情' },
+  { pattern: /^\/chronicles$/, module: '实验内容', page: '沉浸式时间线' },
   // Module 2: 偏振挑战
   { pattern: /^\/devices\/calcite-case$/, module: '偏振挑战', page: '冰洲石案件' },
   { pattern: /^\/devices$/, module: '偏振挑战', page: '偏振器件' },

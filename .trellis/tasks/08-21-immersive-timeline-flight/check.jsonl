@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify focused tests, full frontend tests, typecheck, production build, and behavior-preserving route integration."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check that existing data and modal behavior stay single-sourced and no duplicate timeline contract is introduced."}
