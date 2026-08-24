@@ -7,6 +7,7 @@ import { useNotificationStore } from '@/stores/notificationStore'
 import { useEffect } from 'react'
 import { InboxDropdown } from '@/components/ui/InboxDropdown'
 import { UserDropdown } from '@/components/ui/UserDropdown'
+import { WebsiteUpdatesDropdown } from '@/components/ui/WebsiteUpdatesDropdown'
 
 interface AuthThemeSwitcherProps {
   className?: string
@@ -59,6 +60,8 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
         {/* Auth buttons or user menu (compact) */}
         {isAuthenticated ? (
           <>
+            {/* Website updates */}
+            <WebsiteUpdatesDropdown />
             {/* Inbox */}
             <InboxDropdown />
             {/* User Menu */}
@@ -91,6 +94,8 @@ export function AuthThemeSwitcher({ className, compact = false }: AuthThemeSwitc
       {/* Auth buttons or user menu (full) */}
       {isAuthenticated ? (
         <>
+          {/* Website updates */}
+          <WebsiteUpdatesDropdown />
           {/* Inbox */}
           <InboxDropdown />
           {/* User Menu */}

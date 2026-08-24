@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthThemeSwitcher } from './AuthThemeSwitcher';
 
@@ -41,6 +41,10 @@ vi.mock('@/components/ui/UserDropdown', () => ({
   UserDropdown: () => <div data-testid="user-dropdown" />,
 }));
 
+vi.mock('@/components/ui/WebsiteUpdatesDropdown', () => ({
+  WebsiteUpdatesDropdown: () => <div data-testid="website-updates-dropdown" />,
+}));
+
 describe('AuthThemeSwitcher notification polling', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -79,5 +83,29 @@ describe('AuthThemeSwitcher notification polling', () => {
     });
 
     expect(mocks.fetchUnreadCount).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('AuthThemeSwitcher website updates', () => {
+  beforeEach(() => {
+    mocks.fetchUnreadCount.mockReset();
+    mocks.fetchUnreadCount.mockResolvedValue(undefined);
+    mocks.isAuthenticated = true;
+    mocks.isSystemHealthy = true;
+  });
+
+  it.each([true, false])('renders the megaphone before the bell (compact: %s)', (compact) => {
+    render(<AuthThemeSwitcher compact={compact} />);
+
+    const updates = screen.getByTestId('website-updates-dropdown');
+    const inbox = screen.getByTestId('inbox-dropdown');
+    expect(updates.compareDocumentPosition(inbox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('hides the megaphone from guests', () => {
+    mocks.isAuthenticated = false;
+    render(<AuthThemeSwitcher />);
+
+    expect(screen.queryByTestId('website-updates-dropdown')).toBeNull();
   });
 });
