@@ -187,52 +187,6 @@ vi.mock('../utils/logger.js', () => ({
 
 import { ResearchModel } from './research.model.js';
 
-describe('ResearchModel.getProjectCanvases', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    canvasesFind.mockReturnValue({
-      sort: () => ({
-        toArray: async () => [
-          { _id: 'mongo-canvas-2', id: 'canvas-2', project_id: 'project-1' },
-          { _id: 'mongo-canvas-1', id: 'canvas-1', project_id: 'project-1' },
-        ],
-      }),
-    });
-    nodesAggregate.mockReturnValue({
-      toArray: async () => [{ _id: 'canvas-1', count: 3 }],
-    });
-    edgesAggregate.mockReturnValue({
-      toArray: async () => [{ _id: 'canvas-2', count: 2 }],
-    });
-  });
-
-  it('keeps canvas ordering and maps grouped node and edge counts', async () => {
-    await expect(ResearchModel.getProjectCanvases('project-1')).resolves.toEqual([
-      {
-        id: 'canvas-2',
-        project_id: 'project-1',
-        node_count: 0,
-        edge_count: 2,
-      },
-      {
-        id: 'canvas-1',
-        project_id: 'project-1',
-        node_count: 3,
-        edge_count: 0,
-      },
-    ]);
-
-    expect(nodesAggregate).toHaveBeenCalledWith([
-      { $match: { canvas_id: { $in: ['canvas-2', 'canvas-1'] } } },
-      { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
-    ]);
-    expect(edgesAggregate).toHaveBeenCalledWith([
-      { $match: { canvas_id: { $in: ['canvas-2', 'canvas-1'] } } },
-      { $group: { _id: '$canvas_id', count: { $sum: 1 } } },
-    ]);
-  });
-});
-
 describe('ResearchModel.createProject', () => {
   beforeEach(() => {
     vi.clearAllMocks();

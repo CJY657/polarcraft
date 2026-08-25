@@ -14,6 +14,18 @@ import { useTranslation } from "react-i18next";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DiscussionImageLightbox } from "@/components/discussion/DiscussionImageLightbox";
+import {
+  buildCommentTree,
+  buildParentCommentLookup,
+  countReplies,
+  expandCommentAncestors,
+} from "@/components/discussion/commentTree";
+import {
+  buildDraftAttachments,
+  createFileListFromArray,
+  revokeDraftPreviewUrls,
+  type DraftAttachmentType,
+} from "@/components/discussion/draftAttachments";
 import { useAuth } from "@/contexts/AuthContext";
 import { courseApi, type CourseDiscussionComment } from "@/lib/course.service";
 import { formatUserIdentity, getUserIdentityInitial } from "@/lib/identity";
@@ -45,6 +57,13 @@ interface DraftImage {
   previewUrl: string;
 }
 
+const COURSE_COMMENT_ACCESSORS = {
+  idOf: (comment: CourseDiscussionComment) => comment.id,
+  parentIdOf: (comment: CourseDiscussionComment) => comment.parentCommentId,
+  createdAtOf: (comment: CourseDiscussionComment) => comment.createdAt,
+};
+const IMAGE_ONLY_ATTACHMENT_TYPES: DraftAttachmentType[] = ["image"];
+
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_COMMENT_IMAGES = 6;
 const ZH_COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
@@ -65,100 +84,6 @@ const EN_COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
 function formatCommentTime(value: string, locale: string): string {
   const formatter = locale === "zh-CN" ? ZH_COMMENT_TIME_FORMATTER : EN_COMMENT_TIME_FORMATTER;
   return formatter.format(new Date(value));
-}
-
-function buildCommentTree(comments: CourseDiscussionComment[]): DiscussionTreeComment[] {
-  const grouped = new Map<string | null, CourseDiscussionComment[]>();
-
-  for (const comment of comments) {
-    const siblings = grouped.get(comment.parentCommentId) ?? [];
-    siblings.push(comment);
-    grouped.set(comment.parentCommentId, siblings);
-  }
-
-  const buildBranch = (parentId: string | null): DiscussionTreeComment[] => {
-    const siblings = [...(grouped.get(parentId) ?? [])];
-    siblings.sort((left, right) => {
-      const leftTime = new Date(left.createdAt).getTime();
-      const rightTime = new Date(right.createdAt).getTime();
-      return parentId === null ? rightTime - leftTime : leftTime - rightTime;
-    });
-
-    return siblings.map((comment) => ({
-      ...comment,
-      replies: buildBranch(comment.id),
-    }));
-  };
-
-  return buildBranch(null);
-}
-
-function countReplies(comment: DiscussionTreeComment): number {
-  return comment.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
-}
-
-function buildParentCommentLookup(
-  comments: CourseDiscussionComment[],
-): Map<string, string | null> {
-  const lookup = new Map<string, string | null>();
-
-  for (const comment of comments) {
-    lookup.set(comment.id, comment.parentCommentId ?? null);
-  }
-
-  return lookup;
-}
-
-function expandCommentAncestors(
-  commentId: string,
-  parentLookup: Map<string, string | null>,
-): Record<string, boolean> {
-  const expanded: Record<string, boolean> = {};
-  let current: string | null = commentId;
-
-  while (current) {
-    expanded[current] = true;
-    current = parentLookup.get(current) ?? null;
-  }
-
-  return expanded;
-}
-
-function revokeDraftImages(images: DraftImage[]): void {
-  for (const image of images) {
-    URL.revokeObjectURL(image.previewUrl);
-  }
-}
-
-function isSupportedImageFile(file: File): boolean {
-  if (file.type.startsWith("image/")) {
-    return true;
-  }
-
-  return /\.(jpe?g|png|gif|webp)$/i.test(file.name);
-}
-
-function buildDraftImages(
-  files: FileList | null,
-  remainingSlots: number,
-): {
-  acceptedImages: DraftImage[];
-  invalidCount: number;
-  overflowCount: number;
-} {
-  const selectedFiles = Array.from(files ?? []);
-  const imageFiles = selectedFiles.filter(isSupportedImageFile);
-  const acceptedFiles = imageFiles.slice(0, Math.max(remainingSlots, 0));
-
-  return {
-    acceptedImages: acceptedFiles.map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      previewUrl: URL.createObjectURL(file),
-    })),
-    invalidCount: selectedFiles.length - imageFiles.length,
-    overflowCount: Math.max(imageFiles.length - acceptedFiles.length, 0),
-  };
 }
 
 function buildImageSelectionMessage(
@@ -185,13 +110,6 @@ function buildImageSelectionMessage(
   }
 
   return messages.length > 0 ? messages.join(isZh ? "；" : "; ") : null;
-}
-
-// 将 File 数组转换为类似 FileList 的结构供 buildDraftImages 使用
-function createFileListFromArray(files: File[]): FileList {
-  const dataTransfer = new DataTransfer();
-  files.forEach((file) => dataTransfer.items.add(file));
-  return dataTransfer.files;
 }
 
 function DraftImagePreviewList({
@@ -347,8 +265,8 @@ export function ExperimentDiscussionSection({
 
   const canParticipate = Boolean(user);
   const { commentTree, parentCommentLookup } = useMemo(() => ({
-    commentTree: buildCommentTree(comments),
-    parentCommentLookup: buildParentCommentLookup(comments),
+    commentTree: buildCommentTree(comments, COURSE_COMMENT_ACCESSORS),
+    parentCommentLookup: buildParentCommentLookup(comments, COURSE_COMMENT_ACCESSORS),
   }), [comments]);
 
   useEffect(() => {
@@ -361,8 +279,8 @@ export function ExperimentDiscussionSection({
 
   useEffect(() => {
     return () => {
-      revokeDraftImages(newCommentImagesRef.current);
-      Object.values(replyImagesRef.current).forEach((images) => revokeDraftImages(images));
+      revokeDraftPreviewUrls(newCommentImagesRef.current);
+      Object.values(replyImagesRef.current).forEach((images) => revokeDraftPreviewUrls(images));
     };
   }, []);
 
@@ -407,11 +325,11 @@ export function ExperimentDiscussionSection({
     setNewComment("");
     setSubmitError(null);
     setNewCommentImages((current) => {
-      revokeDraftImages(current);
+      revokeDraftPreviewUrls(current);
       return [];
     });
     setReplyImages((current) => {
-      Object.values(current).forEach((images) => revokeDraftImages(images));
+      Object.values(current).forEach((images) => revokeDraftPreviewUrls(images));
       return {};
     });
     void loadComments();
@@ -444,7 +362,7 @@ export function ExperimentDiscussionSection({
     setNewComment("");
     setSubmitError(null);
     setNewCommentImages((current) => {
-      revokeDraftImages(current);
+      revokeDraftPreviewUrls(current);
       return [];
     });
   }
@@ -454,7 +372,7 @@ export function ExperimentDiscussionSection({
     setReplyError(null);
     setReplyImages((current) => {
       const existing = current[commentId] ?? [];
-      revokeDraftImages(existing);
+      revokeDraftPreviewUrls(existing);
       const next = { ...current };
       delete next[commentId];
       return next;
@@ -462,10 +380,14 @@ export function ExperimentDiscussionSection({
   }
 
   function handleNewCommentImageSelection(event: ChangeEvent<HTMLInputElement>) {
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      event.target.files,
-      MAX_COMMENT_IMAGES - newCommentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(event.target.files, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - newCommentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setNewCommentImages((current) => [...current, ...acceptedImages]);
@@ -478,10 +400,14 @@ export function ExperimentDiscussionSection({
 
   function handleReplyImageSelection(commentId: string, event: ChangeEvent<HTMLInputElement>) {
     const currentImages = replyImages[commentId] ?? [];
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      event.target.files,
-      MAX_COMMENT_IMAGES - currentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(event.target.files, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - currentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setReplyImages((current) => ({
@@ -536,10 +462,14 @@ export function ExperimentDiscussionSection({
     const files = event.dataTransfer?.files;
     if (!files || files.length === 0) return;
 
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      files,
-      MAX_COMMENT_IMAGES - newCommentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(files, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - newCommentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setNewCommentImages((current) => [...current, ...acceptedImages]);
@@ -559,10 +489,14 @@ export function ExperimentDiscussionSection({
     if (!files || files.length === 0) return;
 
     const currentImages = replyImages[commentId] ?? [];
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      files,
-      MAX_COMMENT_IMAGES - currentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(files, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - currentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setReplyImages((current) => ({
@@ -596,10 +530,14 @@ export function ExperimentDiscussionSection({
     event.preventDefault();
 
     const fileList = createFileListFromArray(imageFiles);
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      fileList,
-      MAX_COMMENT_IMAGES - newCommentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(fileList, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - newCommentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setNewCommentImages((current) => [...current, ...acceptedImages]);
@@ -631,10 +569,14 @@ export function ExperimentDiscussionSection({
 
     const currentImages = replyImages[commentId] ?? [];
     const fileList = createFileListFromArray(imageFiles);
-    const { acceptedImages, invalidCount, overflowCount } = buildDraftImages(
-      fileList,
-      MAX_COMMENT_IMAGES - currentImages.length,
-    );
+    const {
+      acceptedAttachments: acceptedImages,
+      invalidCount,
+      imageOverflowCount: overflowCount,
+    } = buildDraftAttachments(fileList, {
+      allowedTypes: IMAGE_ONLY_ATTACHMENT_TYPES,
+      remainingImageSlots: MAX_COMMENT_IMAGES - currentImages.length,
+    });
 
     if (acceptedImages.length > 0) {
       setReplyImages((current) => ({
