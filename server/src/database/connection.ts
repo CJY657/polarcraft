@@ -287,6 +287,16 @@ const COLLECTION_INDEXES: Array<{
     ],
   },
   {
+    name: 'feedback_submissions',
+    indexes: [
+      { key: { id: 1 }, unique: true, name: 'unique_id' },
+      // 公开墙的读路径：先按 is_public 命中，再按时间倒序取最新若干条
+      { key: { is_public: 1, created_at: -1 }, name: 'idx_public_created' },
+      // 管理端列表的排序
+      { key: { created_at: -1 }, name: 'idx_created_at' },
+    ],
+  },
+  {
     name: 'quiz_attempts',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },

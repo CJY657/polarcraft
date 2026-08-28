@@ -1,0 +1,28 @@
+{
+  "id": "public-feedback-wall",
+  "name": "public-feedback-wall",
+  "title": "反馈公开墙",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "polarcraft",
+  "assignee": "polarcraft",
+  "createdAt": "2026-08-28",
+  "completedAt": null,
+  "branch": "feat/public-feedback-wall",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "把用户反馈做成登录可见的公开墙：新提交默认公开（可取消勾选），匿名提交不公开，仅管理员可隐藏或删除"
+  }
+}

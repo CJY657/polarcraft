@@ -100,3 +100,44 @@ describe('FeedbackService image lifecycle', () => {
     expect(cleanupUrls).not.toHaveBeenCalled();
   });
 });
+
+describe('FeedbackService public visibility on create', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    model.create.mockResolvedValue(storedFeedback);
+  });
+
+  const baseInput = {
+    category: 'product' as const,
+    subject: storedFeedback.subject,
+    content: storedFeedback.content,
+  };
+
+  it('publishes a signed-in submission by default', async () => {
+    await FeedbackService.submitFeedback({ ...baseInput, user_id: 'user-1' });
+
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({ is_public: true }),
+    );
+  });
+
+  it('keeps a signed-in submission private when the submitter opted out', async () => {
+    await FeedbackService.submitFeedback({
+      ...baseInput,
+      user_id: 'user-1',
+      is_public: false,
+    });
+
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({ is_public: false }),
+    );
+  });
+
+  it('never publishes an anonymous submission, even when it asks to be public', async () => {
+    await FeedbackService.submitFeedback({ ...baseInput, is_public: true });
+
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({ is_public: false }),
+    );
+  });
+});

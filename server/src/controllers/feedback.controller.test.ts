@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { submitFeedback, deleteFeedback, cleanupUrls, loggerError } = vi.hoisted(() => ({
-  submitFeedback: vi.fn(),
-  deleteFeedback: vi.fn(),
-  cleanupUrls: vi.fn(),
-  loggerError: vi.fn(),
-}));
+const { submitFeedback, deleteFeedback, setFeedbackVisibility, cleanupUrls, loggerError } =
+  vi.hoisted(() => ({
+    submitFeedback: vi.fn(),
+    deleteFeedback: vi.fn(),
+    setFeedbackVisibility: vi.fn(),
+    cleanupUrls: vi.fn(),
+    loggerError: vi.fn(),
+  }));
 
 vi.mock('../services/feedback.service.js', () => ({
   FeedbackService: {
     submitFeedback,
     deleteFeedback,
+    setFeedbackVisibility,
   },
 }));
 
@@ -158,5 +161,91 @@ describe('FeedbackController.create', () => {
       'SERVER_ERROR',
       500,
     );
+  });
+});
+
+describe('FeedbackController.create public flag parsing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    submitFeedback.mockResolvedValue({ id: 'feedback-1' });
+  });
+
+  const baseBody = {
+    category: 'product',
+    subject: '建议增加公开反馈墙',
+    content: '让同学们能看到彼此提过的问题，避免重复反馈。',
+  };
+
+  async function submitWith(body: Record<string, unknown>) {
+    const res = createResponse();
+    await FeedbackController.create(
+      { body: { ...baseBody, ...body }, headers: {}, ip: '203.0.113.7', socket: {} } as never,
+      res as never,
+    );
+    return submitFeedback.mock.calls[0]?.[0];
+  }
+
+  it('defaults to public when the field is absent', async () => {
+    expect(await submitWith({})).toMatchObject({ is_public: true });
+  });
+
+  // multipart 传输会把布尔值变成字符串——这一条挡住的正是「带图片提交时
+  // 取消勾选被静默忽略」的回归。
+  it('honours the opt-out sent as a multipart string', async () => {
+    expect(await submitWith({ isPublic: 'false' })).toMatchObject({ is_public: false });
+  });
+
+  it('honours the opt-out sent as a JSON boolean', async () => {
+    expect(await submitWith({ isPublic: false })).toMatchObject({ is_public: false });
+  });
+
+  it('treats an explicit opt-in as public in both transports', async () => {
+    expect(await submitWith({ isPublic: 'true' })).toMatchObject({ is_public: true });
+    vi.clearAllMocks();
+    submitFeedback.mockResolvedValue({ id: 'feedback-1' });
+    expect(await submitWith({ isPublic: true })).toMatchObject({ is_public: true });
+  });
+});
+
+describe('FeedbackController.setVisibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('hides the record and reports success', async () => {
+    setFeedbackVisibility.mockResolvedValue(true);
+    const res = createResponse();
+
+    await FeedbackController.setVisibility(
+      { params: { id: 'feedback-1' }, body: { is_public: false } } as never,
+      res as never,
+    );
+
+    expect(setFeedbackVisibility).toHaveBeenCalledWith('feedback-1', false);
+    expect(res.success).toHaveBeenCalledWith(null, '反馈已隐藏', 200);
+  });
+
+  it('rejects a non-boolean visibility value', async () => {
+    const res = createResponse();
+
+    await FeedbackController.setVisibility(
+      { params: { id: 'feedback-1' }, body: { is_public: 'false' } } as never,
+      res as never,
+    );
+
+    expect(setFeedbackVisibility).not.toHaveBeenCalled();
+    expect(res.error).toHaveBeenCalledWith('可见性参数无效', 'INVALID_VISIBILITY', 400);
+  });
+
+  it('returns 404 when the record does not exist', async () => {
+    setFeedbackVisibility.mockResolvedValue(false);
+    const res = createResponse();
+
+    await FeedbackController.setVisibility(
+      { params: { id: 'missing' }, body: { is_public: true } } as never,
+      res as never,
+    );
+
+    expect(res.error).toHaveBeenCalledWith('反馈记录不存在', 'FEEDBACK_NOT_FOUND', 404);
   });
 });

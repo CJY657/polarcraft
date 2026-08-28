@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality bar for the wall section and checkbox; also the reminder that DOM tests need `// @vitest-environment jsdom` on line 1."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Check that the new index entry, response helpers, legacy-doc read tolerance and test style follow the durable backend contracts."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Primary review lens: verify the field-whitelist projection sits in the model layer (not stripped downstream), and that isPublic survives BOTH the JSON and the multipart submit paths."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify is_public stayed optional end-to-end and that no `any` was used to paper over the string-boolean transport."}

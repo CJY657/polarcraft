@@ -13,10 +13,13 @@ const FEEDBACK_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
 const feedbackImageUpload = createUploadMiddleware('image', {
   storageScope: 'feedback',
   maxFileSize: FEEDBACK_IMAGE_MAX_SIZE,
-  maxFields: 9,
+  // 10 fields = the 9 the form has always sent + isPublic. Busboy rejects the
+  // whole upload with LIMIT_FIELD_COUNT one field over, and the error looks
+  // unrelated to whatever added the field — so this has to move in lockstep.
+  maxFields: 10,
   maxFieldSize: 16 * 1024,
   maxFiles: 1,
-  maxParts: 11,
+  maxParts: 12,
   allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
   allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp'],
   mimeExtensionPairs: {
@@ -164,7 +167,15 @@ router.post(
 
 router.use(authenticate);
 
+/**
+ * @route   GET /api/feedback/public
+ * @desc    Newest submissions the authors chose to publish
+ * @access  Any signed-in user — deliberately not admin-only
+ */
+router.get('/public', FeedbackController.listPublic);
+
 router.get('/', requireAdmin, FeedbackController.list);
+router.patch('/:id/visibility', requireAdmin, FeedbackController.setVisibility);
 router.delete('/:id', requireAdmin, FeedbackController.remove);
 
 export default router;

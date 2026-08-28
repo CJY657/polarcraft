@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { FlaskConical, ImagePlus, Lightbulb, Send, X } from "lucide-react";
 
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   feedbackApi,
   type FeedbackCategory,
+  type PublicFeedbackItem,
 } from "@/lib/feedback.service";
 import { formatUserIdentity } from "@/lib/identity";
 
@@ -17,6 +18,7 @@ interface FeedbackFormState {
   courseTitle: string;
   contactName: string;
   contactEmail: string;
+  isPublic: boolean;
 }
 
 interface NoticeState {
@@ -50,6 +52,21 @@ const CATEGORY_OPTIONS: FeedbackCategoryOption[] = [
 ];
 
 const FEEDBACK_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+
+const CATEGORY_LABEL: Record<FeedbackCategory, string> = {
+  experiment: "实验问题",
+  product: "产品建议",
+};
+
+const CATEGORY_BADGE_BG: Record<FeedbackCategory, string> = {
+  experiment: "#ffb084",
+  product: "#b8a4ed",
+};
+
+function formatWallDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("zh-CN");
+}
 const FEEDBACK_IMAGE_EXTENSIONS: Record<string, RegExp> = {
   "image/jpeg": /\.jpe?g$/i,
   "image/png": /\.png$/i,
@@ -85,12 +102,36 @@ export function FeedbackSection() {
     courseTitle: getSearchValue(searchParams, "courseTitle"),
     contactName: "",
     contactEmail: "",
+    isPublic: true,
   }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [image, setImage] = useState<{ file: File; previewUrl: string } | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [wallItems, setWallItems] = useState<PublicFeedbackItem[] | null>(null);
+  const [wallError, setWallError] = useState<string | null>(null);
+
+  const loadWall = useCallback(async () => {
+    try {
+      const result = await feedbackApi.listPublic();
+      setWallItems(result.items);
+      setWallError(null);
+    } catch (error) {
+      setWallError(error instanceof Error ? error.message : "获取公开反馈失败");
+    }
+  }, []);
+
+  // 公开墙仅对登录用户可见；未登录时不请求，也不渲染。
+  useEffect(() => {
+    if (!user) {
+      setWallItems(null);
+      setWallError(null);
+      return;
+    }
+
+    void loadWall();
+  }, [user, loadWall]);
 
   useEffect(() => {
     setForm((current) => ({
@@ -163,6 +204,10 @@ export function FeedbackSection() {
     setIsSubmitting(true);
     setNotice(null);
 
+    // 与禁用状态的勾选框保持一致：未登录时提交的就是「不公开」。
+    // 服务端也会独立强制这一点，这里只是不让前端说谎。
+    const publishRequested = Boolean(user) && form.isPublic;
+
     try {
       const result = await feedbackApi.submit({
         category: form.category,
@@ -175,10 +220,17 @@ export function FeedbackSection() {
         contactName: contactName || undefined,
         contactEmail: contactEmail || undefined,
         imageFile: image?.file,
+        isPublic: publishRequested,
       });
 
+      const published = publishRequested;
       setSubmissionId(result.id);
-      setNotice({ tone: "success", text: "反馈已提交，管理员可在后台反馈面板查看。" });
+      setNotice({
+        tone: "success",
+        text: published
+          ? "反馈已提交，并显示在下方的公开反馈中。"
+          : "反馈已提交，仅管理员可见。",
+      });
       setForm((current) => ({
         ...current,
         subject: "",
@@ -186,6 +238,10 @@ export function FeedbackSection() {
       }));
       setImage(null);
       setImageError(null);
+
+      if (published) {
+        void loadWall();
+      }
     } catch (error) {
       setSubmissionId(null);
       setNotice({
@@ -277,6 +333,17 @@ export function FeedbackSection() {
               >
                 ← 返回 {originPath}
               </Link>
+            </div>
+          ) : null}
+
+          {user ? (
+            <div className="mt-8">
+              <a
+                href="#feedback-wall"
+                className="inline-flex items-center text-[14px] font-semibold text-[#6a6a6a] transition-colors hover:text-[#0a0a0a]"
+              >
+                看看大家提了什么 ↓
+              </a>
             </div>
           ) : null}
         </div>
@@ -385,7 +452,8 @@ export function FeedbackSection() {
                 {image ? "更换图片" : "选择图片"}
               </label>
               <p id="feedback-image-hint" className="text-[13px] leading-5 text-[#6a6a6a]">
-                支持 JPG、PNG、WebP，最大 5 MB。请勿上传包含敏感信息的图片。
+                支持 JPG、PNG、WebP，最大 5 MB。图片只提供给管理员排查，不会出现在公开反馈中；
+                但图片链接本身不设登录验证，请勿上传包含敏感信息的图片。
               </p>
 
               {image ? (
@@ -451,22 +519,112 @@ export function FeedbackSection() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[14px] text-[#6a6a6a]">
-                反馈记录由管理员处理；图片链接不设登录验证
-              </p>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex h-[44px] w-full shrink-0 items-center justify-center rounded-[12px] bg-[#0a0a0a] px-[20px] text-[14px] font-semibold text-[#ffffff] transition-colors hover:bg-[#1f1f1f] disabled:cursor-not-allowed disabled:bg-[#e5e5e5] disabled:text-[#6a6a6a] sm:w-auto"
-              >
-                <Send className="mr-2 h-4 w-4" />
-                {isSubmitting ? "提交中..." : "提交反馈"}
-              </button>
+            <div className="mt-4 flex flex-col gap-4 border-t border-[#e5ddc9] pt-6">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={Boolean(user) && form.isPublic}
+                  disabled={!user || isSubmitting}
+                  onChange={(event) => handleFieldChange("isPublic", event.target.checked)}
+                  className="mt-[3px] h-4 w-4 shrink-0 accent-[#0a0a0a] disabled:cursor-not-allowed"
+                />
+                <span className="text-[14px] leading-[1.55] text-[#1a1a1a]">
+                  <span className="font-semibold">公开这条反馈</span>
+                  <span className="block text-[13px] text-[#6a6a6a]">
+                    {user
+                      ? "公开后，本页下方的公开反馈会显示主题、内容和你的用户名。取消勾选则仅管理员可见。"
+                      : "登录后可公开发布反馈。未登录提交的反馈仅管理员可见。"}
+                  </span>
+                </span>
+              </label>
+
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[14px] text-[#6a6a6a]">
+                  所有反馈都会送达管理员；仅管理员可以隐藏或删除
+                </p>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex h-[44px] w-full shrink-0 items-center justify-center rounded-[12px] bg-[#0a0a0a] px-[20px] text-[14px] font-semibold text-[#ffffff] transition-colors hover:bg-[#1f1f1f] disabled:cursor-not-allowed disabled:bg-[#e5e5e5] disabled:text-[#6a6a6a] sm:w-auto"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {isSubmitting ? "提交中..." : "提交反馈"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
       </div>
+
+      {/*
+        公开反馈墙：仅登录用户可见（R2.1），条目上没有任何操作按钮——
+        普通用户既不能删除也不能编辑，这是该约束的可视化保证。
+      */}
+      {user ? (
+        <div id="feedback-wall" className="mt-20 scroll-mt-24">
+          <div className="flex flex-col gap-2 border-t border-[#e5ddc9] pt-12">
+            <h2
+              className="text-[28px] font-medium leading-[1.2] tracking-[-0.5px] text-[#0a0a0a] sm:text-[36px]"
+              style={{ fontFamily: "'Plain Black', Inter, sans-serif" }}
+            >
+              大家的反馈
+            </h2>
+            <p className="text-[14px] leading-[1.55] text-[#6a6a6a]">
+              这里显示同学们勾选公开的反馈。处理结果会发布在页面顶部的「网站更新」。
+            </p>
+          </div>
+
+          {wallError ? (
+            <p role="alert" className="mt-8 text-[14px] font-medium text-[#991b1b]">
+              {wallError}
+            </p>
+          ) : null}
+
+          {!wallError && wallItems === null ? (
+            <p className="mt-8 text-[14px] text-[#6a6a6a]">加载中...</p>
+          ) : null}
+
+          {wallItems?.length === 0 ? (
+            <p className="mt-8 text-[14px] text-[#6a6a6a]">
+              还没有公开的反馈。提交时勾选「公开这条反馈」，它就会显示在这里。
+            </p>
+          ) : null}
+
+          {wallItems?.length ? (
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+              {wallItems.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-3 rounded-[16px] bg-[#faf5e8] p-[24px]"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded-full px-3 py-1 text-[12px] font-semibold text-[#0a0a0a]"
+                      style={{ backgroundColor: CATEGORY_BADGE_BG[item.category] }}
+                    >
+                      {CATEGORY_LABEL[item.category]}
+                    </span>
+                    {item.course_title ? (
+                      <span className="text-[13px] text-[#6a6a6a]">{item.course_title}</span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="text-[17px] font-semibold leading-[1.4] text-[#0a0a0a]">
+                    {item.subject}
+                  </h3>
+                  <p className="whitespace-pre-wrap text-[15px] leading-[1.6] text-[#3f3b34]">
+                    {item.content}
+                  </p>
+
+                  <p className="mt-auto text-[13px] text-[#6a6a6a]">
+                    {item.username || "用户"} · {formatWallDate(item.created_at)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

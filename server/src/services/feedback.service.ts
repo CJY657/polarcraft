@@ -5,8 +5,12 @@ import type {
   FeedbackListResult,
   FeedbackSubmissionResult,
   ListFeedbackOptions,
+  PublicFeedbackListResult,
 } from '../types/feedback.types.js';
 import { logger } from '../utils/logger.js';
+
+/** ponytail: fixed page size, no pagination. Add 加载更多 when the wall gets long. */
+const PUBLIC_WALL_LIMIT = 30;
 
 function normalizeLimit(limit?: number): number {
   if (!Number.isFinite(limit)) {
@@ -37,6 +41,10 @@ export class FeedbackService {
       email_sent_at: null,
       ip_address: input.ip_address || null,
       user_agent: input.user_agent || null,
+      // 两个条件缺一不可：匿名提交永不公开；未显式取消勾选则默认公开。
+      // Anonymous submissions never reach the wall; everything else is public
+      // unless the submitter cleared the checkbox.
+      is_public: Boolean(input.user_id) && input.is_public !== false,
     });
 
     logger.info(`Feedback submitted: ${savedFeedback.id} (${input.category})`);
@@ -63,6 +71,26 @@ export class FeedbackService {
       })),
       total,
     };
+  }
+
+  static async listPublicFeedback(): Promise<PublicFeedbackListResult> {
+    return { items: await FeedbackModel.listPublic(PUBLIC_WALL_LIMIT) };
+  }
+
+  /**
+   * Admin hide/unhide. Reversible on purpose: deleting an abusive post also
+   * destroys the ip_address / user_agent / username you would need to act on
+   * it, so hiding is the first response and deleteFeedback the second.
+   * 管理员隐藏/恢复。刻意可逆：删除会连同排查所需的记录一起销毁。
+   */
+  static async setFeedbackVisibility(id: string, isPublic: boolean): Promise<boolean> {
+    const updated = await FeedbackModel.setVisibility(id, isPublic);
+
+    if (updated) {
+      logger.info(`Feedback visibility set to ${isPublic}: ${id}`);
+    }
+
+    return updated;
   }
 
   static async deleteFeedback(id: string): Promise<boolean> {

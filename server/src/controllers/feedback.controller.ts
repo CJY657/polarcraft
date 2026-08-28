@@ -35,6 +35,10 @@ export class FeedbackController {
         user_role: req.user?.role || null,
         ip_address: getIpAddress(req),
         user_agent: req.headers['user-agent'] || null,
+        // multipart 会把布尔值变成字符串，两种形态都要挡住。
+        // Only an explicit opt-out keeps a submission off the wall; the
+        // anonymous case is handled in FeedbackService.
+        is_public: req.body.isPublic !== 'false' && req.body.isPublic !== false,
       });
 
       res.locals.cleanupRejectedUpload = undefined;
@@ -70,6 +74,40 @@ export class FeedbackController {
     } catch (error) {
       logger.error('List feedback error:', error);
       res.error('获取反馈列表失败，请稍后再试', 'SERVER_ERROR', 500);
+    }
+  }
+
+  static async listPublic(_req: Request, res: Response): Promise<void> {
+    try {
+      const result = await FeedbackService.listPublicFeedback();
+
+      res.success(result);
+    } catch (error) {
+      logger.error('List public feedback error:', error);
+      res.error('获取公开反馈失败，请稍后再试', 'SERVER_ERROR', 500);
+    }
+  }
+
+  static async setVisibility(req: Request, res: Response): Promise<void> {
+    try {
+      const isPublic = req.body.is_public;
+
+      if (typeof isPublic !== 'boolean') {
+        res.error('可见性参数无效', 'INVALID_VISIBILITY', 400);
+        return;
+      }
+
+      const updated = await FeedbackService.setFeedbackVisibility(req.params.id, isPublic);
+
+      if (!updated) {
+        res.error('反馈记录不存在', 'FEEDBACK_NOT_FOUND', 404);
+        return;
+      }
+
+      res.success(null, isPublic ? '反馈已公开' : '反馈已隐藏', 200);
+    } catch (error) {
+      logger.error('Set feedback visibility error:', error);
+      res.error('更新反馈可见性失败，请稍后再试', 'SERVER_ERROR', 500);
     }
   }
 

@@ -39,6 +39,12 @@ const doubles = vi.hoisted(() => {
     remove: vi.fn((_req, res) => {
       res.status(200).json({ route: 'remove' });
     }),
+    listPublic: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'listPublic' });
+    }),
+    setVisibility: vi.fn((_req, res) => {
+      res.status(200).json({ route: 'setVisibility' });
+    }),
   };
 });
 
@@ -47,6 +53,8 @@ vi.mock('../controllers/feedback.controller.js', () => ({
     create: doubles.create,
     list: doubles.list,
     remove: doubles.remove,
+    listPublic: doubles.listPublic,
+    setVisibility: doubles.setVisibility,
   },
 }));
 
@@ -85,10 +93,24 @@ import feedbackRoutes, {
   validateFeedbackImageContent,
 } from './feedback.routes.js';
 
-function getRoute(method: 'delete' | 'get' | 'post') {
+function getRoute(method: 'delete' | 'get' | 'patch' | 'post', path?: string) {
   return feedbackRoutes.stack
     .map((layer) => (layer as MockedLayer).route)
-    .find((route) => Boolean(route?.methods?.[method])) as MockedRoute | undefined;
+    .find(
+      (route) =>
+        Boolean(route?.methods?.[method]) && (path === undefined || route?.path === path),
+    ) as MockedRoute | undefined;
+}
+
+/** Layer index of `authenticate`, which every gated route must sit after. */
+function authenticateIndex() {
+  return (feedbackRoutes.stack as MockedLayer[]).findIndex(
+    (layer) => layer.handle === doubles.authenticate,
+  );
+}
+
+function routeIndex(route: MockedRoute | undefined) {
+  return (feedbackRoutes.stack as MockedLayer[]).findIndex((layer) => layer.route === route);
 }
 
 describe('feedback.routes', () => {
@@ -108,10 +130,10 @@ describe('feedback.routes', () => {
       expect.objectContaining({
         storageScope: 'feedback',
         maxFileSize: 5 * 1024 * 1024,
-        maxFields: 9,
+        maxFields: 10,
         maxFieldSize: 16 * 1024,
         maxFiles: 1,
-        maxParts: 11,
+        maxParts: 12,
         mimeExtensionPairs: {
           'image/jpeg': ['.jpg', '.jpeg'],
           'image/png': ['.png'],
@@ -170,7 +192,7 @@ describe('feedback.routes', () => {
   });
 
   it('keeps feedback listing behind auth plus admin checks', () => {
-    const getRouteLayer = getRoute('get');
+    const getRouteLayer = getRoute('get', '/');
 
     expect(getRouteLayer?.path).toBe('/');
 
@@ -178,13 +200,44 @@ describe('feedback.routes', () => {
     expect(handlers).toContain(doubles.requireAdmin);
     expect(handlers.at(-1)).toBe(doubles.list);
 
-    const layers = feedbackRoutes.stack as MockedLayer[];
-    const authIndex = layers.findIndex((layer) => layer.handle === doubles.authenticate);
-    const getIndex = layers.findIndex((layer) => layer.route === getRouteLayer);
+    expect(authenticateIndex()).toBeGreaterThan(-1);
+    expect(routeIndex(getRouteLayer)).toBeGreaterThan(-1);
+    expect(authenticateIndex()).toBeLessThan(routeIndex(getRouteLayer));
+  });
 
-    expect(authIndex).toBeGreaterThan(-1);
-    expect(getIndex).toBeGreaterThan(-1);
-    expect(authIndex).toBeLessThan(getIndex);
+  it('opens the public wall to any signed-in user but not to anonymous ones', () => {
+    const publicRoute = getRoute('get', '/public');
+
+    expect(publicRoute?.path).toBe('/public');
+
+    const handlers = publicRoute?.stack.map((layer) => layer.handle) ?? [];
+    // The whole point: gated by authenticate, NOT by requireAdmin.
+    expect(handlers).not.toContain(doubles.requireAdmin);
+    expect(handlers.at(-1)).toBe(doubles.listPublic);
+
+    expect(authenticateIndex()).toBeGreaterThan(-1);
+    expect(routeIndex(publicRoute)).toBeGreaterThan(-1);
+    expect(authenticateIndex()).toBeLessThan(routeIndex(publicRoute));
+  });
+
+  it('is declared before the admin listing so /public never falls through to it', () => {
+    expect(routeIndex(getRoute('get', '/public'))).toBeLessThan(
+      routeIndex(getRoute('get', '/')),
+    );
+  });
+
+  it('keeps hiding feedback behind auth plus admin checks', () => {
+    const visibilityRoute = getRoute('patch', '/:id/visibility');
+
+    expect(visibilityRoute?.path).toBe('/:id/visibility');
+
+    const handlers = visibilityRoute?.stack.map((layer) => layer.handle) ?? [];
+    expect(handlers).toContain(doubles.requireAdmin);
+    expect(handlers.at(-1)).toBe(doubles.setVisibility);
+
+    expect(authenticateIndex()).toBeGreaterThan(-1);
+    expect(routeIndex(visibilityRoute)).toBeGreaterThan(-1);
+    expect(authenticateIndex()).toBeLessThan(routeIndex(visibilityRoute));
   });
 
   it('keeps feedback deletion behind auth plus admin checks', () => {
@@ -196,12 +249,8 @@ describe('feedback.routes', () => {
     expect(handlers).toContain(doubles.requireAdmin);
     expect(handlers.at(-1)).toBe(doubles.remove);
 
-    const layers = feedbackRoutes.stack as MockedLayer[];
-    const authIndex = layers.findIndex((layer) => layer.handle === doubles.authenticate);
-    const deleteIndex = layers.findIndex((layer) => layer.route === deleteRoute);
-
-    expect(authIndex).toBeGreaterThan(-1);
-    expect(deleteIndex).toBeGreaterThan(-1);
-    expect(authIndex).toBeLessThan(deleteIndex);
+    expect(authenticateIndex()).toBeGreaterThan(-1);
+    expect(routeIndex(deleteRoute)).toBeGreaterThan(-1);
+    expect(authenticateIndex()).toBeLessThan(routeIndex(deleteRoute));
   });
 });

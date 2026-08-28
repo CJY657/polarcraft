@@ -249,6 +249,12 @@ export const validateCreateFeedback = validate(
     .isEmail()
     .withMessage('联系邮箱格式不正确')
     .normalizeEmail(),
+  // 表单以 multipart 提交时布尔值会退化成字符串，两种形态都要接受；
+  // 严格校验是必要的——未识别的值会被当成「公开」，静默违背用户的取消勾选。
+  body('isPublic')
+    .optional()
+    .isIn(['true', 'false', true, false])
+    .withMessage('公开选项无效'),
 );
 
 export const validateCreateCourseDiscussionComment = validate(

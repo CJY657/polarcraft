@@ -10,6 +10,7 @@ import { FeedbackSection } from "./FeedbackSection";
 
 const mockUseAuth = vi.hoisted(() => vi.fn());
 const submitFeedback = vi.hoisted(() => vi.fn());
+const listPublic = vi.hoisted(() => vi.fn());
 const createObjectURL = vi.hoisted(() => vi.fn(() => 'blob:feedback-preview'));
 const revokeObjectURL = vi.hoisted(() => vi.fn());
 
@@ -20,6 +21,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/lib/feedback.service", () => ({
   feedbackApi: {
     submit: submitFeedback,
+    listPublic,
   },
 }));
 
@@ -36,6 +38,8 @@ describe("FeedbackSection", () => {
     });
     submitFeedback.mockReset();
     submitFeedback.mockResolvedValue({ id: "feedback-1" });
+    listPublic.mockReset();
+    listPublic.mockResolvedValue({ items: [] });
     useAuthDialogStore.setState({
       isOpen: false,
       mode: "login",
@@ -77,10 +81,11 @@ describe("FeedbackSection", () => {
         contactName: "Guest",
         contactEmail: "guest@example.com",
         imageFile: undefined,
+        isPublic: false,
       });
     });
 
-    expect(await screen.findByText("反馈已提交，管理员可在后台反馈面板查看。")).toBeDefined();
+    expect(await screen.findByText("反馈已提交，仅管理员可见。")).toBeDefined();
     expect(useAuthDialogStore.getState().isOpen).toBe(false);
   });
 
@@ -130,14 +135,14 @@ describe("FeedbackSection", () => {
       target: { value: "这条反馈用于确认后续图片错误不会保留成功提示。" },
     });
     fireEvent.click(screen.getByRole("button", { name: /提交反馈/ }));
-    expect(await screen.findByText("反馈已提交，管理员可在后台反馈面板查看。")).toBeDefined();
+    expect(await screen.findByText("反馈已提交，仅管理员可见。")).toBeDefined();
 
     const input = screen.getByLabelText("选择图片");
     const disguisedFile = new File(["not an image"], "payload.html", { type: "image/png" });
     fireEvent.change(input, {
       target: { files: [disguisedFile] },
     });
-    expect(screen.queryByText("反馈已提交，管理员可在后台反馈面板查看。")).toBeNull();
+    expect(screen.queryByText("反馈已提交，仅管理员可见。")).toBeNull();
 
     fireEvent.change(input, {
       target: { files: [new File(["image"], "kept.png", { type: "image/png" })] },
@@ -151,5 +156,124 @@ describe("FeedbackSection", () => {
     expect(screen.getByRole("alert").textContent).toContain("请选择 JPG、PNG 或 WebP 图片");
     expect(screen.queryByAltText("待上传图片预览")).toBeNull();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:feedback-preview");
+  });
+});
+
+describe("FeedbackSection public wall", () => {
+  const wallItem = {
+    id: "feedback-9",
+    category: "experiment" as const,
+    subject: "冰洲石实验的偏振角标注反了",
+    content: "讲义第三页写的是 45 度，实际演示是 135 度。",
+    course_title: "冰洲石实验",
+    username: "zhangsan",
+    created_at: "2026-08-27T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    listPublic.mockReset();
+    listPublic.mockResolvedValue({ items: [wallItem] });
+    submitFeedback.mockReset();
+    submitFeedback.mockResolvedValue({ id: "feedback-1" });
+  });
+
+  function renderSection() {
+    return render(
+      <MemoryRouter initialEntries={["/feedback"]}>
+        <FeedbackSection />
+      </MemoryRouter>
+    );
+  }
+
+  it("hides the wall from anonymous visitors and does not even fetch it", async () => {
+    mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false });
+
+    renderSection();
+
+    expect(screen.queryByText("大家的反馈")).toBeNull();
+    await waitFor(() => {
+      expect(listPublic).not.toHaveBeenCalled();
+    });
+  });
+
+  it("disables the opt-out checkbox for anonymous visitors", () => {
+    mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, isLoading: false });
+
+    renderSection();
+
+    const checkbox = screen.getByRole("checkbox", { name: /公开这条反馈/ }) as HTMLInputElement;
+    expect(checkbox.disabled).toBe(true);
+    expect(checkbox.checked).toBe(false);
+  });
+
+  it("shows published feedback to signed-in users", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { username: "lisi", email: "lisi@example.com" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderSection();
+
+    expect(await screen.findByText(wallItem.subject)).toBeDefined();
+    expect(screen.getByText(wallItem.content)).toBeDefined();
+    expect(screen.getByText(/zhangsan/)).toBeDefined();
+  });
+
+  // 用户不能删除任何反馈——包括自己的。墙上一个按钮都不该有。
+  it("renders no action controls on wall entries", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { username: "lisi", email: "lisi@example.com" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderSection();
+
+    const wall = (await screen.findByText(wallItem.subject)).closest("li");
+    expect(wall).not.toBeNull();
+    expect(wall?.querySelectorAll("button").length).toBe(0);
+    expect(wall?.querySelectorAll("a").length).toBe(0);
+  });
+
+  it("checks the opt-out box by default for signed-in users", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { username: "lisi", email: "lisi@example.com" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderSection();
+    await screen.findByText(wallItem.subject);
+
+    const checkbox = screen.getByRole("checkbox", { name: /公开这条反馈/ }) as HTMLInputElement;
+    expect(checkbox.disabled).toBe(false);
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("passes the opt-out through to the submit call", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { username: "lisi", email: "lisi@example.com" },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderSection();
+    await screen.findByText(wallItem.subject);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /公开这条反馈/ }));
+    fireEvent.change(screen.getByPlaceholderText("一句话概括"), {
+      target: { value: "这条不要公开" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("详细描述..."), {
+      target: { value: "这条反馈涉及我的账号信息，请不要显示在公开墙上。" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /提交反馈/ }));
+
+    await waitFor(() => {
+      expect(submitFeedback).toHaveBeenCalledWith(
+        expect.objectContaining({ isPublic: false })
+      );
+    });
   });
 });

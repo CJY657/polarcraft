@@ -4,15 +4,17 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { list, deleteFeedback } = vi.hoisted(() => ({
+const { list, deleteFeedback, setVisibility } = vi.hoisted(() => ({
   list: vi.fn(),
   deleteFeedback: vi.fn(),
+  setVisibility: vi.fn(),
 }));
 
 vi.mock('@/lib/feedback.service', () => ({
   feedbackApi: {
     list,
     deleteFeedback,
+    setVisibility,
   },
 }));
 
@@ -69,6 +71,60 @@ describe('AdminFeedbackPage', () => {
       total: 2,
     });
     deleteFeedback.mockResolvedValue(undefined);
+    setVisibility.mockResolvedValue(undefined);
+  });
+
+  it('hides a published record without deleting it', async () => {
+    list.mockResolvedValue({
+      items: [{ ...experimentFeedback, is_public: true }],
+      total: 1,
+    });
+
+    renderPage();
+    await screen.findByText(experimentFeedback.subject);
+
+    expect(screen.getByText('已公开')).toBeDefined();
+    fireEvent.click(
+      screen.getByRole('button', { name: `隐藏反馈“${experimentFeedback.subject}”` })
+    );
+
+    await waitFor(() => expect(setVisibility).toHaveBeenCalledWith('feedback-1', false));
+    // 隐藏是可逆的，绝不能走删除。
+    expect(deleteFeedback).not.toHaveBeenCalled();
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+  });
+
+  it('republishes a hidden record and treats legacy records as not public', async () => {
+    // 历史记录没有 is_public 字段。
+    list.mockResolvedValue({ items: [experimentFeedback], total: 1 });
+
+    renderPage();
+    await screen.findByText(experimentFeedback.subject);
+
+    expect(screen.getByText('未公开')).toBeDefined();
+    fireEvent.click(
+      screen.getByRole('button', { name: `公开反馈“${experimentFeedback.subject}”` })
+    );
+
+    await waitFor(() => expect(setVisibility).toHaveBeenCalledWith('feedback-1', true));
+  });
+
+  it('surfaces the error and keeps the card when hiding fails', async () => {
+    list.mockResolvedValue({
+      items: [{ ...experimentFeedback, is_public: true }],
+      total: 1,
+    });
+    setVisibility.mockRejectedValue(new Error('更新失败'));
+
+    renderPage();
+    await screen.findByText(experimentFeedback.subject);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: `隐藏反馈“${experimentFeedback.subject}”` })
+    );
+
+    expect(await screen.findByText('更新失败')).toBeDefined();
+    expect(screen.getByText(experimentFeedback.subject)).toBeDefined();
   });
 
   it('shows the feedback subject in the irreversible confirmation and supports cancellation', async () => {

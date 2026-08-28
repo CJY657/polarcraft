@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, FlaskConical, Lightbulb, Mail, RefreshCw, Trash2, User } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff, FlaskConical, Lightbulb, Loader2, Mail, RefreshCw, Trash2, User } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -43,6 +43,7 @@ export default function AdminFeedbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [feedbackToDelete, setFeedbackToDelete] = useState<FeedbackAdminItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [visibilityId, setVisibilityId] = useState<string | null>(null);
 
   const loadFeedback = async (nextFilter: FilterValue, refresh = false) => {
     if (refresh) {
@@ -90,6 +91,30 @@ export default function AdminFeedbackPage() {
       setError(deleteError instanceof Error ? deleteError.message : "删除反馈失败");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  /**
+   * 隐藏 / 恢复公开。刻意与删除分开：删除会连同 IP、UA、用户名一起销毁，
+   * 而处理不当内容时那些恰恰是要留下的。先隐藏，必要时再删。
+   */
+  const handleToggleVisibility = async (item: FeedbackAdminItem) => {
+    if (visibilityId !== null) {
+      return;
+    }
+
+    setVisibilityId(item.id);
+    setError(null);
+
+    try {
+      await feedbackApi.setVisibility(item.id, !item.is_public);
+      await loadFeedback(filter, true);
+    } catch (visibilityError) {
+      setError(
+        visibilityError instanceof Error ? visibilityError.message : "更新反馈可见性失败"
+      );
+    } finally {
+      setVisibilityId(null);
     }
   };
 
@@ -266,7 +291,10 @@ export default function AdminFeedbackPage() {
                 item={item}
                 theme={theme}
                 isDeleteDisabled={deletingId !== null}
+                isVisibilityPending={visibilityId === item.id}
+                isVisibilityDisabled={visibilityId !== null}
                 onDelete={() => setFeedbackToDelete(item)}
+                onToggleVisibility={() => void handleToggleVisibility(item)}
               />
             ))}
           </div>
@@ -325,15 +353,23 @@ function FeedbackCard({
   item,
   theme,
   isDeleteDisabled,
+  isVisibilityPending,
+  isVisibilityDisabled,
   onDelete,
+  onToggleVisibility,
 }: {
   item: FeedbackAdminItem;
   theme: string;
   isDeleteDisabled: boolean;
+  isVisibilityPending: boolean;
+  isVisibilityDisabled: boolean;
   onDelete: () => void;
+  onToggleVisibility: () => void;
 }) {
   const meta = getCategoryMeta(item.category);
   const CategoryIcon = meta.icon;
+  // 历史记录没有 is_public 字段，读作「未公开」。
+  const isPublic = item.is_public === true;
 
   return (
     <article
@@ -356,22 +392,59 @@ function FeedbackCard({
               <span className={cn("text-xs", theme === "dark" ? "text-slate-500" : "text-slate-400")}>
                 ID: {item.id}
               </span>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium",
+                  isPublic
+                    ? theme === "dark"
+                      ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : theme === "dark"
+                      ? "border-slate-700 bg-slate-800 text-slate-400"
+                      : "border-slate-200 bg-slate-100 text-slate-500"
+                )}
+              >
+                {isPublic ? "已公开" : "未公开"}
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={isDeleteDisabled}
-              aria-label={`删除反馈“${item.subject}”`}
-              title="删除反馈"
-              className={cn(
-                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                theme === "dark"
-                  ? "border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                  : "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={onToggleVisibility}
+                disabled={isVisibilityDisabled}
+                aria-label={`${isPublic ? "隐藏" : "公开"}反馈“${item.subject}”`}
+                title={isPublic ? "从公开反馈中隐藏" : "在公开反馈中显示"}
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  theme === "dark"
+                    ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                )}
+              >
+                {isVisibilityPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPublic ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isDeleteDisabled}
+                aria-label={`删除反馈“${item.subject}”`}
+                title="删除反馈"
+                className={cn(
+                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  theme === "dark"
+                    ? "border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                    : "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                )}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <h2 className={cn("mt-3 text-xl font-semibold", theme === "dark" ? "text-white" : "text-slate-900")}>
