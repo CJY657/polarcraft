@@ -6,9 +6,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebsiteUpdatesDropdown } from './WebsiteUpdatesDropdown';
 
 const LAST_SEEN_STORAGE_KEY = 'polariscope.websiteUpdates.lastSeenId';
-const NEWEST_ID = '2026-08-23-immersive-timeline';
+const NEWEST_ID = '2026-08-28-feedback-images';
 
 const ENTRIES: Array<[string, string]> = [
+  ['反馈支持附图', '/feedback'],
   ['沉浸式光学历史之旅', '/chronicles'],
   ['实验与应用目录焕新', '/experiments'],
   ['课题会议、AI 纪要与成员互评上线', '/lab/projects'],

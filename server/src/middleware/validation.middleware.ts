@@ -19,20 +19,29 @@ export function handleValidationErrors(
   req: Request,
   res: Response,
   next: NextFunction,
-): void {
+): void | Promise<void> {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const formattedErrors = errors.array().map((error) => ({
       field: error.type === 'field' ? (error as any).path : 'unknown',
       message: error.msg,
     }));
-    sendError(
-      res,
-      '请求参数验证失败',
-      'VALIDATION_ERROR',
-      400,
-      formattedErrors,
-    );
+    const cleanupRejectedUpload = res.locals.cleanupRejectedUpload;
+    if (typeof cleanupRejectedUpload === 'function') {
+      return Promise.resolve(cleanupRejectedUpload())
+        .then(() => {
+          sendError(
+            res,
+            '请求参数验证失败',
+            'VALIDATION_ERROR',
+            400,
+            formattedErrors,
+          );
+        })
+        .catch(next);
+    }
+
+    sendError(res, '请求参数验证失败', 'VALIDATION_ERROR', 400, formattedErrors);
     return;
   }
   next();

@@ -17,13 +17,19 @@ let server: Server;
 let uploadRoot: string;
 let baseUrl: string;
 
-function sendMultipart(filename: string, mimeType: string, contents = 'test contents') {
+function sendMultipart(
+  filename: string,
+  mimeType: string,
+  contents = 'test contents',
+  route = '/upload',
+  unitId = 'evidence-test',
+) {
   const boundary = `----polariscope-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const body = Buffer.concat([
     Buffer.from(
       `--${boundary}\r\n`
       + 'Content-Disposition: form-data; name="unitId"\r\n\r\n'
-      + 'evidence-test\r\n'
+      + `${unitId}\r\n`
       + `--${boundary}\r\n`
       + `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`
       + `Content-Type: ${mimeType}\r\n\r\n`,
@@ -35,7 +41,7 @@ function sendMultipart(filename: string, mimeType: string, contents = 'test cont
 
   return new Promise<{ status: number; body: Record<string, any> }>((resolve, reject) => {
     const request = http.request(
-      `${baseUrl}/upload`,
+      `${baseUrl}${route}`,
       {
         method: 'POST',
         headers: {
@@ -73,9 +79,41 @@ beforeAll(async () => {
   const { createUploadMiddleware } = await import('./upload.middleware.js');
   const app = express();
   const upload = createUploadMiddleware('pdf');
+  const feedbackUpload = createUploadMiddleware('image', {
+    storageScope: 'feedback',
+    maxFileSize: 10,
+    maxFields: 1,
+    maxFieldSize: 32,
+    maxFiles: 1,
+    maxParts: 3,
+    allowedMimeTypes: ['image/jpeg', 'image/png'],
+    allowedExtensions: ['.jpg', '.jpeg', '.png'],
+    mimeExtensionPairs: {
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+    },
+    requireMimeAndExtension: true,
+  });
 
   app.post('/upload', (req, res) => {
     upload.single('file')(req, res, (error) => {
+      if (error) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      const file = req.file as Express.Multer.File;
+      res.status(201).json({
+        originalName: file.originalname,
+        filename: file.filename,
+        path: file.path,
+        size: file.size,
+      } satisfies UploadResponse);
+    });
+  });
+
+  app.post('/feedback-upload', (req, res) => {
+    feedbackUpload.single('file')(req, res, (error) => {
       if (error) {
         res.status(400).json({ error: error.message });
         return;
@@ -133,5 +171,51 @@ describe('createUploadMiddleware multipart filename parsing', () => {
 
     expect(invalid.status).toBe(400);
     expect(invalid.body.error).toContain('Invalid file type');
+  });
+
+  it('can require matching MIME and extension while forcing a server-side scope', async () => {
+    const valid = await sendMultipart(
+      'screenshot.png',
+      'image/png',
+      'pixels',
+      '/feedback-upload',
+      '../../outside',
+    );
+    const wrongExtension = await sendMultipart(
+      'payload.html',
+      'image/png',
+      'pixels',
+      '/feedback-upload',
+    );
+    const wrongMime = await sendMultipart(
+      'screenshot.png',
+      'text/html',
+      'pixels',
+      '/feedback-upload',
+    );
+    const mismatchedImageFormat = await sendMultipart(
+      'screenshot.jpg',
+      'image/png',
+      'pixels',
+      '/feedback-upload',
+    );
+
+    expect(valid.status).toBe(201);
+    expect(valid.body.path).toContain(`${path.sep}feedback${path.sep}image${path.sep}`);
+    expect(wrongExtension.status).toBe(400);
+    expect(wrongMime.status).toBe(400);
+    expect(mismatchedImageFormat.status).toBe(400);
+  });
+
+  it('supports a smaller endpoint-specific upload limit', async () => {
+    const oversized = await sendMultipart(
+      'screenshot.png',
+      'image/png',
+      '12345678901',
+      '/feedback-upload',
+    );
+
+    expect(oversized.status).toBe(400);
+    expect(oversized.body.error).toContain('File too large');
   });
 });

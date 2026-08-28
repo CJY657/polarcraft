@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 新条目加在最前面，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-08-28-feedback-images',
+    date: '2026年8月28日',
+    title: '反馈支持附图',
+    description:
+      '提交网站问题或改进建议时，现在可以附上一张 JPG、PNG 或 WebP 图片，并在提交前预览、更换或移除，图片最大为 5 MB。管理员可以随反馈查看原图，更快定位页面显示或实验内容问题；请勿上传包含个人隐私等敏感信息的图片。',
+    href: '/feedback',
+  },
+  {
     id: '2026-08-23-immersive-timeline',
     date: '2026年8月23日',
     title: '沉浸式光学历史之旅',

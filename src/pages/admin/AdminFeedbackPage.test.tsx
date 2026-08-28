@@ -37,6 +37,7 @@ const experimentFeedback = {
   page_path: '/experiments/polarization',
   contact_name: '林同学',
   contact_email: 'lin@example.com',
+  image_url: null,
   user_id: 'user-1',
   username: 'lin',
   user_role: 'user' as const,
@@ -143,5 +144,20 @@ describe('AdminFeedbackPage', () => {
     expect(await screen.findByText('删除请求失败')).toBeDefined();
     expect(screen.getByText(experimentFeedback.subject)).toBeDefined();
     expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a linked feedback image when the record includes one', async () => {
+    list.mockResolvedValue({
+      items: [{ ...experimentFeedback, image_url: '/uploads/courses/feedback/image/screenshot.png' }],
+      total: 1,
+    });
+
+    renderPage();
+
+    const link = await screen.findByRole('link', {
+      name: `查看反馈“${experimentFeedback.subject}”的原图`,
+    });
+    expect(link.getAttribute('href')).toContain('/uploads/courses/feedback/image/screenshot.png');
+    expect(screen.getByAltText(`反馈附件：${experimentFeedback.subject}`)).toBeDefined();
   });
 });

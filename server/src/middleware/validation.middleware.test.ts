@@ -2,17 +2,23 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   validateForgotPassword,
+  validateCreateFeedback,
   validateRegister,
   validateUpdateProfile,
 } from './validation.middleware.js';
 
 type Middleware = (req: any, res: any, next: (error?: unknown) => void) => void | Promise<void>;
 
-async function runValidationStack(stack: Middleware[], body: Record<string, unknown>) {
+async function runValidationStack(
+  stack: Middleware[],
+  body: Record<string, unknown>,
+  locals: Record<string, unknown> = {},
+) {
   const req = { body };
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn(),
+    locals,
   };
   const next = vi.fn();
 
@@ -218,5 +224,24 @@ describe('auth/profile validation', () => {
 
     expect(res.json).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalled();
+  });
+});
+
+describe('feedback validation', () => {
+  it('cleans an uploaded image before rejecting invalid multipart fields', async () => {
+    const cleanupRejectedUpload = vi.fn().mockResolvedValue(undefined);
+
+    const { res } = await runValidationStack(
+      validateCreateFeedback as Middleware[],
+      {
+        category: 'product',
+        subject: 'bad',
+        content: '内容长度足够用于触发主题校验失败。',
+      },
+      { cleanupRejectedUpload },
+    );
+
+    expect(cleanupRejectedUpload).toHaveBeenCalledTimes(1);
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 });

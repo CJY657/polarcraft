@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { FlaskConical, Lightbulb, Send } from "lucide-react";
+import { FlaskConical, ImagePlus, Lightbulb, Send, X } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -49,6 +49,13 @@ const CATEGORY_OPTIONS: FeedbackCategoryOption[] = [
   },
 ];
 
+const FEEDBACK_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const FEEDBACK_IMAGE_EXTENSIONS: Record<string, RegExp> = {
+  "image/jpeg": /\.jpe?g$/i,
+  "image/png": /\.png$/i,
+  "image/webp": /\.webp$/i,
+};
+
 function getSearchValue(searchParams: URLSearchParams, key: string): string {
   return searchParams.get(key)?.trim() || "";
 }
@@ -82,6 +89,8 @@ export function FeedbackSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [image, setImage] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     setForm((current) => ({
@@ -102,6 +111,14 @@ export function FeedbackSection() {
       });
     }
   }, [location.hash, location.search]);
+
+  useEffect(() => {
+    return () => {
+      if (image) {
+        URL.revokeObjectURL(image.previewUrl);
+      }
+    };
+  }, [image]);
 
   const handleFieldChange = <K extends keyof FeedbackFormState>(
     key: K,
@@ -157,6 +174,7 @@ export function FeedbackSection() {
         pagePath: originPath || `${location.pathname}${location.search}`,
         contactName: contactName || undefined,
         contactEmail: contactEmail || undefined,
+        imageFile: image?.file,
       });
 
       setSubmissionId(result.id);
@@ -166,6 +184,8 @@ export function FeedbackSection() {
         subject: "",
         content: "",
       }));
+      setImage(null);
+      setImageError(null);
     } catch (error) {
       setSubmissionId(null);
       setNotice({
@@ -175,6 +195,31 @@ export function FeedbackSection() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setImage(null);
+    setNotice(null);
+
+    if (!FEEDBACK_IMAGE_EXTENSIONS[file.type]?.test(file.name)) {
+      setImageError("请选择 JPG、PNG 或 WebP 图片。");
+      return;
+    }
+
+    if (file.size > FEEDBACK_IMAGE_MAX_SIZE) {
+      setImageError("图片不能超过 5 MB。");
+      return;
+    }
+
+    setImage({ file, previewUrl: URL.createObjectURL(file) });
+    setImageError(null);
   };
 
   return (
@@ -241,6 +286,7 @@ export function FeedbackSection() {
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
             {notice ? (
               <div
+                role={notice.tone === "error" ? "alert" : "status"}
                 className="rounded-[12px] p-[16px]"
                 style={{
                   backgroundColor: notice.tone === "success" ? "#dcfce7" : "#fee2e2",
@@ -318,6 +364,62 @@ export function FeedbackSection() {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <span className="text-[14px] font-semibold text-[#1a1a1a]">
+                补充图片（可选）
+              </span>
+              <input
+                id="feedback-image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageChange}
+                disabled={isSubmitting}
+                aria-describedby="feedback-image-hint feedback-image-error"
+                className="peer sr-only"
+              />
+              <label
+                htmlFor="feedback-image"
+                className="flex min-h-[92px] cursor-pointer items-center justify-center gap-3 rounded-[12px] border border-dashed border-[#c9c2b2] bg-[#fffaf0] px-4 py-5 text-center text-[14px] font-semibold text-[#3f3b34] transition-colors hover:border-[#0a0a0a] hover:bg-white peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#0a0a0a]"
+              >
+                <ImagePlus className="h-5 w-5" aria-hidden="true" />
+                {image ? "更换图片" : "选择图片"}
+              </label>
+              <p id="feedback-image-hint" className="text-[13px] leading-5 text-[#6a6a6a]">
+                支持 JPG、PNG、WebP，最大 5 MB。请勿上传包含敏感信息的图片。
+              </p>
+
+              {image ? (
+                <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-[#ded7c7] bg-[#fffaf0] p-3">
+                  <img
+                    src={image.previewUrl}
+                    alt="待上传图片预览"
+                    className="h-16 w-16 shrink-0 rounded-[8px] object-cover"
+                  />
+                  <p className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#1a1a1a]" title={image.file.name}>
+                    {image.file.name}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImage(null);
+                      setImageError(null);
+                    }}
+                    disabled={isSubmitting}
+                    aria-label={`移除图片 ${image.file.name}`}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#6a6a6a] transition-colors hover:bg-[#eee7d8] hover:text-[#0a0a0a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a0a0a] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
+
+              {imageError ? (
+                <p id="feedback-image-error" role="alert" className="text-[13px] font-medium text-[#991b1b]">
+                  {imageError}
+                </p>
+              ) : null}
+            </div>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <label className="text-[14px] font-semibold text-[#1a1a1a]">
@@ -351,7 +453,7 @@ export function FeedbackSection() {
 
             <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[14px] text-[#6a6a6a]">
-                仅管理员可见
+                反馈记录由管理员处理；图片链接不设登录验证
               </p>
               <button
                 type="submit"

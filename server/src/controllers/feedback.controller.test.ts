@@ -1,13 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { deleteFeedback, loggerError } = vi.hoisted(() => ({
+const { submitFeedback, deleteFeedback, cleanupUrls, loggerError } = vi.hoisted(() => ({
+  submitFeedback: vi.fn(),
   deleteFeedback: vi.fn(),
+  cleanupUrls: vi.fn(),
   loggerError: vi.fn(),
 }));
 
 vi.mock('../services/feedback.service.js', () => ({
   FeedbackService: {
+    submitFeedback,
     deleteFeedback,
+  },
+}));
+
+vi.mock('../services/managed-upload-cleanup.service.js', () => ({
+  ManagedUploadCleanupService: {
+    cleanupUrls,
+  },
+}));
+
+vi.mock('../config/upload.config.js', () => ({
+  uploadConfig: {
+    uploadDir: '/tmp/polarcraft-feedback-test',
+    publicUrlPrefix: '/uploads/courses',
   },
 }));
 
@@ -18,11 +34,13 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 import { FeedbackController } from './feedback.controller.js';
+import { uploadConfig } from '../config/upload.config.js';
 
 function createResponse() {
   return {
     success: vi.fn(),
     error: vi.fn(),
+    locals: {},
   };
 }
 
@@ -75,5 +93,70 @@ describe('FeedbackController.remove', () => {
       500,
     );
     expect(res.success).not.toHaveBeenCalled();
+  });
+});
+
+describe('FeedbackController.create', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    submitFeedback.mockResolvedValue({ id: 'feedback-1' });
+    cleanupUrls.mockResolvedValue(undefined);
+  });
+
+  it('stores the server-generated managed URL for an uploaded feedback image', async () => {
+    const res = createResponse();
+    const imagePath = `${uploadConfig.uploadDir}/feedback/image/screenshot.png`;
+
+    await FeedbackController.create(
+      {
+        body: {
+          category: 'product',
+          subject: '建议增加截图反馈',
+          content: '截图能够帮助管理员更快定位显示问题。',
+        },
+        file: { path: imagePath },
+        headers: {},
+        socket: {},
+      } as never,
+      res as never,
+    );
+
+    expect(submitFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        image_url: `${uploadConfig.publicUrlPrefix}/feedback/image/screenshot.png`,
+      }),
+    );
+    expect(res.success).toHaveBeenCalledWith({ id: 'feedback-1' }, '反馈已提交', 201);
+  });
+
+  it('cleans the uploaded image when feedback persistence fails', async () => {
+    const failure = new Error('database unavailable');
+    submitFeedback.mockRejectedValue(failure);
+    const res = createResponse();
+    const imagePath = `${uploadConfig.uploadDir}/feedback/image/screenshot.png`;
+
+    await FeedbackController.create(
+      {
+        body: {
+          category: 'product',
+          subject: '建议增加截图反馈',
+          content: '截图能够帮助管理员更快定位显示问题。',
+        },
+        file: { path: imagePath },
+        headers: {},
+        socket: {},
+      } as never,
+      res as never,
+    );
+
+    expect(cleanupUrls).toHaveBeenCalledWith(
+      [`${uploadConfig.publicUrlPrefix}/feedback/image/screenshot.png`],
+      { reason: 'feedback-create-failed' },
+    );
+    expect(res.error).toHaveBeenCalledWith(
+      '提交反馈失败，请稍后再试',
+      'SERVER_ERROR',
+      500,
+    );
   });
 });

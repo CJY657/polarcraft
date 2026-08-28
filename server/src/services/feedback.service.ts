@@ -1,4 +1,5 @@
 import { FeedbackModel } from '../models/feedback.model.js';
+import { ManagedUploadCleanupService } from './managed-upload-cleanup.service.js';
 import type {
   CreateFeedbackInput,
   FeedbackListResult,
@@ -27,6 +28,7 @@ export class FeedbackService {
       page_path: input.page_path || null,
       contact_name: input.contact_name || null,
       contact_email: input.contact_email || null,
+      image_url: input.image_url || null,
       user_id: input.user_id || null,
       username: input.username || null,
       user_role: input.user_role || null,
@@ -55,15 +57,26 @@ export class FeedbackService {
     ]);
 
     return {
-      items,
+      items: items.map((item) => ({
+        ...item,
+        image_url: item.image_url ?? null,
+      })),
       total,
     };
   }
 
   static async deleteFeedback(id: string): Promise<boolean> {
+    const existing = await FeedbackModel.getById(id);
+    if (!existing) {
+      return false;
+    }
+
     const deleted = await FeedbackModel.deleteById(id);
 
     if (deleted) {
+      await ManagedUploadCleanupService.cleanupUrls([existing.image_url], {
+        reason: 'feedback-delete',
+      });
       logger.info(`Feedback deleted: ${id}`);
     }
 

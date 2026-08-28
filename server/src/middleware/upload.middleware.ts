@@ -30,12 +30,25 @@ function ensureUploadDir(dir: string): void {
 
 // Storage configuration
 // 存储配置
-const createStorage = (category: FileCategory) => {
+interface UploadMiddlewareOptions {
+  storageScope?: string;
+  maxFileSize?: number;
+  maxFields?: number;
+  maxFieldSize?: number;
+  maxFiles?: number;
+  maxParts?: number;
+  allowedMimeTypes?: readonly string[];
+  allowedExtensions?: readonly string[];
+  mimeExtensionPairs?: Readonly<Record<string, readonly string[]>>;
+  requireMimeAndExtension?: boolean;
+}
+
+const createStorage = (category: FileCategory, storageScope?: string) => {
   return multer.diskStorage({
     destination: (req: Request, file: Express.Multer.File, cb) => {
       // Include unit ID in path if provided
       // 如果提供了 unit ID，则包含在路径中
-      const unitId = (req.body.unitId as string) || 'general';
+      const unitId = storageScope || (req.body.unitId as string) || 'general';
       const uploadPath = path.join(uploadConfig.uploadDir, unitId, category);
       ensureUploadDir(uploadPath);
       cb(null, uploadPath);
@@ -53,21 +66,26 @@ const createStorage = (category: FileCategory) => {
 
 // File filter for validation
 // 文件过滤器用于验证
-const createFileFilter = (category: FileCategory) => {
+const createFileFilter = (category: FileCategory, options: UploadMiddlewareOptions) => {
   return (
     req: Request,
     file: Express.Multer.File,
     cb: FileFilterCallback
   ): void => {
-    const allowedMimes = uploadConfig.allowedMimeTypes[category];
-    const allowedExts = uploadConfig.allowedExtensions[category];
+    const allowedMimes = options.allowedMimeTypes ?? uploadConfig.allowedMimeTypes[category];
+    const allowedExts = options.allowedExtensions ?? uploadConfig.allowedExtensions[category];
 
     const ext = path.extname(file.originalname).toLowerCase();
     const mime = file.mimetype;
 
-    // Check both MIME type and extension
-    // 同时检查 MIME 类型和扩展名
-    if (allowedMimes.includes(mime) || allowedExts.includes(ext)) {
+    const allowedExtensionsForMime = options.mimeExtensionPairs?.[mime];
+    const isAllowed = options.mimeExtensionPairs
+      ? Boolean(allowedExtensionsForMime?.includes(ext))
+      : options.requireMimeAndExtension
+        ? allowedMimes.includes(mime) && allowedExts.includes(ext)
+        : allowedMimes.includes(mime) || allowedExts.includes(ext);
+
+    if (isAllowed) {
       cb(null, true);
     } else {
       cb(new Error(`Invalid file type. Allowed extensions: ${allowedExts.join(', ')}`));
@@ -77,15 +95,25 @@ const createFileFilter = (category: FileCategory) => {
 
 // Create multer instance for each category
 // 为每个类别创建 multer 实例
-export const createUploadMiddleware = (category: FileCategory) => {
-  const maxSize = uploadConfig.maxFileSize[category] || uploadConfig.maxFileSize.default;
+export const createUploadMiddleware = (
+  category: FileCategory,
+  options: UploadMiddlewareOptions = {},
+) => {
+  const maxSize =
+    options.maxFileSize
+    ?? uploadConfig.maxFileSize[category]
+    ?? uploadConfig.maxFileSize.default;
 
   return multer({
-    storage: createStorage(category),
-    fileFilter: createFileFilter(category),
+    storage: createStorage(category, options.storageScope),
+    fileFilter: createFileFilter(category, options),
     defParamCharset: 'utf8',
     limits: {
       fileSize: maxSize,
+      ...(options.maxFields === undefined ? {} : { fields: options.maxFields }),
+      ...(options.maxFieldSize === undefined ? {} : { fieldSize: options.maxFieldSize }),
+      ...(options.maxFiles === undefined ? {} : { files: options.maxFiles }),
+      ...(options.maxParts === undefined ? {} : { parts: options.maxParts }),
     },
   });
 };
@@ -112,7 +140,9 @@ export const handleUploadError = (err: any, req: Request, res: any, next: any) =
     if (err.code === 'LIMIT_FILE_SIZE') {
       const category = req.params.category as FileCategory;
       const limit =
-        uploadConfig.maxFileSize[category] || uploadConfig.maxFileSize.default;
+        res?.locals?.uploadMaxFileSize
+        || uploadConfig.maxFileSize[category]
+        || uploadConfig.maxFileSize.default;
       return res.status(400).json({
         success: false,
         error: {

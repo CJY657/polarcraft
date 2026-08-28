@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import fs from 'fs/promises';
 
 type MockedRoute = {
   path: string;
@@ -23,6 +24,12 @@ const doubles = vi.hoisted(() => {
     feedbackRateLimiter: vi.fn(passthroughMiddleware),
     requireAdmin: vi.fn(passthroughMiddleware),
     validateCreateFeedback: vi.fn(passthroughMiddleware),
+    feedbackImageUpload: vi.fn(passthroughMiddleware),
+    createUploadMiddleware: vi.fn(() => ({
+      single: vi.fn(() => vi.fn(passthroughMiddleware)),
+    })),
+    handleUploadError: vi.fn(),
+    cleanupUrls: vi.fn(),
     create: vi.fn((_req, res) => {
       res.status(201).json({ route: 'create' });
     }),
@@ -56,11 +63,27 @@ vi.mock('../middleware/rbac.middleware.js', () => ({
   requireAdmin: doubles.requireAdmin,
 }));
 
+vi.mock('../middleware/upload.middleware.js', () => ({
+  createUploadMiddleware: doubles.createUploadMiddleware,
+  handleUploadError: doubles.handleUploadError,
+}));
+
+vi.mock('../services/managed-upload-cleanup.service.js', () => ({
+  ManagedUploadCleanupService: { cleanupUrls: doubles.cleanupUrls },
+}));
+
+vi.mock('../utils/managed-upload-url.util.js', () => ({
+  getManagedUploadUrlForFile: vi.fn(() => '/uploads/courses/feedback/image/test.png'),
+}));
+
 vi.mock('../middleware/validation.middleware.js', () => ({
   validateCreateFeedback: doubles.validateCreateFeedback,
 }));
 
-import feedbackRoutes from './feedback.routes.js';
+import feedbackRoutes, {
+  hasValidFeedbackImageSignature,
+  validateFeedbackImageContent,
+} from './feedback.routes.js';
 
 function getRoute(method: 'delete' | 'get' | 'post') {
   return feedbackRoutes.stack
@@ -80,6 +103,70 @@ describe('feedback.routes', () => {
     expect(handlers).toContain(doubles.validateCreateFeedback);
     expect(handlers).not.toContain(doubles.authenticate);
     expect(handlers.at(-1)).toBe(doubles.create);
+    expect(doubles.createUploadMiddleware).toHaveBeenCalledWith(
+      'image',
+      expect.objectContaining({
+        storageScope: 'feedback',
+        maxFileSize: 5 * 1024 * 1024,
+        maxFields: 9,
+        maxFieldSize: 16 * 1024,
+        maxFiles: 1,
+        maxParts: 11,
+        mimeExtensionPairs: {
+          'image/jpeg': ['.jpg', '.jpeg'],
+          'image/png': ['.png'],
+          'image/webp': ['.webp'],
+        },
+        requireMimeAndExtension: true,
+      }),
+    );
+  });
+
+  it('accepts only matching JPEG, PNG, and WebP file signatures', () => {
+    expect(
+      hasValidFeedbackImageSignature(
+        Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
+        'image/jpeg',
+      ),
+    ).toBe(true);
+    expect(
+      hasValidFeedbackImageSignature(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        'image/png',
+      ),
+    ).toBe(true);
+    expect(
+      hasValidFeedbackImageSignature(
+        Buffer.from('RIFF1234WEBP', 'ascii'),
+        'image/webp',
+      ),
+    ).toBe(true);
+    expect(hasValidFeedbackImageSignature(Buffer.from('pixels'), 'image/png')).toBe(false);
+    expect(
+      hasValidFeedbackImageSignature(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        'image/jpeg',
+      ),
+    ).toBe(false);
+  });
+
+  it('forwards cleanup failures when reading an uploaded image also fails', async () => {
+    const readError = new Error('read failed');
+    const cleanupError = new Error('unlink failed');
+    vi.spyOn(fs, 'open').mockRejectedValueOnce(readError);
+    const next = vi.fn();
+
+    await validateFeedbackImageContent(
+      { file: { path: '/tmp/missing.png', mimetype: 'image/png' } } as never,
+      {
+        locals: {
+          cleanupRejectedUpload: vi.fn().mockRejectedValue(cleanupError),
+        },
+      } as never,
+      next,
+    );
+
+    expect(next).toHaveBeenCalledWith(cleanupError);
   });
 
   it('keeps feedback listing behind auth plus admin checks', () => {

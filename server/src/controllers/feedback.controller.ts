@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
+import { ManagedUploadCleanupService } from '../services/managed-upload-cleanup.service.js';
 import { FeedbackService } from '../services/feedback.service.js';
+import { getManagedUploadUrlForFile } from '../utils/managed-upload-url.util.js';
 import { logger } from '../utils/logger.js';
 
 function getIpAddress(req: Request): string | null {
@@ -13,6 +15,9 @@ function getIpAddress(req: Request): string | null {
 
 export class FeedbackController {
   static async create(req: Request, res: Response): Promise<void> {
+    const imageUrl = (res.locals.feedbackImageUrl as string | undefined)
+      ?? (req.file ? getManagedUploadUrlForFile(req.file.path) : null);
+
     try {
       const result = await FeedbackService.submitFeedback({
         category: req.body.category,
@@ -24,6 +29,7 @@ export class FeedbackController {
         page_path: req.body.pagePath?.trim() || null,
         contact_name: req.body.contactName?.trim() || req.user?.username || null,
         contact_email: req.body.contactEmail?.trim() || null,
+        image_url: imageUrl,
         user_id: req.user?.sub || null,
         username: req.user?.username || null,
         user_role: req.user?.role || null,
@@ -31,8 +37,14 @@ export class FeedbackController {
         user_agent: req.headers['user-agent'] || null,
       });
 
+      res.locals.cleanupRejectedUpload = undefined;
       res.success(result, '反馈已提交', 201);
     } catch (error) {
+      if (imageUrl) {
+        await ManagedUploadCleanupService.cleanupUrls([imageUrl], {
+          reason: 'feedback-create-failed',
+        });
+      }
       logger.error('Create feedback error:', error);
       res.error('提交反馈失败，请稍后再试', 'SERVER_ERROR', 500);
     }

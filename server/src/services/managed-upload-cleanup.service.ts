@@ -49,6 +49,7 @@ const UPLOAD_REFERENCE_FIELDS: CollectionFieldRef[] = [
   { collection: 'course_media', field: 'url' },
   { collection: 'course_media', field: 'preview_pdf_url' },
   { collection: 'course_discussion_comments', field: 'image_urls' },
+  { collection: 'feedback_submissions', field: 'image_url' },
   { collection: 'research_projects', field: 'thumbnail' },
   { collection: 'research_project_comments', field: 'image_urls' },
   { collection: 'research_project_comments', field: 'video_urls' },

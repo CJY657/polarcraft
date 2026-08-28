@@ -12,6 +12,7 @@ import {
 } from "@/lib/feedback.service";
 import { cn } from "@/utils/classNames";
 import { formatDateTime } from "@/lib/datetime.util";
+import { resolveApiEndpoint } from "@/lib/api";
 
 type FilterValue = "all" | FeedbackCategory;
 
@@ -380,6 +381,28 @@ function FeedbackCard({
           <p className={cn("mt-3 whitespace-pre-wrap text-sm leading-7", theme === "dark" ? "text-slate-300" : "text-slate-700")}>
             {item.content}
           </p>
+
+          {item.image_url ? (
+            <a
+              href={resolveApiEndpoint(item.image_url)}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "mt-4 inline-block overflow-hidden rounded-2xl border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+                theme === "dark"
+                  ? "border-slate-700 hover:border-slate-500"
+                  : "border-slate-200 hover:border-slate-400"
+              )}
+              aria-label={`查看反馈“${item.subject}”的原图`}
+            >
+              <img
+                src={resolveApiEndpoint(item.image_url)}
+                alt={`反馈附件：${item.subject}`}
+                loading="lazy"
+                className="max-h-64 w-auto max-w-full object-contain"
+              />
+            </a>
+          ) : null}
         </div>
 
         <div className="grid gap-3 text-sm lg:min-w-[320px]">

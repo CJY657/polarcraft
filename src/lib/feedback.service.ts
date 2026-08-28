@@ -12,6 +12,7 @@ export interface CreateFeedbackInput {
   pagePath?: string;
   contactName?: string;
   contactEmail?: string;
+  imageFile?: File;
 }
 
 export interface FeedbackSubmissionResult {
@@ -29,6 +30,7 @@ export interface FeedbackAdminItem {
   page_path: string | null;
   contact_name: string | null;
   contact_email: string | null;
+  image_url: string | null;
   user_id: string | null;
   username: string | null;
   user_role: "user" | "admin" | null;
@@ -44,7 +46,18 @@ export interface FeedbackListResult {
 
 export const feedbackApi = {
   async submit(input: CreateFeedbackInput): Promise<FeedbackSubmissionResult> {
-    const response = await api.post<FeedbackSubmissionResult>("/api/feedback", input);
+    const { imageFile, ...fields } = input;
+    const response = imageFile
+      ? await api.upload<FeedbackSubmissionResult>(
+          "/api/feedback",
+          imageFile,
+          Object.fromEntries(
+            Object.entries(fields).filter((entry): entry is [string, string] =>
+              typeof entry[1] === "string"
+            )
+          ),
+        )
+      : await api.post<FeedbackSubmissionResult>("/api/feedback", fields);
     if (response.success && response.data) {
       return response.data;
     }

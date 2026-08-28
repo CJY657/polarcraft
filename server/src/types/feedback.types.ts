@@ -13,6 +13,7 @@ export interface CreateFeedbackInput {
   page_path?: string | null;
   contact_name?: string | null;
   contact_email?: string | null;
+  image_url?: string | null;
   user_id?: string | null;
   username?: string | null;
   user_role?: UserRole | null;
@@ -31,6 +32,7 @@ export interface FeedbackSubmission {
   page_path: string | null;
   contact_name: string | null;
   contact_email: string | null;
+  image_url: string | null;
   user_id: string | null;
   username: string | null;
   user_role: UserRole | null;
