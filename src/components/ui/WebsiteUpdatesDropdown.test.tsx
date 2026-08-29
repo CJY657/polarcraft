@@ -6,9 +6,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebsiteUpdatesDropdown } from './WebsiteUpdatesDropdown';
 
 const LAST_SEEN_STORAGE_KEY = 'polariscope.websiteUpdates.lastSeenId';
-const NEWEST_ID = '2026-08-28-feedback-images';
+const NEWEST_ID = '2026-08-28-public-feedback-wall';
 
 const ENTRIES: Array<[string, string]> = [
+  ['公开反馈墙上线', '/feedback'],
   ['反馈支持附图', '/feedback'],
   ['沉浸式光学历史之旅', '/chronicles'],
   ['实验与应用目录焕新', '/experiments'],

@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 新条目加在最前面，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-08-28-public-feedback-wall',
+    date: '2026年8月28日',
+    title: '公开反馈墙上线',
+    description:
+      '登录后，你现在可以在提交反馈时选择是否公开，并在反馈表单下方查看大家公开的实验问题与产品建议。公开内容会展示主题、正文和用户名，方便彼此参考与交流；联系邮箱、提交环境和附图不会公开。取消勾选的反馈及未登录提交的反馈仍只对管理员可见。',
+    href: '/feedback',
+  },
+  {
     id: '2026-08-28-feedback-images',
     date: '2026年8月28日',
     title: '反馈支持附图',
