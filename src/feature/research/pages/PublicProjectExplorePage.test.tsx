@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicProject } from "@/lib/profile.service";
@@ -87,8 +87,10 @@ function createPublicProject(overrides: Partial<PublicProject>): PublicProject {
   };
 }
 
-function getCardTitles(container: HTMLElement) {
-  return Array.from(container.querySelectorAll("article h2")).map((heading) => heading.textContent);
+function getCardIds(container: HTMLElement) {
+  return Array.from(container.querySelectorAll("article[data-testid]")).map((card) =>
+    card.getAttribute("data-testid")
+  );
 }
 
 describe("PublicProjectExplorePage", () => {
@@ -144,112 +146,42 @@ describe("PublicProjectExplorePage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByText("推荐更新课题", {}, { timeout: 2000 });
-    expect(screen.getByText("观察记录员")).toBeTruthy();
+    await screen.findByTestId("project-card-project-1", {}, { timeout: 2000 });
+    expect(screen.queryByText("观察记录员")).toBeNull();
     expect(screen.queryByText("当前缺口")).toBeNull();
     expect(screen.queryByText("缺数据整理 1 人")).toBeNull();
     expect(screen.queryByText("先记录第一轮变量")).toBeNull();
-    expect(getCardTitles(container)).toEqual([
-      "推荐更新课题",
-      "成员最多课题",
-      "招募旧课题",
-      "最新创建课题",
+    expect(getCardIds(container)).toEqual([
+      "project-card-project-1",
+      "project-card-project-2",
+      "project-card-project-4",
+      "project-card-project-3",
     ]);
 
     fireEvent.change(screen.getByLabelText("排序方式"), {
       target: { value: "member_count" },
     });
 
-    expect(getCardTitles(container)).toEqual([
-      "成员最多课题",
-      "招募旧课题",
-      "推荐更新课题",
-      "最新创建课题",
+    expect(getCardIds(container)).toEqual([
+      "project-card-project-2",
+      "project-card-project-4",
+      "project-card-project-1",
+      "project-card-project-3",
     ]);
 
     fireEvent.change(screen.getByLabelText("排序方式"), {
       target: { value: "created_desc" },
     });
 
-    expect(getCardTitles(container)).toEqual([
-      "最新创建课题",
-      "成员最多课题",
-      "推荐更新课题",
-      "招募旧课题",
+    expect(getCardIds(container)).toEqual([
+      "project-card-project-3",
+      "project-card-project-2",
+      "project-card-project-1",
+      "project-card-project-4",
     ]);
     await waitFor(() => {
       expect(getPublicProjects).toHaveBeenCalledTimes(1);
     });
-  });
-
-  it("shows an actionable review section only to outsiders during review_pending", async () => {
-    getPublicProjects.mockResolvedValue([
-      createPublicProject({
-        id: "external-review",
-        name_zh: "开放评审课题",
-        status: "review_pending",
-        challenge_review_criteria_zh: "证据完整，结论可复核",
-      }),
-      createPublicProject({
-        id: "member-review",
-        name_zh: "我的待评审课题",
-        status: "review_pending",
-        is_member: true,
-      }),
-      createPublicProject({
-        id: "showcased-project",
-        name_zh: "已展示课题",
-        status: "showcased",
-      }),
-    ]);
-
-    render(
-      <MemoryRouter>
-        <PublicProjectExplorePage />
-      </MemoryRouter>
-    );
-
-    const externalCard = (await screen.findByRole("heading", { name: "开放评审课题" })).closest("article");
-    const memberCard = screen.getByRole("heading", { name: "我的待评审课题" }).closest("article");
-    const showcasedCard = screen.getByRole("heading", { name: "已展示课题" }).closest("article");
-
-    expect(externalCard).toBeTruthy();
-    expect(memberCard).toBeTruthy();
-    expect(showcasedCard).toBeTruthy();
-
-    const reviewLink = within(externalCard!).getByRole("link", { name: "前往评审" });
-    expect(reviewLink.getAttribute("href")).toBe("/lab/projects/external-review#project-peer-review");
-    expect(within(externalCard!).getByText("课题组外、已登录用户可前往详情页提交评审。")).toBeTruthy();
-    expect(within(externalCard!).queryByText("证据完整，结论可复核")).toBeNull();
-
-    expect(within(memberCard!).getByText("等待课题组外同学提交评审。")).toBeTruthy();
-    expect(within(memberCard!).queryByRole("link", { name: "前往评审" })).toBeNull();
-    expect(within(showcasedCard!).queryByText("同伴评审开放中")).toBeNull();
-  });
-
-  it("lets guests inspect the review section before login", async () => {
-    mockUseAuth.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: false,
-    });
-    getPublicProjects.mockResolvedValue([
-      createPublicProject({
-        id: "guest-review",
-        name_zh: "访客可查看评审课题",
-        status: "review_pending",
-      }),
-    ]);
-
-    render(
-      <MemoryRouter>
-        <PublicProjectExplorePage />
-      </MemoryRouter>
-    );
-
-    const reviewLink = await screen.findByRole("link", { name: "前往评审" });
-    expect(reviewLink.getAttribute("href")).toBe("/lab/projects/guest-review#project-peer-review");
-    fireEvent.click(reviewLink);
-    expect(openDialog).not.toHaveBeenCalled();
   });
 
   it("opens the research group guide from the page header", async () => {
@@ -307,7 +239,7 @@ describe("PublicProjectExplorePage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByText("停止招募课题");
+    await screen.findByTestId("project-card-project-closed");
     expect((screen.getByRole("button", { name: "待审核" }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "招募已停止" }));

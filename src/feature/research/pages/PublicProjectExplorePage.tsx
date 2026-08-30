@@ -9,7 +9,6 @@ import {
   AlertCircle,
   BookOpenText,
   ChevronDown,
-  ClipboardCheck,
   FlaskConical,
   Loader2,
   LogIn,
@@ -28,8 +27,9 @@ import {
   sortPublicProjectsByDisplayMode,
   type ProjectDisplayMode,
 } from "../components/project/projectDisplayModes";
+import { CHALLENGE_DIFFICULTY_OPTIONS } from "../components/project/projectChallengeCard";
+import { getProjectStatusMeta } from "../projectLifecycle";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
-import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
 import { ResearchGroupGuideDialog } from "../components/project/ResearchGroupGuideDialog";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 
@@ -47,6 +47,13 @@ function getApplyButtonLabel(project: PublicProject) {
   if (project.has_pending_application) return "待审核";
   if (project.is_recruiting === false) return "招募已停止";
   return project.require_approval ? "申请加入" : "立即加入";
+}
+
+function getDifficultyLabel(project: PublicProject) {
+  return (
+    CHALLENGE_DIFFICULTY_OPTIONS.find((option) => option.value === project.challenge_difficulty)?.label ??
+    "未设置"
+  );
 }
 
 export function PublicProjectExplorePage() {
@@ -427,6 +434,7 @@ export function PublicProjectExplorePage() {
             {displayedProjects.map((project) => (
               <article
                 key={project.id}
+                data-testid={`project-card-${project.id}`}
                 className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1.7rem] p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--paper-accent)]/10 bg-gradient-to-br from-transparent to-[var(--glass-surface)]/40 border border-transparent hover:border-[var(--glass-stroke)]"
               >
                 <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-black/5 dark:ring-white/10">
@@ -436,71 +444,29 @@ export function PublicProjectExplorePage() {
                     className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-105"
                   />
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2
-                      className="text-[1.35rem] font-semibold leading-tight text-[var(--paper-foreground)]"
-                      style={{ fontFamily: "var(--font-ui-display)" }}
-                    >
-                      {project.name_zh}
-                    </h2>
-                  </div>
-                  <div className="research-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 group-hover/card:-translate-y-0.5 group-hover/card:rotate-6 group-hover/card:bg-[var(--paper-accent)] group-hover/card:text-white">
-                    <FlaskConical className="h-5 w-5 text-[var(--paper-link)] transition-colors group-hover/card:text-white" />
-                  </div>
-                </div>
-
                 <div className="mt-4 flex flex-1 flex-col space-y-3">
-                  <ProjectChallengePreview
-                    project={project}
-                    showCurrentGapAndFirstStep={false}
-                  />
-
-                  {project.status === "review_pending" && (
-                    <section
-                      aria-label={`${project.name_zh} 同伴评审`}
-                      className="rounded-[1.2rem] border border-[#e8b94a]/50 bg-[#e8b94a]/12 px-4 py-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#e8b94a]/25 text-[#76570f] dark:text-[#f5d77f]">
-                          <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
-                            同伴评审开放中
-                          </h3>
-                          <p className="mt-1 text-sm leading-6 text-[var(--glass-text-muted)]">
-                            {project.is_member
-                              ? "等待课题组外同学提交评审。"
-                              : "课题组外、已登录用户可前往详情页提交评审。"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {!project.is_member && (
-                        <Link
-                          to={`/lab/projects/${project.id}#project-peer-review`}
-                          state={{ readOnly: true }}
-                          className="glass-button glass-button-primary mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-                        >
-                          <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
-                          前往评审
-                        </Link>
-                      )}
-                    </section>
-                  )}
-
-                  <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
+                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
-                      <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
-                        <Users className="h-3.5 w-3.5" />
-                        {project.member_count}
-                        {project.max_members && ` / ${project.max_members}`} 人
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="research-chip flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
+                          <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
+                        </span>
+                        <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
+                          style={getProjectStatusMeta(project.status).style}
+                        >
+                          {getProjectStatusMeta(project.status).label}
+                        </span>
+                        <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold">
+                          {getDifficultyLabel(project)}
+                        </span>
+                      </div>
                     </div>
                     <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
-                      {formatUserIdentity({
+                      组长：{formatUserIdentity({
                         username: project.owner_username,
                         nickname: project.owner_nickname,
                         real_name: project.owner_real_name,
@@ -508,7 +474,7 @@ export function PublicProjectExplorePage() {
                       }, "暂未署名")}
                     </p>
                     <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
-                      {getMemberSummary(project)}
+                      成员：{getMemberSummary(project)}
                     </p>
                   </div>
                 </div>
