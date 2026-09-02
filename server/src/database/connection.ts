@@ -131,6 +131,12 @@ const COLLECTION_INDEXES: Array<{
     name: 'research_projects',
     indexes: [
       { key: { id: 1 }, unique: true, name: 'unique_id' },
+      {
+        key: { issue_number: 1 },
+        unique: true,
+        name: 'unique_issue_number',
+        partialFilterExpression: { issue_number: { $type: 'number' } },
+      },
       { key: { updated_at: -1 }, name: 'idx_updated_at' },
     ],
   },

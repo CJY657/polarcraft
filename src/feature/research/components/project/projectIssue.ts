@@ -1,10 +1,11 @@
 import type { PublicProject } from '@/lib/profile.service';
 import type { ResearchProject } from '@/lib/research.service';
 
-export type ChallengeDifficulty = 'beginner' | 'intermediate' | 'advanced';
+export type ProjectIssueDifficulty = 'beginner' | 'intermediate' | 'advanced';
 
-export type ProjectChallengeSource = Pick<
+export type ProjectIssueSource = Pick<
   PublicProject | ResearchProject,
+  | 'issue_number'
   | 'name_zh'
   | 'description_zh'
   | 'research_questions_zh'
@@ -26,14 +27,16 @@ export type ProjectChallengeSource = Pick<
   is_recruiting?: boolean;
 };
 
-interface ProjectChallengeCard {
+interface ProjectIssue {
+  issueNumberLabel: string;
+  state: ProjectIssueStateMeta;
   value: string;
   objectives: string;
   beginnerSteps: string;
   minDeliverables: string;
   reviewCriteria: string;
   timeline: string;
-  difficulty: ChallengeDifficulty;
+  difficulty: ProjectIssueDifficulty;
   difficultyLabel: string;
   roles: string;
   missingRoles: string;
@@ -41,47 +44,44 @@ interface ProjectChallengeCard {
   recruitmentState: string;
   roleItems: string[];
   missingRoleItems: string[];
-  roleOptions: ChallengeRoleOption[];
-  missingRoleOptions: ChallengeRoleOption[];
+  roleOptions: ProjectIssueRoleOption[];
+  missingRoleOptions: ProjectIssueRoleOption[];
   beginnerStepItems: string[];
   objectiveItems: string[];
 }
 
-export interface ChallengeRoleOption {
+export interface ProjectIssueRoleOption {
   id: string;
   label: string;
   value: string;
   source: 'missing' | 'role' | 'requirements';
 }
 
-export const CHALLENGE_DIFFICULTY_OPTIONS: Array<{ value: ChallengeDifficulty; label: string }> = [
+export interface ProjectIssueStateMeta {
+  key: 'draft' | 'open' | 'closed';
+  label: '草稿' | '开放中' | '已结束';
+}
+
+export const PROJECT_ISSUE_DIFFICULTY_OPTIONS: Array<{
+  value: ProjectIssueDifficulty;
+  label: string;
+}> = [
   { value: 'beginner', label: '入门' },
   { value: 'intermediate', label: '进阶' },
   { value: 'advanced', label: '挑战' },
 ];
 
-const difficultyLabels: Record<ChallengeDifficulty, string> = {
+const difficultyLabels: Record<ProjectIssueDifficulty, string> = {
   beginner: '入门',
   intermediate: '进阶',
   advanced: '挑战',
-};
-
-const statusProgressLabels: Record<string, string> = {
-  draft: '挑战准备中',
-  recruiting: '挑战招募中',
-  forming: '团队组建中',
-  active: '挑战推进中',
-  review_pending: '成果待评审',
-  showcased: '成果已展示',
-  relay_open: '等待接力研究',
-  archived: '挑战已归档',
 };
 
 function cleanText(value?: string | null): string {
   return value?.trim() ?? '';
 }
 
-function splitChallengeLines(value?: string | null): string[] {
+function splitIssueLines(value?: string | null): string[] {
   return cleanText(value)
     .split(/\r?\n/)
     .map((item) => item.trim())
@@ -89,13 +89,13 @@ function splitChallengeLines(value?: string | null): string[] {
 }
 
 function splitRoleFragments(value?: string | null): string[] {
-  return splitChallengeLines(value)
+  return splitIssueLines(value)
     .flatMap((line) => line.split(/[；;、，,/]/))
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-function cleanChallengeRoleName(value?: string | null): string {
+function cleanIssueRoleName(value?: string | null): string {
   return cleanText(value)
     .replace(/^(?:当前|目前)?(?:急需|需要|需|缺少|缺|招募|寻找|补充|希望|适合|角色)\s*/u, '')
     .replace(/^[：:\-—\s]+/u, '')
@@ -115,13 +115,13 @@ function getRoleDedupeKey(value: string): string {
 }
 
 function appendRoleOptions(
-  options: ChallengeRoleOption[],
+  options: ProjectIssueRoleOption[],
   seen: Set<string>,
   value: string | null | undefined,
-  source: ChallengeRoleOption['source']
+  source: ProjectIssueRoleOption['source']
 ) {
   for (const label of splitRoleFragments(value)) {
-    const roleName = cleanChallengeRoleName(label);
+    const roleName = cleanIssueRoleName(label);
     if (!roleName) {
       continue;
     }
@@ -141,8 +141,8 @@ function appendRoleOptions(
   }
 }
 
-export function getChallengeRoleOptions(project: ProjectChallengeSource): ChallengeRoleOption[] {
-  const options: ChallengeRoleOption[] = [];
+export function getProjectIssueRoleOptions(project: ProjectIssueSource): ProjectIssueRoleOption[] {
+  const options: ProjectIssueRoleOption[] = [];
   const seen = new Set<string>();
 
   appendRoleOptions(options, seen, project.challenge_missing_roles_zh, 'missing');
@@ -153,16 +153,30 @@ export function getChallengeRoleOptions(project: ProjectChallengeSource): Challe
 }
 
 function firstFallbackLine(value?: string | null): string {
-  return splitChallengeLines(value)[0] ?? '';
+  return splitIssueLines(value)[0] ?? '';
 }
 
-function normalizeDifficulty(value?: string | null): ChallengeDifficulty {
-  return CHALLENGE_DIFFICULTY_OPTIONS.some((option) => option.value === value)
-    ? value as ChallengeDifficulty
+function normalizeDifficulty(value?: string | null): ProjectIssueDifficulty {
+  return PROJECT_ISSUE_DIFFICULTY_OPTIONS.some((option) => option.value === value)
+    ? value as ProjectIssueDifficulty
     : 'beginner';
 }
 
-export function buildProjectChallengeCard(project: ProjectChallengeSource): ProjectChallengeCard {
+export function formatProjectIssueNumber(value?: number | null): string {
+  return Number.isSafeInteger(value) && Number(value) > 0 ? `#${value}` : '';
+}
+
+export function getProjectIssueStateMeta(status: string): ProjectIssueStateMeta {
+  if (status === 'draft') {
+    return { key: 'draft', label: '草稿' };
+  }
+  if (status === 'archived') {
+    return { key: 'closed', label: '已结束' };
+  }
+  return { key: 'open', label: '开放中' };
+}
+
+export function buildProjectIssue(project: ProjectIssueSource): ProjectIssue {
   const difficulty = normalizeDifficulty(project.challenge_difficulty);
   const roles = cleanText(project.challenge_roles_zh)
     || cleanText(project.recruitment_requirements)
@@ -177,12 +191,14 @@ export function buildProjectChallengeCard(project: ProjectChallengeSource): Proj
     || cleanText(project.research_questions_zh)
     || cleanText(project.description_zh)
     || '围绕课题现象提出问题，并把观察过程转化为可讨论的证据。';
-  const roleOptions = getChallengeRoleOptions(project);
+  const roleOptions = getProjectIssueRoleOptions(project);
 
   return {
+    issueNumberLabel: formatProjectIssueNumber(project.issue_number),
+    state: getProjectIssueStateMeta(project.status),
     value: cleanText(project.challenge_value_zh)
       || cleanText(project.description_zh)
-      || '这个挑战还没有补充完整说明，可以先查看课题资料和团队状态。',
+      || '这个议题还没有补充完整说明，可以先查看课题资料和团队状态。',
     objectives,
     beginnerSteps,
     minDeliverables: cleanText(project.challenge_min_deliverables_zh)
@@ -195,20 +211,18 @@ export function buildProjectChallengeCard(project: ProjectChallengeSource): Proj
     difficultyLabel: difficultyLabels[difficulty],
     roles,
     missingRoles,
-    progress: cleanText(project.challenge_progress_zh)
-      || statusProgressLabels[project.status]
-      || '挑战状态待更新',
+    progress: cleanText(project.challenge_progress_zh),
     recruitmentState: project.is_recruiting === false ? '招募已停止' : '开放申请',
-    roleItems: splitChallengeLines(roles),
-    missingRoleItems: splitChallengeLines(missingRoles),
+    roleItems: splitIssueLines(roles),
+    missingRoleItems: splitIssueLines(missingRoles),
     roleOptions,
     missingRoleOptions: roleOptions.filter((option) => option.source === 'missing'),
-    beginnerStepItems: splitChallengeLines(beginnerSteps),
-    objectiveItems: splitChallengeLines(objectives),
+    beginnerStepItems: splitIssueLines(beginnerSteps),
+    objectiveItems: splitIssueLines(objectives),
   };
 }
 
-export function getProjectFirstStep(project: ProjectChallengeSource): string {
+export function getProjectFirstStep(project: ProjectIssueSource): string {
   return firstFallbackLine(project.challenge_beginner_steps_zh)
     || firstFallbackLine(project.basic_plan_zh)
     || '从第一轮观察记录开始';

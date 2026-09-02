@@ -701,12 +701,19 @@ export class ProfileModel {
     }
 
     if (filters.search) {
-      const regex = new RegExp(escapeRegExp(filters.search), 'i');
-      projectFilter.$or = [
-        { name_zh: regex },
-        { name_en: regex },
-        { description_zh: regex },
-      ];
+      const search = filters.search.trim();
+      const issueNumberMatch = /^#([1-9]\d*)$/.exec(search);
+      const issueNumber = issueNumberMatch ? Number(issueNumberMatch[1]) : null;
+      if (issueNumber !== null && Number.isSafeInteger(issueNumber)) {
+        projectFilter.issue_number = issueNumber;
+      } else {
+        const regex = new RegExp(escapeRegExp(search), 'i');
+        projectFilter.$or = [
+          { name_zh: regex },
+          { name_en: regex },
+          { description_zh: regex },
+        ];
+      }
     }
 
     let projectsQuery = researchProjectsCollection().find(projectFilter).sort({ updated_at: -1 });

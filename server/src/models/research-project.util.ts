@@ -67,12 +67,17 @@ export function isProjectDormant(
 }
 
 export function decorateResearchProject<T extends Record<string, any>>(project: T): T & {
+  issue_number: number | null;
   last_activity_at: Date | string;
   is_dormant: boolean;
 } {
   const lastActivityAt = project.last_activity_at ?? project.updated_at ?? project.created_at;
   return {
     ...project,
+    issue_number:
+      Number.isSafeInteger(project.issue_number) && project.issue_number > 0
+        ? project.issue_number
+        : null,
     last_activity_at: lastActivityAt,
     is_dormant: isProjectDormant(project.status, lastActivityAt),
   };

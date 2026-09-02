@@ -733,7 +733,7 @@ describe("ResearchProjectPage", () => {
     expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("project-meetings"));
   });
 
-  it("renders the full challenge card on the project detail page", async () => {
+  it("renders the full issue body on the project detail page", async () => {
     mockGetProject.mockResolvedValue(
       createProject({
         challenge_value_zh: "把偏振观察转化为可复核的变量记录。",
@@ -751,8 +751,8 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect(await screen.findByText("挑战卡")).toBeTruthy();
-    expect(screen.getByText("进阶")).toBeTruthy();
+    expect(await screen.findByText("议题价值")).toBeTruthy();
+    expect(screen.getAllByText("进阶").length).toBeGreaterThan(0);
     expect(screen.getByText("把偏振观察转化为可复核的变量记录。")).toBeTruthy();
     expect(screen.getByText("缺数据整理 1 人")).toBeTruthy();
     expect(screen.getByText("一份观察记录")).toBeTruthy();
@@ -1074,7 +1074,7 @@ describe("ResearchProjectPage", () => {
       createProject({
         research_questions_zh: "气泡条纹与膜厚变化是否相关？\n明暗图样是否受偏振方向影响？",
         research_hypotheses_zh: "条纹由膜厚变化引起。\n明暗图样由几何与偏振耦合产生。",
-        // 挑战卡目标为空时会回退展示研究问题，这里显式给目标避免误判
+        // 议题目标为空时会回退展示研究问题，这里显式给目标避免误判
         challenge_objectives_zh: "建立变量表",
         basic_plan_zh: "先做基础观察，再记录变量。",
         extended_plan_zh: "继续验证不同角度下的表现。",

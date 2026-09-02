@@ -17,6 +17,7 @@ export type { ProjectStatus } from '@/feature/research/projectLifecycle';
 
 export interface ResearchProject {
   id: string;
+  issue_number?: number | null;
   owner_user_id?: string | null;
   name_zh: string;
   name_en: string | null;

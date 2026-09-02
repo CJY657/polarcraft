@@ -20,7 +20,7 @@ import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
-import { ProjectChallengePreview } from "../components/project/ProjectChallengeCards";
+import { ProjectIssuePreview } from "../components/project/ProjectIssues";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { getHealthDisplay } from "../components/project/researchHealthDisplay";
 
@@ -358,7 +358,7 @@ export function MyProjectsPage() {
                   </div>
 
                   <div className="mt-4 flex flex-1 flex-col space-y-3">
-                    <ProjectChallengePreview project={project} />
+                    <ProjectIssuePreview project={project} />
 
                     <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">

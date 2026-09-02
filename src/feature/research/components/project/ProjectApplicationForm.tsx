@@ -13,7 +13,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, PublicProject } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
-import { getChallengeRoleOptions } from './projectChallengeCard';
+import { getProjectIssueRoleOptions } from './projectIssue';
 import { getProjectRoleBadgeStyle } from './ProjectRoleBadge';
 
 interface ProjectApplicationFormProps {
@@ -41,7 +41,7 @@ export function ProjectApplicationForm({
   const { theme } = useTheme();
   const { user } = useAuth();
   const isRecruitmentClosed = project?.is_recruiting === false;
-  const roleOptions = useMemo(() => project ? getChallengeRoleOptions(project) : [], [project]);
+  const roleOptions = useMemo(() => project ? getProjectIssueRoleOptions(project) : [], [project]);
   const defaultRole = roleOptions[0]?.value || '';
   const userDisplayName = useMemo(
     () => formatUserIdentity(user, ''),

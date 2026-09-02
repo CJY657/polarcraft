@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Issue number flows through storage, APIs, shared types, search, and three UI consumers."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"State and issue projection logic must have one frontend owner."}
+{"file":".trellis/spec/backend/index.md","reason":"Defines research model, index, legacy-read, and test conventions."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Defines behavior-preserving rename and frontend verification gates."}

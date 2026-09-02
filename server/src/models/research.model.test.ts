@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { databaseSession, withDatabaseTransaction } = vi.hoisted(() => {
+const { allocateProjectIssueNumber, databaseSession, withDatabaseTransaction } = vi.hoisted(() => {
   const databaseSession = { id: 'database-session' };
   return {
+    allocateProjectIssueNumber: vi.fn(),
     databaseSession,
     withDatabaseTransaction: vi.fn(
       async (operation: (session: typeof databaseSession) => Promise<unknown>) => operation(databaseSession)
@@ -179,6 +180,10 @@ vi.mock('../database/connection.js', () => ({
   },
 }));
 
+vi.mock('./research-project-issue-number.util.js', () => ({
+  allocateProjectIssueNumber,
+}));
+
 vi.mock('../utils/logger.js', () => ({
   logger: {
     info: vi.fn(),
@@ -190,6 +195,7 @@ import { ResearchModel } from './research.model.js';
 describe('ResearchModel.createProject', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    allocateProjectIssueNumber.mockResolvedValue(42);
     projectsInsertOne.mockResolvedValue({});
     projectsUpdateOne.mockResolvedValue({ matchedCount: 1 });
     cycleInsertOne.mockResolvedValue({});
@@ -206,12 +212,14 @@ describe('ResearchModel.createProject', () => {
 
     expect(projectsInsertOne).toHaveBeenCalledWith(expect.objectContaining({
       id: projectId,
+      issue_number: 42,
       name_zh: '新课题',
       status: 'draft',
       is_public: true,
       owner_user_id: 'owner-1',
       last_activity_at: expect.any(Date),
     }));
+    expect(allocateProjectIssueNumber).toHaveBeenCalledOnce();
     expect(cycleInsertOne).toHaveBeenCalledWith(expect.objectContaining({
       project_id: projectId,
       cycle_number: 1,

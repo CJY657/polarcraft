@@ -1,43 +1,43 @@
 import { cn } from '@/utils/classNames';
 import {
-  CHALLENGE_DIFFICULTY_OPTIONS,
-  type ChallengeDifficulty,
-} from './projectChallengeCard';
+  PROJECT_ISSUE_DIFFICULTY_OPTIONS,
+  type ProjectIssueDifficulty,
+} from './projectIssue';
 
-export interface ProjectChallengeFieldsValue {
+export interface ProjectIssueFieldsValue {
   challenge_value_zh: string;
   challenge_objectives_zh: string;
   challenge_beginner_steps_zh: string;
   challenge_min_deliverables_zh: string;
   challenge_review_criteria_zh: string;
   challenge_timeline_zh: string;
-  challenge_difficulty: ChallengeDifficulty;
+  challenge_difficulty: ProjectIssueDifficulty;
   challenge_roles_zh: string;
   challenge_missing_roles_zh: string;
   challenge_progress_zh: string;
 }
 
-interface ProjectChallengeFieldsEditorProps<T extends ProjectChallengeFieldsValue> {
+interface ProjectIssueFieldsEditorProps<T extends ProjectIssueFieldsValue> {
   value: T;
   onChange: (value: T) => void;
   theme: string;
 }
 
-const challengeFieldRows: Array<{
-  key: keyof Omit<ProjectChallengeFieldsValue, 'challenge_difficulty'>;
+const issueFieldRows: Array<{
+  key: keyof Omit<ProjectIssueFieldsValue, 'challenge_difficulty'>;
   label: string;
   placeholder: string;
   rows: number;
 }> = [
   {
     key: 'challenge_value_zh',
-    label: '挑战价值',
-    placeholder: '说明这个挑战为什么值得做，以及学生能从中学到什么。',
+    label: '议题价值',
+    placeholder: '说明这个议题为什么值得做，以及学生能从中学到什么。',
     rows: 3,
   },
   {
     key: 'challenge_objectives_zh',
-    label: '挑战目标',
+    label: '议题目标',
     placeholder: '每行一个目标，例如：建立变量记录表。',
     rows: 3,
   },
@@ -79,13 +79,13 @@ const challengeFieldRows: Array<{
   },
   {
     key: 'challenge_progress_zh',
-    label: '当前进度',
+    label: '最新进展',
     placeholder: '例如：已完成第一轮观察，正在补充对照变量。',
     rows: 2,
   },
 ];
 
-export const emptyProjectChallengeFields: ProjectChallengeFieldsValue = {
+export const emptyProjectIssueFields: ProjectIssueFieldsValue = {
   challenge_value_zh: '',
   challenge_objectives_zh: '',
   challenge_beginner_steps_zh: '',
@@ -98,11 +98,11 @@ export const emptyProjectChallengeFields: ProjectChallengeFieldsValue = {
   challenge_progress_zh: '',
 };
 
-export function ProjectChallengeFieldsEditor<T extends ProjectChallengeFieldsValue>({
+export function ProjectIssueFieldsEditor<T extends ProjectIssueFieldsValue>({
   value,
   onChange,
   theme,
-}: ProjectChallengeFieldsEditorProps<T>) {
+}: ProjectIssueFieldsEditorProps<T>) {
   const labelClassName = cn(
     'block text-base font-medium mb-1.5',
     theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
@@ -118,21 +118,21 @@ export function ProjectChallengeFieldsEditor<T extends ProjectChallengeFieldsVal
     <div className="space-y-4 rounded-xl border border-gray-200/70 p-4 dark:border-gray-700/80">
       <div>
         <h3 className={cn('text-lg font-semibold', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
-          学生挑战卡
+          学生议题
         </h3>
         <p className={cn('mt-1 text-base', theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}>
-          把课题写成学生能直接选择角色、开始行动、交付成果的挑战。
+          把课题写成学生能直接选择角色、开始行动、交付成果的议题。
         </p>
       </div>
 
       <div>
-        <label className={labelClassName}>挑战难度</label>
+        <label className={labelClassName}>议题难度</label>
         <select
           value={value.challenge_difficulty}
-          onChange={(event) => onChange({ ...value, challenge_difficulty: event.target.value as ChallengeDifficulty })}
+          onChange={(event) => onChange({ ...value, challenge_difficulty: event.target.value as ProjectIssueDifficulty })}
           className={inputClassName}
         >
-          {CHALLENGE_DIFFICULTY_OPTIONS.map((option) => (
+          {PROJECT_ISSUE_DIFFICULTY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -140,7 +140,7 @@ export function ProjectChallengeFieldsEditor<T extends ProjectChallengeFieldsVal
         </select>
       </div>
 
-      {challengeFieldRows.map((field) => (
+      {issueFieldRows.map((field) => (
         <div key={field.key}>
           <label className={labelClassName}>{field.label}</label>
           <textarea

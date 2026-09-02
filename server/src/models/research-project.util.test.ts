@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  decorateResearchProject,
   isProjectDormant,
   validateProjectStatusTransition,
 } from './research-project.util.js';
@@ -61,5 +62,19 @@ describe('research project dormancy policy', () => {
   it('is not dormant before 30 inactive days or after archival', () => {
     expect(isProjectDormant('active', new Date('2026-06-11T00:00:00.001Z'), now)).toBe(false);
     expect(isProjectDormant('archived', new Date('2020-01-01T00:00:00.000Z'), now)).toBe(false);
+  });
+});
+
+describe('research project issue number compatibility', () => {
+  it('preserves valid issue numbers and normalizes legacy values to null', () => {
+    const base = {
+      status: 'active',
+      created_at: new Date('2026-01-01T00:00:00.000Z'),
+    };
+
+    expect(decorateResearchProject({ ...base, issue_number: 12 }).issue_number).toBe(12);
+    expect(decorateResearchProject(base).issue_number).toBeNull();
+    expect(decorateResearchProject({ ...base, issue_number: 0 }).issue_number).toBeNull();
+    expect(decorateResearchProject({ ...base, issue_number: '12' }).issue_number).toBeNull();
   });
 });

@@ -15,9 +15,9 @@ import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/pro
 import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
 import {
-  ProjectChallengeFieldsEditor,
-  emptyProjectChallengeFields,
-} from './ProjectChallengeFieldsEditor';
+  ProjectIssueFieldsEditor,
+  emptyProjectIssueFields,
+} from './ProjectIssueFieldsEditor';
 
 interface CreateProjectWizardProps {
   isOpen: boolean;
@@ -48,7 +48,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
     research_hypotheses_zh: '',
     basic_plan_zh: '',
     extended_plan_zh: '',
-    ...emptyProjectChallengeFields,
+    ...emptyProjectIssueFields,
     is_public: false,
   });
 
@@ -88,7 +88,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
         research_hypotheses_zh: '',
         basic_plan_zh: '',
         extended_plan_zh: '',
-        ...emptyProjectChallengeFields,
+        ...emptyProjectIssueFields,
         is_public: false,
       });
       setCreatorData({
@@ -396,7 +396,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 />
               </div>
 
-              <ProjectChallengeFieldsEditor
+              <ProjectIssueFieldsEditor
                 value={projectData}
                 onChange={setProjectData}
                 theme={theme}

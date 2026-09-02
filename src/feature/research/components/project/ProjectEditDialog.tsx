@@ -18,9 +18,9 @@ import {
   type ProjectStatus,
 } from '../../projectLifecycle';
 import {
-  ProjectChallengeFieldsEditor,
-  emptyProjectChallengeFields,
-} from './ProjectChallengeFieldsEditor';
+  ProjectIssueFieldsEditor,
+  emptyProjectIssueFields,
+} from './ProjectIssueFieldsEditor';
 
 interface ProjectEditDialogProps {
   isOpen: boolean;
@@ -50,7 +50,7 @@ export function ProjectEditDialog({
     research_hypotheses_zh: '',
     basic_plan_zh: '',
     extended_plan_zh: '',
-    ...emptyProjectChallengeFields,
+    ...emptyProjectIssueFields,
     status: 'active' as ResearchProject['status'],
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -329,7 +329,7 @@ export function ProjectEditDialog({
             />
           </div>
 
-          <ProjectChallengeFieldsEditor
+          <ProjectIssueFieldsEditor
             value={formData}
             onChange={setFormData}
             theme={theme}

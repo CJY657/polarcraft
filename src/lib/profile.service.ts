@@ -159,6 +159,7 @@ export interface PublicProjectMember {
 
 export interface PublicProject {
   id: string;
+  issue_number?: number | null;
   name_zh: string;
   name_en: string | null;
   description_zh: string | null;

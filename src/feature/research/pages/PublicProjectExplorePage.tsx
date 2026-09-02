@@ -27,7 +27,11 @@ import {
   sortPublicProjectsByDisplayMode,
   type ProjectDisplayMode,
 } from "../components/project/projectDisplayModes";
-import { CHALLENGE_DIFFICULTY_OPTIONS } from "../components/project/projectChallengeCard";
+import {
+  formatProjectIssueNumber,
+  PROJECT_ISSUE_DIFFICULTY_OPTIONS,
+} from "../components/project/projectIssue";
+import { ProjectIssueStateBadge } from "../components/project/ProjectIssues";
 import { getProjectStatusMeta } from "../projectLifecycle";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { ResearchGroupGuideDialog } from "../components/project/ResearchGroupGuideDialog";
@@ -51,7 +55,7 @@ function getApplyButtonLabel(project: PublicProject) {
 
 function getDifficultyLabel(project: PublicProject) {
   return (
-    CHALLENGE_DIFFICULTY_OPTIONS.find((option) => option.value === project.challenge_difficulty)?.label ??
+    PROJECT_ISSUE_DIFFICULTY_OPTIONS.find((option) => option.value === project.challenge_difficulty)?.label ??
     "未设置"
   );
 }
@@ -451,9 +455,17 @@ export function PublicProjectExplorePage() {
                         <span className="research-chip flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
                           <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
                         </span>
-                        <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
+                        <div>
+                          <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
+                          {formatProjectIssueNumber(project.issue_number) && (
+                            <p className="mt-0.5 text-xs font-semibold tabular-nums text-[var(--paper-foreground)]">
+                              {formatProjectIssueNumber(project.issue_number)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
+                        <ProjectIssueStateBadge status={project.status} />
                         <span
                           className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
                           style={getProjectStatusMeta(project.status).style}

@@ -29,7 +29,11 @@ import {
   type PublicProjectDetail,
 } from "@/lib/profile.service";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
-import { ProjectChallengeDetail } from "../components/project/ProjectChallengeCards";
+import {
+  ProjectIssueDetail,
+  ProjectIssueStateBadge,
+} from "../components/project/ProjectIssues";
+import { formatProjectIssueNumber } from "../components/project/projectIssue";
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
 import { ProjectPeerReviewSection } from "../components/project/ProjectPeerReviewSection";
 import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
@@ -47,7 +51,7 @@ import {
   type ProjectDiscussionJumpRequest,
 } from "../components/project/ProjectDiscussionSection";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
-import { ProjectLifecycleBadges, ProjectLifecycleJourney } from "../projectLifecycle";
+import { ProjectLifecycleJourney } from "../projectLifecycle";
 import {
   buildResearchProjectViewModel,
   formatProjectDate,
@@ -508,6 +512,7 @@ export function ResearchProjectPage() {
     isDescriptionClampable,
     usePublicEndpoint,
   } = projectViewModel;
+  const issueNumberLabel = formatProjectIssueNumber(displayProject.issue_number);
 
   const handleApplyAction = () => {
     if (hasPendingApplication) {
@@ -572,15 +577,12 @@ export function ResearchProjectPage() {
           <div className="min-w-0">
             <div className="mb-3.5 flex flex-wrap items-center gap-2">
               <span className="research-kicker mr-1">课题详情</span>
-              <ProjectLifecycleBadges
-                status={displayProject.status}
-                isDormant={displayProject.is_dormant}
-              />
-              {displayIsRecruiting && (
-                <span className="research-chip research-chip-accent inline-flex rounded-md px-2.5 py-1 text-xs font-semibold">
-                  招募中
+              {issueNumberLabel && (
+                <span className="research-chip inline-flex rounded-full px-3 py-1 text-sm font-semibold tabular-nums">
+                  {issueNumberLabel}
                 </span>
               )}
+              <ProjectIssueStateBadge status={displayProject.status} className="text-sm" />
               {displayProject.is_public && (
                 <span className="research-chip inline-flex rounded-md px-2.5 py-1 text-xs font-medium">
                   公开课题
@@ -751,7 +753,7 @@ export function ResearchProjectPage() {
               aria-labelledby="project-tab-overview"
               hidden={currentTab !== "overview"}
             >
-              <ProjectChallengeDetail
+              <ProjectIssueDetail
                 project={{
                   ...displayProject,
                   recruitment_requirements: displayRecruitmentRequirements,

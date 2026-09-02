@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Audit the complete issue-number read/write/search/display flow."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Audit duplicated state and projection logic after the rename."}
+{"file":".trellis/spec/backend/index.md","reason":"Audit model/index/backfill conventions and legacy compatibility."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Audit behavior preservation and required frontend checks."}

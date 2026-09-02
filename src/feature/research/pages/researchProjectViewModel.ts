@@ -196,6 +196,7 @@ function buildExampleProjectDisplay(
     name_en: exampleProject?.title.en || null,
     description_zh: exampleProject?.description["zh-CN"] || "",
     description_en: null,
+    issue_number: null,
     research_questions_zh: null,
     research_hypotheses_zh: null,
     basic_plan_zh: null,
@@ -309,7 +310,7 @@ export function buildResearchProjectViewModel({
   const showResearchInfo = hasResearchOutline(researchOutline);
   const showMembersRail = !isExampleProject && displayMembers.length > 0;
   const projectTabs = [
-    { id: "overview", label: "挑战概览" },
+    { id: "overview", label: "议题" },
     ...(showResearchInfo ? [{ id: "design", label: "研究设计" }] : []),
     ...(canShowEvidenceSection ? [{ id: "evidence", label: "课题证据" }] : []),
     ...(canShowPeerReviewSection && hasPeerReviewContent

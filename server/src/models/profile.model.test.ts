@@ -123,6 +123,15 @@ describe('ProfileModel.getPublicProjects', () => {
     });
     expect(projects.map((project) => project.status)).toEqual(['draft', 'archived', 'completed']);
   });
+
+  it('matches an exact public issue number without bypassing visibility filtering', async () => {
+    await ProfileModel.getPublicProjects({ search: '#42' });
+
+    const projectFilter = researchProjectsCollection.find.mock.calls[0][0];
+    expect(projectFilter.id).toEqual({ $in: ['draft-1', 'archived-1', 'legacy-1'] });
+    expect(projectFilter.issue_number).toBe(42);
+    expect(projectFilter).not.toHaveProperty('$or');
+  });
 });
 
 describe('ProfileModel.createApplication', () => {

@@ -19,6 +19,7 @@ import {
   decorateResearchProject,
   type ProjectStatus,
 } from './research-project.util.js';
+import { allocateProjectIssueNumber } from './research-project-issue-number.util.js';
 import { getUserIdentityMap } from './user-identity.util.js';
 import type {
   ResearchProjectReviewVerdict,
@@ -45,6 +46,7 @@ const projectReviewsCollection = () => getCollection('research_project_reviews')
 const projectOutcomesCollection = () => getCollection('research_project_outcomes');
 const projectMeetingsCollection = () => getCollection('research_project_meetings');
 const meetingRatingsCollection = () => getCollection('research_meeting_member_ratings');
+const countersCollection = () => getCollection('counters');
 
 /**
  * The activity log is appended on every project mutation and its payload is
@@ -451,9 +453,11 @@ export class ResearchModel {
   static async createProject(data: any, ownerId: string): Promise<string> {
     const now = new Date();
     const projectId = generateId();
+    const issueNumber = await allocateProjectIssueNumber(countersCollection());
 
     await researchProjectsCollection().insertOne({
       id: projectId,
+      issue_number: issueNumber,
       name_zh: data.name_zh,
       name_en: data.name_en || null,
       description_zh: data.description_zh || null,
