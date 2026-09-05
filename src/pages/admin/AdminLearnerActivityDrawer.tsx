@@ -3,7 +3,13 @@
  * 教师常投屏查看，字号刻意偏大。
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -22,7 +28,7 @@ import {
   type AdminUserActivityResponse,
 } from '@/lib/admin-user.service';
 import type { UserType } from '@/lib/auth.service';
-import { buildValueAxis, formatAxisDay, formatAxisValue, pickTickIndices } from '@/lib/chart-axis';
+import { formatAxisDay, pickTickIndices } from '@/lib/chart-axis';
 import { formatShortDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
 
@@ -220,7 +226,7 @@ export default function AdminLearnerActivityDrawer({
                   onClick={() => setRetryKey((current) => current + 1)}
                   className={cn(
                     'inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold active:scale-[0.98]',
-                    isDark ? 'bg-emerald-300 text-slate-950' : 'bg-[#0a0a0a] text-white'
+                    isDark ? 'bg-emerald-300 text-emerald-950' : 'bg-[#0a0a0a] text-white'
                   )}
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -370,7 +376,11 @@ export function UserActivityDetail({
         })}
       </section>
 
-      <Section isDark={isDark} title="每日活动" description="该账号每天纳入统计的有效活动次数。">
+      <Section
+        isDark={isDark}
+        title="每日活动"
+        description="三条曲线分别按各指标在当前日期范围内的自身峰值归一化，用于观察同步变化与峰值日期。"
+      >
         <UserTrend daily={detail.daily} isDark={isDark} />
       </Section>
 
@@ -468,89 +478,279 @@ function UserTrend({
   daily: AdminUserActivityResponse['daily'];
   isDark: boolean;
 }) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const dataTableId = useId();
+  const helpId = useId();
+
   if (daily.length === 0) {
     return <InlineEmpty isDark={isDark}>暂无每日趋势</InlineEmpty>;
   }
 
-  const axis = buildValueAxis(Math.max(...daily.map((day) => day.events)));
-  const labelled = new Set(pickTickIndices(daily.length, 6));
-  const tickText = isDark ? 'text-slate-400' : 'text-[#6a6a6a]';
-  const gridLine = isDark ? 'border-slate-700' : 'border-[#e5ddc8]';
-  const axisLine = isDark ? 'border-slate-600' : 'border-[#cdc5ae]';
+  const width = 720;
+  const height = 270;
+  const marginLeft = 54;
+  const marginRight = 16;
+  const marginTop = 18;
+  const marginBottom = 42;
+  const plotWidth = width - marginLeft - marginRight;
+  const plotHeight = height - marginTop - marginBottom;
+  const baseline = marginTop + plotHeight;
+  const yTicks = [0, 25, 50, 75, 100];
+  const dayTicks = pickTickIndices(daily.length, 6);
+  const series = [
+    { key: 'events', label: '有效活动', color: '#2f8f83', dash: undefined },
+    { key: 'pageviews', label: '页面访问', color: '#b8a4ed', dash: '12 6' },
+    { key: 'learning_actions', label: '学习行为', color: '#c58b2b', dash: '3 6' },
+  ] as const;
+  type SeriesKey = (typeof series)[number]['key'];
+  const safeValue = (value: number) =>
+    Number.isFinite(value) ? Math.max(0, value) : 0;
+  const peaks = Object.fromEntries(
+    series.map((item) => [
+      item.key,
+      Math.max(0, ...daily.map((day) => safeValue(day[item.key]))),
+    ])
+  ) as Record<SeriesKey, number>;
+  const normalizedValue = (key: SeriesKey, value: number) =>
+    peaks[key] === 0 ? 0 : (safeValue(value) / peaks[key]) * 100;
+  const x = (index: number) =>
+    daily.length === 1
+      ? marginLeft + plotWidth / 2
+      : marginLeft + (index * plotWidth) / (daily.length - 1);
+  const y = (percent: number) => baseline - (percent / 100) * plotHeight;
+  const points = (key: SeriesKey) =>
+    daily
+      .map((day, index) => `${x(index)},${y(normalizedValue(key, day[key]))}`)
+      .join(' ');
+  const outlineColor = isDark ? '#f8fafc' : '#3a3a3a';
+  const gridColor = isDark ? '#334155' : '#e5ddc8';
+  const axisColor = isDark ? '#64748b' : '#cdc5ae';
+  const tickColor = isDark ? '#94a3b8' : '#6a6a6a';
+  const tooltipSurface = isDark ? '#0f172a' : '#fffdf7';
+  const tooltipText = isDark ? '#f8fafc' : '#0a0a0a';
+  const selectedDay = selectedIndex === null ? null : daily[selectedIndex];
+  const selectedX = selectedIndex === null ? 0 : x(selectedIndex);
+  const tooltipWidth = 210;
+  const tooltipX = Math.min(
+    width - marginRight - tooltipWidth,
+    Math.max(marginLeft + 4, selectedX - tooltipWidth / 2)
+  );
+
+  const onKeyDown = (event: ReactKeyboardEvent<SVGSVGElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setSelectedIndex(null);
+      return;
+    }
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+    event.preventDefault();
+    setSelectedIndex((current) => {
+      const index = current ?? 0;
+      return event.key === 'ArrowLeft'
+        ? Math.max(0, index - 1)
+        : Math.min(daily.length - 1, index + 1);
+    });
+  };
 
   return (
     <figure>
-      <div className="flex gap-2" aria-hidden="true">
-        {/* 纵轴刻度：次数 */}
-        <div className="relative h-36 w-10 shrink-0">
-          {axis.ticks.map((tick) => (
-            <span
-              key={tick}
-              className={cn(
-                'absolute right-0 translate-y-1/2 text-xs tabular-nums',
-                tickText
-              )}
-              style={{ bottom: `${(tick / axis.max) * 100}%` }}
-            >
-              {formatAxisValue(tick)}
-            </span>
-          ))}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className={cn('relative h-36 border-b border-l', axisLine)}>
-            {axis.ticks.map((tick) =>
-              tick === 0 ? null : (
-                <div
-                  key={tick}
-                  className={cn('absolute inset-x-0 border-t border-dashed', gridLine)}
-                  style={{ bottom: `${(tick / axis.max) * 100}%` }}
-                />
-              )
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs" aria-label="趋势图例">
+        {series.map((item) => (
+          <span
+            key={item.key}
+            className={cn(
+              'inline-flex items-center gap-2',
+              isDark ? 'text-slate-300' : 'text-[#3a3a3a]'
             )}
-            <div className="absolute inset-0 flex items-end gap-1">
-              {daily.map((day) => (
-                <div
-                  key={day.date}
-                  title={`${day.date} · ${day.events} 次`}
-                  className="flex h-full flex-1 items-end"
-                >
-                  <div
-                    className="w-full rounded-t bg-[#2f8f83]"
-                    style={{
-                      height:
-                        day.events === 0
-                          ? '0%'
-                          : `${Math.max(2, (day.events / axis.max) * 100)}%`,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 横轴刻度：日期 */}
-          <div className="mt-2 flex gap-1">
-            {daily.map((day, index) => (
-              <span
-                key={day.date}
-                className={cn(
-                  'min-w-0 flex-1 whitespace-nowrap text-center text-xs tabular-nums',
-                  tickText
-                )}
-              >
-                {labelled.has(index) ? formatAxisDay(day.date) : ''}
-              </span>
-            ))}
-          </div>
-        </div>
+          >
+            <svg viewBox="0 0 20 6" className="h-1.5 w-5" aria-hidden="true">
+              <line
+                x1="0"
+                x2="20"
+                y1="3"
+                y2="3"
+                stroke={outlineColor}
+                strokeWidth="5"
+                strokeDasharray={item.dash}
+              />
+              <line
+                x1="0"
+                x2="20"
+                y1="3"
+                y2="3"
+                stroke={item.color}
+                strokeWidth="3"
+                strokeDasharray={item.dash}
+              />
+            </svg>
+            {item.label}
+          </span>
+        ))}
       </div>
 
-      <figcaption className={cn('mt-3 text-xs', tickText)}>
-        纵轴：当日有效活动次数（次）· 横轴：日期（月/日）· 虚线为刻度参考线
+      <svg
+        role="img"
+        aria-label="每日三指标相对趋势"
+        aria-describedby={`${helpId} ${dataTableId}`}
+        viewBox={`0 0 ${width} ${height}`}
+        tabIndex={0}
+        onFocus={() => setSelectedIndex((current) => current ?? 0)}
+        onBlur={() => setSelectedIndex(null)}
+        onKeyDown={onKeyDown}
+        onPointerLeave={() => setSelectedIndex(null)}
+        className="mt-4 h-auto w-full overflow-visible rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+      >
+        {yTicks.map((tick) => (
+          <g key={tick}>
+            <line
+              x1={marginLeft}
+              x2={width - marginRight}
+              y1={y(tick)}
+              y2={y(tick)}
+              stroke={tick === 0 ? axisColor : gridColor}
+              strokeWidth="1"
+              strokeDasharray={tick === 0 ? undefined : '4 4'}
+            />
+            <text
+              x={marginLeft - 10}
+              y={y(tick)}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill={tickColor}
+              fontSize="13"
+            >
+              {tick}%
+            </text>
+          </g>
+        ))}
+        <line
+          x1={marginLeft}
+          x2={marginLeft}
+          y1={marginTop}
+          y2={baseline}
+          stroke={axisColor}
+          strokeWidth="1"
+        />
+        {dayTicks.map((index) => (
+          <g key={daily[index].date} data-axis-date={daily[index].date}>
+            <line
+              x1={x(index)}
+              x2={x(index)}
+              y1={baseline}
+              y2={baseline + 5}
+              stroke={axisColor}
+              strokeWidth="1"
+            />
+            <text
+              x={x(index)}
+              y={baseline + 23}
+              textAnchor={
+                index === 0 ? 'start' : index === daily.length - 1 ? 'end' : 'middle'
+              }
+              fill={tickColor}
+              fontSize="13"
+            >
+              {formatAxisDay(daily[index].date)}
+            </text>
+          </g>
+        ))}
+
+        {series.map((item) => (
+          <polyline
+            key={`${item.key}-outline`}
+            data-series-outline={item.key}
+            points={points(item.key)}
+            fill="none"
+            stroke={outlineColor}
+            strokeWidth="6"
+            strokeDasharray={item.dash}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          />
+        ))}
+        {series.map((item) => (
+          <polyline
+            key={item.key}
+            data-series={item.key}
+            data-peak={peaks[item.key]}
+            points={points(item.key)}
+            fill="none"
+            stroke={item.color}
+            strokeWidth="3"
+            strokeDasharray={item.dash}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          />
+        ))}
+
+        {daily.map((day, index) => (
+          <rect
+            key={day.date}
+            data-day-index={index}
+            x={marginLeft + (index * plotWidth) / daily.length}
+            y={marginTop}
+            width={plotWidth / daily.length}
+            height={plotHeight}
+            fill="transparent"
+            onPointerEnter={() => setSelectedIndex(index)}
+            onPointerDown={() => setSelectedIndex(index)}
+          />
+        ))}
+
+        {selectedDay ? (
+          <g aria-hidden="true" pointerEvents="none">
+            <line
+              x1={selectedX}
+              x2={selectedX}
+              y1={marginTop}
+              y2={baseline}
+              stroke={outlineColor}
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+            />
+            <rect
+              x={tooltipX}
+              y={marginTop + 6}
+              width={tooltipWidth}
+              height="92"
+              rx="10"
+              fill={tooltipSurface}
+              stroke={axisColor}
+            />
+            <text x={tooltipX + 12} y={marginTop + 26} fill={tooltipText} fontSize="13" fontWeight="600">
+              {selectedDay.date}
+            </text>
+            <text x={tooltipX + 12} y={marginTop + 47} fill={tooltipText} fontSize="13">
+              有效活动 {selectedDay.events.toLocaleString('zh-CN')} 次
+            </text>
+            <text x={tooltipX + 12} y={marginTop + 66} fill={tooltipText} fontSize="13">
+              页面访问 {selectedDay.pageviews.toLocaleString('zh-CN')} 次
+            </text>
+            <text x={tooltipX + 12} y={marginTop + 85} fill={tooltipText} fontSize="13">
+              学习行为 {selectedDay.learning_actions.toLocaleString('zh-CN')} 次
+            </text>
+          </g>
+        ) : null}
+      </svg>
+
+      <figcaption
+        id={helpId}
+        className={cn('mt-2 text-xs', isDark ? 'text-slate-400' : 'text-[#6a6a6a]')}
+      >
+        纵轴：各指标相对自身峰值（%）· 横轴：日期（月/日）。曲线高度不可用于比较三项绝对数量；聚焦图表后可用左右方向键查看真实次数。
       </figcaption>
 
-      <table className="sr-only">
+      <p className="sr-only" role="status" aria-live="polite">
+        {selectedDay
+          ? `${selectedDay.date}，有效活动 ${selectedDay.events} 次，页面访问 ${selectedDay.pageviews} 次，学习行为 ${selectedDay.learning_actions} 次`
+          : ''}
+      </p>
+
+      <table id={dataTableId} className="sr-only">
         <caption>每日活动数据</caption>
         <thead>
           <tr>

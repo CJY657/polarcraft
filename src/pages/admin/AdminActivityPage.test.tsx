@@ -508,24 +508,31 @@ describe('AdminActivityPage', () => {
     ).toBeDefined();
   });
 
-  it('labels the learner drawer trend axes as well', async () => {
+  it('renders the learner drawer normalized three-series trend', async () => {
     renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: '查看 林晓光 的活动详情' }));
 
     const drawer = await screen.findByRole('dialog', { name: '林晓光 的活动详情' });
-    expect(
-      within(drawer).getByText(/纵轴：当日有效活动次数（次）· 横轴：日期（月\/日）/)
-    ).toBeDefined();
-    // 数据峰值 20 → 纵轴取整到 0/5/10/15/20。
-    const caption = within(drawer).getByText(/纵轴：当日有效活动次数/);
-    const plot = caption.closest('figure')?.querySelector('[aria-hidden="true"]');
-    expect(plot).not.toBeNull();
-    for (const tick of ['0', '5', '10', '15', '20']) {
-      expect(within(plot as HTMLElement).getByText(tick)).toBeDefined();
+    const chart = within(drawer).getByRole('img', { name: '每日三指标相对趋势' });
+    const legend = within(drawer).getByLabelText('趋势图例');
+    for (const label of ['有效活动', '页面访问', '学习行为']) {
+      expect(within(legend).getByText(label)).toBeDefined();
     }
-    expect(within(plot as HTMLElement).getByText('7/9')).toBeDefined();
-    expect(within(plot as HTMLElement).getByText('7/10')).toBeDefined();
+    for (const tick of ['0%', '25%', '50%', '75%', '100%']) {
+      expect(within(chart).getByText(tick)).toBeDefined();
+    }
+    expect(
+      within(drawer).getByText(/曲线高度不可用于比较三项绝对数量/)
+    ).toBeDefined();
+    expect(within(drawer).getByRole('table', { name: '每日活动数据' })).toBeDefined();
+    expect(chart.outerHTML).not.toContain('NaN');
+
+    fireEvent.focus(chart);
+    expect(within(drawer).getByRole('status').textContent).toContain('2026-07-09');
+    fireEvent.keyDown(chart, { key: 'Escape' });
+    expect(within(drawer).getByRole('status').textContent).toBe('');
+    expect(screen.getByRole('dialog', { name: '林晓光 的活动详情' })).toBeDefined();
   });
 
   it('retries after an upstream error', async () => {

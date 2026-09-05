@@ -4,9 +4,10 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getActivity, getActivityDetail } = vi.hoisted(() => ({
+const { getActivity, getActivityDetail, themeState } = vi.hoisted(() => ({
   getActivity: vi.fn(),
   getActivityDetail: vi.fn(),
+  themeState: { current: 'light' },
 }))
 
 vi.mock('@/lib/admin-user.service', () => ({
@@ -14,7 +15,7 @@ vi.mock('@/lib/admin-user.service', () => ({
 }))
 
 vi.mock('@/contexts/ThemeContext', () => ({
-  useTheme: () => ({ theme: 'light' }),
+  useTheme: () => ({ theme: themeState.current }),
 }))
 
 vi.mock('@/components/shared/PersistentHeader', () => ({
@@ -113,6 +114,7 @@ describe('AdminUserActivityPage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date('2026-08-05T12:00:00'))
     vi.clearAllMocks()
+    themeState.current = 'light'
     getActivityDetail.mockResolvedValue(detail)
   })
 
@@ -141,6 +143,115 @@ describe('AdminUserActivityPage', () => {
     expect(within(metrics).getByText('62.5%')).toBeDefined()
     expect(screen.getByText(/六大模块覆盖 9 \/ 12 次页面访问（75%）/)).toBeDefined()
     expect(screen.getByText('9 次 · 2 天 · 75%')).toBeDefined()
+  })
+
+  it('normalizes three different metric peaks independently', async () => {
+    getActivityDetail.mockResolvedValue({
+      ...detail,
+      daily: [
+        { date: '2026-08-03', events: 10, pageviews: 9, learning_actions: 2 },
+        { date: '2026-08-04', events: 20, pageviews: 3, learning_actions: 4 },
+        { date: '2026-08-05', events: 5, pageviews: 6, learning_actions: 8 },
+      ],
+    })
+    renderPage()
+
+    const chart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    const events = chart.querySelector('[data-series="events"]')
+    const pageviews = chart.querySelector('[data-series="pageviews"]')
+    const learning = chart.querySelector('[data-series="learning_actions"]')
+
+    expect(events?.getAttribute('data-peak')).toBe('20')
+    expect(pageviews?.getAttribute('data-peak')).toBe('9')
+    expect(learning?.getAttribute('data-peak')).toBe('8')
+    expect(events?.getAttribute('points')?.split(' ')[1]?.split(',')[1]).toBe('18')
+    expect(pageviews?.getAttribute('points')?.split(' ')[0]?.split(',')[1]).toBe('18')
+    expect(learning?.getAttribute('points')?.split(' ')[2]?.split(',')[1]).toBe('18')
+    expect(chart.outerHTML).not.toContain('NaN')
+  })
+
+  it('keeps an all-zero metric on the zero baseline', async () => {
+    getActivityDetail.mockResolvedValue({
+      ...detail,
+      daily: detail.daily.map((day) => ({ ...day, learning_actions: 0 })),
+    })
+    renderPage()
+
+    const chart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    const learning = chart.querySelector('[data-series="learning_actions"]')
+    expect(learning?.getAttribute('data-peak')).toBe('0')
+    expect(
+      learning
+        ?.getAttribute('points')
+        ?.split(' ')
+        .every((point) => point.endsWith(',228'))
+    ).toBe(true)
+    expect(chart.outerHTML).not.toContain('NaN')
+  })
+
+  it('shows raw daily counts for pointer, touch and keyboard interaction without refetching', async () => {
+    renderPage()
+
+    const chart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    const status = screen.getByRole('status')
+    fireEvent.focus(chart)
+    expect(status.textContent).toContain('2026-08-04，有效活动 12 次，页面访问 5 次，学习行为 7 次')
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    expect(status.textContent).toContain('2026-08-05，有效活动 20 次，页面访问 7 次，学习行为 13 次')
+
+    fireEvent.pointerEnter(chart.querySelector('[data-day-index="0"]')!)
+    expect(status.textContent).toContain('2026-08-04')
+    fireEvent.pointerDown(chart.querySelector('[data-day-index="1"]')!, {
+      pointerType: 'touch',
+    })
+    expect(status.textContent).toContain('2026-08-05')
+
+    fireEvent.pointerLeave(chart)
+    expect(status.textContent).toBe('')
+    fireEvent.focus(chart)
+    fireEvent.keyDown(chart, { key: 'Escape' })
+    expect(status.textContent).toBe('')
+    fireEvent.blur(chart)
+    expect(getActivityDetail).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps single-day and 366-day trends finite with at most six date ticks', async () => {
+    const longDaily = Array.from({ length: 366 }, (_, index) => {
+      const date = new Date('2025-08-05T00:00:00Z')
+      date.setUTCDate(date.getUTCDate() + index)
+      return {
+        date: date.toISOString().slice(0, 10),
+        events: index % 11,
+        pageviews: index % 7,
+        learning_actions: index % 5,
+      }
+    })
+    getActivityDetail.mockResolvedValueOnce({ ...detail, daily: longDaily })
+    const longRange = renderPage()
+
+    const longChart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    expect(longChart.querySelectorAll('[data-axis-date]')).toHaveLength(6)
+    expect(longChart.outerHTML).not.toContain('NaN')
+    longRange.unmount()
+
+    getActivityDetail.mockResolvedValueOnce({ ...detail, daily: [detail.daily[0]] })
+    renderPage()
+    const singleChart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    expect(singleChart.querySelector('[data-series="events"]')?.getAttribute('points')).toMatch(/^379,/)
+    expect(singleChart.outerHTML).not.toContain('NaN')
+  })
+
+  it('uses the light outline in dark theme so overlapping line patterns stay visible', async () => {
+    themeState.current = 'dark'
+    renderPage()
+
+    const chart = await screen.findByRole('img', { name: '每日三指标相对趋势' })
+    expect(chart.querySelector('[data-series-outline="events"]')?.getAttribute('stroke')).toBe('#f8fafc')
+    expect(chart.querySelector('[data-series="events"]')?.getAttribute('stroke-dasharray')).toBeNull()
+    expect(chart.querySelector('[data-series="pageviews"]')?.getAttribute('stroke-dasharray')).toBe('12 6')
+    expect(chart.querySelector('[data-series="learning_actions"]')?.getAttribute('stroke-dasharray')).toBe('3 6')
+    expect(chart.outerHTML).not.toContain('NaN')
   })
 
   it('applies preset ranges immediately', async () => {
