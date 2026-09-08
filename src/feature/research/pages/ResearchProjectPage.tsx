@@ -34,6 +34,8 @@ import {
   ProjectIssueStateBadge,
 } from "../components/project/ProjectIssues";
 import { formatProjectIssueNumber } from "../components/project/projectIssue";
+import TopicReferenceText from "../components/shared/TopicReferenceText";
+import TopicBacklinksSection from "../components/shared/TopicBacklinksSection";
 import { ProjectEvidenceSection } from "../components/project/ProjectEvidenceSection";
 import { ProjectPeerReviewSection } from "../components/project/ProjectPeerReviewSection";
 import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
@@ -157,6 +159,24 @@ export function ResearchProjectPage() {
     setLeadershipTransferAction(null);
     setLeadershipTransferError(null);
   }, [projectId]);
+
+  // A backlink into a description must land on readable text, so expand the
+  // clamp before scrolling. / 引用跳转到简介时先展开，避免落在被截断的文字上。
+  useEffect(() => {
+    if (location.hash !== "#project-description") {
+      return;
+    }
+
+    setActiveTab("overview");
+    setIsDescriptionExpanded(true);
+    const timer = window.setTimeout(() => {
+      document.getElementById("project-description")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, location.key, projectId]);
 
   useEffect(() => {
     const commentHashPrefix = "#discussion-comment-";
@@ -604,11 +624,15 @@ export function ResearchProjectPage() {
             )}
 
             <p
-              className={`mt-4 max-w-[62ch] text-base leading-7 text-[var(--paper-foreground)] ${
+              id="project-description"
+              className={`mt-4 max-w-[62ch] scroll-mt-28 whitespace-pre-wrap text-base leading-7 text-[var(--paper-foreground)] ${
                 isDescriptionClampable && !isDescriptionExpanded ? "line-clamp-4" : ""
               }`}
             >
-              {descriptionText}
+              <TopicReferenceText
+                text={descriptionText}
+                references={"references" in displayProject ? displayProject.references : null}
+              />
             </p>
             {isDescriptionClampable && (
               <button
@@ -623,6 +647,11 @@ export function ResearchProjectPage() {
                 />
               </button>
             )}
+
+            <TopicBacklinksSection
+              projectId={displayProject.id}
+              usePublicEndpoint={usePublicEndpoint}
+            />
 
             {/* 内联元信息（替代原三张大指标卡） */}
             <dl className="research-meta mt-5.5">

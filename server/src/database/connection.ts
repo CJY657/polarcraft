@@ -138,6 +138,8 @@ const COLLECTION_INDEXES: Array<{
         partialFilterExpression: { issue_number: { $type: 'number' } },
       },
       { key: { updated_at: -1 }, name: 'idx_updated_at' },
+      // 反向引用：按被引用课题 id 反查引用它的课题简介
+      { key: { referenced_project_ids: 1 }, name: 'idx_referenced_projects' },
     ],
   },
   {
@@ -183,6 +185,8 @@ const COLLECTION_INDEXES: Array<{
       { key: { id: 1 }, unique: true, name: 'unique_id' },
       { key: { project_id: 1, created_at: 1 }, name: 'idx_project_created' },
       { key: { parent_comment_id: 1, created_at: 1 }, name: 'idx_parent_created' },
+      // 反向引用：按被引用课题 id 反查引用它的讨论留言
+      { key: { referenced_project_ids: 1 }, name: 'idx_referenced_projects' },
     ],
   },
   {

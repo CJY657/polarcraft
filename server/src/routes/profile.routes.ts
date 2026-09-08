@@ -14,6 +14,7 @@ const router = Router();
 router.get("/public-projects", optionalAuth, ProfileController.getPublicProjects);
 router.get("/public-projects/:projectId/evidence", optionalAuth, ProfileController.getPublicProjectEvidence);
 router.get("/public-projects/:projectId/reviews", optionalAuth, ProfileController.getPublicProjectReviews);
+router.get("/public-projects/:id/backlinks", optionalAuth, ProfileController.getPublicProjectBacklinks);
 router.get("/public-projects/:id", optionalAuth, ProfileController.getPublicProject);
 
 // All other profile routes require authentication

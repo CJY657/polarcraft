@@ -187,11 +187,25 @@ router.get('/projects', ResearchController.getUserProjects);
 router.post('/projects', ResearchController.createProject);
 
 /**
+ * @route   GET /api/research/reference-candidates
+ * @desc    Search topics the current user may reference with @
+ * @access  Private
+ */
+router.get('/reference-candidates', ResearchController.getTopicReferenceCandidates);
+
+/**
  * @route   GET /api/research/projects/:id
  * @desc    Get project details
  * @access  Private
  */
 router.get('/projects/:id', ResearchController.getProject);
+
+/**
+ * @route   GET /api/research/projects/:id/backlinks
+ * @desc    Topics whose description or discussion references this topic
+ * @access  Private
+ */
+router.get('/projects/:id/backlinks', ResearchController.getProjectBacklinks);
 
 /**
  * @route   PUT /api/research/projects/:id

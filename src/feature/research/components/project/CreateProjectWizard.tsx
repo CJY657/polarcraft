@@ -14,6 +14,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
+import TopicReferenceTextarea from '../shared/TopicReferenceTextarea';
 import {
   ProjectIssueFieldsEditor,
   emptyProjectIssueFields,
@@ -299,9 +300,10 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 )}>
                   {t('lab.projectDescription')} (中文)
                 </label>
-                <textarea
+                <TopicReferenceTextarea
                   value={projectData.description_zh}
-                  onChange={(e) => setProjectData({ ...projectData, description_zh: e.target.value })}
+                  onValueChange={(description_zh) => setProjectData({ ...projectData, description_zh })}
+                  placeholder="输入 @ 可引用其他议题"
                   rows={4}
                   className={cn(
                     "w-full px-3 py-2 rounded-lg border transition-colors resize-none",

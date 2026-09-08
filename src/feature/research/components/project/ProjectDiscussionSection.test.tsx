@@ -11,6 +11,7 @@ const mockUploadProjectDiscussionVideo = vi.fn();
 const mockAddProjectDiscussionComment = vi.fn();
 const mockDeleteProjectDiscussionComment = vi.fn();
 const mockUpdateProjectDiscussionComment = vi.fn();
+const mockSearchTopicReferenceCandidates = vi.fn(async () => []);
 
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, isOpen }: { children: unknown; isOpen: boolean }) =>
@@ -25,6 +26,7 @@ vi.mock('@/lib/research.service', () => ({
     addProjectDiscussionComment: (...args: unknown[]) => mockAddProjectDiscussionComment(...args),
     deleteProjectDiscussionComment: (...args: unknown[]) => mockDeleteProjectDiscussionComment(...args),
     updateProjectDiscussionComment: (...args: unknown[]) => mockUpdateProjectDiscussionComment(...args),
+    searchTopicReferenceCandidates: (...args: unknown[]) => mockSearchTopicReferenceCandidates(...args),
   },
 }));
 

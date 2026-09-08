@@ -15,6 +15,9 @@ const mockGetProjectSettings = vi.fn();
 const mockGetProjectCanvases = vi.fn();
 const mockGetProjectApplications = vi.fn();
 const mockGetPublicProjectById = vi.fn();
+const mockGetProjectBacklinks = vi.fn(async () => ({ items: [], total: 0 }));
+const mockGetPublicProjectBacklinks = vi.fn(async () => ({ items: [], total: 0 }));
+const mockSearchTopicReferenceCandidates = vi.fn(async () => []);
 const mockAddProjectMember = vi.fn();
 const mockDeleteProject = vi.fn();
 const mockRemoveProjectMember = vi.fn();
@@ -159,6 +162,8 @@ vi.mock("@/lib/research.service", () => ({
     cancelProjectLeadershipTransfer: (...args: unknown[]) => mockCancelProjectLeadershipTransfer(...args),
     acceptProjectLeadershipTransfer: (...args: unknown[]) => mockAcceptProjectLeadershipTransfer(...args),
     declineProjectLeadershipTransfer: (...args: unknown[]) => mockDeclineProjectLeadershipTransfer(...args),
+    getProjectBacklinks: (...args: unknown[]) => mockGetProjectBacklinks(...args),
+    searchTopicReferenceCandidates: (...args: unknown[]) => mockSearchTopicReferenceCandidates(...args),
   },
 }));
 
@@ -167,6 +172,7 @@ vi.mock("@/lib/profile.service", () => ({
     getProjectSettings: (...args: unknown[]) => mockGetProjectSettings(...args),
     getProjectApplications: (...args: unknown[]) => mockGetProjectApplications(...args),
     getPublicProjectById: (...args: unknown[]) => mockGetPublicProjectById(...args),
+    getPublicProjectBacklinks: (...args: unknown[]) => mockGetPublicProjectBacklinks(...args),
   },
 }));
 

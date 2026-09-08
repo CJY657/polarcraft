@@ -4,7 +4,12 @@
  */
 
 import { api, ensureApiSuccess, unwrapApiData } from './api';
-import type { ProjectEvidence, ProjectReview } from './research.service';
+import type {
+  ProjectEvidence,
+  ProjectReview,
+  TopicBacklinks,
+  TopicReference,
+} from './research.service';
 
 // =====================================================
 // Types / 类型定义
@@ -205,6 +210,7 @@ export interface PublicProjectDetail extends PublicProject {
   is_public: boolean;
   allow_guest_comments: boolean;
   enable_task_board: boolean;
+  references?: TopicReference[];
 }
 
 // =====================================================
@@ -406,6 +412,17 @@ export const profileApi = {
   getPublicProjectById: async (projectId: string): Promise<PublicProjectDetail> => {
     const response = await api.get<PublicProjectDetail>(`/api/profile/public-projects/${projectId}`);
     return unwrapApiData(response, '获取公开课题详情失败');
+  },
+
+  /**
+   * Get public project backlinks ("引用自")
+   * 获取公开课题的反向引用列表
+   */
+  getPublicProjectBacklinks: async (projectId: string, page = 1): Promise<TopicBacklinks> => {
+    const response = await api.get<TopicBacklinks>(
+      `/api/profile/public-projects/${projectId}/backlinks?page=${page}`
+    );
+    return unwrapApiData(response, '获取引用列表失败');
   },
 
   /**

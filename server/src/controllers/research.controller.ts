@@ -29,6 +29,7 @@ import {
   ProjectAccessService,
   type ProjectAccessLevel,
 } from '../services/project-access.service.js';
+import { TopicReferenceService } from '../services/topic-reference.service.js';
 import {
   RESEARCH_AGENT_SYSTEM_PROMPT,
   ResearchAgentDisabledError,
@@ -794,11 +795,18 @@ export class ResearchController {
       : null;
     const {
       pending_leadership_transfer: _storedLeadershipTransfer,
+      // Resolved into `references` below; the raw ids stay server-side because
+      // their count alone would reveal targets the viewer may not see.
+      referenced_project_ids: referencedProjectIds,
       ...projectResponse
     } = access.project;
 
     res.success({
       ...projectResponse,
+      references: await TopicReferenceService.resolveReferences(referencedProjectIds, {
+        userId: req.user!.sub,
+        role: req.user!.role,
+      }),
       owner_user_id: access.ownerUserId,
       members,
       has_pending_application: Boolean(pendingApplication),
@@ -2069,7 +2077,57 @@ export class ResearchController {
     }
 
     const comments = await ResearchModel.getProjectDiscussionComments(projectId);
-    res.success(comments);
+    res.success(
+      await TopicReferenceService.resolveReferencesForEach(comments, {
+        userId: req.user!.sub,
+        role: req.user!.role,
+      })
+    );
+  });
+
+  /**
+   * Search topics the author may reference from the @ picker
+   * 搜索可引用的议题（@ 选择器候选）
+   */
+  static getTopicReferenceCandidates = asyncHandler(async (req: Request, res: Response) => {
+    const query = typeof req.query.q === 'string' ? req.query.q : '';
+    const excludeProjectId = typeof req.query.excludeProjectId === 'string'
+      ? req.query.excludeProjectId
+      : undefined;
+
+    const candidates = await ResearchModel.searchTopicReferenceCandidates(
+      req.user!.sub,
+      req.user!.role,
+      { query, excludeProjectId, limit: 10 }
+    );
+    res.success(candidates);
+  });
+
+  /**
+   * Topics referencing this one ("引用自")
+   * 反向引用列表
+   */
+  static getProjectBacklinks = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const access = await ensureProjectAccess(
+      res,
+      id,
+      req.user!.sub,
+      req.user!.role,
+      'read',
+      '你只能查看公开课题或已加入的课题'
+    );
+    if (!access) {
+      return;
+    }
+
+    const page = Number.parseInt(String(req.query.page ?? '1'), 10) || 1;
+    res.success(
+      await TopicReferenceService.getBacklinks(id, {
+        userId: req.user!.sub,
+        role: req.user!.role,
+      }, page)
+    );
   });
 
   /**

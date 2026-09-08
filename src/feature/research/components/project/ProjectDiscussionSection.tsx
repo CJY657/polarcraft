@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
+import TopicReferenceText from '../shared/TopicReferenceText';
+import TopicReferenceTextarea from '../shared/TopicReferenceTextarea';
 import {
   buildCommentTree,
   buildParentCommentLookup,
@@ -843,9 +845,10 @@ export function ProjectDiscussionSection({
                 <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
               ) : isEditingThis ? (
                 <div className="rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
-                  <textarea
+                  <TopicReferenceTextarea
                     value={editDraft}
-                    onChange={(event) => setEditDraft(event.target.value)}
+                    onValueChange={setEditDraft}
+                    excludeProjectId={projectId}
                     rows={3}
                     maxLength={MAX_COMMENT_LENGTH}
                     autoFocus
@@ -891,7 +894,12 @@ export function ProjectDiscussionSection({
               ) : (
                 <>
                   {comment.content.trim() ? (
-                    <p className="whitespace-pre-wrap break-words">{comment.content}</p>
+                    <p className="whitespace-pre-wrap break-words">
+                      <TopicReferenceText
+                        text={comment.content}
+                        references={comment.references}
+                      />
+                    </p>
                   ) : comment.image_urls.length > 0 || commentVideoUrls.length > 0 ? (
                     <p className="text-[var(--glass-text-muted)]">
                       发送了 {comment.image_urls.length} 张图片、{commentVideoUrls.length} 个视频
@@ -978,12 +986,12 @@ export function ProjectDiscussionSection({
 
             {isReplying && canParticipate && (
               <div className="mt-3 rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
-                <textarea
+                <TopicReferenceTextarea
                   value={replyDraft}
-                  onChange={(event) => {
-                    const value = event.target.value;
+                  onValueChange={(value) => {
                     setReplyDrafts((current) => ({ ...current, [comment.id]: value }));
                   }}
+                  excludeProjectId={projectId}
                   onPaste={(event) => handleReplyPaste(comment.id, event)}
                   rows={2}
                   maxLength={MAX_COMMENT_LENGTH}
@@ -1104,9 +1112,10 @@ export function ProjectDiscussionSection({
         className="scroll-mt-28 border-t border-[var(--research-line)] bg-[var(--research-surface)] p-3 sm:p-4"
       >
         <div className="research-panel-soft rounded-lg p-4">
-          <textarea
+          <TopicReferenceTextarea
             value={newComment}
-            onChange={(event) => setNewComment(event.target.value)}
+            onValueChange={setNewComment}
+            excludeProjectId={projectId}
             onPaste={handleNewCommentPaste}
             rows={3}
             maxLength={MAX_COMMENT_LENGTH}

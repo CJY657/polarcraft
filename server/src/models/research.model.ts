@@ -5,7 +5,7 @@
 
 import { getCollection, withDatabaseTransaction } from '../database/connection.js';
 import type { ClientSession } from 'mongodb';
-import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
+import { escapeRegExp, normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -20,6 +20,7 @@ import {
   type ProjectStatus,
 } from './research-project.util.js';
 import { allocateProjectIssueNumber } from './research-project-issue-number.util.js';
+import { extractTopicReferenceNumbers } from './research-reference.util.js';
 import { getUserIdentityMap } from './user-identity.util.js';
 import type {
   ResearchProjectReviewVerdict,
@@ -462,6 +463,10 @@ export class ResearchModel {
       name_en: data.name_en || null,
       description_zh: data.description_zh || null,
       description_en: data.description_en || null,
+      referenced_project_ids: await this.deriveTopicReferenceIds(
+        data.description_zh,
+        data.description_en
+      ),
       research_questions_zh: data.research_questions_zh || null,
       research_hypotheses_zh: data.research_hypotheses_zh || null,
       basic_plan_zh: data.basic_plan_zh || null,
@@ -544,6 +549,23 @@ export class ResearchModel {
       return 'not_found';
     }
 
+    // Topic references are derived from the descriptions and written in the same
+    // $set as the text, so content and index can never diverge. An omitted
+    // description keeps its stored text, so re-derive from the merged pair.
+    // 议题引用由简介推导，并与正文在同一次 $set 写入，避免正文与索引不一致。
+    if (data.description_zh !== undefined || data.description_en !== undefined) {
+      const stored = normalizeDocument<any>(
+        await researchProjectsCollection().findOne(
+          { id: projectId },
+          { projection: { _id: 0, description_zh: 1, description_en: 1 } }
+        )
+      );
+      updateDoc.referenced_project_ids = await this.deriveTopicReferenceIds(
+        data.description_zh === undefined ? stored?.description_zh : data.description_zh,
+        data.description_en === undefined ? stored?.description_en : data.description_en
+      );
+    }
+
     const now = new Date();
     const result = await researchProjectsCollection().updateOne(
       expectedStatus === undefined ? { id: projectId } : { id: projectId, status: expectedStatus },
@@ -585,6 +607,173 @@ export class ResearchModel {
       { $set: { is_public: isPublic, updated_at: now, last_activity_at: now } }
     );
     return result.matchedCount > 0;
+  }
+
+  // ============================================================
+  // Topic references / 议题引用
+  // ============================================================
+
+  /**
+   * Turn the `#编号` tokens in the given texts into existing project ids.
+   * Numbers that match no project are dropped, so a stray `#404` in prose is
+   * simply not a reference.
+   * 把文本中的 #编号 解析为现存课题 id；无法匹配的编号直接丢弃。
+   */
+  static async deriveTopicReferenceIds(
+    ...texts: Array<string | null | undefined>
+  ): Promise<string[]> {
+    const numbers = extractTopicReferenceNumbers(...texts);
+    if (numbers.length === 0) {
+      return [];
+    }
+
+    const projects = normalizeDocuments<{ id: string }>(
+      await researchProjectsCollection()
+        .find({ issue_number: { $in: numbers } })
+        .project({ _id: 0, id: 1 })
+        .toArray()
+    );
+    return projects.map((project) => project.id);
+  }
+
+  /**
+   * Look up display labels for reference targets. Callers must permission-filter
+   * the ids first — this method knows nothing about who is asking.
+   * 读取引用目标的展示信息；调用方须先完成权限过滤。
+   */
+  static async getTopicReferenceLabels(projectIds: string[]): Promise<any[]> {
+    if (projectIds.length === 0) {
+      return [];
+    }
+
+    return normalizeDocuments<any>(
+      await researchProjectsCollection()
+        .find({ id: { $in: [...new Set(projectIds)] } })
+        .project({ _id: 0, id: 1, issue_number: 1, name_zh: 1, name_en: 1 })
+        .toArray()
+    );
+  }
+
+  /**
+   * Ids of every project the user may read, or `null` for "no restriction"
+   * (admin). Visibility authority is `research_project_settings`, matching
+   * ProfileModel.getPublicProjects.
+   * 用户可读的课题 id 集合；管理员返回 null 表示不设限。
+   */
+  private static async getReadableProjectIds(
+    userId: string,
+    userRole: 'user' | 'admin'
+  ): Promise<string[] | null> {
+    if (userRole === 'admin') {
+      return null;
+    }
+
+    const [publicSettings, memberships] = await Promise.all([
+      normalizeDocuments<{ project_id: string }>(
+        await projectSettingsCollection()
+          .find({ visibility: 'public' })
+          .project({ _id: 0, project_id: 1 })
+          .toArray()
+      ),
+      normalizeDocuments<{ project_id: string }>(
+        await projectMembersCollection()
+          .find(buildActiveMembershipFilter({ user_id: userId }))
+          .project({ _id: 0, project_id: 1 })
+          .toArray()
+      ),
+    ]);
+
+    return [...new Set([
+      ...publicSettings.map((setting) => setting.project_id),
+      ...memberships.map((membership) => membership.project_id),
+    ])];
+  }
+
+  /**
+   * Reference picker candidates: projects the author can read, matched by
+   * Chinese/English title or issue number, most recently active first.
+   * 引用候选：作者可读的课题，按中英文标题或编号匹配。
+   */
+  static async searchTopicReferenceCandidates(
+    userId: string,
+    userRole: 'user' | 'admin',
+    options: { query?: string; excludeProjectId?: string; limit?: number } = {}
+  ): Promise<any[]> {
+    const readableIds = await this.getReadableProjectIds(userId, userRole);
+    if (readableIds !== null && readableIds.length === 0) {
+      return [];
+    }
+
+    const idFilter: Record<string, unknown> = {};
+    if (readableIds !== null) {
+      idFilter.$in = readableIds;
+    }
+    if (options.excludeProjectId) {
+      idFilter.$ne = options.excludeProjectId;
+    }
+
+    const filter: Record<string, unknown> = {};
+    if (Object.keys(idFilter).length > 0) {
+      filter.id = idFilter;
+    }
+
+    const query = (options.query ?? '').trim();
+    if (query) {
+      const bareQuery = query.replace(/^#/, '');
+      const issueNumber = /^[1-9]\d{0,8}$/.test(bareQuery) ? Number(bareQuery) : null;
+      const regex = new RegExp(escapeRegExp(bareQuery), 'i');
+      filter.$or = [
+        { name_zh: regex },
+        { name_en: regex },
+        ...(issueNumber === null ? [] : [{ issue_number: issueNumber }]),
+      ];
+    }
+
+    return normalizeDocuments<any>(
+      await researchProjectsCollection()
+        .find(filter)
+        .sort({ last_activity_at: -1, updated_at: -1 })
+        .limit(Math.min(20, Math.max(1, Math.floor(options.limit ?? 10))))
+        .project({ _id: 0, id: 1, issue_number: 1, name_zh: 1, name_en: 1 })
+        .toArray()
+    );
+  }
+
+  /**
+   * Raw source documents that reference the target, before any permission
+   * filtering. Deleted comments are excluded at the query.
+   * 引用了目标课题的原始来源文档（未做权限过滤，已排除删除的评论）。
+   */
+  static async findTopicReferenceSources(targetProjectId: string): Promise<{
+    projects: any[];
+    comments: any[];
+  }> {
+    const [projects, comments] = await Promise.all([
+      normalizeDocuments<any>(
+        await researchProjectsCollection()
+          .find({ referenced_project_ids: targetProjectId })
+          .sort({ last_activity_at: -1, updated_at: -1 })
+          .project({
+            _id: 0,
+            id: 1,
+            issue_number: 1,
+            name_zh: 1,
+            name_en: 1,
+            description_zh: 1,
+            description_en: 1,
+          })
+          .toArray()
+      ),
+      normalizeDocuments<any>(
+        await projectCommentsCollection()
+          .find({ referenced_project_ids: targetProjectId, is_deleted: { $ne: true } })
+          .sort({ created_at: 1 })
+          .project({ _id: 0, id: 1, project_id: 1, created_at: 1 })
+          .toArray()
+      ),
+    ]);
+
+    return { projects, comments };
   }
 
   static async getCurrentProjectCycle(projectId: string): Promise<any | null> {
@@ -1731,6 +1920,7 @@ export class ResearchModel {
       parent_comment_id: parentCommentId,
       ...(parentCommentId === null && questionIndex !== undefined ? { question_index: questionIndex } : {}),
       content,
+      referenced_project_ids: await this.deriveTopicReferenceIds(content),
       image_urls: normalizeImageUrls(imageUrls),
       video_urls: normalizeVideoUrls(videoUrls),
       is_deleted: false,
@@ -1759,7 +1949,13 @@ export class ResearchModel {
 
     const result = await projectCommentsCollection().updateOne(
       { id: commentId, user_id: userId, is_deleted: { $ne: true } },
-      { $set: { content, updated_at: new Date() } }
+      {
+        $set: {
+          content,
+          referenced_project_ids: await this.deriveTopicReferenceIds(content),
+          updated_at: new Date(),
+        },
+      }
     );
 
     if (result.matchedCount > 0) {
@@ -1804,7 +2000,16 @@ export class ResearchModel {
     if (childCount > 0) {
       const result = await projectCommentsCollection().updateOne(
         { id: commentId },
-        { $set: { is_deleted: true, content: '', image_urls: [], video_urls: [], updated_at: new Date() } }
+        {
+          $set: {
+            is_deleted: true,
+            content: '',
+            referenced_project_ids: [],
+            image_urls: [],
+            video_urls: [],
+            updated_at: new Date(),
+          },
+        }
       );
       if (result.matchedCount > 0) await this.touchProjectActivity(comment.project_id);
       logger.info(`Project discussion comment soft deleted: ${commentId}`);

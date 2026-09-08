@@ -15,9 +15,50 @@ export type { ProjectStatus } from '@/feature/research/projectLifecycle';
 // Types / 类型定义
 // =====================================================
 
+/**
+ * A `#编号` reference target the current viewer is allowed to see. Resolved by
+ * the server per request, so titles stay current and private topics never leak.
+ * 当前访问者可见的引用目标（由服务端按访问者解析）。
+ */
+export interface TopicReference {
+  number: number;
+  project_id: string;
+  name_zh: string;
+  name_en: string | null;
+}
+
+export interface TopicReferenceCandidate {
+  id: string;
+  issue_number: number | null;
+  name_zh: string;
+  name_en: string | null;
+}
+
+export type BacklinkLocationType = 'description_zh' | 'description_en' | 'comment';
+
+export interface BacklinkLocation {
+  type: BacklinkLocationType;
+  comment_id?: string;
+}
+
+/** Every place one source topic references this one. / 某个来源课题引用本课题的所有位置。 */
+export interface BacklinkGroup {
+  project_id: string;
+  issue_number: number | null;
+  name_zh: string;
+  name_en: string | null;
+  locations: BacklinkLocation[];
+}
+
+export interface TopicBacklinks {
+  items: BacklinkGroup[];
+  total: number;
+}
+
 export interface ResearchProject {
   id: string;
   issue_number?: number | null;
+  references?: TopicReference[];
   owner_user_id?: string | null;
   name_zh: string;
   name_en: string | null;
@@ -109,6 +150,7 @@ export interface ProjectDiscussionComment {
   parent_comment_id: string | null;
   question_index?: number | null;
   content: string;
+  references?: TopicReference[];
   image_urls: string[];
   video_urls: string[];
   is_deleted: boolean;
@@ -523,6 +565,33 @@ export const researchApi = {
   getProject: async (projectId: string): Promise<ProjectWithMembers> => {
     const response = await api.get<ProjectWithMembers>(`/api/research/projects/${projectId}`);
     return unwrapApiData(response, '获取课题详情失败');
+  },
+
+  /**
+   * Search topics the current user may reference with @
+   * 搜索可引用的议题（@ 选择器候选）
+   */
+  searchTopicReferenceCandidates: async (
+    params: { query?: string; excludeProjectId?: string } = {}
+  ): Promise<TopicReferenceCandidate[]> => {
+    const search = new URLSearchParams();
+    if (params.query) search.set('q', params.query);
+    if (params.excludeProjectId) search.set('excludeProjectId', params.excludeProjectId);
+    const response = await api.get<TopicReferenceCandidate[]>(
+      `/api/research/reference-candidates?${search.toString()}`
+    );
+    return unwrapApiData(response, '搜索可引用议题失败');
+  },
+
+  /**
+   * Topics referencing this one ("引用自")
+   * 反向引用列表
+   */
+  getProjectBacklinks: async (projectId: string, page = 1): Promise<TopicBacklinks> => {
+    const response = await api.get<TopicBacklinks>(
+      `/api/research/projects/${projectId}/backlinks?page=${page}`
+    );
+    return unwrapApiData(response, '获取引用列表失败');
   },
 
   /**

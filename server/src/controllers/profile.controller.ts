@@ -6,6 +6,7 @@
 import { Request, Response } from "express";
 import { ProfileModel } from "../models/profile.model.js";
 import { ResearchModel } from "../models/research.model.js";
+import { TopicReferenceService } from "../services/topic-reference.service.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -257,9 +258,55 @@ export class ProfileController {
         return;
       }
 
-      res.json({ success: true, data: project });
+      // The raw target ids stay server-side: their count alone would tell an
+      // outsider how many topics they are not allowed to see.
+      // 原始引用 id 不下发：其数量本身就会暴露不可见课题的存在。
+      const { referenced_project_ids: referencedProjectIds, ...publicProject } = project;
+      res.json({
+        success: true,
+        data: {
+          ...publicProject,
+          references: await TopicReferenceService.resolveReferences(referencedProjectIds, {
+            userId,
+            role: req.user?.role ?? "user",
+          }),
+        },
+      });
     } catch (error) {
       sendServerError(res, error, "Get public project error:", "获取公开项目详情失败");
+    }
+  }
+
+  /**
+   * Topics referencing this public topic ("引用自")
+   * 公开课题的反向引用列表
+   * GET /api/profile/public-projects/:id/backlinks
+   */
+  static async getPublicProjectBacklinks(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.sub;
+
+      // Reading backlinks requires the topic itself to be visible to the caller.
+      // 反向引用的前提是调用者本就能看到这个课题。
+      const project = await ProfileModel.getPublicProjectById(id, userId);
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          error: { code: "PROJECT_NOT_FOUND", message: "公开课题不存在或暂未开放" },
+        });
+        return;
+      }
+
+      const page = Number.parseInt(String(req.query.page ?? "1"), 10) || 1;
+      const backlinks = await TopicReferenceService.getBacklinks(
+        id,
+        { userId, role: req.user?.role ?? "user" },
+        page
+      );
+      res.json({ success: true, data: backlinks });
+    } catch (error) {
+      sendServerError(res, error, "Get public project backlinks error:", "获取引用列表失败");
     }
   }
 

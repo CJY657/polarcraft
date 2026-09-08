@@ -12,6 +12,7 @@ import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { researchApi, type ResearchProject } from '@/lib/research.service';
+import TopicReferenceTextarea from '../shared/TopicReferenceTextarea';
 import {
   getProjectStatusControlOptions,
   PROJECT_LIFECYCLE_STATUSES,
@@ -234,9 +235,11 @@ export function ProjectEditDialog({
             )}>
               {t('lab.projectDescription')} (中文)
             </label>
-            <textarea
+            <TopicReferenceTextarea
               value={formData.description_zh}
-              onChange={(e) => setFormData({ ...formData, description_zh: e.target.value })}
+              onValueChange={(description_zh) => setFormData({ ...formData, description_zh })}
+              excludeProjectId={project?.id}
+              placeholder="输入 @ 可引用其他议题"
               rows={4}
               className={cn(
                 "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
