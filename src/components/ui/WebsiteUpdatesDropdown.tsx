@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-09-13-demo-controls-accessibility',
+    date: '2026年9月13日',
+    title: '光学演示控件体验优化',
+    description:
+      '光学演示中的滑块、预设按钮和开关现在支持更清晰的状态反馈、键盘操作与减少动态效果；暂停演示、切换标签页或启用系统减弱动态效果后，画面会自动降低不必要的绘制，同时保持控件变化及时显示。',
+    href: '/experiments',
+  },
+  {
     id: '2026-09-08-topic-references',
     date: '2026年9月8日',
     title: '议题引用与关联上线',

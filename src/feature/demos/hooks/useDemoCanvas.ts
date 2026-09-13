@@ -60,6 +60,9 @@ export function useDemoCanvas({
     let rafId = 0;
     let lastTimestamp: number | null = null;
     let cssScale = 1;
+    let lastPausedDraw = 0;
+    let reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -89,21 +92,32 @@ export function useDemoCanvas({
       // 限制 dt 防止切后台回来后的大跳变
       const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
       lastTimestamp = timestamp;
-      if (!pausedRef.current) {
+      const shouldAnimate = !pausedRef.current && !document.hidden && !reducedMotion;
+      if (shouldAnimate) {
         timeRef.current += dt * timeScaleRef.current;
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      ctx.setTransform(cssScale * dpr, 0, 0, cssScale * dpr, 0, 0);
-      drawRef.current({ ctx, width, height, time: timeRef.current, dt });
+      // Keep static scenes responsive to control changes without running a full
+      // render loop while paused, hidden, or in reduced-motion mode.
+      if (shouldAnimate || timestamp - lastPausedDraw >= 250) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        ctx.setTransform(cssScale * dpr, 0, 0, cssScale * dpr, 0, 0);
+        drawRef.current({ ctx, width, height, time: timeRef.current, dt });
+        lastPausedDraw = timestamp;
+      }
 
       rafId = requestAnimationFrame(loop);
     };
     rafId = requestAnimationFrame(loop);
+    const onMotionPreferenceChange = (event: MediaQueryListEvent) => {
+      reducedMotion = event.matches;
+    };
+    motionQuery.addEventListener("change", onMotionPreferenceChange);
 
     return () => {
       cancelAnimationFrame(rafId);
       observer.disconnect();
+      motionQuery.removeEventListener("change", onMotionPreferenceChange);
     };
   }, [width, height]);
 

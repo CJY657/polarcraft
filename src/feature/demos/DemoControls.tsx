@@ -3,7 +3,7 @@
  * 提供滑块、按钮、预设等交互控件
  * 支持亮色/暗色主题
  */
-import { ReactNode } from "react";
+import { ReactNode, useId } from "react";
 import { cn } from "@/utils/classNames";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -54,6 +54,10 @@ const sliderColorClasses: Record<string, { track: string; thumb: string; glow: s
     glow: "shadow-[0_0_10px_rgba(192,132,252,0.5)]",
   },
 };
+const sliderTextColors = {
+  dark: { cyan: "text-cyan-400", red: "text-red-400", green: "text-green-400", blue: "text-blue-400", orange: "text-orange-400", purple: "text-purple-400" },
+  light: { cyan: "text-cyan-600", red: "text-red-600", green: "text-green-600", blue: "text-blue-600", orange: "text-orange-600", purple: "text-purple-600" },
+} as const;
 
 export function SliderControl({
   label,
@@ -67,9 +71,10 @@ export function SliderControl({
   color = "cyan",
 }: SliderControlProps) {
   const { theme } = useTheme();
+  const inputId = useId();
   const displayValue = formatValue ? formatValue(value) : `${value}${unit}`;
   const colors = sliderColorClasses[color] || sliderColorClasses.cyan;
-  const textColorClass = theme === "dark" ? `text-${color}-400` : `text-${color}-600`;
+  const textColorClass = sliderTextColors[theme][color];
 
   // Calculate percentage, handling edge case where min equals max to avoid division by zero
   const range = max - min;
@@ -78,15 +83,19 @@ export function SliderControl({
   return (
     <div className="space-y-2">
       <div className="flex justify-between text-sm">
-        <span className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>{label}</span>
+        <label htmlFor={inputId} className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>{label}</label>
         <span className={cn("font-mono", textColorClass)}>{displayValue}</span>
       </div>
       <div className="relative">
         <div
-          className={cn("absolute inset-0 h-2 rounded-lg", colors.track)}
+          className={cn("absolute inset-x-0 top-2 h-2 rounded-lg", theme === "dark" ? "bg-slate-700" : "bg-gray-200")}
+        />
+        <div
+          className={cn("absolute left-0 top-2 h-2 rounded-lg", colors.track)}
           style={{ width: `${percentage}%` }}
         />
         <input
+          id={inputId}
           type="range"
           min={min}
           max={max}
@@ -94,14 +103,13 @@ export function SliderControl({
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className={cn(
-            "w-full h-2 rounded-lg appearance-none cursor-pointer relative",
-            theme === "dark" ? "bg-slate-700" : "bg-gray-200",
+            "relative z-10 w-full h-6 rounded-lg appearance-none cursor-pointer bg-transparent",
             "[&::-webkit-slider-thumb]:appearance-none",
             "[&::-webkit-slider-thumb]:w-4",
             "[&::-webkit-slider-thumb]:h-4",
             "[&::-webkit-slider-thumb]:rounded-full",
             "[&::-webkit-slider-thumb]:cursor-pointer",
-            "[&::-webkit-slider-thumb]:transition-transform",
+            "[&::-webkit-slider-thumb]:transition-transform motion-reduce:[&::-webkit-slider-thumb]:transition-none",
             "[&::-webkit-slider-thumb]:hover:scale-110",
             "[&::-moz-range-thumb]:w-4",
             "[&::-moz-range-thumb]:h-4",
@@ -149,9 +157,10 @@ export function PresetButtons({ options, value, onChange, columns = 2 }: PresetB
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
           className={cn(
             "px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200",
-            "border hover:scale-[1.02] active:scale-[0.98]",
+            "border hover:scale-[1.02] active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
             value === option.value
               ? theme === "dark"
                 ? "bg-gradient-to-r from-cyan-400/30 to-blue-400/30 text-cyan-300 border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
@@ -179,6 +188,12 @@ export function Toggle({ label, checked, onChange }: ToggleProps) {
   const { theme } = useTheme();
   return (
     <label className="flex items-center gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="sr-only"
+      />
       <div
         className={cn(
           "w-10 h-5 rounded-full transition-colors relative",
@@ -190,11 +205,10 @@ export function Toggle({ label, checked, onChange }: ToggleProps) {
               ? "bg-slate-700"
               : "bg-gray-200",
         )}
-        onClick={() => onChange(!checked)}
       >
         <div
           className={cn(
-            "absolute top-0.5 w-4 h-4 rounded-full transition-transform",
+            "absolute top-0.5 w-4 h-4 rounded-full transition-transform motion-reduce:transition-none",
             checked
               ? theme === "dark"
                 ? "translate-x-5 bg-cyan-400"
@@ -535,8 +549,8 @@ export function AnimatedValue({
           )}
         >
           <div
-            className={cn("h-full rounded-full transition-all duration-300", colors.bar)}
-            style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
+            className={cn("h-full origin-left rounded-full transition-transform duration-300 motion-reduce:transition-none", colors.bar)}
+            style={{ transform: `scaleX(${Math.max(0, Math.min(100, percentage)) / 100})` }}
           />
         </div>
       )}
