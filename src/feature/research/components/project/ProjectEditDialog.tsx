@@ -239,6 +239,7 @@ export function ProjectEditDialog({
               value={formData.description_zh}
               onValueChange={(description_zh) => setFormData({ ...formData, description_zh })}
               excludeProjectId={project?.id}
+              references={project?.references}
               placeholder="输入 @ 可引用其他议题"
               rows={4}
               className={cn(

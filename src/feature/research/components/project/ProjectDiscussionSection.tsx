@@ -542,7 +542,7 @@ export function ProjectDiscussionSection({
     event.target.value = '';
   }
 
-  function handleNewCommentPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+  function handleNewCommentPaste(event: React.ClipboardEvent<HTMLElement>) {
     const items = event.clipboardData?.items;
     if (!items) {
       return;
@@ -584,7 +584,7 @@ export function ProjectDiscussionSection({
 
   function handleReplyPaste(
     commentId: string,
-    event: React.ClipboardEvent<HTMLTextAreaElement>
+    event: React.ClipboardEvent<HTMLElement>
   ) {
     const items = event.clipboardData?.items;
     if (!items) {
@@ -849,6 +849,7 @@ export function ProjectDiscussionSection({
                     value={editDraft}
                     onValueChange={setEditDraft}
                     excludeProjectId={projectId}
+                    references={comment.references}
                     rows={3}
                     maxLength={MAX_COMMENT_LENGTH}
                     autoFocus

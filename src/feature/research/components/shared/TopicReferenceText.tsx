@@ -85,10 +85,9 @@ export default function TopicReferenceText({ text, references }: TopicReferenceT
           <Link
             key={index}
             to={`/lab/projects/${reference.project_id}`}
-            title={reference.name_zh}
+            title={`#${reference.number} ${reference.name_zh}`}
             className="mx-0.5 inline-flex max-w-full items-baseline gap-1 rounded-md border border-[var(--paper-accent)]/40 bg-[var(--paper-accent)]/10 px-1.5 py-px align-baseline font-medium text-[var(--paper-foreground)] no-underline transition-colors hover:bg-[var(--paper-accent)]/20"
           >
-            <span className="tabular-nums opacity-70">#{reference.number}</span>
             <span className="truncate">{reference.name_zh}</span>
           </Link>
         );

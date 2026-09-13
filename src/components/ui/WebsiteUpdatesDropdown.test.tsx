@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebsiteUpdatesDropdown } from './WebsiteUpdatesDropdown';
 
 const LAST_SEEN_STORAGE_KEY = 'polariscope.websiteUpdates.lastSeenId';
-const NEWEST_ID = '2026-09-02-project-issues';
+const NEWEST_ID = '2026-09-08-topic-references';
 
 const ENTRIES: Array<[string, string]> = [
+  ['议题引用与关联上线', '/lab/explore'],
   ['课题改版为议题', '/lab/explore'],
   ['公开课题浏览更清爽', '/lab/explore'],
   ['公开反馈墙上线', '/feedback'],
   ['反馈支持附图', '/feedback'],
-  ['沉浸式光学历史之旅', '/chronicles'],
 ];
 
 function LocationProbe() {

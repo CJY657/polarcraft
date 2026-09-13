@@ -5,6 +5,12 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectDiscussionSection } from './ProjectDiscussionSection';
 
+/** Type into the contentEditable reference editor (no value setter to fire `change` on). */
+function typeInto(editor: HTMLElement, text: string) {
+  editor.replaceChildren(document.createTextNode(text));
+  fireEvent.input(editor);
+}
+
 const mockGetProjectDiscussionComments = vi.fn();
 const mockUploadProjectDiscussionImage = vi.fn();
 const mockUploadProjectDiscussionVideo = vi.fn();
@@ -273,15 +279,11 @@ describe('ProjectDiscussionSection', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /第一个核心问题/ }));
-    fireEvent.change(screen.getByPlaceholderText(/写下你的答案或新观点/), {
-      target: { value: '只属于问题一的草稿' },
-    });
+    typeInto(screen.getByPlaceholderText(/写下你的答案或新观点/), '只属于问题一的草稿');
 
     fireEvent.click(screen.getByRole('button', { name: /第二个核心问题/ }));
 
-    expect((await screen.findByPlaceholderText(
-      /写下你的答案或新观点/
-    ) as HTMLTextAreaElement).value).toBe('');
+    expect((await screen.findByPlaceholderText(/写下你的答案或新观点/)).textContent).toBe('');
   });
 
   it('keeps the top-level draft when collapsing and reopening the same row', async () => {
@@ -300,16 +302,12 @@ describe('ProjectDiscussionSection', () => {
 
     const questionRow = screen.getByRole('button', { name: /核心问题/ });
     fireEvent.click(questionRow);
-    fireEvent.change(screen.getByPlaceholderText(/写下你的答案或新观点/), {
-      target: { value: '尚未发布的草稿' },
-    });
+    typeInto(screen.getByPlaceholderText(/写下你的答案或新观点/), '尚未发布的草稿');
 
     fireEvent.click(questionRow);
     fireEvent.click(questionRow);
 
-    expect((await screen.findByPlaceholderText(
-      /写下你的答案或新观点/
-    ) as HTMLTextAreaElement).value).toBe('尚未发布的草稿');
+    expect((await screen.findByPlaceholderText(/写下你的答案或新观点/)).textContent).toBe('尚未发布的草稿');
   });
 
   it('sends questionIndex for a question answer', async () => {
@@ -328,7 +326,7 @@ describe('ProjectDiscussionSection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /需要回答的问题/ }));
     const composer = screen.getByPlaceholderText(/写下你的答案或新观点/);
-    fireEvent.change(composer, { target: { value: '我的答案' } });
+    typeInto(composer, '我的答案');
     fireEvent.click(screen.getByRole('button', { name: '发布' }));
 
     await waitFor(() => {
@@ -372,10 +370,7 @@ describe('ProjectDiscussionSection', () => {
     fireEvent.click(screen.getByRole('button', { name: /核心问题/ }));
     await screen.findByText('问题答案');
     fireEvent.click(screen.getByRole('button', { name: '回复' }));
-    fireEvent.change(
-      screen.getByPlaceholderText('补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）'),
-      { target: { value: '继续追问' } }
-    );
+    typeInto(screen.getByPlaceholderText('补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）'), '继续追问');
     fireEvent.click(screen.getByRole('button', { name: '发送回复' }));
 
     await waitFor(() => {
@@ -607,10 +602,10 @@ describe('ProjectDiscussionSection', () => {
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getByRole('button', { name: '编辑' }));
-    const editor = screen.getByLabelText('编辑留言内容') as HTMLTextAreaElement;
-    expect(editor.value).toBe('基础讨论');
+    const editor = screen.getByLabelText('编辑留言内容');
+    expect(editor.textContent).toBe('基础讨论');
 
-    fireEvent.change(editor, { target: { value: '修改后的讨论' } });
+    typeInto(editor, '修改后的讨论');
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
 
     await waitFor(() => {
@@ -654,7 +649,7 @@ describe('ProjectDiscussionSection', () => {
     await screen.findByText('基础讨论');
 
     fireEvent.click(screen.getByRole('button', { name: '编辑' }));
-    fireEvent.change(screen.getByLabelText('编辑留言内容'), { target: { value: '   ' } });
+    typeInto(screen.getByLabelText('编辑留言内容'), '   ');
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
 
     expect(await screen.findByText('留言内容不能为空')).toBeTruthy();
