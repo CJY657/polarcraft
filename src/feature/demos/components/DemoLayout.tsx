@@ -25,19 +25,19 @@ export function LegendChip({ item }: { item: LegendItem }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs whitespace-nowrap",
+        "inline-flex items-center gap-1.5 text-xs leading-5 whitespace-nowrap",
         theme === "dark" ? "text-gray-300" : "text-gray-600",
       )}
     >
       {item.shape === "line" ? (
         <span
-          className="inline-block w-4 h-0.5 rounded-full"
-          style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}` }}
+          className="inline-block h-0.5 w-4 shrink-0 rounded-full"
+          style={{ backgroundColor: item.color }}
         />
       ) : (
         <span
-          className="inline-block w-2 h-2 rounded-full"
-          style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}` }}
+          className="inline-block h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: item.color }}
         />
       )}
       {item.label}
@@ -54,7 +54,7 @@ interface DemoStageProps {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
-  /** 舞台内容区的内边距，默认 p-3 sm:p-4 */
+  /** 舞台内容区的内边距，默认 p-2 sm:p-4 */
   bodyClassName?: string;
 }
 
@@ -73,51 +73,49 @@ export function DemoStage({
   return (
     <div
       className={cn(
-        "rounded-2xl border overflow-hidden",
+        "flex min-w-0 flex-col overflow-hidden rounded-2xl border shadow-sm",
         theme === "dark"
-          ? "bg-slate-900/60 border-cyan-400/20 shadow-[0_0_40px_rgba(8,47,73,0.35)]"
-          : "bg-white border-cyan-200 shadow-sm",
+          ? "bg-slate-900 border-slate-700"
+          : "bg-white border-slate-200",
         className,
       )}
     >
       {hasHeader && (
         <div
           className={cn(
-            "px-4 py-2.5 border-b flex flex-wrap items-center gap-x-4 gap-y-1.5",
-            theme === "dark" ? "border-cyan-400/10" : "border-cyan-100",
+            "flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 py-3 sm:px-4",
+            theme === "dark" ? "border-slate-700" : "border-slate-200",
           )}
         >
-          {title && (
-            <h3
-              className={cn(
-                "text-sm font-semibold flex items-center gap-2",
-                theme === "dark" ? "text-white" : "text-gray-900",
+          {(title || subtitle) && (
+            <div className="min-w-0 flex-1 basis-40">
+              {title && (
+                <h3 className={cn("text-sm font-semibold leading-5", theme === "dark" ? "text-white" : "text-gray-900")}>
+                  {title}
+                </h3>
               )}
-            >
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
-              {title}
-            </h3>
-          )}
-          {subtitle && (
-            <span className={cn("text-xs", theme === "dark" ? "text-gray-500" : "text-gray-500")}>
-              {subtitle}
-            </span>
+              {subtitle && (
+                <p className={cn("mt-0.5 text-xs leading-5", theme === "dark" ? "text-slate-400" : "text-slate-500")}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
           )}
           {legend && legend.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ml-auto">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               {legend.map((item) => (
                 <LegendChip key={item.label} item={item} />
               ))}
             </div>
           )}
           {actions && (
-            <div className={cn("flex items-center gap-2", !legend?.length && "ml-auto")}>
+            <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
               {actions}
             </div>
           )}
         </div>
       )}
-      <div className={cn("bg-[#070d1a]", bodyClassName ?? "p-3 sm:p-4")}>{children}</div>
+      <div className={cn("min-w-0 flex-1 bg-[#070d1a]", bodyClassName ?? "p-2 sm:p-4")}>{children}</div>
     </div>
   );
 }
@@ -132,11 +130,11 @@ interface DemoSectionProps {
 export function DemoSection({ title, icon, children, className }: DemoSectionProps) {
   const { theme } = useTheme();
   return (
-    <section className={className}>
+    <section className={cn("min-w-0", className)}>
       <h3
         className={cn(
-          "flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] mb-3",
-          theme === "dark" ? "text-gray-500" : "text-gray-500",
+          "mb-3 flex items-center gap-2 text-sm font-semibold",
+          theme === "dark" ? "text-slate-300" : "text-slate-600",
         )}
       >
         {icon}

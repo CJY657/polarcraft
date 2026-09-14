@@ -18,8 +18,8 @@
  * - P 偏振 ∥ 入射面 → 用与光线垂直的双向箭头表示
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Target, Sparkles, FlaskConical, Lightbulb, BookOpen } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -78,16 +78,16 @@ function drawBeam(
   ctx.strokeStyle = color;
   ctx.lineCap = "round";
   ctx.shadowColor = color;
-  // 外层光晕
-  ctx.shadowBlur = 18;
-  ctx.lineWidth = width * 2.2;
-  ctx.globalAlpha = alpha * 0.25;
+  // 轻微光晕保留光束层次，不掩盖偏振标记
+  ctx.shadowBlur = 5;
+  ctx.lineWidth = width * 2;
+  ctx.globalAlpha = alpha * 0.12;
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
   // 主光束
-  ctx.shadowBlur = 8;
+  ctx.shadowBlur = 0;
   ctx.lineWidth = width;
   ctx.globalAlpha = alpha;
   ctx.beginPath();
@@ -97,8 +97,8 @@ function drawBeam(
   ctx.restore();
 }
 
-/** 沿光束移动的光子脉冲（加色混合，制造"光在流动"的感觉） */
-function drawPulses(
+/** 等速传播方向标记；光束本身的亮度保持由菲涅耳系数决定。 */
+function drawTravelCues(
   ctx: CanvasRenderingContext2D,
   x1: number,
   y1: number,
@@ -107,26 +107,30 @@ function drawPulses(
   color: string,
   alpha: number,
   time: number,
-  phaseOffset: number,
+  pathOffset: number,
 ) {
   if (alpha <= 0.01) return;
-  const count = 4;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy);
+  const ux = dx / length;
+  const uy = dy / length;
+  const spacing = 64;
+  const offset = ((time * 48 - pathOffset) % spacing + spacing) % spacing;
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
-  for (let i = 0; i < count; i++) {
-    const u = ((time * 0.55 + i / count + phaseOffset) % 1 + 1) % 1;
-    const x = x1 + (x2 - x1) * u;
-    const y = y1 + (y2 - y1) * u;
-    const fade = Math.sin(u * Math.PI); // 两端淡入淡出
-    const r = 3.2;
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
-    grad.addColorStop(0, color);
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.globalAlpha = alpha * fade * 0.8;
-    ctx.fillStyle = grad;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let distance = offset; distance < length; distance += spacing) {
+    const x = x1 + ux * distance;
+    const y = y1 + uy * distance;
+    ctx.globalAlpha = alpha * Math.min(1, distance / 10, (length - distance) / 10);
     ctx.beginPath();
-    ctx.arc(x, y, r * 3.2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(x - ux * 4 - uy * 3, y - uy * 4 + ux * 3);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x - ux * 4 + uy * 3, y - uy * 4 - ux * 3);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -143,7 +147,6 @@ function drawPolarizationMarkers(
   y2: number,
   sAmp: number,
   pAmp: number,
-  time: number,
 ) {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -155,16 +158,13 @@ function drawPolarizationMarkers(
     const t = 0.22 + (i - 1) * 0.26;
     const x = x1 + dx * t;
     const y = y1 + dy * t;
-    const breathe = 0.8 + 0.2 * Math.sin(time * 5 + i * 1.8);
 
     // S 偏振：⊙（指向屏幕外）
     if (sAmp > 0.045) {
-      const r = 5.5 * Math.min(1, sAmp) * breathe;
+      const r = 5.5 * Math.min(1, sAmp);
       ctx.save();
       ctx.strokeStyle = COLOR_S;
       ctx.fillStyle = COLOR_S;
-      ctx.shadowColor = COLOR_S;
-      ctx.shadowBlur = 6;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -177,13 +177,11 @@ function drawPolarizationMarkers(
 
     // P 偏振：垂直于光线的双向箭头（在入射面内振动）
     if (pAmp > 0.045) {
-      const half = 13 * Math.min(1, pAmp) * breathe;
+      const half = 13 * Math.min(1, pAmp);
       const hx = perpX * half;
       const hy = perpY * half;
       ctx.save();
       ctx.strokeStyle = COLOR_P;
-      ctx.shadowColor = COLOR_P;
-      ctx.shadowBlur = 6;
       ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.beginPath();
@@ -191,7 +189,7 @@ function drawPolarizationMarkers(
       ctx.lineTo(x + hx, y + hy);
       ctx.stroke();
       // 两端箭头
-      const head = 3.4;
+      const head = Math.min(3.4, half * 0.65);
       for (const sign of [1, -1]) {
         const tipX = x + hx * sign;
         const tipY = y + hy * sign;
@@ -299,18 +297,9 @@ function BrewsterMainCanvas({
       ctx.fillStyle = mediumGrad;
       ctx.fillRect(0, cy, width, height - cy);
 
-      // 界面高光扫动（缓慢移动的镜面反光）
-      const sweepX = ((time * 40) % (width + 240)) - 120;
-      const sweep = ctx.createLinearGradient(sweepX - 90, 0, sweepX + 90, 0);
-      sweep.addColorStop(0, "rgba(255,255,255,0)");
-      sweep.addColorStop(0.5, "rgba(255,255,255,0.18)");
-      sweep.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = sweep;
-      ctx.fillRect(0, cy - 1.5, width, 3);
-
       // 界面线
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.85)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.65)";
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(0, cy);
       ctx.lineTo(width, cy);
@@ -351,15 +340,16 @@ function BrewsterMainCanvas({
       drawAngleWedge(ctx, cx, cy, -Math.PI / 2, -Math.PI / 2 + thetaI, 52, isAtBrewsterAngle ? "#fbbf24" : "#94a3b8", `θᵣ`);
 
       // 入射光（非偏振：S 与 P 等量）
-      drawBeam(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 3.4, 0.95);
-      if (animate) drawPulses(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 0.9, time, 0);
-      drawPolarizationMarkers(ctx, ix, iy, cx, cy, 0.62, 0.62, time);
+      drawBeam(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 2, 0.95);
+      drawTravelCues(ctx, ix, iy, cx, cy, COLOR_INCIDENT, 0.9, time, 0);
+      drawPolarizationMarkers(ctx, ix, iy, cx, cy, 0.62, 0.62);
 
       // 反射光：亮度与分量来自菲涅耳方程
       const reflAlpha = 0.12 + 0.88 * Math.min(1, R * 1.6);
-      drawBeam(ctx, cx, cy, rx, ry, isAtBrewsterAngle ? COLOR_S : COLOR_REFLECT, 2 + 2.6 * R, reflAlpha);
-      if (animate) drawPulses(ctx, cx, cy, rx, ry, COLOR_REFLECT, reflAlpha * 0.9, time, 0.33);
-      drawPolarizationMarkers(ctx, cx, cy, rx, ry, 0.62 * Math.sqrt(Rs), 0.62 * Math.sqrt(Rp), time);
+      const reflectedColor = isAtBrewsterAngle ? COLOR_S : COLOR_REFLECT;
+      drawBeam(ctx, cx, cy, rx, ry, reflectedColor, 1.2 + 1.6 * R, reflAlpha);
+      drawTravelCues(ctx, cx, cy, rx, ry, reflectedColor, reflAlpha * 0.9, time, rayLen);
+      drawPolarizationMarkers(ctx, cx, cy, rx, ry, 0.62 * Math.sqrt(Rs), 0.62 * Math.sqrt(Rp));
 
       // 反射率标注
       ctx.fillStyle = isAtBrewsterAngle ? COLOR_S : COLOR_REFLECT;
@@ -373,9 +363,9 @@ function BrewsterMainCanvas({
         const tx = cx + rayLen * Math.sin(thetaT);
         const ty = cy + rayLen * Math.cos(thetaT);
         const refrAlpha = 0.15 + 0.85 * T;
-        drawBeam(ctx, cx, cy, tx, ty, COLOR_REFRACT, 1.6 + 2 * T, refrAlpha);
-        if (animate) drawPulses(ctx, cx, cy, tx, ty, COLOR_REFRACT, refrAlpha * 0.8, time, 0.33);
-        drawPolarizationMarkers(ctx, cx, cy, tx, ty, 0.62 * Math.sqrt(Math.min(1, Ts)), 0.62 * Math.sqrt(Math.min(1, Tp)), time);
+        drawBeam(ctx, cx, cy, tx, ty, COLOR_REFRACT, 1.2 + 1.2 * T, refrAlpha);
+        drawTravelCues(ctx, cx, cy, tx, ty, COLOR_REFRACT, refrAlpha * 0.8, time, rayLen);
+        drawPolarizationMarkers(ctx, cx, cy, tx, ty, 0.62 * Math.sqrt(Math.min(1, Ts)), 0.62 * Math.sqrt(Math.min(1, Tp)));
 
         drawAngleWedge(ctx, cx, cy, Math.PI / 2 - thetaT, Math.PI / 2, 44, "#5eead4", `θₜ ${refractionAngleDeg.toFixed(1)}°`);
 
@@ -390,8 +380,6 @@ function BrewsterMainCanvas({
           ctx.save();
           ctx.strokeStyle = "#fde047";
           ctx.lineWidth = 1.6;
-          ctx.shadowColor = "#fde047";
-          ctx.shadowBlur = 8;
           ctx.beginPath();
           ctx.arc(cx, cy, 72, -Math.PI / 2 + thetaI, Math.PI / 2 - thetaT);
           ctx.stroke();
@@ -408,11 +396,11 @@ function BrewsterMainCanvas({
         ctx.strokeStyle = "rgba(94, 234, 212, 0.75)";
         ctx.lineWidth = 1.6;
         ctx.shadowColor = "#5eead4";
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = 2;
         ctx.beginPath();
         for (let s = 0; s <= 150; s += 2) {
           const decay = Math.exp(-s / 55);
-          const y = cy + 9 + 8 * decay * Math.sin(s * 0.18 - time * 5);
+          const y = cy + 9 + 8 * decay * Math.sin(s * 0.18 - time * Math.PI);
           if (s === 0) ctx.moveTo(cx + s, y);
           else ctx.lineTo(cx + s, y);
         }
@@ -424,15 +412,11 @@ function BrewsterMainCanvas({
         ctx.fillText("倏逝波（全反射）", cx + 26, cy + 38);
       }
 
-      // 入射点闪光
+      // 入射点
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const flash = ctx.createRadialGradient(cx, cy, 0, cx, cy, 16);
-      flash.addColorStop(0, "rgba(255,255,255,0.5)");
-      flash.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = flash;
+      ctx.fillStyle = "#e2e8f0";
       ctx.beginPath();
-      ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -468,7 +452,7 @@ function BrewsterMainCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="mx-auto block rounded-lg cursor-grab active:cursor-grabbing select-none"
+      className="mx-auto block max-w-full rounded-lg cursor-grab active:cursor-grabbing select-none"
       style={{ touchAction: "none" }}
       onPointerDown={(e) => {
         draggingRef.current = true;
@@ -489,7 +473,7 @@ function BrewsterMainCanvas({
 // 菲涅耳反射率曲线
 // ----------------------------------------------------------------------------
 
-const CHART_W = 400;
+const CHART_W = 640;
 const CHART_H = 250;
 
 function FresnelChartCanvas({
@@ -507,12 +491,26 @@ function FresnelChartCanvas({
   criticalAngle: number | null;
   onAngleChange: (deg: number) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const [chartWidth, setChartWidth] = useState(CHART_W);
   const curve = useMemo(() => sampleReflectanceCurve(n1, n2, 181), [n1, n2]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // Keep axis text readable as the plot moves between a full column and mobile.
+    const observer = new ResizeObserver(([entry]) => {
+      setChartWidth(Math.max(280, Math.min(CHART_W, entry.contentRect.width)));
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   const canvasRef = useDemoCanvas({
-    width: CHART_W,
+    width: chartWidth,
     height: CHART_H,
+    paused: true,
     draw: ({ ctx, width, height }) => {
       const m = { l: 42, r: 14, t: 16, b: 30 };
       const plotW = width - m.l - m.r;
@@ -580,8 +578,6 @@ function FresnelChartCanvas({
         ctx.globalAlpha = 1;
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.moveTo(xOf(curve[0].angleDeg), yOf(curve[0][key]));
         for (const p of curve) ctx.lineTo(xOf(p.angleDeg), yOf(p[key]));
@@ -621,7 +617,7 @@ function FresnelChartCanvas({
         ctx.save();
         ctx.fillStyle = color;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 3;
         ctx.beginPath();
         ctx.arc(cxNow, yOf(val), 4, 0, Math.PI * 2);
         ctx.fill();
@@ -642,30 +638,32 @@ function FresnelChartCanvas({
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const { x } = pointerToCanvas(canvas, e, CHART_W);
-      const deg = ((x - 42) / (CHART_W - 42 - 14)) * 90;
+      const { x } = pointerToCanvas(canvas, e, chartWidth);
+      const deg = ((x - 42) / (chartWidth - 42 - 14)) * 90;
       onAngleChange(Math.round(Math.max(0, Math.min(89, deg)) * 2) / 2);
     },
-    [canvasRef, onAngleChange],
+    [canvasRef, chartWidth, onAngleChange],
   );
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="mx-auto block rounded-lg cursor-crosshair select-none"
-      style={{ touchAction: "none" }}
-      onPointerDown={(e) => {
-        draggingRef.current = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        updateFromPointer(e);
-      }}
-      onPointerMove={(e) => {
-        if (draggingRef.current) updateFromPointer(e);
-      }}
-      onPointerUp={() => {
-        draggingRef.current = false;
-      }}
-    />
+    <div ref={containerRef} className="min-w-0 w-full">
+      <canvas
+        ref={canvasRef}
+        className="mx-auto block max-w-full rounded-lg cursor-crosshair select-none"
+        style={{ touchAction: "none" }}
+        onPointerDown={(e) => {
+          draggingRef.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          updateFromPointer(e);
+        }}
+        onPointerMove={(e) => {
+          if (draggingRef.current) updateFromPointer(e);
+        }}
+        onPointerUp={() => {
+          draggingRef.current = false;
+        }}
+      />
+    </div>
   );
 }
 
@@ -675,6 +673,7 @@ function FresnelChartCanvas({
 
 export function BrewsterAngleDemo() {
   const { theme } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
   const [incidentAngle, setIncidentAngle] = useState(30);
   const [n1, setN1] = useState(1.0);
   const [n2, setN2] = useState(1.5);
@@ -703,11 +702,10 @@ export function BrewsterAngleDemo() {
   }, [brewsterAngle]);
 
   return (
-    <div className="flex flex-col gap-5 h-full">
-      {/* 主可视化区：光路 + 反射率曲线 */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+    <div className="@container/demo flex min-w-0 flex-col gap-6">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 @min-[960px]/demo:grid-cols-[minmax(0,1fr)_19rem]">
         <DemoStage
-          className="xl:col-span-2"
+          className="@min-[960px]/demo:col-start-1 @min-[960px]/demo:row-start-1"
           title="光路演示"
           legend={[
             { color: COLOR_INCIDENT, label: "入射光", shape: "line" },
@@ -737,47 +735,121 @@ export function BrewsterAngleDemo() {
           />
         </DemoStage>
 
-        <div className="flex flex-col gap-4">
-          <DemoStage title="菲涅耳反射率曲线" subtitle="点击曲线设置角度">
-            <FresnelChartCanvas
-              n1={n1}
-              n2={n2}
-              incidentAngle={incidentAngle}
-              brewsterAngle={brewsterAngle}
-              criticalAngle={criticalAngle}
-              onAngleChange={setIncidentAngle}
+        {/* 控制区紧邻光路，窄屏按操作顺序排列。 */}
+        <div className="grid min-w-0 grid-cols-1 gap-4 @min-[640px]/demo:grid-cols-2 @min-[960px]/demo:col-start-2 @min-[960px]/demo:row-start-1 @min-[960px]/demo:row-span-2 @min-[960px]/demo:grid-cols-1">
+          <ControlPanel title="入射角控制">
+            <SliderControl
+              label="入射角 θᵢ"
+              value={incidentAngle}
+              min={0}
+              max={89}
+              step={0.5}
+              unit="°"
+              onChange={setIncidentAngle}
+              color={isAtBrewsterAngle ? "orange" : "cyan"}
+              formatValue={(v) => `${v.toFixed(1)}°`}
             />
-          </DemoStage>
-
-          <ControlPanel title="实时物理量">
-            <div
-              className={`p-3 rounded-lg border ${
-                isAtBrewsterAngle
-                  ? "bg-amber-500/20 border-amber-500/30"
-                  : theme === "dark"
-                    ? "bg-slate-800/50 border-slate-700/50"
-                    : "bg-gray-100 border-gray-200"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {isAtBrewsterAngle ? (
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <Lightbulb className="w-4 h-4 text-cyan-400" />
-                )}
-                <span
-                  className={`text-sm font-semibold ${isAtBrewsterAngle ? "text-amber-400" : "text-cyan-400"}`}
+            <div className="flex gap-2 mt-3">
+              {[20, 45, 70].map((deg) => (
+                <button
+                  key={deg}
+                  onClick={() => setIncidentAngle(deg)}
+                  className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${
+                    theme === "dark"
+                      ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-cyan-400/30"
+                      : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-cyan-400/50"
+                  }`}
                 >
-                  {isAtBrewsterAngle
-                    ? "布鲁斯特角：反射光为纯S偏振"
-                    : fresnel.totalInternalReflection
-                      ? "全反射：光无法进入介质2"
-                      : "部分偏振反射"}
-                </span>
-              </div>
+                  {deg}°
+                </button>
+              ))}
+              <button
+                onClick={handleSetToBrewsterAngle}
+                className="flex-1 px-3 py-2 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+              >
+                θB
+              </button>
             </div>
+          </ControlPanel>
+
+          <ControlPanel title="介质组合">
+            <PresetButtons
+              options={MATERIAL_PRESETS.map((p, i) => ({ value: i, label: p.label }))}
+              value={selectedPreset}
+              onChange={handlePresetChange}
+              columns={2}
+            />
+            <div className="mt-3 space-y-1">
+              <ValueDisplay label="入射介质 n₁" value={n1.toFixed(2)} />
+              <ValueDisplay label="折射介质 n₂" value={n2.toFixed(2)} />
+            </div>
+          </ControlPanel>
+
+          <ControlPanel title="显示与公式" className="@min-[640px]/demo:col-span-2 @min-[960px]/demo:col-span-1">
+            <Toggle label="光束流动动画" checked={animate} onChange={setAnimate} />
+            <Formula highlight>
+              {`$\\tan\\theta_B = \\frac{n_2}{n_1} = \\frac{${n2.toFixed(2)}}{${n1.toFixed(2)}}$`}
+            </Formula>
+            <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
+              <p>
+                • <span className="text-green-400">⊙ 绿色圆点</span>: S偏振（垂直入射面，指向屏幕外）
+              </p>
+              <p>
+                • <span className="text-yellow-400">↕ 黄色箭头</span>: P偏振（在入射面内振动）
+              </p>
+            </div>
+          </ControlPanel>
+        </div>
+
+        <DemoStage
+          className="@min-[960px]/demo:col-start-1 @min-[960px]/demo:row-start-2"
+          title="菲涅耳反射率曲线"
+          subtitle="点击曲线设置角度"
+        >
+          <FresnelChartCanvas
+            n1={n1}
+            n2={n2}
+            incidentAngle={incidentAngle}
+            brewsterAngle={brewsterAngle}
+            criticalAngle={criticalAngle}
+            onAngleChange={setIncidentAngle}
+          />
+        </DemoStage>
+      </div>
+
+      <ControlPanel title="实时物理量">
+        <div className="grid min-w-0 items-start gap-4 @min-[640px]/demo:grid-cols-2 @min-[1100px]/demo:grid-cols-3">
+          <div
+            className={`min-w-0 p-3 rounded-lg border @min-[640px]/demo:col-span-2 @min-[1100px]/demo:col-span-1 ${
+              isAtBrewsterAngle
+                ? "bg-amber-500/20 border-amber-500/30"
+                : theme === "dark"
+                  ? "bg-slate-800/50 border-slate-700/50"
+                  : "bg-gray-100 border-gray-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isAtBrewsterAngle ? (
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Lightbulb className="w-4 h-4 text-cyan-400" />
+              )}
+              <span
+                className={`text-sm font-semibold ${isAtBrewsterAngle ? "text-amber-400" : "text-cyan-400"}`}
+              >
+                {isAtBrewsterAngle
+                  ? "布鲁斯特角：反射光为纯S偏振"
+                  : fresnel.totalInternalReflection
+                    ? "全反射：光无法进入介质2"
+                    : "部分偏振反射"}
+              </span>
+            </div>
+          </div>
+          <div className="min-w-0 space-y-3">
             <AnimatedValue label="反射率 R" value={reflectance * 100} unit="%" decimals={1} color="orange" showBar min={0} max={100} />
             <AnimatedValue label="反射光偏振度" value={dop * 100} unit="%" decimals={1} color={isAtBrewsterAngle ? "green" : "cyan"} showBar min={0} max={100} />
+          </div>
+          <div className="min-w-0 space-y-1">
             <ValueDisplay label="Rs（S分量反射率）" value={`${(fresnel.Rs * 100).toFixed(1)}%`} color="green" />
             <ValueDisplay label="Rp（P分量反射率）" value={`${(fresnel.Rp * 100).toFixed(1)}%`} color="yellow" />
             <ValueDisplay
@@ -788,17 +860,18 @@ export function BrewsterAngleDemo() {
             {criticalAngle !== null && (
               <ValueDisplay label="临界角 θc" value={`${criticalAngle.toFixed(1)}°`} color="red" />
             )}
-          </ControlPanel>
+          </div>
         </div>
-      </div>
+      </ControlPanel>
 
       {/* 布鲁斯特角提示横幅 */}
       <AnimatePresence>
         {isAtBrewsterAngle && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}
             className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30 rounded-xl p-4"
           >
             <div className="flex items-start gap-3">
@@ -817,75 +890,9 @@ export function BrewsterAngleDemo() {
         )}
       </AnimatePresence>
 
-      {/* 控制区 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <ControlPanel title="入射角控制">
-          <SliderControl
-            label="入射角 θᵢ"
-            value={incidentAngle}
-            min={0}
-            max={89}
-            step={0.5}
-            unit="°"
-            onChange={setIncidentAngle}
-            color={isAtBrewsterAngle ? "orange" : "cyan"}
-            formatValue={(v) => `${v.toFixed(1)}°`}
-          />
-          <div className="flex gap-2 mt-3">
-            {[20, 45, 70].map((deg) => (
-              <button
-                key={deg}
-                onClick={() => setIncidentAngle(deg)}
-                className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${
-                  theme === "dark"
-                    ? "bg-slate-700/50 text-gray-400 border-slate-600/50 hover:border-cyan-400/30"
-                    : "bg-gray-100/50 text-gray-600 border-gray-300/50 hover:border-cyan-400/50"
-                }`}
-              >
-                {deg}°
-              </button>
-            ))}
-            <button
-              onClick={handleSetToBrewsterAngle}
-              className="flex-1 px-3 py-2 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
-            >
-              θB
-            </button>
-          </div>
-        </ControlPanel>
-
-        <ControlPanel title="介质组合">
-          <PresetButtons
-            options={MATERIAL_PRESETS.map((p, i) => ({ value: i, label: p.label }))}
-            value={selectedPreset}
-            onChange={handlePresetChange}
-            columns={2}
-          />
-          <div className="mt-3 space-y-1">
-            <ValueDisplay label="入射介质 n₁" value={n1.toFixed(2)} />
-            <ValueDisplay label="折射介质 n₂" value={n2.toFixed(2)} />
-          </div>
-        </ControlPanel>
-
-        <ControlPanel title="显示与公式">
-          <Toggle label="光束流动动画" checked={animate} onChange={setAnimate} />
-          <Formula highlight>
-            {`$\\tan\\theta_B = \\frac{n_2}{n_1} = \\frac{${n2.toFixed(2)}}{${n1.toFixed(2)}}$`}
-          </Formula>
-          <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} space-y-1`}>
-            <p>
-              • <span className="text-green-400">⊙ 绿色圆点</span>: S偏振（垂直入射面，指向屏幕外）
-            </p>
-            <p>
-              • <span className="text-yellow-400">↕ 黄色箭头</span>: P偏振（在入射面内振动）
-            </p>
-          </div>
-        </ControlPanel>
-      </div>
-
       {/* 原理与应用 */}
       <DemoSection title="原理与应用" icon={<BookOpen className="w-3.5 h-3.5" />}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 @min-[640px]/demo:grid-cols-2 @min-[960px]/demo:grid-cols-3">
           <InfoCard title="📷 摄影偏振镜" color="cyan">
             <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
               摄影师利用布鲁斯特角原理，通过偏振镜消除水面、玻璃等表面的反射光，
@@ -909,7 +916,7 @@ export function BrewsterAngleDemo() {
 
       {/* 思考题 */}
       <DemoSection title="思考题" icon={<FlaskConical className="w-3.5 h-3.5" />}>
-        <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+        <div className={`grid min-w-0 grid-cols-1 gap-3 text-xs @min-[640px]/demo:grid-cols-2 @min-[960px]/demo:grid-cols-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
           <div className={`p-3 ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"} rounded-lg`}>
             <span className="text-cyan-400 font-semibold">Q1:</span> 切换到"玻璃→空气"预设，
             布鲁斯特角变大还是变小？为什么还会出现全反射区？

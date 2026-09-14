@@ -47,13 +47,10 @@ body {
 
 /* Main Container */
 .container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  background-color: var(--bg-container);
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 304px;
+  align-items: start;
+  gap: 12px;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -64,24 +61,36 @@ body {
 
 /* --- START: New Style for Control Column Wrapper --- */
 .control-column {
-  flex: 1 1 700px; /* Takes up space, allows shrinking, base width */
-  min-width: min(650px, 100%); /* Minimum width before wrapping */
-  display: flex; /* Use flex to arrange inner boxes */
-  flex-direction: column; /* Stack inner boxes vertically */
-  gap: 15px; /* Space between the add box and path box */
-  /* No background or border needed here, it's a logical wrapper */
+  min-width: 0;
+  display: grid;
+  align-items: start;
+  gap: 12px;
 }
 /* --- END: New Style for Control Column Wrapper --- */
 
 /* --- Styles for Inner Boxes (Add Element, Optical Path) --- */
 .add-element-box,
+.intensity-box,
 .optical-path-box {
+  min-width: 0;
   background-color: var(--bg-panel); /* Use panel background */
-  padding: 15px;
+  padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 8px;
+}
+
+.optical-path-box {
+  grid-column: 1 / -1;
+}
+
+.optical-path-table {
   overflow-x: auto;
-  /* margin-bottom: 15px; */ /* REMOVED - Gap handled by .control-column */
+}
+
+.optical-path-box > p {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 /* Remove margin from the last box (Not strictly needed with flex gap) */
@@ -105,13 +114,17 @@ body {
 
 .add-element-controls label {
     /* Optional: style label */
-    font-weight: bold;
+    flex-basis: 100%;
+    font-size: 12px;
+    color: var(--text-secondary);
     flex-shrink: 0; /* Prevent label shrinking */
 }
 
 .add-element-controls select {
-    flex-grow: 1; /* Allow select to take available space */
-    min-width: 150px; /* Give it a minimum size */
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    min-height: 34px;
 }
 
 /* Header within the optical path box (for H3 and buttons) */
@@ -137,6 +150,7 @@ body {
   /* margin-top: 15px; */ /* REMOVED - Now controlled by optical-path-header flex */
   /* margin-bottom: 10px; */ /* REMOVED */
   display: flex;
+  flex-wrap: wrap;
   gap: 10px; /* Space between buttons */
   /* No longer needs to be block or full width by default */
 }
@@ -153,22 +167,30 @@ body {
 
 /* Visualization Panel */
 .visualization {
-  flex: 1 1 520px;
-  min-width: min(420px, 100%);
+  min-width: 0;
   background-color: var(--bg-panel);
   display: flex;
   flex-direction: column;
-  padding: 15px;
+  padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 8px;
+}
+
+.visualization-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.visualization-header h2 {
+    margin: 0;
+    font-size: 1.1em;
 }
 
 /* --- START: Added Theme Toggle Styling --- */
-.theme-toggle-container {
-    margin-bottom: 10px; /* Space below button, above canvas */
-    text-align: right;   /* Position button to the right */
-}
-
 #theme-toggle-btn {
     padding: 4px 8px;   /* Slightly smaller padding */
     font-size: 0.9em;   /* Slightly smaller font */
@@ -188,9 +210,10 @@ body {
   position: relative; /* Needed for absolute positioning of children */
   border: 1px solid var(--border);
   margin-bottom: 10px; /* Space between canvas and controls */
-  height: min(52vh, 520px);
-  min-height: 360px;
+  height: clamp(280px, 52vh, 430px);
+  min-height: 0;
   width: 100%;
+  border-radius: 5px;
   /* Removed background color here, scene bg is now controlled by JS */
   /* background-color: var(--bg-container); */
   overflow: hidden; /* Prevents labels going outside container if needed */
@@ -210,19 +233,21 @@ body {
 /* === ADDED CSS === */
 /* Controls below the canvas */
 .visualization-controls {
-  margin-bottom: 15px; /* Space below the controls */
   display: flex;
   align-items: center; /* Align items vertically */
   flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 5px 10px; /* Spacing between items */
+  gap: 8px 12px;
 }
 
 .visualization-controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     cursor: pointer; /* Make labels clickable */
-    margin-right: 5px; /* Space after label */
+    white-space: nowrap;
+    min-height: 30px;
 }
 .visualization-controls input[type="checkbox"] {
-    margin-right: 2px; /* Space between checkbox and label */
     vertical-align: middle; /* Align checkbox with text */
 }
 .visualization-controls span {
@@ -271,11 +296,6 @@ h1, h2 { /* Keep general H1, H2 styling */
   margin-bottom: 10px;
   /* Removed padding-top from general h2, h3 */
   color: var(--text-primary);
-}
-/* Main H2 inside .visualization */
-.visualization > h2 {
-   padding-left: 5px; /* Keep slight indent for the main "Visualization" heading */
-   margin-bottom: 15px; /* More space below main heading */
 }
 
 /* Modified H1 styles specifically for the info block and copyright move */
@@ -535,6 +555,7 @@ margin: 0;
 }
 /* General Controls and Button Styling */
 button {
+  min-height: 34px;
   padding: 5px 10px;
   cursor: pointer;
   font-size: 0.95em;
@@ -592,11 +613,22 @@ select {
   min-width: 80px;
 }
 #intensityPlot {
-  margin-top: 5px;
-  margin-bottom: 15px;
+  width: 100%;
+  height: 250px;
+  overflow: hidden;
 }
 .plot-controls {
-  margin-bottom: 5px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.plot-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.plot-controls input {
+  flex-shrink: 0;
 }
 /* Add to style.css */
 
@@ -729,27 +761,10 @@ font-style: italic;
 
 /* --- Media Queries --- */
 
-/* Adapt layout for medium screens */
-@media (max-width: 1200px) {
-    .control-column { /* Adjust control column width */
-        min-width: 550px;
-    }
-    .visualization {
-        min-width: 350px; /* Allow visualization panel to shrink a bit */
-    }
-}
-
-/* Adapt layout for smaller screens (tablet portrait) */
-@media (max-width: 992px) {
-     .container {
-        flex-direction: column; /* Stack controls and visualization */
-        padding: 15px;
-    }
-    .control-column, .visualization { /* Apply to new control column */
-        flex-basis: auto; /* Allow them to take full width */
-        min-width: 0; /* Remove min-width constraint */
-        width: 100%;
-    }
+@media (max-width: 959px) {
+  .container { grid-template-columns: minmax(0, 1fr); }
+  .control-column { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #canvas-container { height: clamp(240px, 48vh, 360px); }
 }
 
 
@@ -759,15 +774,14 @@ font-style: italic;
       font-size: 13px;
       padding: 10px;
   }
-  .container { padding: 10px; }
   .control-column { gap: 10px; } /* Reduce gap in control column */
-  .add-element-box, .optical-path-box, .visualization { padding: 10px; } /* Reduce padding in boxes */
+  .add-element-box, .intensity-box, .optical-path-box, .visualization { padding: 10px; } /* Reduce padding in boxes */
   h1 {
       font-size: 1.5em; /* Adjust h1 size */
       margin: 0 10px 8px 10px; /* Adjust h1 margin */
       padding: 6px 10px; /* Adjust h1 padding */
   }
-  .add-element-box h3, .optical-path-box h3, .visualization > h2 { margin-bottom: 8px; } /* Reduce heading margins */
+  .add-element-box h3, .optical-path-box h3 { margin-bottom: 8px; } /* Reduce heading margins */
 
   .h1-info {
       font-size: 0.65em;
@@ -795,23 +809,24 @@ font-style: italic;
 
    #elements-table th, #elements-table td {
        padding: 4px 6px; /* Reduce table padding */
-       font-size: 0.85em; /* Reduce table font */
+       font-size: 12px;
    }
    td input[type="number"], td input[type="text"] {
        font-size: 0.9em;
    }
-   #canvas-container { height: 350px; } /* Reduce canvas height */
    #elements-table { min-width: 840px; }
+}
+
+@media (max-width: 639px) {
+  .control-column { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 480px) {
    body {
-       font-size: 12px;
-       padding: 6px;
+       font-size: 13px;
+       padding: 8px;
    }
-   .container { padding: 8px; }
    .control-column { gap: 8px; } /* Further reduce gap */
-   .add-element-box, .optical-path-box, .visualization { padding: 8px; } /* Further reduce padding */
    h1 {
        font-size: 1.4em; /* Adjust h1 size */
        margin: 0 8px 6px 8px;
@@ -870,14 +885,12 @@ font-style: italic;
      }
 
    #elements-table th, #elements-table td {
-       padding: 3px 4px; /* Further reduce table padding */
-       font-size: 0.8em; /* Further reduce table font */
+       padding: 5px 6px;
    }
    td input[type="number"], td input[type="text"] {
        max-width: 50px; /* Reduce input max width */
    }
    .ellipse-cell svg { width: 40px; height: 40px; } /* Smaller ellipse */
-   #canvas-container { height: 300px; } /* Reduce canvas height */
    #elements-table { min-width: 780px; }
    .source-note { text-align: left; }
 }

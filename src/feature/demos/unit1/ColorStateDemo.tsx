@@ -71,6 +71,34 @@ for (let wl = 400; wl <= 700; wl += 15) {
 /** 仪表盘/表格使用的代表波长 */
 const DIAL_WAVELENGTHS = [700, 650, 600, 550, 500, 450, 400];
 
+/** 同一光轴上的传播标记保持等速；暂停时保留当前的位置。 */
+function drawTravelCues(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  x2: number,
+  y: number,
+  color: string,
+  alpha: number,
+  time: number,
+) {
+  const spacing = 64;
+  const offset = ((time * 48 - x1) % spacing + spacing) % spacing;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let x = x1 + offset; x < x2; x += spacing) {
+    ctx.globalAlpha = alpha * Math.min(1, (x - x1) / 8, (x2 - x) / 8);
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 3);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x - 4, y + 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // ----------------------------------------------------------------------------
 // 主画布
 // ----------------------------------------------------------------------------
@@ -116,57 +144,57 @@ function SaccharimeterCanvas({
       // ---- 背景 ----
       ctx.fillStyle = "#070d1a";
       ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = "rgba(100, 150, 255, 0.05)";
+      ctx.save();
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
       ctx.lineWidth = 1;
-      for (let x = 0; x < width; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(layout.sourceX, cy);
+      ctx.lineTo(layout.screenX, cy);
+      ctx.stroke();
+      ctx.restore();
 
       // ---- 1. 白光源 ----
-      const glow = 0.55 + 0.25 * Math.sin(time * 3);
-      const lightGrad = ctx.createRadialGradient(layout.sourceX, cy, 0, layout.sourceX, cy, 52);
-      lightGrad.addColorStop(0, `rgba(255, 255, 224, ${glow})`);
-      lightGrad.addColorStop(0.4, "rgba(255, 250, 160, 0.28)");
+      const lightGrad = ctx.createRadialGradient(layout.sourceX, cy, 0, layout.sourceX, cy, 32);
+      lightGrad.addColorStop(0, "rgba(255, 255, 224, 0.42)");
+      lightGrad.addColorStop(0.4, "rgba(255, 250, 160, 0.12)");
       lightGrad.addColorStop(1, "rgba(255, 245, 120, 0)");
       ctx.fillStyle = lightGrad;
       ctx.beginPath();
-      ctx.arc(layout.sourceX, cy, 52, 0, Math.PI * 2);
+      ctx.arc(layout.sourceX, cy, 32, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#fef08a";
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(layout.sourceX, cy, 15, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#fff7ce";
+      ctx.beginPath();
+      ctx.arc(layout.sourceX, cy, 8, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#92710a";
-      ctx.font = "bold 13px sans-serif";
       ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("☀", layout.sourceX, cy + 1);
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#e2e8f0";
       ctx.font = "12px sans-serif";
       ctx.fillText("白光源", layout.sourceX, cy + 84);
 
-      // ---- 2. 非偏振光段（多方向振动刻线随时间流动）----
+      // ---- 2. 非偏振光段（固定偏振标记 + 传播箭头）----
       ctx.strokeStyle = "rgba(255, 252, 224, 0.6)";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(layout.sourceX + 18, cy);
       ctx.lineTo(layout.polarizerX - 12, cy);
       ctx.stroke();
+      drawTravelCues(ctx, layout.sourceX + 18, layout.polarizerX - 12, cy, "#fff7ce", 0.8, time);
       const seg1 = layout.polarizerX - 12 - (layout.sourceX + 18);
-      for (let i = 0; i < 5; i++) {
-        const u = (((time * 0.5 + i / 5) % 1) + 1) % 1;
-        const x = layout.sourceX + 18 + u * seg1;
-        const fade = Math.sin(u * Math.PI);
+      for (let i = 1; i <= 2; i++) {
+        const x = layout.sourceX + 18 + (i / 3) * seg1;
         for (let a = 0; a < Math.PI; a += Math.PI / 4) {
-          ctx.strokeStyle = `rgba(255, 255, 255, ${0.22 * fade})`;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+          ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.moveTo(x - 8 * Math.sin(a), cy - 8 * Math.cos(a));
-          ctx.lineTo(x + 8 * Math.sin(a), cy + 8 * Math.cos(a));
+          ctx.moveTo(x - 7 * Math.sin(a), cy - 7 * Math.cos(a));
+          ctx.lineTo(x + 7 * Math.sin(a), cy + 7 * Math.cos(a));
           ctx.stroke();
         }
       }
@@ -199,14 +227,11 @@ function SaccharimeterCanvas({
         const ax = Math.sin(rad) * rx * 0.9;
         const ay = -Math.cos(rad) * ry * 0.9;
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.6;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 7;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x - ax, cy - ay);
         ctx.lineTo(x + ax, cy + ay);
         ctx.stroke();
-        ctx.shadowBlur = 0;
         for (const s of [-1, 1]) {
           ctx.fillStyle = color;
           ctx.beginPath();
@@ -227,23 +252,22 @@ function SaccharimeterCanvas({
 
       // ---- 3. 线偏振光段 ----
       ctx.strokeStyle = "rgba(34, 211, 238, 0.8)";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(layout.polarizerX + 13, cy);
       ctx.lineTo(layout.tubeStart - 4, cy);
       ctx.stroke();
+      drawTravelCues(ctx, layout.polarizerX + 13, layout.tubeStart - 4, cy, "#22d3ee", 0.8, time);
       const rad0 = polarizerAngle * DEG;
       const seg2 = layout.tubeStart - 4 - (layout.polarizerX + 13);
-      for (let i = 0; i < 3; i++) {
-        const u = (((time * 0.5 + i / 3) % 1) + 1) % 1;
-        const x = layout.polarizerX + 13 + u * seg2;
-        const fade = Math.sin(u * Math.PI);
-        const len = 11 * fade;
-        ctx.strokeStyle = `rgba(34, 211, 238, ${0.55 * fade})`;
+      for (let i = 1; i <= 2; i++) {
+        const x = layout.polarizerX + 13 + (i / 3) * seg2;
+        const len = 9;
+        ctx.strokeStyle = "rgba(34, 211, 238, 0.65)";
         ctx.lineWidth = 1.6;
         ctx.beginPath();
-        ctx.moveTo(x - len * Math.sin(rad0), cy + len * Math.cos(rad0) * -1);
-        ctx.lineTo(x + len * Math.sin(rad0), cy - len * Math.cos(rad0) * -1);
+        ctx.moveTo(x - len * Math.sin(rad0), cy + len * Math.cos(rad0));
+        ctx.lineTo(x + len * Math.sin(rad0), cy - len * Math.cos(rad0));
         ctx.stroke();
       }
 
@@ -265,11 +289,9 @@ function SaccharimeterCanvas({
           b += s.rgb[2] * intensity;
         }
         const norm = 255 / (TUBE_SAMPLES.length * 0.55);
-        // 轻微流动的明暗涟漪，提示光在传播
-        const ripple = animate ? 0.93 + 0.07 * Math.sin(frac * 26 - time * 3.4) : 1;
-        const R = Math.min(255, r * norm * ripple);
-        const G = Math.min(255, g * norm * ripple);
-        const B = Math.min(255, b * norm * ripple);
+        const R = Math.min(255, r * norm);
+        const G = Math.min(255, g * norm);
+        const B = Math.min(255, b * norm);
         // 圆柱明暗（上下边缘暗，中心亮）
         const grad = ctx.createLinearGradient(0, cy - layout.tubeR, 0, cy + layout.tubeR);
         grad.addColorStop(0, `rgba(${R * 0.45}, ${G * 0.45}, ${B * 0.45}, 0.95)`);
@@ -304,6 +326,7 @@ function SaccharimeterCanvas({
       ctx.beginPath();
       ctx.ellipse(layout.tubeEnd, cy, 9, layout.tubeR, 0, 0, Math.PI * 2);
       ctx.stroke();
+      drawTravelCues(ctx, layout.tubeStart + 9, layout.tubeEnd - 9, cy, "#f8fafc", 0.65, time);
 
       // 管标签
       const tubeCx = (layout.tubeStart + layout.tubeEnd) / 2;
@@ -358,15 +381,12 @@ function SaccharimeterCanvas({
           const sy = -Math.cos(e.angle * DEG);
           const color = `rgb(${Math.round(e.rgb[0] * 255)}, ${Math.round(e.rgb[1] * 255)}, ${Math.round(e.rgb[2] * 255)})`;
           ctx.strokeStyle = color;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 4;
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(dialX - sx * dialR, dialY - sy * dialR);
           ctx.lineTo(dialX + sx * dialR, dialY + sy * dialR);
           ctx.stroke();
         }
-        ctx.shadowBlur = 0;
         ctx.fillStyle = "#cbd5e1";
         ctx.font = "10px sans-serif";
         ctx.textAlign = "center";
@@ -377,11 +397,12 @@ function SaccharimeterCanvas({
 
       // ---- 6. 出射段光束 + 检偏器 ----
       ctx.strokeStyle = "rgba(226, 232, 240, 0.55)";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(layout.tubeEnd + 9, cy);
       ctx.lineTo(layout.analyzerX - 14, cy);
       ctx.stroke();
+      drawTravelCues(ctx, layout.tubeEnd + 9, layout.analyzerX - 14, cy, "#e2e8f0", 0.7, time);
 
       drawPolarizerDisc(layout.analyzerX, analyzerAngle, "#c084fc", "检偏器", `θₐ = ${analyzerAngle}°`);
 
@@ -410,15 +431,16 @@ function SaccharimeterCanvas({
       ctx.save();
       ctx.strokeStyle = outColor;
       ctx.globalAlpha = beamAlpha;
-      ctx.lineWidth = 4 + 4 * brightness;
+      ctx.lineWidth = 1.6 + 1.6 * brightness;
       ctx.shadowColor = outColor;
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 4;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(layout.analyzerX + 14, cy);
       ctx.lineTo(layout.screenX - 36, cy);
       ctx.stroke();
       ctx.restore();
+      drawTravelCues(ctx, layout.analyzerX + 14, layout.screenX - 36, cy, outColor, brightness, time);
 
       // 观察屏（最终颜色色斑）
       ctx.save();
@@ -436,7 +458,7 @@ function SaccharimeterCanvas({
       );
       ctx.globalAlpha = Math.max(0.14, brightness);
       ctx.shadowColor = outColor;
-      ctx.shadowBlur = 22 * brightness;
+      ctx.shadowBlur = 8 * brightness;
       ctx.fillStyle = spotGrad;
       ctx.beginPath();
       ctx.arc(layout.screenX, cy, spotR, 0, Math.PI * 2);
@@ -474,8 +496,6 @@ function SaccharimeterCanvas({
           // 数值条
           ctx.save();
           ctx.fillStyle = color;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 5;
           ctx.fillRect(x, chartY + chartH * (1 - trans), barW, chartH * trans);
           ctx.restore();
           ctx.fillStyle = "#94a3b8";
@@ -584,130 +604,139 @@ export function ColorStateDemo() {
   );
 
   return (
-    <div className="flex flex-col gap-5 h-full">
+    <div className="@container/demo min-w-0 space-y-5">
       {/* 主可视化 + 控制面板 */}
-      <div className="flex gap-4 flex-col xl:flex-row items-start">
-        <DemoStage
-          className="flex-1 min-w-0"
-          title="量糖计光路"
-          subtitle="白光 → 起偏器 → 糖溶液 → 检偏器"
-          legend={[
-            { color: "#22d3ee", label: "起偏器", shape: "line" },
-            { color: "#c084fc", label: "检偏器", shape: "line" },
-          ]}
-        >
-          <SaccharimeterCanvas
-            polarizerAngle={polarizerAngle}
-            analyzerAngle={analyzerAngle}
-            concentration={concentration}
-            pathLength={pathLength}
-            showCharts={showCharts}
-            animate={animate}
-          />
-        </DemoStage>
+      <div className="grid items-start gap-4 @min-[960px]/demo:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="min-w-0 space-y-4">
+          <DemoStage
+            title="量糖计光路"
+            subtitle="白光 → 起偏器 → 糖溶液 → 检偏器"
+            legend={[
+              { color: "#22d3ee", label: "起偏器", shape: "line" },
+              { color: "#c084fc", label: "检偏器", shape: "line" },
+            ]}
+          >
+            <SaccharimeterCanvas
+              polarizerAngle={polarizerAngle}
+              analyzerAngle={analyzerAngle}
+              concentration={concentration}
+              pathLength={pathLength}
+              showCharts={showCharts}
+              animate={animate}
+            />
+          </DemoStage>
 
-        <ControlPanel title="控制面板" className="w-full xl:w-80 flex-shrink-0">
-          <SliderControl
-            label="起偏器角度 θ₀"
-            value={polarizerAngle}
-            min={0}
-            max={180}
-            step={5}
-            unit="°"
-            onChange={setPolarizerAngle}
-            color="cyan"
-          />
-          <SliderControl
-            label="检偏器角度 θₐ"
-            value={analyzerAngle}
-            min={0}
-            max={180}
-            step={1}
-            unit="°"
-            onChange={setAnalyzerAngle}
-            color="purple"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setAnalyzerRelative(0)}
-              className="px-2 py-1.5 rounded text-xs bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all"
-            >
-              对准钠D线（最亮）
-            </button>
-            <button
-              onClick={() => setAnalyzerRelative(90)}
-              className="px-2 py-1.5 rounded text-xs bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all"
-            >
-              正交消光（变色）
-            </button>
+          <ControlPanel>
+            <div className="grid gap-x-4 gap-y-1 @min-[600px]/demo:grid-cols-3 @min-[600px]/demo:[&>div]:flex-col @min-[600px]/demo:[&>div]:items-start @min-[600px]/demo:[&>div]:gap-1">
+              <ValueDisplay
+                label="钠D线旋转角 (589nm)"
+                value={sodiumRotation.toFixed(1)}
+                unit="°"
+                color="yellow"
+              />
+              <ValueDisplay label="最大旋转角 (400nm)" value={rotationRange.max.toFixed(1)} unit="°" color="purple" />
+              <ValueDisplay label="色散范围" value={rotationRange.spread.toFixed(1)} unit="°" color="orange" />
+            </div>
+          </ControlPanel>
+        </div>
+
+        <ControlPanel title="控制面板">
+          <div className="grid gap-4 @min-[600px]/demo:grid-cols-2 @min-[960px]/demo:grid-cols-1">
+            <div className="min-w-0 space-y-3">
+              <SliderControl
+                label="起偏器角度 θ₀"
+                value={polarizerAngle}
+                min={0}
+                max={180}
+                step={5}
+                unit="°"
+                onChange={setPolarizerAngle}
+                color="cyan"
+              />
+              <SliderControl
+                label="检偏器角度 θₐ"
+                value={analyzerAngle}
+                min={0}
+                max={180}
+                step={1}
+                unit="°"
+                onChange={setAnalyzerAngle}
+                color="purple"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setAnalyzerRelative(0)}
+                  className={`min-h-9 px-2 py-1.5 rounded text-xs border transition-colors ${theme === "dark" ? "bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30" : "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"}`}
+                >
+                  对准钠D线（最亮）
+                </button>
+                <button
+                  onClick={() => setAnalyzerRelative(90)}
+                  className={`min-h-9 px-2 py-1.5 rounded text-xs border transition-colors ${theme === "dark" ? "bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30" : "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"}`}
+                >
+                  正交消光（变色）
+                </button>
+              </div>
+            </div>
+
+            <div className="min-w-0 space-y-3">
+              <SliderControl
+                label="糖浓度"
+                value={concentration}
+                min={0}
+                max={1}
+                step={0.01}
+                unit=" g/mL"
+                onChange={setConcentration}
+                color="orange"
+                formatValue={(v) => `${v.toFixed(2)} g/mL`}
+              />
+              {/* 快速预设 */}
+              <div>
+                <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"} mb-2`}>浓度预设</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0.2, 0.5, 0.8].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setConcentration(c)}
+                      className={`min-h-9 px-2 py-1.5 rounded text-xs transition-colors ${
+                        concentration === c
+                          ? theme === "dark"
+                            ? "bg-orange-500/30 text-orange-400 border border-orange-500/50"
+                            : "bg-orange-50 text-orange-700 border border-orange-300"
+                          : theme === "dark"
+                            ? "bg-slate-700/50 text-gray-400 border border-slate-600 hover:border-orange-400/30"
+                            : "bg-gray-100/50 text-gray-600 border border-gray-300 hover:border-orange-400/30"
+                      }`}
+                    >
+                      {c} g/mL
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <SliderControl
+                label="管长"
+                value={pathLength}
+                min={1}
+                max={10}
+                step={0.5}
+                unit=" dm"
+                onChange={setPathLength}
+                color="green"
+              />
+            </div>
           </div>
 
-          <SliderControl
-            label="糖浓度"
-            value={concentration}
-            min={0}
-            max={1}
-            step={0.01}
-            unit=" g/mL"
-            onChange={setConcentration}
-            color="orange"
-            formatValue={(v) => `${v.toFixed(2)} g/mL`}
-          />
-          <SliderControl
-            label="管长"
-            value={pathLength}
-            min={1}
-            max={10}
-            step={0.5}
-            unit=" dm"
-            onChange={setPathLength}
-            color="green"
-          />
-
-          <div className="flex gap-3">
+          <div className={`flex flex-wrap gap-x-6 gap-y-3 pt-3 border-t ${theme === "dark" ? "border-slate-700" : "border-gray-300"}`}>
             <Toggle label="分析图表" checked={showCharts} onChange={setShowCharts} />
             <Toggle label="动画" checked={animate} onChange={setAnimate} />
-          </div>
-
-          {/* 实时数据 */}
-          <div className={`pt-3 border-t ${theme === "dark" ? "border-slate-700" : "border-gray-300"} space-y-2`}>
-            <ValueDisplay
-              label="钠D线旋转角 (589nm)"
-              value={sodiumRotation.toFixed(1)}
-              unit="°"
-              color="yellow"
-            />
-            <ValueDisplay label="最大旋转角 (400nm)" value={rotationRange.max.toFixed(1)} unit="°" color="purple" />
-            <ValueDisplay label="色散范围" value={rotationRange.spread.toFixed(1)} unit="°" color="orange" />
-          </div>
-
-          {/* 快速预设 */}
-          <div className={`pt-3 border-t ${theme === "dark" ? "border-slate-700" : "border-gray-300"}`}>
-            <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-600"} mb-2`}>浓度预设</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[0.2, 0.5, 0.8].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setConcentration(c)}
-                  className={`px-2 py-1.5 rounded text-xs transition-all ${
-                    concentration === c
-                      ? "bg-orange-500/30 text-orange-400 border border-orange-500/50"
-                      : theme === "dark"
-                        ? "bg-slate-700/50 text-gray-400 border border-slate-600 hover:border-orange-400/30"
-                        : "bg-gray-100/50 text-gray-600 border border-gray-300 hover:border-orange-400/30"
-                  }`}
-                >
-                  {c} g/mL
-                </button>
-              ))}
-            </div>
           </div>
         </ControlPanel>
       </div>
 
       {/* 公式和数值表格 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-1 gap-4 @min-[700px]/demo:grid-cols-2">
+        <ControlPanel title="旋光规律" className="h-full">
           <Formula highlight>$\Phi = [\alpha]_\lambda \cdot c \cdot L$</Formula>
           <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-2 space-y-1`}>
             <p>
@@ -742,7 +771,7 @@ export function ColorStateDemo() {
               <span className="text-red-400">700nm (红): ~45°</span>
             </div>
           </div>
-        </div>
+        </ControlPanel>
 
         <ControlPanel title="各波长旋转角" className="h-full">
           <RotationTable concentration={concentration} pathLength={pathLength} />
@@ -751,7 +780,7 @@ export function ColorStateDemo() {
 
       {/* 信息卡片 */}
       <DemoSection title="原理与应用" icon={<BookOpen className="w-3.5 h-3.5" />}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 @min-[640px]/demo:grid-cols-2 @min-[960px]/demo:grid-cols-3">
           <InfoCard title="旋光性原理" color="cyan">
             <ul className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"} space-y-1.5`}>
               <ListItem>• 糖分子具有手性结构，存在对映异构体</ListItem>

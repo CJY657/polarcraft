@@ -81,10 +81,10 @@ export function SliderControl({
   const percentage = range > 0 ? Math.max(0, Math.min(100, ((value - min) / range) * 100)) : 0;
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm">
-        <label htmlFor={inputId} className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>{label}</label>
-        <span className={cn("font-mono", textColorClass)}>{displayValue}</span>
+    <div className="min-w-0 space-y-2">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <label htmlFor={inputId} className={cn("min-w-0 leading-5", theme === "dark" ? "text-gray-400" : "text-gray-600")}>{label}</label>
+        <span className={cn("shrink-0 font-mono tabular-nums", textColorClass)}>{displayValue}</span>
       </div>
       <div className="relative">
         <div
@@ -103,30 +103,28 @@ export function SliderControl({
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className={cn(
-            "relative z-10 w-full h-6 rounded-lg appearance-none cursor-pointer bg-transparent",
+            "relative z-10 w-full h-6 rounded-lg appearance-none cursor-pointer bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-500",
             "[&::-webkit-slider-thumb]:appearance-none",
             "[&::-webkit-slider-thumb]:w-4",
             "[&::-webkit-slider-thumb]:h-4",
             "[&::-webkit-slider-thumb]:rounded-full",
             "[&::-webkit-slider-thumb]:cursor-pointer",
-            "[&::-webkit-slider-thumb]:transition-transform motion-reduce:[&::-webkit-slider-thumb]:transition-none",
-            "[&::-webkit-slider-thumb]:hover:scale-110",
             "[&::-moz-range-thumb]:w-4",
             "[&::-moz-range-thumb]:h-4",
             "[&::-moz-range-thumb]:rounded-full",
             "[&::-moz-range-thumb]:border-0",
             color === "cyan" &&
-              "[&::-webkit-slider-thumb]:bg-cyan-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(34,211,238,0.5)] [&::-moz-range-thumb]:bg-cyan-400",
+              "[&::-webkit-slider-thumb]:bg-cyan-400 [&::-moz-range-thumb]:bg-cyan-400",
             color === "red" &&
-              "[&::-webkit-slider-thumb]:bg-red-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(248,113,113,0.5)] [&::-moz-range-thumb]:bg-red-400",
+              "[&::-webkit-slider-thumb]:bg-red-400 [&::-moz-range-thumb]:bg-red-400",
             color === "green" &&
-              "[&::-webkit-slider-thumb]:bg-green-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(74,222,128,0.5)] [&::-moz-range-thumb]:bg-green-400",
+              "[&::-webkit-slider-thumb]:bg-green-400 [&::-moz-range-thumb]:bg-green-400",
             color === "blue" &&
-              "[&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(96,165,250,0.5)] [&::-moz-range-thumb]:bg-blue-400",
+              "[&::-webkit-slider-thumb]:bg-blue-400 [&::-moz-range-thumb]:bg-blue-400",
             color === "orange" &&
-              "[&::-webkit-slider-thumb]:bg-orange-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(251,146,60,0.5)] [&::-moz-range-thumb]:bg-orange-400",
+              "[&::-webkit-slider-thumb]:bg-orange-400 [&::-moz-range-thumb]:bg-orange-400",
             color === "purple" &&
-              "[&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(192,132,252,0.5)] [&::-moz-range-thumb]:bg-purple-400",
+              "[&::-webkit-slider-thumb]:bg-purple-400 [&::-moz-range-thumb]:bg-purple-400",
           )}
         />
       </div>
@@ -159,12 +157,12 @@ export function PresetButtons({ options, value, onChange, columns = 2 }: PresetB
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
           className={cn(
-            "px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200",
-            "border hover:scale-[1.02] active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
+            "min-h-10 min-w-0 rounded-lg px-2 py-2 text-xs font-medium leading-5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+            "border motion-reduce:transition-none",
             value === option.value
               ? theme === "dark"
-                ? "bg-gradient-to-r from-cyan-400/30 to-blue-400/30 text-cyan-300 border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
-                : "bg-gradient-to-r from-cyan-100 to-blue-100 text-cyan-700 border-cyan-300 shadow-sm"
+                ? "bg-cyan-400/15 text-cyan-300 border-cyan-400/50"
+                : "bg-cyan-50 text-cyan-700 border-cyan-300"
               : theme === "dark"
                 ? "bg-slate-800/50 text-gray-400 border-slate-600/50 hover:border-cyan-400/30 hover:text-gray-300"
                 : "bg-white text-gray-600 border-gray-200 hover:border-cyan-300 hover:text-gray-800",
@@ -187,16 +185,16 @@ interface ToggleProps {
 export function Toggle({ label, checked, onChange }: ToggleProps) {
   const { theme } = useTheme();
   return (
-    <label className="flex items-center gap-3 cursor-pointer">
+    <label className="flex min-h-9 min-w-0 cursor-pointer items-center gap-3">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="sr-only"
+        className="peer sr-only"
       />
       <div
         className={cn(
-          "w-10 h-5 rounded-full transition-colors relative",
+          "w-10 h-5 shrink-0 rounded-full transition-colors duration-200 motion-reduce:transition-none relative peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-500 peer-focus-visible:ring-offset-2",
           checked
             ? theme === "dark"
               ? "bg-cyan-400/30"
@@ -208,7 +206,7 @@ export function Toggle({ label, checked, onChange }: ToggleProps) {
       >
         <div
           className={cn(
-            "absolute top-0.5 w-4 h-4 rounded-full transition-transform motion-reduce:transition-none",
+            "absolute top-0.5 w-4 h-4 rounded-full transition-transform duration-200 ease-out motion-reduce:transition-none",
             checked
               ? theme === "dark"
                 ? "translate-x-5 bg-cyan-400"
@@ -257,11 +255,11 @@ export function ValueDisplay({ label, value, unit = "", color = "cyan" }: ValueD
   const colorClasses = theme === "dark" ? colorClassesDark : colorClassesLight;
 
   return (
-    <div className="flex justify-between items-center py-1">
-      <span className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+    <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-1">
+      <span className={cn("min-w-0 text-sm leading-5", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
         {label}
       </span>
-      <span className={cn("font-mono text-sm", colorClasses[color] || colorClasses.cyan)}>
+      <span className={cn("min-w-0 font-mono text-sm tabular-nums", colorClasses[color] || colorClasses.cyan)}>
         {value}
         {unit}
       </span>
@@ -281,24 +279,24 @@ export function ControlPanel({ title, children, className }: ControlPanelProps) 
   return (
     <div
       className={cn(
-        "rounded-xl p-4 border backdrop-blur-sm",
+        "min-w-0 rounded-2xl border p-4",
         theme === "dark"
-          ? "bg-slate-800/70 border-cyan-400/20"
-          : "bg-white/90 border-cyan-200 shadow-sm",
+          ? "bg-slate-800/70 border-slate-700"
+          : "bg-white border-slate-200 shadow-sm",
         className,
       )}
     >
       {title && (
         <h3
           className={cn(
-            "text-base font-semibold mb-3",
-            theme === "dark" ? "text-white" : "text-gray-800",
+            "mb-4 border-b pb-3 text-sm font-semibold leading-5",
+            theme === "dark" ? "border-slate-700 text-white" : "border-slate-100 text-gray-800",
           )}
         >
           {title}
         </h3>
       )}
-      <div className="space-y-3">{children}</div>
+      <div className="min-w-0 space-y-4">{children}</div>
     </div>
   );
 }
@@ -315,7 +313,7 @@ export function Formula({ children, className, highlight = false }: FormulaProps
   return (
     <div
       className={cn(
-        "font-mono px-4 py-3 rounded-lg text-center transition-all",
+        "min-w-0 max-w-full overflow-x-auto rounded-lg px-3 py-3 text-center font-mono sm:px-4",
         theme === "dark" ? "text-cyan-400" : "text-cyan-700",
         highlight
           ? theme === "dark"
@@ -428,7 +426,7 @@ export function InfoCard({ title, icon, color = "cyan", children, className }: I
   return (
     <div
       className={cn(
-        "rounded-xl border backdrop-blur-sm overflow-hidden shadow-sm",
+        "min-w-0 rounded-2xl border overflow-hidden shadow-sm",
         "bg-gradient-to-br",
         colors.border,
         colors.bg,
@@ -437,13 +435,13 @@ export function InfoCard({ title, icon, color = "cyan", children, className }: I
     >
       <div className={cn("px-4 py-3 border-b flex items-center gap-3", colors.headerBorder)}>
         {icon && (
-          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colors.icon)}>
+          <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colors.icon)}>
             {icon}
           </div>
         )}
         <h4 className={cn("font-semibold text-sm", colors.title)}>{title}</h4>
       </div>
-      <div className="p-4">{children}</div>
+      <div className="min-w-0 p-4 leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -531,12 +529,12 @@ export function AnimatedValue({
     typeof value === "number" && !isNaN(value) && isFinite(value) ? value.toFixed(decimals) : "0";
 
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center">
-        <span className={cn("text-sm", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
+    <div className="min-w-0 space-y-1.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className={cn("min-w-0 text-sm leading-5", theme === "dark" ? "text-gray-400" : "text-gray-600")}>
           {label}
         </span>
-        <span className={cn("font-mono text-sm font-semibold", colors.text)}>
+        <span className={cn("shrink-0 font-mono text-sm font-semibold tabular-nums", colors.text)}>
           {displayValue}
           {unit}
         </span>

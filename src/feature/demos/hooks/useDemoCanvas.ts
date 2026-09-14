@@ -50,6 +50,7 @@ export function useDemoCanvas({
   const timeScaleRef = useRef(timeScale);
   timeScaleRef.current = timeScale;
   const timeRef = useRef(0);
+  const redrawRef = useRef(() => {});
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,20 +61,42 @@ export function useDemoCanvas({
     let rafId = 0;
     let lastTimestamp: number | null = null;
     let cssScale = 1;
-    let lastPausedDraw = 0;
-    let reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const loop = (timestamp: number) => {
+      rafId = 0;
+      if (document.hidden) {
+        lastTimestamp = null;
+        return;
+      }
+      const shouldAnimate = !pausedRef.current && !motionQuery.matches && timeScaleRef.current > 0;
+      // Keep pause/resume and a return from another tab on the same wavefront.
+      const dt = shouldAnimate && lastTimestamp !== null
+        ? Math.min(0.05, (timestamp - lastTimestamp) / 1000)
+        : 0;
+      lastTimestamp = shouldAnimate ? timestamp : null;
+      timeRef.current += dt * timeScaleRef.current;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.setTransform(cssScale * dpr, 0, 0, cssScale * dpr, 0, 0);
+      drawRef.current({ ctx, width, height, time: timeRef.current, dt });
+
+      if (shouldAnimate) rafId = requestAnimationFrame(loop);
+    };
+    const redraw = () => {
+      if (!rafId && !document.hidden) rafId = requestAnimationFrame(loop);
+    };
+    redrawRef.current = redraw;
 
     const resize = () => {
       const parent = canvas.parentElement;
       let available = width;
       if (parent) {
-        // clientWidth 含内边距，需要减去才是真正可用的内容宽度
+        // clientWidth includes padding; use the actual content width.
         const style = window.getComputedStyle(parent);
-        available =
-          parent.clientWidth -
-          (parseFloat(style.paddingLeft) || 0) -
-          (parseFloat(style.paddingRight) || 0);
+        available = parent.clientWidth
+          - (parseFloat(style.paddingLeft) || 0)
+          - (parseFloat(style.paddingRight) || 0);
       }
       cssScale = Math.max(0.1, Math.min(1, available / width));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -81,45 +104,35 @@ export function useDemoCanvas({
       canvas.height = Math.round(height * cssScale * dpr);
       canvas.style.width = `${width * cssScale}px`;
       canvas.style.height = `${height * cssScale}px`;
+      redraw();
     };
 
     resize();
     const observer = new ResizeObserver(resize);
     if (canvas.parentElement) observer.observe(canvas.parentElement);
 
-    const loop = (timestamp: number) => {
-      if (lastTimestamp === null) lastTimestamp = timestamp;
-      // 限制 dt 防止切后台回来后的大跳变
-      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
-      lastTimestamp = timestamp;
-      const shouldAnimate = !pausedRef.current && !document.hidden && !reducedMotion;
-      if (shouldAnimate) {
-        timeRef.current += dt * timeScaleRef.current;
-      }
-
-      // Keep static scenes responsive to control changes without running a full
-      // render loop while paused, hidden, or in reduced-motion mode.
-      if (shouldAnimate || timestamp - lastPausedDraw >= 250) {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        ctx.setTransform(cssScale * dpr, 0, 0, cssScale * dpr, 0, 0);
-        drawRef.current({ ctx, width, height, time: timeRef.current, dt });
-        lastPausedDraw = timestamp;
-      }
-
-      rafId = requestAnimationFrame(loop);
+    const onPlaybackChange = () => {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+      lastTimestamp = null;
+      redraw();
     };
-    rafId = requestAnimationFrame(loop);
-    const onMotionPreferenceChange = (event: MediaQueryListEvent) => {
-      reducedMotion = event.matches;
-    };
-    motionQuery.addEventListener("change", onMotionPreferenceChange);
+    motionQuery.addEventListener("change", onPlaybackChange);
+    document.addEventListener("visibilitychange", onPlaybackChange);
 
     return () => {
       cancelAnimationFrame(rafId);
       observer.disconnect();
-      motionQuery.removeEventListener("change", onMotionPreferenceChange);
+      motionQuery.removeEventListener("change", onPlaybackChange);
+      document.removeEventListener("visibilitychange", onPlaybackChange);
+      redrawRef.current = () => {};
     };
   }, [width, height]);
+
+  // Parameter changes redraw a frozen scene immediately, without an idle loop.
+  useEffect(() => {
+    redrawRef.current();
+  });
 
   return canvasRef;
 }

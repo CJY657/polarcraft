@@ -89,7 +89,7 @@ window.initCanvas = function(canvasElement, initialElements) {
 
     renderer = new THREE.WebGLRenderer({ canvas: canvasElement, antialias: true });
     renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     const css2dContainer = document.getElementById('css2d-renderer');
     if (!css2dContainer) { console.error("CSS2D Renderer container div ('#css2d-renderer') not found!"); return; }
@@ -849,6 +849,7 @@ function onWindowResize() {
 // =============================================================================
 function animateCanvas() {
     requestAnimationFrame(animateCanvas);
+    if (document.hidden) return;
     controls.update();
     renderer.render(scene, camera);
     if (css2DRenderer) { css2DRenderer.render(scene, camera); }

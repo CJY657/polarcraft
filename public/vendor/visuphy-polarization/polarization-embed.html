@@ -13,11 +13,37 @@
 </head>
 <body>
     <div class="container">
-        <!-- START: New Wrapper for Control Elements -->
-        <div class="control-column">
-             <!-- REMOVED Overall H2 Heading -->
+        <div class="visualization">
+            <div class="visualization-header">
+                <h2>3D Visualization</h2>
+                <button id="theme-toggle-btn" title="Toggle Canvas Theme (Light/Dark)">
+                    Theme
+                </button>
+            </div>
 
-             <!-- Box for Adding Elements -->
+            <div id="canvas-container">
+                <canvas id="visualizationCanvas"></canvas>
+                <div id="css2d-renderer"></div>
+            </div>
+            <div class="visualization-controls">
+                <button id="play-pause-btn">Play</button>
+                <span>Show:</span>
+                <label for="show-labels-checkbox">
+                    <input type="checkbox" id="show-labels-checkbox" checked>
+                    Labels
+                </label>
+                <label for="show-efield-checkbox">
+                    <input type="checkbox" id="show-efield-checkbox" checked>
+                    E-Field
+                </label>
+                <label for="show-envelope-checkbox">
+                    <input type="checkbox" id="show-envelope-checkbox" checked>
+                    Envelope
+                </label>
+            </div>
+        </div>
+
+        <div class="control-column">
              <div class="add-element-box">
                  <h3>Add New Element</h3>
                  <div class="add-element-controls">
@@ -35,72 +61,50 @@
                  </div>
              </div>
 
-             <!-- Box for Optical Path Table -->
-             <div class="optical-path-box">
-                 <div class="optical-path-header">
-                     <h3>Optical Path</h3>
-                     <div class="table-actions">
-                         <button id="export-btn" title="Export current setup to XML file">
-                             Export Setup
-                         </button>
-                         <button id="import-btn" title="Import setup from XML file (replaces current)">
-                             Import Setup
-                         </button>
-                         <input type="file" id="import-file-input" accept=".xml,application/xml" style="display: none;">
-                     </div>
+             <div class="intensity-box">
+                 <div id="intensityPlot"></div>
+                 <div class="plot-controls">
+                     <label for="show-elements-checkbox">
+                         <input type="checkbox" id="show-elements-checkbox" checked>
+                         Show Element Positions on Plot
+                     </label>
                  </div>
-                 <table id="elements-table">
-                     <thead>
-                         <tr>
-                             <th>Type</th>
-                             <th>Position (z)</th>
-                             <th>Properties</th>
-                             <th>Ellipse</th>
-                             <th>Output Vector [Ex, Ey]</th>
-                             <th>Intensity</th>
-                             <th>Actions</th>
-                         </tr>
-                     </thead>
-                     <tbody>
-                         <!-- Table rows will be added here -->
-                     </tbody>
-                 </table>
-                 <p>Note: Angles/Retardation in degrees.</p>
              </div>
         </div>
-        <!-- END: New Wrapper for Control Elements -->
 
-        <div class="visualization">
-          <h2>3D Visualization & Intensity</h2>
-
-          <div class="theme-toggle-container">
-               <button id="theme-toggle-btn" title="Toggle Canvas Theme (Light/Dark)">
-                   Theme
-               </button>
-          </div>
-
-          <div id="canvas-container">
-              <canvas id="visualizationCanvas"></canvas>
-              <div id="css2d-renderer"></div>
-          </div>
-           <div class="visualization-controls">
-               <button id="play-pause-btn">
-                   Play
-               </button>
-               <span style="margin-left: 15px;">Show:</span>
-               <input type="checkbox" id="show-labels-checkbox" checked>
-               <label for="show-labels-checkbox">Labels</label>
-               <input type="checkbox" id="show-efield-checkbox" checked>
-               <label for="show-efield-checkbox">E-Field</label>
-               <input type="checkbox" id="show-envelope-checkbox" checked>
-               <label for="show-envelope-checkbox">Envelope</label>
-          </div>
-          <div class="plot-controls" style="margin-top: 15px;">
-               <input type="checkbox" id="show-elements-checkbox" checked>
-               <label for="show-elements-checkbox">Show Element Positions on Plot</label>
-          </div>
-           <div id="intensityPlot" style="width:100%;height:250px;"></div>
-      </div>
+        <div class="optical-path-box">
+            <div class="optical-path-header">
+                <h3>Optical Path</h3>
+                <div class="table-actions">
+                    <button id="export-btn" title="Export current setup to XML file">
+                        Export Setup
+                    </button>
+                    <button id="import-btn" title="Import setup from XML file (replaces current)">
+                        Import Setup
+                    </button>
+                    <input type="file" id="import-file-input" accept=".xml,application/xml" style="display: none;">
+                </div>
+            </div>
+            <div class="optical-path-table" role="region" aria-label="Optical path elements" tabindex="0">
+                <table id="elements-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Position (z)</th>
+                            <th>Properties</th>
+                            <th>Ellipse</th>
+                            <th>Output Vector [Ex, Ey]</th>
+                            <th>Intensity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Table rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            <p>Note: Angles/Retardation in degrees.</p>
+        </div>
     </div>
 
     <script src="script.js"></script>

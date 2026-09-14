@@ -7,12 +7,51 @@
  * @module Birefringence3D
  */
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, type MutableRefObject, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text, Line, Grid, MeshTransmissionMaterial, Sparkles } from "@react-three/drei";
+import { Html, Line, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import type { BirefringenceParams } from "@/lib/physics/GeometricOptics";
 import { calculateBirefringenceRayPaths } from "@/lib/physics/GeometricOptics";
+
+function SceneLabel({
+  position,
+  fontSize,
+  color,
+  anchorX = "center",
+  offset = [0, 0],
+  children,
+}: {
+  position: THREE.Vector3 | [number, number, number];
+  fontSize: number;
+  color: string;
+  anchorX?: "left" | "center" | "right";
+  offset?: [number, number];
+  children: ReactNode;
+}) {
+  // System-font labels keep the optical scene independent of remote glyph downloads.
+  return (
+    <Html
+      position={position}
+      zIndexRange={[0, 0]}
+      wrapperClass="pointer-events-none"
+      style={{
+        color,
+        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+        fontSize: Math.max(10, fontSize * 100),
+        fontWeight: 500,
+        lineHeight: 1.4,
+        whiteSpace: "nowrap",
+        pointerEvents: "none",
+        userSelect: "none",
+        textShadow: "0 1px 3px #070d1a",
+        transform: `translate(${anchorX === "left" ? 0 : anchorX === "right" ? -100 : -50}%, -50%) translate(${offset[0]}px, ${offset[1]}px)`,
+      }}
+    >
+      {children}
+    </Html>
+  );
+}
 
 // ============================================================================
 // 晶体组件 | CRYSTAL COMPONENTS
@@ -80,23 +119,18 @@ export function CalciteCrystal({
   return (
     <group rotation={rotation}>
       <mesh geometry={geometry}>
-        <MeshTransmissionMaterial
-          color="#dceeff"
-          transmission={0.96}
-          thickness={0.8}
-          roughness={0.09}
-          ior={1.658} // 方解石折射率 | Calcite refractive index
-          chromaticAberration={0.06}
-          anisotropicBlur={0.12}
-          distortion={0.03}
-          distortionScale={0.3}
-          temporalDistortion={0.02}
-          samples={5}
-          resolution={512}
+        <meshPhongMaterial
+          color="#a7c8de"
+          transparent
+          opacity={0.2}
+          shininess={42}
+          specular="#b8dcee"
+          side={THREE.DoubleSide}
+          depthWrite={false}
         />
       </mesh>
       <lineSegments geometry={edges}>
-        <lineBasicMaterial color="#bae6fd" transparent opacity={0.55} />
+        <lineBasicMaterial color="#bae6fd" transparent opacity={0.6} />
       </lineSegments>
     </group>
   );
@@ -110,7 +144,7 @@ function RayArrowHead({
   start,
   end,
   color,
-  size = 0.12,
+  size = 0.075,
 }: {
   start: THREE.Vector3;
   end: THREE.Vector3;
@@ -148,43 +182,30 @@ function pointAtY(start: THREE.Vector3, end: THREE.Vector3, y: number) {
  * 入射光组件 | Incident Ray Component
  *
  * @param params - 双折射参数 | Birefringence parameters
- * @param animate - 是否启用动画 | Whether to enable animation
  */
 export function IncidentRay({
   params,
-  animate,
 }: {
   params: BirefringenceParams;
-  animate: boolean;
 }) {
-  const lineRef = useRef<any>(null);
   const rayPaths = useMemo(
     () => calculateBirefringenceRayPaths(params, 3),
     [params]
   );
-// 入射光脉冲动画 | Incident ray pulse animation
-  useFrame((state) => {
-    if (animate && lineRef.current) {
-      const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.75 + 0.25 * Math.sin(state.clock.elapsedTime * 3);
-      material.opacity = pulse;
-    }
-  });
 
   return (
     <>
       <Line
-        ref={lineRef}
         points={[rayPaths.incidentStart, rayPaths.incidentEnd]}
-        color="#ffdd00"
-        lineWidth={3}
-        opacity={1}
+        color="#fbbf24"
+        lineWidth={2}
+        opacity={0.85}
         transparent
       />
       <RayArrowHead
         start={rayPaths.incidentStart}
         end={rayPaths.incidentEnd}
-        color="#ffdd00"
+        color="#fbbf24"
       />
     </>
   );
@@ -195,37 +216,24 @@ export function IncidentRay({
  * 严格遵循斯涅尔定律 | Follows Snell's law exactly
  *
  * @param params - 双折射参数 | Birefringence parameters
- * @param animate - 是否启用动画 | Whether to enable animation
  */
 export function OrdinaryRay({
   params,
-  animate,
 }: {
   params: BirefringenceParams;
-  animate: boolean;
 }) {
-  const lineRef = useRef<any>(null);
   const rayPaths = useMemo(
     () => calculateBirefringenceRayPaths(params, 3),
     [params]
   );
 
-  useFrame((state) => {
-    if (animate && lineRef.current) {
-      const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.72 + 0.28 * Math.sin(state.clock.elapsedTime * 3 + Math.PI);
-      material.opacity = pulse;
-    }
-  });
-
   return (
     <>
       <Line
-        ref={lineRef}
         points={[rayPaths.incidentEnd, rayPaths.oRayEnd]}
-        color="#00ffff"
-        lineWidth={2}
-        opacity={0.8}
+        color="#67e8f9"
+        lineWidth={1.5}
+        opacity={0.65}
         transparent
         dashed
         dashScale={5}
@@ -234,8 +242,8 @@ export function OrdinaryRay({
       <RayArrowHead
         start={rayPaths.incidentEnd}
         end={rayPaths.oRayEnd}
-        color="#00ffff"
-        size={0.1}
+        color="#67e8f9"
+        size={0.065}
       />
     </>
   );
@@ -246,37 +254,24 @@ export function OrdinaryRay({
  * 根据晶体取向偏离斯涅尔定律 | Deviates from Snell's law based on crystal orientation
  *
  * @param params - 双折射参数 | Birefringence parameters
- * @param animate - 是否启用动画 | Whether to enable animation
  */
 export function ExtraordinaryRay({
   params,
-  animate,
 }: {
   params: BirefringenceParams;
-  animate: boolean;
 }) {
-  const lineRef = useRef<any>(null);
   const rayPaths = useMemo(
     () => calculateBirefringenceRayPaths(params, 3),
     [params]
   );
 
-  useFrame((state) => {
-    if (animate && lineRef.current) {
-      const material = lineRef.current.material as THREE.LineBasicMaterial;
-      const pulse = 0.72 + 0.28 * Math.sin(state.clock.elapsedTime * 3 + Math.PI / 2);
-      material.opacity = pulse;
-    }
-  });
-
   return (
     <>
       <Line
-        ref={lineRef}
         points={[rayPaths.incidentEnd, rayPaths.eRayEnd]}
-        color="#ff00ff"
-        lineWidth={2}
-        opacity={0.8}
+        color="#c4b5fd"
+        lineWidth={1.5}
+        opacity={0.65}
         transparent
         dashed
         dashScale={5}
@@ -285,8 +280,8 @@ export function ExtraordinaryRay({
       <RayArrowHead
         start={rayPaths.incidentEnd}
         end={rayPaths.eRayEnd}
-        color="#ff00ff"
-        size={0.1}
+        color="#c4b5fd"
+        size={0.065}
       />
     </>
   );
@@ -299,14 +294,14 @@ export function ExtraordinaryRay({
  */
 export function PhotonFlow({
   params,
+  animationTime,
   showORay = true,
   showERay = true,
-  enabled = true,
 }: {
   params: BirefringenceParams;
+  animationTime: MutableRefObject<number>;
   showORay?: boolean;
   showERay?: boolean;
-  enabled?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const rayPaths = useMemo(
@@ -315,21 +310,24 @@ export function PhotonFlow({
   );
   const PULSES = 3;
 
-  useFrame((state) => {
+  useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
-    group.visible = enabled;
-    if (!enabled) return;
 
-    const t = state.clock.elapsedTime;
+    const t = animationTime.current;
     for (let i = 0; i < PULSES; i++) {
       const pulseGroup = group.children[i] as THREE.Group | undefined;
       if (!pulseGroup || pulseGroup.children.length < 3) continue;
-      const phase = (((t * 0.4 + i / PULSES) % 1) + 1) % 1;
+      const phase = (t * 0.16 + i / PULSES) % 1;
       const p2 = phase * 2; // 前半程：入射段；后半程：o/e 两路
       const incident = pulseGroup.children[0] as THREE.Mesh;
       const oPulse = pulseGroup.children[1] as THREE.Mesh;
       const ePulse = pulseGroup.children[2] as THREE.Mesh;
+      // Fade only at the source and endpoints so each packet loops without a pop.
+      const opacity = 0.92 * Math.min(1, phase / 0.035, (1 - phase) / 0.035);
+      for (const pulse of [incident, oPulse, ePulse]) {
+        (pulse.material as THREE.MeshBasicMaterial).opacity = opacity;
+      }
 
       if (p2 < 1) {
         incident.visible = true;
@@ -352,7 +350,6 @@ export function PhotonFlow({
       color={color}
       transparent
       opacity={0.95}
-      blending={THREE.AdditiveBlending}
       depthWrite={false}
     />
   );
@@ -362,16 +359,16 @@ export function PhotonFlow({
       {Array.from({ length: PULSES }).map((_, i) => (
         <group key={i}>
           <mesh>
-            <sphereGeometry args={[0.06, 12, 12]} />
+            <sphereGeometry args={[0.05, 12, 12]} />
             {pulseMaterial("#ffe066")}
           </mesh>
           <mesh>
-            <sphereGeometry args={[0.05, 12, 12]} />
+            <sphereGeometry args={[0.043, 12, 12]} />
             {pulseMaterial("#67e8f9")}
           </mesh>
           <mesh>
-            <sphereGeometry args={[0.05, 12, 12]} />
-            {pulseMaterial("#f0abfc")}
+            <sphereGeometry args={[0.043, 12, 12]} />
+            {pulseMaterial("#ddd6fe")}
           </mesh>
         </group>
       ))}
@@ -413,45 +410,47 @@ export function CrystalInternalPaths({
           <Line
             points={[rayPaths.incidentEnd, oExit]}
             color="#67e8f9"
-            lineWidth={5}
-            opacity={0.98}
+            lineWidth={2.8}
+            opacity={0.95}
             transparent
           />
           <mesh position={oExit}>
             <sphereGeometry args={[0.06, 20, 20]} />
             <meshBasicMaterial color="#67e8f9" />
           </mesh>
-          <Text
-            position={oExit.clone().add(new THREE.Vector3(0.12, 0.08, -0.08))}
+          <SceneLabel
+            position={oExit}
             fontSize={0.08}
             color="#a5f3fc"
-            anchorX="left"
+            anchorX="right"
+            offset={[-10, -10]}
           >
             o光出射
-          </Text>
+          </SceneLabel>
         </>
       )}
       {showERay && (
         <>
           <Line
             points={[rayPaths.incidentEnd, eExit]}
-            color="#f472b6"
-            lineWidth={5}
-            opacity={0.98}
+            color="#c4b5fd"
+            lineWidth={2.8}
+            opacity={0.95}
             transparent
           />
           <mesh position={eExit}>
             <sphereGeometry args={[0.06, 20, 20]} />
-            <meshBasicMaterial color="#f472b6" />
+            <meshBasicMaterial color="#c4b5fd" />
           </mesh>
-          <Text
-            position={eExit.clone().add(new THREE.Vector3(0.12, -0.08, 0.08))}
+          <SceneLabel
+            position={eExit}
             fontSize={0.08}
-            color="#f9a8d4"
-            anchorX="left"
+            color="#ddd6fe"
+            anchorX="right"
+            offset={[-10, 10]}
           >
             e光出射
-          </Text>
+          </SceneLabel>
         </>
       )}
       {showORay && showERay && (
@@ -463,14 +462,14 @@ export function CrystalInternalPaths({
           transparent
         />
       )}
-      <Text
+      <SceneLabel
         position={[0.26, 0.38, -0.5]}
         fontSize={0.1}
         color="#e0f2fe"
         anchorX="left"
       >
         晶体内光路
-      </Text>
+      </SceneLabel>
     </>
   );
 }
@@ -490,7 +489,7 @@ export function OpticalAxisIndicator() {
         new THREE.Vector3(0, -2, 0),
         new THREE.Vector3(0, 2, 0),
       ]}
-      color="#ff8800"
+      color="#fb923c"
       lineWidth={1}
       opacity={0.5}
       transparent
@@ -506,19 +505,29 @@ export function OpticalAxisIndicator() {
  *
  * @param params - 双折射参数 | Birefringence parameters
  */
-export function PolarizationIndicators({ params }: { params: BirefringenceParams }) {
+export function PolarizationIndicators({
+  params,
+  animationTime,
+  showORay = true,
+  showERay = true,
+}: {
+  params: BirefringenceParams;
+  animationTime: MutableRefObject<number>;
+  showORay?: boolean;
+  showERay?: boolean;
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const rayPaths = useMemo(
     () => calculateBirefringenceRayPaths(params, 3),
     [params]
   );
 
-  useFrame((state) => {
+  useFrame(() => {
     if (groupRef.current) {
-      // 偏振指示器振荡动画 | Animate polarization indicators oscillating
-      const oscillation = Math.sin(state.clock.elapsedTime * 8) * 0.1;
-      groupRef.current.children.forEach((child, i) => {
-        child.scale.y = 1 + oscillation * (i % 2 === 0 ? 1 : -1);
+      // Local origins keep the direction markers anchored to their rays.
+      const amplitude = 0.9 + Math.sin(animationTime.current * 2.4) * 0.1;
+      groupRef.current.children.forEach((child) => {
+        child.scale.setScalar(amplitude);
       });
     }
   });
@@ -538,23 +547,21 @@ export function PolarizationIndicators({ params }: { params: BirefringenceParams
   return (
     <group ref={groupRef}>
       {/* o光偏振指示器（垂直于传播方向）| O-ray polarization indicator (perpendicular to propagation) */}
-      <Line
-        points={[
-          new THREE.Vector3(oRayMid.x, oRayMid.y - 0.2, oRayMid.z),
-          new THREE.Vector3(oRayMid.x, oRayMid.y + 0.2, oRayMid.z),
-        ]}
-        color="#00ffff"
-        lineWidth={3}
-      />
+      <group position={oRayMid} visible={showORay}>
+        <Line
+          points={[[0, -0.2, 0], [0, 0.2, 0]]}
+          color="#67e8f9"
+          lineWidth={2}
+        />
+      </group>
       {/* e光偏振指示器（平行分量）| E-ray polarization indicator (parallel component) */}
-      <Line
-        points={[
-          new THREE.Vector3(eRayMid.x - 0.2, eRayMid.y, eRayMid.z),
-          new THREE.Vector3(eRayMid.x + 0.2, eRayMid.y, eRayMid.z),
-        ]}
-        color="#ff00ff"
-        lineWidth={3}
-      />
+      <group position={eRayMid} visible={showERay}>
+        <Line
+          points={[[-0.2, 0, 0], [0.2, 0, 0]]}
+          color="#c4b5fd"
+          lineWidth={2}
+        />
+      </group>
     </group>
   );
 }
@@ -572,11 +579,11 @@ export function SplitPointMarker({ params }: { params: BirefringenceParams }) {
   return (
     <group position={rayPaths.incidentEnd}>
       <mesh>
-        <sphereGeometry args={[0.08, 24, 24]} />
+        <sphereGeometry args={[0.06, 24, 24]} />
         <meshBasicMaterial color="#facc15" />
       </mesh>
       <mesh>
-        <ringGeometry args={[0.13, 0.18, 32]} />
+        <ringGeometry args={[0.12, 0.14, 32]} />
         <meshBasicMaterial
           color="#facc15"
           transparent
@@ -584,17 +591,14 @@ export function SplitPointMarker({ params }: { params: BirefringenceParams }) {
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* 分裂点微光粒子 | Split point glow particles */}
-      <Sparkles count={16} scale={0.55} size={2.6} speed={0.45} color="#fde68a" opacity={0.8} />
-      <Text
+      <SceneLabel
         position={[0.16, 0.24, 0]}
         fontSize={0.12}
         color="#fde68a"
         anchorX="left"
-        anchorY="middle"
       >
         分裂点
-      </Text>
+      </SceneLabel>
     </group>
   );
 }
@@ -623,32 +627,16 @@ export function ExitRayMarkers({
         <group position={rayPaths.oRayEnd}>
           <mesh>
             <sphereGeometry args={[0.07, 20, 20]} />
-            <meshBasicMaterial color="#00ffff" />
+            <meshBasicMaterial color="#67e8f9" />
           </mesh>
-          <Text
-            position={[0.12, 0.12, 0]}
-            fontSize={0.1}
-            color="#67e8f9"
-            anchorX="left"
-          >
-            o像
-          </Text>
         </group>
       )}
       {showERay && (
         <group position={rayPaths.eRayEnd}>
           <mesh>
             <sphereGeometry args={[0.07, 20, 20]} />
-            <meshBasicMaterial color="#ff00ff" />
+            <meshBasicMaterial color="#c4b5fd" />
           </mesh>
-          <Text
-            position={[0.12, -0.12, 0]}
-            fontSize={0.1}
-            color="#f0abfc"
-            anchorX="left"
-          >
-            e像
-          </Text>
         </group>
       )}
     </>
@@ -701,33 +689,34 @@ export function ObservationScreen({
         opacity={0.45}
         transparent
       />
-      <Text
+      <SceneLabel
         position={[0, 0.44, 0.04]}
         fontSize={0.12}
         color="#e0f2fe"
         anchorX="center"
+        offset={[0, -12]}
       >
         观察屏
-      </Text>
-      <Text
+      </SceneLabel>
+      <SceneLabel
         position={[0, 0.28, 0.04]}
         fontSize={0.075}
         color="#cbd5e1"
         anchorX="center"
+        offset={[0, -5]}
       >
         一个物点变成两个像
-      </Text>
+      </SceneLabel>
 
       {showORay && (
         <>
-          {/* 光晕 + 像核，加色混合产生发光感 | Halo + core with additive blending */}
+          {/* Soft image footprint and a crisp image core. */}
           <mesh position={[oImageX, 0.02, 0.045]}>
             <circleGeometry args={[0.17, 32]} />
             <meshBasicMaterial
-              color="#00ffff"
+              color="#67e8f9"
               transparent
-              opacity={0.28}
-              blending={THREE.AdditiveBlending}
+              opacity={0.16}
               depthWrite={false}
             />
           </mesh>
@@ -735,14 +724,15 @@ export function ObservationScreen({
             <circleGeometry args={[0.085, 32]} />
             <meshBasicMaterial color="#9bfdff" />
           </mesh>
-          <Text
+          <SceneLabel
             position={[oImageX, -0.17, 0.05]}
             fontSize={0.08}
             color="#67e8f9"
-            anchorX="center"
+            anchorX="right"
+            offset={[-4, 7]}
           >
             o像
-          </Text>
+          </SceneLabel>
         </>
       )}
       {showERay && (
@@ -750,25 +740,25 @@ export function ObservationScreen({
           <mesh position={[eImageX, 0.02, 0.045]}>
             <circleGeometry args={[0.17, 32]} />
             <meshBasicMaterial
-              color="#ff00ff"
+              color="#c4b5fd"
               transparent
-              opacity={0.28}
-              blending={THREE.AdditiveBlending}
+              opacity={0.16}
               depthWrite={false}
             />
           </mesh>
           <mesh position={[eImageX, 0.02, 0.05]}>
             <circleGeometry args={[0.085, 32]} />
-            <meshBasicMaterial color="#ffb0ff" />
+            <meshBasicMaterial color="#ddd6fe" />
           </mesh>
-          <Text
+          <SceneLabel
             position={[eImageX, -0.17, 0.05]}
             fontSize={0.08}
-            color="#f0abfc"
-            anchorX="center"
+            color="#c4b5fd"
+            anchorX="left"
+            offset={[4, 7]}
           >
             e像
-          </Text>
+          </SceneLabel>
         </>
       )}
       {showORay && showERay && (
@@ -783,14 +773,15 @@ export function ObservationScreen({
           transparent
         />
       )}
-      <Text
+      <SceneLabel
         position={[0, -0.43, 0.04]}
         fontSize={0.075}
         color="#fbbf24"
         anchorX="center"
+        offset={[0, 12]}
       >
         分离 {exitSeparation.toFixed(2)}
-      </Text>
+      </SceneLabel>
     </group>
   );
 }
@@ -852,13 +843,14 @@ export function SceneGrid({ show = true }: { show?: boolean }) {
   return (
     <Grid
       args={[20, 20]}
+      position={[0, -2.05, 0]}
       cellSize={1}
-      cellThickness={0.5}
-      cellColor="#1e3a5f"
+      cellThickness={0.4}
+      cellColor="#1e293b"
       sectionSize={5}
-      sectionThickness={1}
-      sectionColor="#2d5a87"
-      fadeDistance={15}
+      sectionThickness={0.7}
+      sectionColor="#334155"
+      fadeDistance={10}
       fadeStrength={1}
       followCamera={false}
       infiniteGrid
@@ -889,64 +881,64 @@ export function SceneLabels({
   const incidentLabel = new THREE.Vector3()
     .lerpVectors(rayPaths.incidentStart, rayPaths.incidentEnd, 0.45)
     .add(new THREE.Vector3(-0.15, 0.2, 0));
-  const oRayLabel = rayPaths.oRayEnd.clone().add(new THREE.Vector3(0.12, 0.18, 0));
-  const eRayLabel = rayPaths.eRayEnd.clone().add(new THREE.Vector3(0.12, -0.18, 0.08));
 
   return (
     <>
       {/* 入射光标签 | Incident ray label */}
-      <Text
+      <SceneLabel
         position={incidentLabel}
         fontSize={0.13}
-        color="#ffdd00"
+        color="#fbbf24"
         anchorX="left"
       >
         入射光
-      </Text>
+      </SceneLabel>
 
       {/* o光标签 | O-ray label */}
       {showORay && (
-        <Text
-          position={oRayLabel}
-          fontSize={0.13}
-          color="#00ffff"
-          anchorX="left"
+        <SceneLabel
+          position={rayPaths.oRayEnd}
+          fontSize={0.11}
+          color="#67e8f9"
+          anchorX="right"
+          offset={[-10, 28]}
         >
           o光 (寻常光)
-        </Text>
+        </SceneLabel>
       )}
 
       {/* e光标签 | E-ray label */}
       {showERay && (
-        <Text
-          position={eRayLabel}
-          fontSize={0.13}
-          color="#ff00ff"
+        <SceneLabel
+          position={rayPaths.eRayEnd}
+          fontSize={0.11}
+          color="#c4b5fd"
           anchorX="left"
+          offset={[10, 48]}
         >
           e光 (非寻常光)
-        </Text>
+        </SceneLabel>
       )}
 
       {/* 光轴标签 | Optical axis label */}
-      <Text
+      <SceneLabel
         position={[0.5, 2.2, 0]}
         fontSize={0.12}
-        color="#ff8800"
+        color="#fb923c"
         anchorX="center"
       >
         光轴
-      </Text>
+      </SceneLabel>
 
       {/* 入射角标签 | Incident angle label */}
-      <Text
+      <SceneLabel
         position={[-1.2, 0.8, 0]}
         fontSize={0.1}
         color="#94a3b8"
         anchorX="right"
       >
         {params.incidentAngle.toFixed(1)}°
-      </Text>
+      </SceneLabel>
     </>
   );
 }

@@ -1,40 +1,29 @@
 // src/pages/DemosPage.tsx
 // Demos Page Component - Interactive simulations and visualizations for polarization concepts
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { Link, useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/classNames";
 
-// UI 组件导入
 import {
   ArrowRight,
-  // Gamepad2,
-  // BookOpen,
-  // Box,
-  // BarChart2,
-  Menu,
-  X,
-  // ChevronDown,
-  // ChevronRight,
-  // Lightbulb,
-  // HelpCircle,
-  // Search,
-  // GraduationCap,
   ArrowLeft,
+  ChevronRight,
+  PanelLeft,
+  PanelLeftClose,
+  X,
 } from "lucide-react";
 
 import { PersistentHeader } from "@/components/shared/PersistentHeader";
 import { AuthThemeSwitcher } from "@/components/ui/AuthThemeSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // 判断是否为移动设备的自定义 Hook
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 // 错误边界组件导入
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-
-// 数学文本渲染组件导入
-//import MathText from "@/components/shared/MathText";
 
 // Unit 0  Optical Basics demos
 import { PolarizationTypesDemo } from "@/feature/demos/unit0/PolarizationTypesDemo";
@@ -207,332 +196,263 @@ const VisualTypeBadge = ({ type }: { type: "2D" | "3D" }) => {
 
 export function DemosPage() {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const { demoId: urlDemoId } = useParams<{ demoId?: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  // 响应式检测：判断是否为移动设备，移动设备使用紧凑布局
-  const { isMobile: isCompact } = useIsMobile();
-
-  // Determine initial demo from URL param or show museum homepage
-  const getInitialDemo = (): string | null => {
-    // First check path param (/demos/:demoId)
-    if (urlDemoId && DEMOS.find((d) => d.id === urlDemoId)) {
-      return urlDemoId;
-    }
-    // Fallback to query param for backwards compatibility
-    const queryDemo = searchParams.get("demo");
-    if (queryDemo && DEMOS.find((d) => d.id === queryDemo)) {
-      return queryDemo;
-    }
-    // Return null to show museum homepage
-    return null;
-  };
-
-  const [activeDemo, setActiveDemo] = useState<string | null>(getInitialDemo);
-  const [showMuseumHomepage, setShowMuseumHomepage] = useState<boolean>(
-    () => getInitialDemo() === null,
-  );
+  const { screenWidth } = useIsMobile();
+  const isCompact = screenWidth < 1280;
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
-  const [expandedUnit, setExpandedUnit] = useState<number | null>(0);
+  const [showDesktopSidebar, setShowDesktopSidebar] = useState(true);
+  const drawerRef = useRef<HTMLDialogElement>(null);
 
-  // Handle URL changes for deep linking
+  const activeDemoId = urlDemoId || searchParams.get("demo");
+  const currentDemo = DEMOS.find((demo) => demo.id === activeDemoId);
+  const DemoComponent = currentDemo?.component;
+  const isViewingDemo = Boolean(currentDemo);
+  const isWideEmbedDemo = currentDemo?.id === "visuphy-polarization";
+  const currentUnit = UNITS.find((unit) => unit.num === currentDemo?.unit);
+  const directoryLabel = t("demos.directory", "演示目录");
+
+  // Preserve legacy links while keeping the selected demo in sync with browser navigation.
   useEffect(() => {
-    // If using path param
-    if (urlDemoId) {
-      const targetDemo = DEMOS.find((d) => d.id === urlDemoId);
-      if (targetDemo && activeDemo !== urlDemoId) {
-        setActiveDemo(urlDemoId);
-        setExpandedUnit(targetDemo.unit);
-      }
-    }
-    // Legacy query param support - redirect to new URL format
     const queryDemo = searchParams.get("demo");
-    if (queryDemo) {
-      const targetDemo = DEMOS.find((d) => d.id === queryDemo);
-      if (targetDemo) {
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("demo");
-        const paramString = newParams.toString();
-        navigate(`/demos/${queryDemo}${paramString ? `?${paramString}` : ""}`, { replace: true });
-      }
+    if (!urlDemoId && queryDemo && DEMOS.some((demo) => demo.id === queryDemo)) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("demo");
+      const paramString = newParams.toString();
+      navigate(`/demos/${queryDemo}${paramString ? `?${paramString}` : ""}`, { replace: true });
     }
-  }, [urlDemoId, searchParams, activeDemo, navigate]);
+  }, [urlDemoId, searchParams, navigate]);
+
+  useEffect(() => {
+    setShowMobileSidebar(false);
+  }, [urlDemoId]);
+
+  // Native dialog supplies focus containment, Escape handling and focus restoration.
+  useEffect(() => {
+    const drawer = drawerRef.current;
+    if (!drawer || !showMobileSidebar || !isCompact || !isViewingDemo) return;
+
+    const previousOverflow = document.body.style.overflow;
+    drawer.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      drawer.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showMobileSidebar, isCompact, isViewingDemo]);
 
   const handleDemoChange = (demoId: string) => {
-    setActiveDemo(demoId);
-    setShowMuseumHomepage(false);
-
     const newParams = new URLSearchParams(searchParams);
+    newParams.delete("demo");
     newParams.delete("unit");
     const paramString = newParams.toString();
-    navigate(`/demos/${demoId}${paramString ? `?${paramString}` : ""}`, { replace: true });
-
-    const demo = DEMOS.find((d) => d.id === demoId);
-    if (demo) {
-      setExpandedUnit(demo.unit);
-    }
+    navigate(`/demos/${demoId}${paramString ? `?${paramString}` : ""}`);
+    setShowMobileSidebar(false);
   };
 
-  const handleShowMuseumHomepage = () => {
-    setShowMuseumHomepage(true);
-    setActiveDemo(null);
-    navigate("/demos", { replace: true });
-  };
-
-  const currentDemo = activeDemo ? DEMOS.find((d) => d.id === activeDemo) : null;
-  const DemoComponent = currentDemo?.component;
-  const isWideEmbedDemo = currentDemo?.id === "visuphy-polarization";
-  const isViewingDemo = Boolean(currentDemo && !showMuseumHomepage);
+  const demoNavigation = (
+    <nav aria-label={directoryLabel} className="space-y-6">
+      {UNITS.filter((unit) => DEMOS.some((demo) => demo.unit === unit.num)).map((unit) => (
+        <div key={unit.num}>
+          <h2 className="mb-2 flex items-start gap-2 px-3 text-xs font-semibold leading-5 text-clay-muted">
+            <span className="font-mono text-clay-muted/70">{String(unit.num).padStart(2, "0")}</span>
+            {t(unit.titleKey)}
+          </h2>
+          <ul className="space-y-1">
+            {DEMOS.filter((demo) => demo.unit === unit.num).map((demo) => (
+              <li key={demo.id}>
+                <button
+                  type="button"
+                  onClick={() => handleDemoChange(demo.id)}
+                  aria-current={currentDemo?.id === demo.id ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-12 w-full items-center gap-2 rounded-xl px-3 py-3 text-left text-sm leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-ink",
+                    currentDemo?.id === demo.id
+                      ? theme === "dark"
+                        ? "bg-clay-lavender/20 font-semibold text-clay-ink"
+                        : "bg-clay-lavender font-semibold text-clay-ink"
+                      : "text-clay-body hover:bg-clay-surface-card hover:text-clay-ink",
+                  )}
+                >
+                  <span className="min-w-0 flex-1">{t(demo.titleKey)}</span>
+                  <span className={cn(
+                    "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                    currentDemo?.id === demo.id
+                      ? theme === "dark" ? "bg-white/10 text-clay-ink" : "bg-white/40 text-clay-ink"
+                      : "bg-clay-surface-card text-clay-muted",
+                  )}>
+                    {demo.visualType}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
 
   return (
-    <div className="clay-canvas min-h-screen">
-      {/* Navigation Header with Persistent Logo 永久头部logo导航栏 */}
+    <div className={cn(
+      "clay-canvas min-h-screen",
+      isViewingDemo && theme === "dark" && [
+        "[--clay-canvas:#0b1220] [--clay-ink:#f1f5f9] [--clay-surface-card:#1e293b]",
+        "[--color-clay-canvas:#0b1220] [--color-clay-surface-soft:#111c30]",
+        "[--color-clay-surface-card:#1e293b] [--color-clay-surface-strong:#334155]",
+        "[--color-clay-ink:#f1f5f9] [--color-clay-body:#cbd5e1] [--color-clay-muted:#94a3b8]",
+      ],
+    )}>
       <PersistentHeader
         moduleKey="demos"
         moduleName={t("page.demos.title")}
         variant="solid"
-        className="fixed left-0 right-0 top-0 z-50"
+        compact={isViewingDemo}
+        showBreadcrumb={false}
+        className="sticky top-0 z-50"
         showSettings={false}
-        rightContent={
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Back to Gallery button - only show when viewing a demo */}
-            {isViewingDemo && (
-              <button
-                onClick={handleShowMuseumHomepage}
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-clay-surface-strong bg-clay-canvas px-3 text-sm font-semibold text-clay-ink transition-transform hover:-translate-y-0.5"
-                title={t("museum.backToGallery", "返回演示馆")}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {!isCompact && <span>{t("museum.backToGallery", "返回演示馆")}</span>}
-              </button>
-            )}
-            {/* Mobile menu button - only show when viewing a demo */}
-            {isViewingDemo && isCompact && (
-              <button
-                onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-clay-surface-card text-clay-ink"
-                aria-label={showMobileSidebar ? "关闭演示目录" : "打开演示目录"}
-              >
-                {showMobileSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            )}
-            <AuthThemeSwitcher compact />
-          </div>
-        }
+        rightContent={<AuthThemeSwitcher compact />}
       />
 
-      {/* Main Container */}
-      <div className={cn("flex", isViewingDemo ? "pt-[76px]" : isCompact ? "pt-[84px]" : "pt-[92px]")}>
-        {/* Sidebar - 仅在查看演示时显示 */}
-        {isViewingDemo && (
+      <div className={cn(
+        "mx-auto flex w-full max-w-[1680px] items-start gap-6 px-3 pb-10 pt-4 sm:px-6 sm:pt-6 2xl:px-8",
+        !isViewingDemo && "pb-12 sm:pt-10",
+      )}>
+        {isViewingDemo && !isCompact && showDesktopSidebar && (
           <aside
-            className={cn(
-              "fixed top-0 z-40 overflow-y-auto border-r border-clay-surface-strong bg-clay-surface-soft transition-transform duration-300",
-              isCompact
-                ? cn(
-                    "w-72 left-0 bottom-0",
-                    showMobileSidebar ? "translate-x-0" : "-translate-x-full",
-                    "pt-[76px]",
-                  )
-                : "w-64 left-0 top-[76px] bottom-0", // 为 footer 留出空间
-            )}
+            id="demo-sidebar"
+            className="sticky top-[88px] max-h-[calc(100dvh-112px)] w-52 shrink-0 overflow-y-auto overscroll-contain pr-3"
           >
-            <div className="p-4">
-              {UNITS.map((unit) => {
-                // 获取当前单元的演示列表
-                const unitDemos = DEMOS.filter((d) => d.unit === unit.num);
-                const isExpanded = !isCompact || expandedUnit === unit.num;
-
-                return (
-                  <div
-                    key={unit.num}
-                    className="mb-3"
-                  >
-                    {/* 单元标题按钮 */}
-                    <button
-                      onClick={() =>
-                        isCompact && setExpandedUnit(expandedUnit === unit.num ? null : unit.num)
-                      }
-                      className="mb-2 flex w-full items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-clay-muted transition-colors"
-                    >
-                      <span className="text-clay-ochre">★</span>
-                      <span className="flex-1 text-left">{t(unit.titleKey)}</span>
-                    </button>
-                    {/* 单元展开时显示演示列表 */}
-                    {isExpanded && (
-                      <ul className="space-y-0.5">
-                        {unitDemos.length > 0 ? (
-                          // 有演示项时显示列表
-                          unitDemos.map((demo) => (
-                            <li key={demo.id}>
-                              <button
-                                onClick={() => {
-                                  handleDemoChange(demo.id);
-                                  if (isCompact) setShowMobileSidebar(false);
-                                }}
-                                className={cn(
-                                  "flex w-full flex-col gap-1 rounded-xl px-3 py-2 text-left text-sm transition-all duration-200 active:scale-[0.98]",
-                                  activeDemo === demo.id
-                                    ? "bg-clay-lavender text-clay-ink"
-                                    : "text-clay-body hover:bg-clay-surface-card hover:text-clay-ink",
-                                )}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={cn(
-                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0",
-                                      activeDemo === demo.id
-                                        ? "bg-white/55 text-clay-ink"
-                                        : "bg-clay-surface-card text-clay-muted",
-                                    )}
-                                  >
-                                    {unitDemos.indexOf(demo) + 1}
-                                  </span>
-                                  <span className="truncate flex-1">{t(demo.titleKey)}</span>
-                                  <VisualTypeBadge type={demo.visualType} />
-                                </div>
-                              </button>
-                            </li>
-                          ))
-                        ) : (
-                          // 无演示项时显示占位符
-                          <li className="px-3 py-2 text-sm text-clay-muted">
-                            {t("demos.theorySimulation.comingSoon", "即将推出")}
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="mb-5 flex items-center justify-between px-3 pt-1">
+              <p className="text-sm font-semibold text-clay-ink">{directoryLabel}</p>
+              <span className="font-mono text-xs text-clay-muted">{String(DEMOS.length).padStart(2, "0")}</span>
             </div>
+            {demoNavigation}
           </aside>
         )}
 
-        {/* Mobile sidebar overlay - 仅在查看演示时显示 */}
-        {isViewingDemo && isCompact && showMobileSidebar && (
-          <div
-            className="fixed inset-0 bg-black/50 z-30"
-            onClick={() => setShowMobileSidebar(false)}
-          />
-        )}
-
-        {/* Main Content */}
-        <main
-          className={cn(
-            "flex-1 min-w-0",
-            isCompact
-              ? isWideEmbedDemo ? "px-2 pb-2 pt-1" : "px-4 pb-4 pt-2"
-              : isViewingDemo
-                ? isWideEmbedDemo ? "ml-64 px-4 pb-4 pt-2" : "ml-64 px-8 pb-8 pt-3"
-                : "p-6 sm:p-8",
-          )}
-        >
-          {/* 理论模拟主标题 */}
-          {(showMuseumHomepage || !currentDemo) && (
-            <div className="mx-auto mb-8 max-w-4xl text-center">
-              <span className="clay-caption">Computational Simulation</span>
-              <h1 className="clay-display-lg mt-3">
-                {t("demos.theorySimulation.title", "计算与模拟")}
-              </h1>
-              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-clay-body sm:text-lg">
-                {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
-              </p>
-            </div>
-          )}
-
-          {/* Show Gallery Hero when no demo is selected, otherwise show demo content */}
-          {showMuseumHomepage || !currentDemo ? (
-            <div className="mx-auto max-w-7xl space-y-8">
-              {/* 演示卡片网格 */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <main className="min-w-0 flex-1">
+          {!currentDemo ? (
+            <>
+              <div className="mx-auto mb-8 max-w-4xl text-center">
+                <span className="clay-caption">Computational Simulation</span>
+                <h1 className="clay-display-lg mt-3">
+                  {t("demos.theorySimulation.title", "计算与模拟")}
+                </h1>
+                <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-clay-body sm:text-lg">
+                  {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
+                </p>
+              </div>
+              <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                 {DEMOS.map((demo, index) => {
                   const cardStyle = DEMO_CARD_STYLES[index % DEMO_CARD_STYLES.length];
-
                   return (
                     <button
+                      type="button"
                       key={demo.id}
                       onClick={() => handleDemoChange(demo.id)}
                       className={cn(
-                        "group flex min-h-[220px] flex-col text-left transition-transform duration-300 hover:-translate-y-1.5 active:scale-[0.98]",
+                        "group flex min-h-[220px] min-w-0 flex-col text-left transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay-ink motion-reduce:transform-none motion-reduce:transition-none",
                         cardStyle.card,
                       )}
                     >
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
-                          单元 {demo.unit}
+                          {t("demos.unitLabel", "单元 {{unit}}", { unit: demo.unit })}
                         </span>
                         <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
                           {demo.visualType}
                         </span>
                       </div>
-                      <h3
-                        className={cn("text-2xl font-semibold", cardStyle.title)}
-                        style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
-                      >
+                      <h2 className={cn("text-2xl font-semibold", cardStyle.title)} style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
                         {t(demo.titleKey)}
-                      </h3>
+                      </h2>
                       <p className={cn("mt-3 text-sm leading-6", cardStyle.body)}>
                         {t(demo.descriptionKey)}
                       </p>
-                      <span className={cn("mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold tracking-wide", cardStyle.cta)}>
-                        开始探索
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      <span className={cn("mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold", cardStyle.cta)}>
+                        {t("demos.startExploring", "开始探索")}
+                        <ArrowRight className="h-4 w-4" />
                       </span>
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </>
           ) : (
-            <div className={cn("mx-auto", isWideEmbedDemo ? "max-w-none" : "max-w-[1400px]")}>
-              {/* 标题和描述 */}
-              <div className="mb-3 rounded-2xl bg-clay-surface-soft px-4 py-3 sm:px-5 sm:py-3.5">
-                <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:gap-x-2.5">
-                  {/* 单元徽章 */}
-                  <span className="clay-badge">
-                    {currentDemo && UNITS.find((u) => u.num === currentDemo.unit)?.titleKey
-                      ? t(UNITS.find((u) => u.num === currentDemo.unit)!.titleKey)
-                      : t("demos.theorySimulation.title", "计算与模拟")}
-                  </span>
-                  <VisualTypeBadge type={currentDemo?.visualType || "2D"} />
-                  <h1
-                    className="w-full text-2xl font-semibold text-clay-ink sm:w-auto"
-                    style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
-                  >
-                    {t(currentDemo?.titleKey || "")}
-                  </h1>
+            <div className="min-w-0">
+              <div className="mb-5 flex items-start justify-between gap-3 border-b border-clay-surface-strong pb-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-clay-muted">
+                    <Link to="/demos" className="inline-flex items-center gap-1.5 rounded hover:text-clay-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay-ink">
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      {t("museum.backToGallery", "返回演示馆")}
+                    </Link>
+                    <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                    {currentUnit && <span>{t(currentUnit.titleKey)}</span>}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                    <h1 className="text-2xl font-semibold leading-tight text-clay-ink sm:text-[1.75rem]" style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.025em" }}>
+                      {t(currentDemo.titleKey)}
+                    </h1>
+                    <VisualTypeBadge type={currentDemo.visualType} />
+                  </div>
+                  <p className="mt-2 max-w-4xl text-sm leading-6 text-clay-body">
+                    {t(currentDemo.descriptionKey)}
+                  </p>
                 </div>
-                <p className="max-w-4xl text-sm leading-6 text-clay-body">
-                  {t(currentDemo?.descriptionKey || "")}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => isCompact ? setShowMobileSidebar(true) : setShowDesktopSidebar((visible) => !visible)}
+                  aria-expanded={isCompact ? showMobileSidebar : showDesktopSidebar}
+                  aria-controls={isCompact ? "demo-directory-drawer" : "demo-sidebar"}
+                  aria-label={!isCompact && showDesktopSidebar ? t("demos.hideDirectory", "收起演示目录") : directoryLabel}
+                  title={!isCompact && showDesktopSidebar ? t("demos.hideDirectory", "收起演示目录") : directoryLabel}
+                  className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-clay-surface-strong bg-clay-surface-soft px-3 text-xs font-medium text-clay-body transition-colors hover:bg-clay-surface-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-ink"
+                >
+                  {!isCompact && showDesktopSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{directoryLabel}</span>
+                </button>
               </div>
 
-              {/* Demo area */}
-              <div
-                className={cn(
-                  "overflow-hidden rounded-[1.5rem] border border-clay-surface-strong bg-clay-surface-card",
-                )}
-              >
-                <div
-                  className={cn(
-                    isWideEmbedDemo
-                      ? "min-h-[560px] p-0 sm:min-h-[680px]"
-                      : "p-3 min-h-[420px] sm:p-5 sm:min-h-[550px]",
-                  )}
-                >
-                  <ErrorBoundary>
-                    <Suspense fallback={<DemoLoading />}>
-                      {DemoComponent && <DemoComponent />}
-                    </Suspense>
-                  </ErrorBoundary>
-                </div>
+              <div className={cn("min-w-0", isWideEmbedDemo && "overflow-hidden rounded-2xl border border-clay-surface-strong")}>
+                <ErrorBoundary key={currentDemo.id}>
+                  <Suspense fallback={<DemoLoading />}>
+                    {DemoComponent && <DemoComponent />}
+                  </Suspense>
+                </ErrorBoundary>
               </div>
             </div>
           )}
         </main>
       </div>
+
+      <dialog
+        id="demo-directory-drawer"
+        ref={drawerRef}
+        aria-labelledby="demo-directory-title"
+        onClose={() => setShowMobileSidebar(false)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setShowMobileSidebar(false);
+        }}
+        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-[min(22rem,calc(100vw-2rem))] max-w-none border-0 border-r border-clay-surface-strong bg-clay-canvas p-0 text-clay-ink shadow-xl backdrop:bg-slate-950/40"
+      >
+        <div className="flex min-h-full flex-col">
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-clay-surface-strong bg-clay-canvas px-5 py-4">
+            <h2 id="demo-directory-title" className="text-base font-semibold">{directoryLabel}</h2>
+            <button
+              type="button"
+              onClick={() => setShowMobileSidebar(false)}
+              aria-label={t("demos.closeDirectory", "关闭演示目录")}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-clay-surface-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-ink"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="p-4">{demoNavigation}</div>
+        </div>
+      </dialog>
     </div>
   );
 }

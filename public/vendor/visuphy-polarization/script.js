@@ -1114,9 +1114,50 @@ function handleTableCheckboxChange(event) {
 
 // --- Animation Control ---
 function toggleAnimation() { if (animationState.running) { stopAnimation(); } else { startAnimation(); } }
-function startAnimation() { if (animationState.running) return; animationState.running = true; playPauseBtn.textContent = 'Pause'; animationState.lastTimestamp = performance.now(); if (typeof animationState.time !== 'number' || isNaN(animationState.time)) { animationState.time = 0; } animationState.requestId = requestAnimationFrame(animateFrame); }
-function stopAnimation() { if (!animationState.running) return; animationState.running = false; playPauseBtn.textContent = 'Play'; if (animationState.requestId) { cancelAnimationFrame(animationState.requestId); animationState.requestId = null; } }
-function animateFrame(timestamp) { if (!animationState.running) return; let deltaTime = 0; if (animationState.lastTimestamp > 0) { deltaTime = (timestamp - animationState.lastTimestamp) / 1000.0; } animationState.lastTimestamp = timestamp; animationState.time += deltaTime; if (window.updateCanvasVisualization) { const visVector = (!isNaN(initialJonesVector[0].re)) ? initialJonesVector : [complex(1),complex(0)]; window.updateCanvasVisualization(opticalElements, visVector, animationState); } if (animationState.running) { animationState.requestId = requestAnimationFrame(animateFrame); } }
+function scheduleAnimationFrame() {
+    if (animationState.running && !document.hidden && animationState.requestId === null) {
+        animationState.requestId = requestAnimationFrame(animateFrame);
+    }
+}
+function startAnimation() {
+    if (animationState.running) return;
+    animationState.running = true;
+    playPauseBtn.textContent = 'Pause';
+    animationState.lastTimestamp = 0;
+    if (!Number.isFinite(animationState.time)) animationState.time = 0;
+    scheduleAnimationFrame();
+}
+function stopAnimation() {
+    animationState.running = false;
+    playPauseBtn.textContent = 'Play';
+    if (animationState.requestId !== null) cancelAnimationFrame(animationState.requestId);
+    animationState.requestId = null;
+    animationState.lastTimestamp = 0;
+}
+function animateFrame(timestamp) {
+    animationState.requestId = null;
+    if (!animationState.running || document.hidden) return;
+    const deltaTime = animationState.lastTimestamp > 0
+        ? Math.min(0.05, (timestamp - animationState.lastTimestamp) / 1000)
+        : 0;
+    animationState.lastTimestamp = timestamp;
+    animationState.time += deltaTime;
+    if (window.updateCanvasVisualization) {
+        const visVector = !isNaN(initialJonesVector[0].re) ? initialJonesVector : [complex(1), complex(0)];
+        window.updateCanvasVisualization(opticalElements, visVector, animationState);
+    }
+    scheduleAnimationFrame();
+}
+document.addEventListener('visibilitychange', () => {
+    if (animationState.requestId !== null) cancelAnimationFrame(animationState.requestId);
+    animationState.requestId = null;
+    animationState.lastTimestamp = 0;
+    scheduleAnimationFrame();
+});
+// Playback starts only on request; a new reduced-motion preference freezes it.
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+    if (event.matches) stopAnimation();
+});
 
 // --- Initialization ---
 function init() {

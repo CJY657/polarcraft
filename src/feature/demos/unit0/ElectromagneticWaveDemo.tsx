@@ -4,11 +4,11 @@
  * 电磁波演示：
  * - 波动视图：Canvas 斜二测投影下的真实电磁波结构 ——
  *   E 场（竖直面，颜色随波长）与 B 场（水平面，蓝色）相互垂直、同相位，
- *   绸带填充 + 矢量箭头 + 波峰追踪点，基于时间的平滑动画
+ *   参考平面 + 矢量箭头 + 波峰标记，基于时间的匀速传播
  * - 波谱视图：完整电磁波谱、大气穿透性与尺度对比
  */
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Waves, BarChart3 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -225,10 +225,10 @@ function EMWaveCanvas({
       const ox = 76;
       const oy = height / 2;
       const zLen = width - 140;
-      // 波长 380-700nm → 屏幕上 76-148px 周期
-      const pxPerWl = 76 + ((wavelength - 380) / 320) * 72;
+      // 屏幕周期与波长成正比，改变波长时保持相速度不变。
+      const pxPerWl = wavelength * 0.22;
       const k = (Math.PI * 2) / pxPerWl;
-      const omega = 2.6; // 基准角频率（time 已按速度缩放）
+      const omega = k * 48; // 屏幕相速度 48 px/s（time 已按速度缩放）
       const phase = (z: number) => k * z - omega * time;
       const ampB = amplitude * 0.55;
 
@@ -243,12 +243,31 @@ function EMWaveCanvas({
       // 背景
       ctx.fillStyle = "#070d1a";
       ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = "rgba(100, 150, 255, 0.05)";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // 固定参考平面让振幅变化有稳定的尺度。
+      ctx.fillStyle = "rgba(148, 163, 184, 0.025)";
+      ctx.fillRect(ox, oy - 90, zLen, 180);
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.13)";
       ctx.lineWidth = 1;
-      for (let gx = 0; gx < width; gx += 40) {
+      for (const y of [oy - 90, oy + 90]) {
         ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, height);
+        ctx.moveTo(ox, y);
+        ctx.lineTo(ox + zLen, y);
+        ctx.stroke();
+      }
+      if (showBField) {
+        ctx.beginPath();
+        for (const [b, z] of [[-52, 0], [-52, zLen], [52, zLen], [52, 0]]) {
+          const [x, y] = proj(b, 0, z);
+          if (b === -52 && z === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "rgba(96, 165, 250, 0.035)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(96, 165, 250, 0.15)";
         ctx.stroke();
       }
 
@@ -269,8 +288,8 @@ function EMWaveCanvas({
       // E 轴（竖直）
       ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
       ctx.beginPath();
-      ctx.moveTo(ox, oy + amplitude + 18);
-      ctx.lineTo(ox, oy - amplitude - 18);
+      ctx.moveTo(ox, oy + 98);
+      ctx.lineTo(ox, oy - 98);
       ctx.stroke();
       // B 轴（斜向）
       if (showBField) {
@@ -286,7 +305,7 @@ function EMWaveCanvas({
       ctx.fillStyle = "#94a3b8";
       ctx.fillText("传播方向", ox + zLen - 28, oy + 20);
       ctx.fillStyle = waveColor;
-      ctx.fillText("E", ox + 8, oy - amplitude - 8);
+      ctx.fillText("E", ox + 8, oy - 96);
       if (showBField) {
         ctx.fillStyle = COLOR_B;
         ctx.fillText("B", ox + (ampB + 16) * EXX + 6, oy + (ampB + 16) * EXY + 8);
@@ -309,14 +328,12 @@ function EMWaveCanvas({
           ctx.lineTo(sx, sy);
         }
         ctx.closePath();
-        ctx.fillStyle = "rgba(96, 165, 250, 0.09)";
+        ctx.fillStyle = "rgba(96, 165, 250, 0.065)";
         ctx.fill();
 
         ctx.strokeStyle = COLOR_B;
-        ctx.globalAlpha = 0.85;
+        ctx.globalAlpha = 0.9;
         ctx.lineWidth = 2;
-        ctx.shadowColor = COLOR_B;
-        ctx.shadowBlur = 6;
         ctx.beginPath();
         for (let z = 0; z <= zLen; z += STEP) {
           const b = ampB * Math.sin(phase(z));
@@ -332,11 +349,12 @@ function EMWaveCanvas({
         ctx.strokeStyle = "rgba(96, 165, 250, 0.7)";
         ctx.fillStyle = "rgba(96, 165, 250, 0.7)";
         ctx.lineWidth = 1.4;
-        for (let z = pxPerWl / 4; z <= zLen; z += pxPerWl / 2) {
+        for (let z = 0; z <= zLen; z += 24) {
           const b = ampB * Math.sin(phase(z));
           if (Math.abs(b) < 3) continue;
           const [x0, y0] = proj(0, 0, z);
           const [x1, y1] = proj(b, 0, z);
+          const head = Math.min(4.5, Math.hypot(x1 - x0, y1 - y0) * 0.4);
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x1, y1);
@@ -347,8 +365,8 @@ function EMWaveCanvas({
           ctx.rotate(ang);
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.lineTo(-5, -2.6);
-          ctx.lineTo(-5, 2.6);
+          ctx.lineTo(-head, -head * 0.5);
+          ctx.lineTo(-head, head * 0.5);
           ctx.closePath();
           ctx.fill();
           ctx.restore();
@@ -370,14 +388,12 @@ function EMWaveCanvas({
         ctx.lineTo(sx, sy);
       }
       ctx.closePath();
-      const ribbonColor = waveColor.replace("rgb", "rgba").replace(")", ", 0.12)");
+      const ribbonColor = waveColor.replace("rgb", "rgba").replace(")", ", 0.07)");
       ctx.fillStyle = ribbonColor;
       ctx.fill();
 
       ctx.strokeStyle = waveColor;
-      ctx.lineWidth = 2.8;
-      ctx.shadowColor = waveColor;
-      ctx.shadowBlur = 10;
+      ctx.lineWidth = 2.3;
       ctx.beginPath();
       for (let z = 0; z <= zLen; z += STEP) {
         const e = amplitude * Math.sin(phase(z));
@@ -392,9 +408,9 @@ function EMWaveCanvas({
       ctx.save();
       ctx.strokeStyle = waveColor;
       ctx.fillStyle = waveColor;
-      ctx.globalAlpha = 0.8;
-      ctx.lineWidth = 1.4;
-      for (let z = 0; z <= zLen; z += pxPerWl / 2) {
+      ctx.globalAlpha = 0.68;
+      ctx.lineWidth = 1.2;
+      for (let z = 0; z <= zLen; z += 24) {
         const e = amplitude * Math.sin(phase(z));
         if (Math.abs(e) < 3) continue;
         const [x0, y0] = proj(0, 0, z);
@@ -403,35 +419,35 @@ function EMWaveCanvas({
         ctx.moveTo(x0, y0);
         ctx.lineTo(x1, y1);
         ctx.stroke();
-        const dir = e > 0 ? -1 : 1;
+        const dir = e > 0 ? 1 : -1;
+        const head = Math.min(5, Math.abs(e) * 0.4);
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.lineTo(x1 - 2.8, y1 + dir * 5);
-        ctx.lineTo(x1 + 2.8, y1 + dir * 5);
+        ctx.lineTo(x1 - head * 0.5, y1 + dir * head);
+        ctx.lineTo(x1 + head * 0.5, y1 + dir * head);
         ctx.closePath();
         ctx.fill();
       }
       ctx.restore();
 
-      // 波峰追踪点（随波以相速度前进，体现"波在跑"）
+      // 波峰标记与包络同速传播，不改变场强。
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = "#e2e8f0";
+      ctx.strokeStyle = "#070d1a";
+      ctx.lineWidth = 1;
       const crestPhase = Math.PI / 2 + omega * time; // E 最大处 kz = π/2 + ωt
       let zCrest = ((crestPhase / k) % pxPerWl + pxPerWl) % pxPerWl;
       for (; zCrest <= zLen; zCrest += pxPerWl) {
         const [sx, sy] = proj(0, amplitude, zCrest);
-        const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 9);
-        glow.addColorStop(0, "rgba(255,255,255,0.9)");
-        glow.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc(sx, sy, 9, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 2.8, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
       }
       ctx.restore();
 
       // 波长标尺（静态参考）
-      const ruleY = oy + amplitude + 28;
+      const ruleY = oy + 118;
       const ruleX = ox + 30;
       ctx.strokeStyle = "#64748b";
       ctx.fillStyle = "#94a3b8";
@@ -450,17 +466,18 @@ function EMWaveCanvas({
 
       // 角落提示
       ctx.textAlign = "right";
-      ctx.fillStyle = "rgba(148,163,184,0.6)";
+      ctx.fillStyle = "#94a3b8";
       ctx.fillText("E ⊥ B ⊥ 传播方向，且 E、B 同相位", width - 14, 22);
     },
   });
 
-  return <canvas ref={canvasRef} className="mx-auto block rounded-lg" />;
+  return <canvas ref={canvasRef} className="mx-auto block max-w-full rounded-lg" />;
 }
 
 export function ElectromagneticWaveDemo() {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
+  const reducedMotion = useReducedMotion();
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>("wave");
@@ -485,12 +502,12 @@ export function ElectromagneticWaveDemo() {
   }, [selectedRegion]);
 
   return (
-    <div className="space-y-6">
+    <div className="@container/demo min-w-0 space-y-5">
       {/* View Mode Tabs */}
-      <div className={`flex gap-2 p-1 rounded-lg w-fit ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"}`}>
+      <div className={`grid grid-cols-2 gap-1 p-1 rounded-lg @min-[400px]/demo:w-fit ${theme === "dark" ? "bg-slate-800/50" : "bg-gray-100"}`}>
         <button
           onClick={() => setViewMode("wave")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "wave"
               ? "bg-cyan-500/20 text-cyan-400 shadow-sm"
               : theme === "dark"
@@ -503,7 +520,7 @@ export function ElectromagneticWaveDemo() {
         </button>
         <button
           onClick={() => setViewMode("spectrum")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
             viewMode === "spectrum"
               ? "bg-purple-500/20 text-purple-400 shadow-sm"
               : theme === "dark"
@@ -520,14 +537,14 @@ export function ElectromagneticWaveDemo() {
         {viewMode === "wave" ? (
           <motion.div
             key="wave"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
           >
             {/* Wave View Content */}
-            <div className="flex gap-5 flex-col lg:flex-row">
-              <div className="flex-1 min-w-0 space-y-4">
+            <div className="grid min-w-0 items-start gap-5 @min-[900px]/demo:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="min-w-0 space-y-4">
                 <DemoStage
                   title="电磁波传播结构"
                   subtitle="斜二测投影"
@@ -537,6 +554,20 @@ export function ElectromagneticWaveDemo() {
                       ? [{ color: COLOR_B, label: "磁场 B", shape: "line" as const }]
                       : []),
                   ]}
+                  actions={
+                    <button
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        isPlaying
+                          ? "bg-orange-500/15 text-orange-500 border border-orange-500/30"
+                          : "bg-cyan-500/15 text-cyan-500 border border-cyan-500/30"
+                      }`}
+                      aria-pressed={isPlaying}
+                      onClick={() => setIsPlaying(!isPlaying)}
+                    >
+                      {isPlaying ? t("demoUi.common.pause") : t("demoUi.common.play")}
+                    </button>
+                  }
+                  bodyClassName="flex items-center justify-center p-3 @min-[640px]/demo:p-4"
                 >
                   <EMWaveCanvas
                     wavelength={wavelength}
@@ -571,14 +602,13 @@ export function ElectromagneticWaveDemo() {
                       setWavelength(Math.max(380, Math.min(700, newWavelength)));
                     }}
                   >
-                    <motion.div
-                      className="absolute top-0 w-1.5 h-full bg-white rounded shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                    <div
+                      className="absolute top-0 w-1 h-full bg-white rounded ring-1 ring-slate-900/40 -translate-x-1/2"
                       style={{ left: `${((wavelength - 380) / 320) * 100}%` }}
-                      layoutId="wavelength-indicator"
                     />
                   </div>
                   <div
-                    className={`flex justify-between text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-1`}
+                    className={`flex justify-between gap-2 text-[11px] ${theme === "dark" ? "text-gray-400" : "text-gray-600"} mt-2`}
                   >
                     <span>380 nm ({t("demoUi.common.violet")})</span>
                     <span>550 nm ({t("demoUi.common.green")})</span>
@@ -589,36 +619,38 @@ export function ElectromagneticWaveDemo() {
 
               <ControlPanel
                 title={t("demoUi.lightWave.waveParameters")}
-                className="w-full lg:w-72 flex-shrink-0"
+                className="min-w-0"
               >
-                <SliderControl
-                  label={t("demoUi.common.wavelength")}
-                  value={wavelength}
-                  min={380}
-                  max={700}
-                  step={5}
-                  unit=" nm"
-                  onChange={setWavelength}
-                  color="cyan"
-                />
-                <SliderControl
-                  label={t("demoUi.common.amplitude")}
-                  value={amplitude}
-                  min={20}
-                  max={80}
-                  step={5}
-                  onChange={setAmplitude}
-                  color="green"
-                />
-                <SliderControl
-                  label={t("demoUi.common.animationSpeed")}
-                  value={speed}
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  onChange={setSpeed}
-                  color="orange"
-                />
+                <div className="grid gap-4 @min-[560px]/demo:grid-cols-3 @min-[900px]/demo:grid-cols-1">
+                  <SliderControl
+                    label={t("demoUi.common.wavelength")}
+                    value={wavelength}
+                    min={380}
+                    max={700}
+                    step={5}
+                    unit=" nm"
+                    onChange={setWavelength}
+                    color="cyan"
+                  />
+                  <SliderControl
+                    label={t("demoUi.common.amplitude")}
+                    value={amplitude}
+                    min={20}
+                    max={80}
+                    step={5}
+                    onChange={setAmplitude}
+                    color="green"
+                  />
+                  <SliderControl
+                    label={t("demoUi.common.animationSpeed")}
+                    value={speed}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    onChange={setSpeed}
+                    color="orange"
+                  />
+                </div>
 
                 <Toggle
                   label={t("demoUi.common.showBField")}
@@ -626,27 +658,14 @@ export function ElectromagneticWaveDemo() {
                   onChange={setShowBField}
                 />
 
-                <motion.button
-                  className={`w-full py-2.5 rounded-lg font-medium transition-all ${
-                    isPlaying
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                      : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsPlaying(!isPlaying)}
-                >
-                  {isPlaying ? t("demoUi.common.pause") : t("demoUi.common.play")}
-                </motion.button>
-
-                <div className="pt-2 border-t border-slate-700">
+                <div className={`pt-3 border-t ${theme === "dark" ? "border-slate-700" : "border-slate-200"}`}>
                   <div className="flex justify-between items-center py-1">
                     <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                       {t("demoUi.common.color")}
                     </span>
                     <span
                       className="inline-block w-10 h-4 rounded"
-                      style={{ backgroundColor: waveColor, boxShadow: `0 0 8px ${waveColor}` }}
+                      style={{ backgroundColor: waveColor }}
                     />
                   </div>
                   {/* 使用精确光速值 c = 2.998×10^8 m/s 计算频率 f = c/λ */}
@@ -659,18 +678,17 @@ export function ElectromagneticWaveDemo() {
                 </div>
 
                 {/* Quick switch to spectrum */}
-                <motion.button
+                <button
                   className="w-full py-2 rounded-lg text-sm text-purple-400 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all mt-2"
-                  whileHover={{ scale: 1.02 }}
                   onClick={() => setViewMode("spectrum")}
                 >
                   查看完整电磁波谱 →
-                </motion.button>
+                </button>
               </ControlPanel>
             </div>
 
             {/* Formula */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-5 grid grid-cols-1 gap-4 @min-[640px]/demo:grid-cols-2">
               <InfoCard
                 title="电磁波特性"
                 color="cyan"
@@ -704,19 +722,23 @@ export function ElectromagneticWaveDemo() {
         ) : (
           <motion.div
             key="spectrum"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
           >
             {/* Spectrum View Content */}
-            <div className="flex gap-5 flex-col lg:flex-row">
-              <div className="flex-1 min-w-0">
-                <DemoStage title="电磁波谱全景" subtitle="点击波段查看详情">
+            <div className="min-w-0 space-y-4">
+              <DemoStage title="电磁波谱全景" subtitle="点击波段查看详情">
+                <div
+                  className="overflow-x-auto overscroll-x-contain rounded-lg"
+                  tabIndex={0}
+                  role="region"
+                  aria-label="电磁波谱全景"
+                >
                   <svg
                     viewBox="0 0 800 260"
-                    className="w-full h-auto"
-                    style={{ minHeight: "230px" }}
+                    className="block h-auto w-full min-w-[720px]"
                   >
                     <defs>
                       <pattern
@@ -768,16 +790,6 @@ export function ElectromagneticWaveDemo() {
                           stopColor="#8b00ff"
                         />
                       </linearGradient>
-                      <filter id="spectrum-glow">
-                        <feGaussianBlur
-                          stdDeviation="2"
-                          result="coloredBlur"
-                        />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
                     </defs>
 
                     <rect
@@ -859,9 +871,9 @@ export function ElectromagneticWaveDemo() {
                               stroke={isSelected ? "#fff" : "transparent"}
                               strokeWidth={isSelected ? 2 : 0}
                               style={{ cursor: "pointer" }}
-                              whileHover={{ opacity: 1, scale: 1.02 }}
+                              whileHover={{ opacity: 1 }}
+                              transition={{ duration: reducedMotion ? 0 : 0.15 }}
                               onClick={() => setSelectedRegion(region.id)}
-                              filter={isSelected ? "url(#spectrum-glow)" : undefined}
                             />
                           </g>
                         );
@@ -933,130 +945,124 @@ export function ElectromagneticWaveDemo() {
                       </g>
                     )}
                   </svg>
-                </DemoStage>
-
-                {/* Selected region info */}
-                <AnimatePresence>
-                  {selectedInfo && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className={`mt-4 p-4 rounded-xl border ${theme === "dark" ? "bg-slate-800/80 border-slate-700/50" : "bg-gray-100 border-gray-300"} shadow-sm`}
-                      style={{ borderLeftWidth: "4px", borderLeftColor: selectedInfo.color }}
-                    >
-                      <h4
-                        className="text-lg font-bold mb-3"
-                        style={{ color: selectedInfo.color }}
-                      >
-                        {selectedInfo.name[i18n.language]}
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
-                        <div
-                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                        >
-                          波长：
-                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
-                            {formatWavelength(selectedInfo.wavelengthRange[0])} ~{" "}
-                            {formatWavelength(selectedInfo.wavelengthRange[1])}
-                          </span>
-                        </div>
-                        <div
-                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                        >
-                          频率：
-                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
-                            {formatScientific(selectedInfo.frequencyRange[0])} ~{" "}
-                            {formatScientific(selectedInfo.frequencyRange[1])} Hz
-                          </span>
-                        </div>
-                        <div
-                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                        >
-                          应用：
-                          <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
-                            {selectedInfo.applications[i18n.language]}
-                          </span>
-                        </div>
-                        <div
-                          className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                        >
-                          大气：
-                          <span
-                            className={
-                              selectedInfo.canPenetrate
-                                ? theme === "dark"
-                                  ? "text-green-400"
-                                  : "text-green-600"
-                                : theme === "dark"
-                                  ? "text-red-400"
-                                  : "text-red-600"
-                            }
-                          >
-                            {selectedInfo.penetrateInfo[i18n.language]}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <ControlPanel
-                title="显示选项"
-                className="w-full lg:w-72 flex-shrink-0"
-              >
-                <Toggle
-                  label="显示大气穿透性"
-                  checked={showAtmosphere}
-                  onChange={setShowAtmosphere}
-                />
-                <Toggle
-                  label="显示尺寸比较"
-                  checked={showSizeComparison}
-                  onChange={setShowSizeComparison}
-                />
-
-                <div className="border-t border-slate-700 pt-4 mt-4">
-                  <h4 className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"} mb-2`}>选择波段</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {SPECTRUM_REGIONS.map((region) => (
-                      <button
-                        key={region.id}
-                        onClick={() => setSelectedRegion(region.id)}
-                        className={`px-2 py-1.5 rounded text-xs transition-all ${
-                          selectedRegion === region.id
-                            ? "bg-opacity-30 border"
-                            : theme === "dark"
-                              ? "bg-slate-800/50 border border-transparent hover:border-slate-600"
-                              : "bg-gray-100 border border-transparent hover:border-gray-300"
-                        }`}
-                        style={{
-                          backgroundColor:
-                            selectedRegion === region.id ? `${region.color}30` : undefined,
-                          borderColor: selectedRegion === region.id ? region.color : undefined,
-                          color: selectedRegion === region.id ? region.color : "#9ca3af",
-                        }}
-                      >
-                        {region.name[i18n.language]}
-                      </button>
-                    ))}
-                  </div>
                 </div>
+              </DemoStage>
 
-                {/* Quick switch to wave view */}
-                <motion.button
-                  className="w-full py-2 rounded-lg text-sm text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all mt-4"
-                  whileHover={{ scale: 1.02 }}
-                  onClick={() => setViewMode("wave")}
-                >
-                  查看波动动画 →
-                </motion.button>
+              <ControlPanel title="选择波段">
+                <div className="grid grid-cols-2 gap-2 @min-[560px]/demo:grid-cols-4 @min-[900px]/demo:grid-cols-7">
+                  {SPECTRUM_REGIONS.map((region) => (
+                    <button
+                      key={region.id}
+                      onClick={() => setSelectedRegion(region.id)}
+                      className={`min-w-0 px-2 py-2.5 rounded-md text-xs transition-colors ${
+                        selectedRegion === region.id
+                          ? "border"
+                          : theme === "dark"
+                            ? "bg-slate-800/50 border border-transparent hover:border-slate-600"
+                            : "bg-gray-100 border border-transparent hover:border-gray-300"
+                      }`}
+                      style={{
+                        backgroundColor:
+                          selectedRegion === region.id ? `${region.color}30` : undefined,
+                        borderColor: selectedRegion === region.id ? region.color : undefined,
+                        color: selectedRegion === region.id ? region.color : undefined,
+                      }}
+                      aria-pressed={selectedRegion === region.id}
+                    >
+                      {region.name[i18n.language]}
+                    </button>
+                  ))}
+                </div>
+                <div className={`flex flex-wrap items-center gap-x-5 gap-y-3 border-t pt-3 ${theme === "dark" ? "border-slate-700" : "border-slate-200"}`}>
+                  <Toggle
+                    label="显示大气穿透性"
+                    checked={showAtmosphere}
+                    onChange={setShowAtmosphere}
+                  />
+                  <Toggle
+                    label="显示尺寸比较"
+                    checked={showSizeComparison}
+                    onChange={setShowSizeComparison}
+                  />
+                  <button
+                    className="px-3 py-2 rounded-lg text-sm text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors @min-[640px]/demo:ml-auto"
+                    onClick={() => setViewMode("wave")}
+                  >
+                    查看波动动画 →
+                  </button>
+                </div>
               </ControlPanel>
+
+              {/* Selected region info */}
+              <AnimatePresence>
+                {selectedInfo && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut" }}
+                    className={`min-w-0 p-4 rounded-xl border ${theme === "dark" ? "bg-slate-800/80 border-slate-700/50" : "bg-gray-100 border-gray-300"} shadow-sm`}
+                    style={{ borderLeftWidth: "4px", borderLeftColor: selectedInfo.color }}
+                  >
+                    <h4
+                      className="text-lg font-bold mb-3"
+                      style={{ color: selectedInfo.color }}
+                    >
+                      {selectedInfo.name[i18n.language]}
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-6 @min-[640px]/demo:grid-cols-2">
+                      <div
+                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        波长：
+                        <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                          {formatWavelength(selectedInfo.wavelengthRange[0])} ~{" "}
+                          {formatWavelength(selectedInfo.wavelengthRange[1])}
+                        </span>
+                      </div>
+                      <div
+                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        频率：
+                        <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                          {formatScientific(selectedInfo.frequencyRange[0])} ~{" "}
+                          {formatScientific(selectedInfo.frequencyRange[1])} Hz
+                        </span>
+                      </div>
+                      <div
+                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        应用：
+                        <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
+                          {selectedInfo.applications[i18n.language]}
+                        </span>
+                      </div>
+                      <div
+                        className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        大气：
+                        <span
+                          className={
+                            selectedInfo.canPenetrate
+                              ? theme === "dark"
+                                ? "text-green-400"
+                                : "text-green-600"
+                              : theme === "dark"
+                                ? "text-red-400"
+                                : "text-red-600"
+                          }
+                        >
+                          {selectedInfo.penetrateInfo[i18n.language]}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Knowledge cards */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-5 grid grid-cols-1 gap-4 @min-[600px]/demo:grid-cols-2 @min-[960px]/demo:grid-cols-3">
               <InfoCard
                 title="光的本质"
                 color="cyan"
