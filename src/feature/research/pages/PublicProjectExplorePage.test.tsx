@@ -147,6 +147,8 @@ describe("PublicProjectExplorePage", () => {
     );
 
     await screen.findByTestId("project-card-project-1", {}, { timeout: 2000 });
+    expect(screen.getByText("课题：推荐更新课题")).toBeTruthy();
+    expect(screen.queryByText(/组长：/)).toBeNull();
     expect(screen.queryByText("观察记录员")).toBeNull();
     expect(screen.queryByText("当前缺口")).toBeNull();
     expect(screen.queryByText("缺数据整理 1 人")).toBeNull();

@@ -120,13 +120,12 @@ describe("toHierarchyUnits", () => {
       },
     ]);
 
-    expect(units.map((unit) => unit.id)).toEqual(["unit-1", "unit-2"]);
+    expect(units.map((unit) => unit.id)).toEqual(["unit-1"]);
     expect(units[0].experiments.map((experiment) => experiment.id)).toEqual([
       "course-1",
       "course-3",
     ]);
     expect(units[0].experiments[0].unitId).toBe("unit-1");
-    expect(units[1].experiments).toEqual([]);
     expect(countExperiments(units)).toBe(2);
   });
 
@@ -146,6 +145,33 @@ describe("toHierarchyUnits", () => {
 
     expect(units[0].experiments.map((experiment) => experiment.id)).toEqual(["device-1"]);
     expect(countExperiments(units)).toBe(1);
+  });
+
+  it("omits unrelated and empty units from each workspace without duplicating entries", () => {
+    const entries = [
+      { unit: createUnit("foundation", 0), courses: [createUnitCourse("experiment", "foundation")] },
+      { unit: createUnit("applications", 1), courses: [createUnitCourse("device", "optical_device")] },
+      { unit: createUnit("empty", 2), courses: [] },
+      { unit: createUnit("students", 3), courses: [createUnitCourse("poster", "student_poster")] },
+      {
+        unit: createUnit("mixed", 4),
+        courses: [
+          createUnitCourse("mixed-experiment", "foundation"),
+          createUnitCourse("mixed-device", "optical_device"),
+        ],
+      },
+    ];
+    const experiments = toHierarchyUnits(entries);
+    const applications = toHierarchyUnits(entries, "optical_device");
+
+    expect(experiments.map((unit) => unit.id)).toEqual(["foundation", "mixed"]);
+    expect(applications.map((unit) => unit.id)).toEqual(["applications", "mixed"]);
+    expect(experiments.flatMap((unit) => unit.experiments.map((course) => course.id)))
+      .toEqual(["experiment", "mixed-experiment"]);
+    expect(applications.flatMap((unit) => unit.experiments.map((course) => course.id)))
+      .toEqual(["device", "mixed-device"]);
+    expect(toHierarchyUnits(entries.slice(2, 4))).toEqual([]);
+    expect(toHierarchyUnits(entries.slice(2, 4), "optical_device")).toEqual([]);
   });
 });
 

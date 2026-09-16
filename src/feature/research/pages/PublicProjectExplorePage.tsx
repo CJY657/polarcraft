@@ -456,7 +456,7 @@ export function PublicProjectExplorePage() {
                           <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
                         </span>
                         <div>
-                          <p className="text-sm font-medium text-[var(--glass-text-muted)]">组长与成员</p>
+                          <p className="text-sm font-medium text-[var(--glass-text-muted)]">课题与成员</p>
                           {formatProjectIssueNumber(project.issue_number) && (
                             <p className="mt-0.5 text-xs font-semibold tabular-nums text-[var(--paper-foreground)]">
                               {formatProjectIssueNumber(project.issue_number)}
@@ -478,12 +478,7 @@ export function PublicProjectExplorePage() {
                       </div>
                     </div>
                     <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
-                      组长：{formatUserIdentity({
-                        username: project.owner_username,
-                        nickname: project.owner_nickname,
-                        real_name: project.owner_real_name,
-                        show_real_name_publicly: project.owner_show_real_name_publicly,
-                      }, "暂未署名")}
+                      课题：{project.name_zh || "未命名课题"}
                     </p>
                     <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
                       成员：{getMemberSummary(project)}

@@ -1,231 +1,437 @@
+/* ==========================================================================
+   PolarCraft Immersive Timeline
+   Faithfully replicating MLSYSBOOK TinyTorch dynamic effects & animations
+   Source: https://mlsysbook.ai/tinytorch/community/index.html
+   ========================================================================== */
+
 .immersive-timeline,
 body:has(.immersive-timeline) {
-  background-color: oklch(22% 0.045 232);
+  margin: 0;
+  overflow-x: hidden;
+  background-color: #0e1422;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: dark;
 }
 
 .immersive-timeline {
+  --journey-progress: 0;
   position: relative;
   min-height: 100vh;
-  overflow: clip;
-  color: oklch(96% 0.012 196);
-  color-scheme: dark;
-  font-family: var(--font-sans-ui);
-  background:
-    radial-gradient(circle at 52% 68%, oklch(46% 0.09 50 / 0.55), transparent 38%),
-    oklch(22% 0.045 232);
+  color: #222;
 }
 
-.immersive-timeline::after {
+/* Canvas container matching MLSYSBOOK */
+#canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 1;
+}
+
+.immersive-timeline__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Atmospheric subtle vignette */
+.immersive-timeline::before {
   position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   content: "";
-  background:
-    linear-gradient(180deg, oklch(13% 0.035 237 / 0.25), transparent 32%),
-    radial-gradient(circle at center, transparent 45%, oklch(10% 0.03 235 / 0.72));
+  background: radial-gradient(circle at center, transparent 45%, rgba(6, 10, 18, 0.72) 100%);
 }
 
-.immersive-timeline__canvas {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.immersive-timeline__hero {
+/* ==========================================================================
+   Hero Title Section (Exact MLSYSBOOK #hero-title and .subtitle)
+   ========================================================================== */
+#hero-title {
   position: fixed;
   top: 40%;
   left: 50%;
-  z-index: 10;
-  width: min(41rem, calc(100vw - 3rem));
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
-  text-align: center;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  width: min(44rem, calc(100vw - 2rem));
 }
 
-.immersive-timeline__hero svg {
-  margin-bottom: clamp(1rem, 3vh, 2rem);
-  filter: drop-shadow(0 0 1.75rem oklch(78% 0.14 195 / 0.42));
+.hero-logo {
+  height: 110px;
+  filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.4));
 }
 
-.immersive-timeline__eyebrow {
-  margin: 0 0 0.9rem;
-  color: oklch(85% 0.12 192);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-}
-
-.immersive-timeline__hero h1 {
-  max-width: 12ch;
-  margin: 0;
-  color: oklch(97% 0.018 190);
-  font-size: clamp(2.75rem, 7vw, 6.75rem);
-  font-weight: 760;
-  line-height: 0.96;
-  letter-spacing: -0.055em;
-  text-wrap: balance;
-  text-shadow: 0 0.2rem 2.5rem oklch(10% 0.025 235 / 0.58);
-}
-
-.immersive-timeline__intro {
-  max-width: 42rem;
-  margin: clamp(1.2rem, 3vh, 2rem) 0 0;
-  color: oklch(89% 0.025 196);
-  font-size: clamp(1rem, 1.8vw, 1.25rem);
-  line-height: 1.65;
-}
-
-.immersive-timeline__scroll-cue {
+.subtitle {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.15rem;
+  color: #334155;
+  letter-spacing: 3px;
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 8px 22px;
+  border-radius: 30px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin: clamp(1.5rem, 5vh, 3.5rem) 0 0;
-  color: oklch(83% 0.03 198);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.12em;
 }
 
-.immersive-timeline__scroll-cue span {
-  display: block;
-  width: 2.5rem;
-  height: 1px;
-  background: currentColor;
-  transform-origin: left;
-  animation: immersive-timeline-pulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+.hero-heading {
+  margin: 1rem 0 0.5rem;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-weight: 850;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.25);
 }
 
-.immersive-timeline__explore {
-  position: fixed;
-  top: max(1.25rem, env(safe-area-inset-top));
-  right: max(1.25rem, env(safe-area-inset-right));
-  z-index: 40;
+.hero-intro {
+  max-width: 36rem;
+  margin: 0.5rem 0 1.25rem;
+  color: #cbd5e1;
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  line-height: 1.6;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.begin-btn {
   display: inline-flex;
   align-items: center;
-  min-height: 3rem;
-  gap: 0.8rem;
-  padding: 0.75rem 1rem 0.75rem 1.15rem;
-  border: 1px solid oklch(87% 0.035 192 / 0.5);
-  border-radius: 999px;
-  color: oklch(18% 0.025 220);
-  background: oklch(94% 0.025 188 / 0.94);
-  box-shadow: 0 0.9rem 2.6rem oklch(8% 0.025 235 / 0.24);
-  font-size: 0.82rem;
-  font-weight: 760;
-  line-height: 1;
-  text-decoration: none;
-  transition:
-    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 750;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.immersive-timeline__explore:hover {
-  color: oklch(98% 0.01 190);
-  border-color: oklch(79% 0.12 194);
-  background: oklch(43% 0.105 196);
+.begin-btn:hover:not(:disabled) {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);
 }
 
-.immersive-timeline__explore:focus-visible,
-.immersive-timeline__marker:focus-visible,
-.immersive-timeline__fallback a:focus-visible {
-  outline: 3px solid oklch(86% 0.17 91);
-  outline-offset: 4px;
-}
-
-.immersive-timeline__markers {
+/* ==========================================================================
+   Back Navigation Button (Top-left)
+   ========================================================================== */
+.immersive-timeline__back {
   position: fixed;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
+  top: max(1.25rem, env(safe-area-inset-top));
+  left: max(1.25rem, env(safe-area-inset-left));
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease;
 }
 
-.immersive-timeline__marker {
+.immersive-timeline__back:hover {
+  transform: translateX(-2px) scale(1.04);
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   3D Projected Markers (Exact MLSYSBOOK #markers-container & .marker)
+   ========================================================================== */
+#markers-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 25;
+  overflow: hidden;
+}
+
+.marker {
   position: absolute;
   top: 0;
   left: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  width: min(16rem, 36vw);
-  min-height: 3.75rem;
-  gap: 0.75rem;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid oklch(84% 0.04 198 / 0.42);
-  border-radius: 0.8rem;
-  color: oklch(95% 0.012 195);
-  background: oklch(17% 0.04 226 / 0.9);
-  box-shadow: 0 0.8rem 2.4rem oklch(7% 0.03 235 / 0.36);
-  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  appearance: none;
+  text-align: center;
   opacity: 0;
-  will-change: transform, opacity;
-  transition:
-    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-.immersive-timeline__marker:hover,
-.immersive-timeline__marker:focus-visible {
-  border-color: var(--marker-accent);
-  background: oklch(23% 0.052 224 / 0.96);
+.marker:hover {
+  z-index: 35;
 }
 
-.immersive-timeline__marker--optics {
-  --marker-accent: oklch(83% 0.15 82);
-}
-
-.immersive-timeline__marker--polarization {
-  --marker-accent: oklch(79% 0.15 191);
-}
-
-.immersive-timeline__marker-year {
-  display: inline-flex;
+.marker-content {
+  background: rgba(255, 255, 255, 0.96);
+  padding: 8px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 102, 0, 0.3);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-width: 3.6rem;
-  min-height: 2rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-  color: oklch(15% 0.028 228);
-  background: var(--marker-accent);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.73rem;
-  font-weight: 800;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  min-width: 150px;
+  max-width: 240px;
 }
 
-.immersive-timeline__marker-copy {
-  min-width: 0;
-  text-align: left;
+.marker.polarization .marker-content {
+  border-color: rgba(2, 132, 199, 0.35);
 }
 
-.immersive-timeline__marker-title,
-.immersive-timeline__marker-scientist {
+.marker:hover .marker-content {
+  box-shadow: 0 8px 24px rgba(255, 102, 0, 0.35);
+  border-color: #ff6600;
+}
+
+.marker.polarization:hover .marker-content {
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
+  border-color: #0284c7;
+}
+
+.marker-year,
+.marker-label,
+.marker-author {
   display: block;
+}
+
+.marker-year {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #ff6600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.marker.polarization .marker-year {
+  color: #0284c7;
+}
+
+.marker-label {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #222;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  margin-bottom: 2px;
+}
+
+.marker-author {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+  max-width: 200px;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   Bouncing Caret Overlay (Exact MLSYSBOOK .ui-overlay & .caret-up)
+   ========================================================================== */
+.ui-overlay {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  color: #f1f5f9;
+  text-align: center;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: auto;
+  cursor: pointer;
+  backdrop-filter: none;
+  font-weight: bold;
+  border: none;
+  transition: opacity 0.3s ease;
+}
+
+.caret-up {
+  width: 24px;
+  height: 24px;
+  border-left: 4px solid #f8fafc;
+  border-top: 4px solid #f8fafc;
+  transform: rotate(45deg);
+  margin: 0 auto;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: rotate(45deg) translate(0, 0);
+  }
+  40% {
+    transform: rotate(45deg) translate(-5px, -5px);
+  }
+  60% {
+    transform: rotate(45deg) translate(-3px, -3px);
+  }
+}
+
+/* ==========================================================================
+   Bottom Navigation HUD & Scrubber Bar
+   ========================================================================== */
+.immersive-timeline__journey {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 1.25rem max(1.25rem, env(safe-area-inset-right)) max(0.85rem, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent 0%, rgba(6, 10, 18, 0.95) 60%);
+}
+
+.immersive-timeline__journey-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.immersive-timeline__journey button {
+  display: grid;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #f1f5f9;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.immersive-timeline__journey button:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.immersive-timeline__journey button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.immersive-timeline__position {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.immersive-timeline__position strong {
+  font-size: 0.92rem;
+  color: #f8fafc;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.immersive-timeline__marker-title {
-  font-size: 0.8rem;
-  font-weight: 680;
-  line-height: 1.35;
+.immersive-timeline__position > span {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.immersive-timeline__marker-scientist {
-  margin-top: 0.16rem;
-  color: oklch(79% 0.03 198);
-  font-size: 0.66rem;
-  line-height: 1.3;
+.immersive-timeline__scrubber {
+  display: block;
+  appearance: none;
+  width: 100%;
+  max-width: 42rem;
+  height: 1.8rem;
+  margin: 0.25rem auto 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  --track: linear-gradient(to right, #ff6600 calc(var(--journey-progress) * 100%), rgba(255, 255, 255, 0.18) 0);
+}
+
+.immersive-timeline__scrubber::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--track);
+}
+
+.immersive-timeline__scrubber::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--track);
+}
+
+.immersive-timeline__scrubber::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #ff6600;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.8);
+  transition: transform 0.15s ease;
+}
+
+.immersive-timeline__scrubber::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.immersive-timeline__scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #ff6600;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.8);
+}
+
+/* ==========================================================================
+   Fallback and Accessible States
+   ========================================================================== */
+.immersive-timeline--fallback #hero-title {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 .immersive-timeline__fallback {
@@ -234,9 +440,13 @@ body:has(.immersive-timeline) {
   left: clamp(1.5rem, 8vw, 8rem);
   z-index: 30;
   max-width: 36rem;
-  color: oklch(86% 0.025 196);
+  color: #cbd5e1;
   font-size: 0.9rem;
   line-height: 1.55;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .immersive-timeline__fallback p {
@@ -244,81 +454,48 @@ body:has(.immersive-timeline) {
 }
 
 .immersive-timeline__fallback a {
-  color: oklch(88% 0.13 193);
-  font-weight: 750;
+  color: #38bdf8;
+  font-weight: 700;
   text-underline-offset: 0.25rem;
 }
 
-@keyframes immersive-timeline-pulse {
-  0%, 100% { opacity: 0.35; transform: scaleX(0.35); }
-  55% { opacity: 1; transform: scaleX(1); }
-}
-
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
 @media (max-width: 640px) {
-  .immersive-timeline__hero {
-    top: 40%;
-    left: 50%;
-    width: calc(100vw - 2.5rem);
+  #hero-title {
+    top: 36%;
+    width: min(22rem, calc(100vw - 2rem));
   }
 
-  .immersive-timeline__hero svg {
-    width: 4.25rem;
-    height: 4.25rem;
+  .hero-heading {
+    max-width: 12ch;
+    font-size: 2.15rem;
+    line-height: 1.08;
   }
 
-  .immersive-timeline__hero h1 {
-    max-width: 10ch;
-    font-size: clamp(2.6rem, 14vw, 4.25rem);
+  .hero-intro {
+    max-width: 20rem;
+    margin-bottom: 1rem;
   }
 
-  .immersive-timeline__intro {
-    max-width: 30rem;
+  .marker-content {
+    min-width: 130px;
+    max-width: 190px;
+    padding: 6px 10px;
+  }
+
+  .marker-label {
     font-size: 0.92rem;
   }
 
-  .immersive-timeline__explore {
-    width: 3rem;
-    padding: 0;
-    justify-content: center;
+  .immersive-timeline__position {
+    flex-direction: column;
+    gap: 0;
   }
 
-  .immersive-timeline__explore span:first-child {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .immersive-timeline__marker {
-    width: min(11.5rem, 48vw);
-    min-height: 3.2rem;
-    gap: 0.5rem;
-    padding: 0.55rem;
-  }
-
-  .immersive-timeline__marker-year {
-    min-width: 3rem;
-    min-height: 1.75rem;
-    font-size: 0.66rem;
-  }
-
-  .immersive-timeline__marker-title {
-    font-size: 0.72rem;
-  }
-
-  .immersive-timeline--fallback .immersive-timeline__hero {
-    top: 42%;
-  }
-
-  .immersive-timeline__fallback {
-    right: 1.25rem;
-    bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem));
-    left: 1.25rem;
+  .immersive-timeline__journey {
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
   }
 }
 

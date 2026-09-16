@@ -39,7 +39,8 @@ describe("ImmersiveTimelinePage", () => {
 
     expect(screen.getByText("已根据你的动态效果偏好关闭飞行场景。")).toBeTruthy();
     expect(screen.getByText("穿越偏振光的历史")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "查看完整时间线" }).getAttribute("href")).toBe(
+    expect(screen.queryByRole("link", { name: /查看完整时间线/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "浏览历史事件" }).getAttribute("href")).toBe(
       "/chronicles/explore",
     );
     expect(getContext).not.toHaveBeenCalled();
@@ -57,7 +58,8 @@ describe("ImmersiveTimelinePage", () => {
     );
 
     expect(await screen.findByText("此设备无法启动 WebGL 飞行场景。")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "直接查看完整时间线" }).getAttribute("href")).toBe(
+    expect(screen.queryByRole("link", { name: /查看完整时间线/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "浏览历史事件" }).getAttribute("href")).toBe(
       "/chronicles/explore",
     );
     getContext.mockRestore();

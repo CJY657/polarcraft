@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebsiteUpdatesDropdown } from './WebsiteUpdatesDropdown';
 
 const LAST_SEEN_STORAGE_KEY = 'polariscope.websiteUpdates.lastSeenId';
-const NEWEST_ID = '2026-09-14-optics-demo-visual-playback';
+const NEWEST_ID = '2026-09-15-immersive-timeline-flight';
 
 const ENTRIES: Array<[string, string]> = [
+  ['沉浸式时间线飞行重制', '/chronicles'],
+  ['历史故事阅读体验优化', '/chronicles'],
+  ['实验与前沿应用分类更清晰', '/experiments'],
+  ['公开课题卡片突出课题名称', '/lab/explore'],
   ['光学演示画面与播放体验升级', '/demos'],
-  ['光学演示控件体验优化', '/demos'],
-  ['议题引用与关联上线', '/lab/explore'],
-  ['课题改版为议题', '/lab/explore'],
-  ['公开课题浏览更清爽', '/lab/explore'],
 ];
 
 function LocationProbe() {

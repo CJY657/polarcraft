@@ -2,6 +2,26 @@ import { TIMELINE_EVENTS, type TimelineEvent } from "@/data/timeline-events";
 
 export const EVENT_SPACING = 8;
 export const FIRST_EVENT_Z = -20;
+export const JOURNEY_START = 0.08;
+export const READING_DISTANCE = 18;
+const INTRO_SCROLL_DISTANCE = 600;
+// A longer scroll interval gives the event time to be read during flight.
+const EVENT_SCROLL_DISTANCE = 700;
+
+export function scrollTopForProgress(progress: number, eventCount: number): number {
+  const value = clamp01(progress);
+  if (value <= JOURNEY_START) return (value / JOURNEY_START) * INTRO_SCROLL_DISTANCE;
+  return INTRO_SCROLL_DISTANCE + ((value - JOURNEY_START) / (1 - JOURNEY_START)) *
+    Math.max(0, eventCount - 1) * EVENT_SCROLL_DISTANCE;
+}
+
+export function journeyProgress(scrollTop: number, eventCount: number): number {
+  if (scrollTop <= INTRO_SCROLL_DISTANCE) {
+    return clamp01(scrollTop / INTRO_SCROLL_DISTANCE) * JOURNEY_START;
+  }
+  return JOURNEY_START + (1 - JOURNEY_START) *
+    clamp01((scrollTop - INTRO_SCROLL_DISTANCE) / (Math.max(1, eventCount - 1) * EVENT_SCROLL_DISTANCE));
+}
 
 export interface ImmersiveTimelineMarker {
   event: TimelineEvent;
@@ -57,8 +77,26 @@ export function scrollProgress(
 }
 
 export function cameraZForProgress(progress: number, eventCount: number): number {
-  const lastEventZ = FIRST_EVENT_Z - Math.max(0, eventCount - 1) * EVENT_SPACING;
-  return 10 + (lastEventZ - 12 - 10) * clamp01(progress);
+  const firstStop = FIRST_EVENT_Z + READING_DISTANCE;
+  if (progress < JOURNEY_START) {
+    return 10 + (firstStop - 10) * clamp01(progress / JOURNEY_START);
+  }
+  return firstStop - Math.max(0, eventCount - 1) * EVENT_SPACING *
+    clamp01((progress - JOURNEY_START) / (1 - JOURNEY_START));
+}
+
+export function progressForEvent(index: number, eventCount: number): number {
+  return JOURNEY_START + clamp01(index / Math.max(1, eventCount - 1)) * (1 - JOURNEY_START);
+}
+
+export function eventIndexForProgress(progress: number, eventCount: number): number {
+  if (progress < JOURNEY_START - 0.01 || eventCount === 0) return -1;
+  return Math.round(clamp01((progress - JOURNEY_START) / (1 - JOURNEY_START)) * (eventCount - 1));
+}
+
+export function smoothProgress(current: number, target: number, deltaMs: number): number {
+  // Match the reference's 8% per-frame follow at 60Hz, independent of refresh rate.
+  return current + (target - current) * (1 - Math.pow(0.92, Math.max(0, deltaMs) / (1000 / 60)));
 }
 
 export function heroTransition(scrollY: number): HeroTransition {
@@ -71,17 +109,12 @@ export function heroTransition(scrollY: number): HeroTransition {
 
 export function markerOpacity(cameraZ: number, markerZ: number, journeyProgress = 1): number {
   const distanceAhead = cameraZ - markerZ;
-  const sceneReveal = clamp01((journeyProgress - 0.06) / 0.06);
+  const sceneReveal = clamp01((journeyProgress - 0.04) / 0.03);
 
-  if (distanceAhead <= 0 || distanceAhead >= 12) return 0;
-  if (distanceAhead < 4) return (distanceAhead / 4) * sceneReveal;
-  if (distanceAhead <= 6) return sceneReveal;
-  return (1 - (distanceAhead - 6) / 6) * sceneReveal;
-}
-
-export function markerEdgeFade(projectedX: number, projectedY: number): number {
-  const edge = Math.max(Math.abs(projectedX), Math.abs(projectedY));
-  return clamp01((1 - edge) / 0.25);
+  if (distanceAhead <= 10 || distanceAhead >= 26) return 0;
+  if (distanceAhead < 12) return ((distanceAhead - 10) / 2) * sceneReveal;
+  if (distanceAhead <= 22) return sceneReveal;
+  return ((26 - distanceAhead) / 4) * sceneReveal;
 }
 
 const mixColor = (from: SkyColor, to: SkyColor, amount: number): SkyColor => [

@@ -3,6 +3,7 @@
  * 展示时间线事件的详细故事和历史背景
  */
 
+import { useEffect, useId, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/utils/classNames'
@@ -29,6 +30,23 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
   const navigate = useNavigate()
   const isZh = true
   const category = CATEGORY_LABELS[event.category]
+  const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const opener = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus({ preventScroll: true })
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      if (opener instanceof HTMLElement && opener.isConnected) {
+        opener.focus({ preventScroll: true })
+      }
+    }
+  }, [])
 
   // Get demo and bench links based on illustration type
   const demoLink = event.illustrationType ? ILLUSTRATION_TO_DEMO_MAP[event.illustrationType] : null
@@ -36,16 +54,50 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose()
-    if (e.key === 'ArrowRight' && hasNext && onNext) onNext()
-    if (e.key === 'ArrowLeft' && hasPrev && onPrev) onPrev()
+    if (e.defaultPrevented) return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+      return
+    }
+    if (e.key === 'Tab' && dialogRef.current) {
+      const dialog = dialogRef.current
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button, input, select, textarea, [tabindex], [contenteditable], iframe, video[controls], audio[controls], summary'
+      )).filter(element => {
+        const style = window.getComputedStyle(element)
+        return element.tabIndex >= 0 && !element.matches(':disabled') &&
+          !element.closest('[hidden], [inert]') && style.display !== 'none' && style.visibility !== 'hidden'
+      })
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (!first || !focusable.some(element => element === active) ||
+        (e.shiftKey ? active === first : active === last)) {
+        e.preventDefault()
+        const target = e.shiftKey ? last ?? dialog : first ?? dialog
+        target.focus()
+      }
+      e.stopPropagation()
+      return
+    }
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey ||
+      (e.target instanceof HTMLElement &&
+        (e.target.isContentEditable || e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), video, audio')))) return
+
+    const navigateStory = e.key === 'ArrowRight' && hasNext ? onNext
+      : e.key === 'ArrowLeft' && hasPrev ? onPrev : undefined
+    if (navigateStory) {
+      e.preventDefault()
+      e.stopPropagation()
+      navigateStory()
+    }
   }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
     >
       {/* Backdrop */}
       <div
@@ -57,7 +109,8 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
       />
 
       {/* Modal Content */}
-      <div className={cn(
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId}
+        tabIndex={-1} onKeyDown={handleKeyDown} className={cn(
         'relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border shadow-2xl',
         theme === 'dark'
           ? 'bg-slate-900 border-slate-700'
@@ -83,6 +136,8 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
               )}
             </div>
             <button
+              ref={closeRef}
+              aria-label={isZh ? '关闭故事' : 'Close story'}
               onClick={onClose}
               className={cn(
                 'p-2 rounded-full transition-colors',
@@ -119,7 +174,7 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
 
         {/* Story Content */}
         <div className="px-6 py-6">
-          <h2 className={cn(
+          <h2 id={titleId} className={cn(
             'text-2xl font-bold mb-2',
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           )}>
@@ -290,7 +345,7 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
 
         {/* Navigation Footer */}
         <div className={cn(
-          'sticky bottom-0 px-6 py-4 border-t backdrop-blur-md flex items-center justify-between',
+          'sticky bottom-0 px-3 sm:px-6 py-4 border-t backdrop-blur-md flex flex-wrap gap-2 items-center justify-between',
           theme === 'dark'
             ? 'bg-slate-900/90 border-slate-700'
             : 'bg-white/90 border-gray-200'
@@ -310,13 +365,6 @@ export function StoryModal({ event, onClose, onNext, onPrev, hasNext, hasPrev }:
             <ChevronLeft className="w-4 h-4" />
             {isZh ? '上一个' : 'Previous'}
           </button>
-
-          <span className={cn(
-            'text-sm',
-            theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
-          )}>
-            {isZh ? '按 ← → 键导航 · ESC 关闭' : 'Press ← → to navigate · ESC to close'}
-          </span>
 
           <button
             onClick={onNext}

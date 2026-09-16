@@ -92,7 +92,7 @@ export function toHierarchyUnits(
         title: course.title,
         color: course.color,
       })),
-  }));
+  })).filter((unit) => unit.experiments.length > 0);
 }
 
 /** 首个可用实验（用于 /experiments 无 ID 时的落位） */
