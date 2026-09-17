@@ -134,6 +134,7 @@ export class CourseModel {
       cover_image: data.coverImage ?? null,
       color: data.color || '#C9A227',
       knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
+      experiment_category_id: data.experimentCategoryId ?? null,
       sort_order: 0,
       created_at: now,
       updated_at: now,
@@ -159,6 +160,7 @@ export class CourseModel {
       cover_image: data.coverImage,
       color: data.color,
       knowledge_tag: data.knowledgeTag,
+      experiment_category_id: data.experimentCategoryId,
       sort_order: data.sortOrder,
     });
 
@@ -173,6 +175,15 @@ export class CourseModel {
 
     logger.info(`Course updated: ${courseId}`);
     return result.matchedCount > 0;
+  }
+
+  /** 分类被删除后，把该分类下的实验置为未分类（实验本身保留） */
+  static async clearExperimentCategory(unitId: string, categoryId: string): Promise<number> {
+    const result = await coursesCollection().updateMany(
+      { unit_id: unitId, experiment_category_id: categoryId },
+      { $set: { experiment_category_id: null, updated_at: new Date() } }
+    );
+    return result.modifiedCount;
   }
 
   /**

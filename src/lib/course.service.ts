@@ -6,7 +6,7 @@
  * 处理课程管理相关的所有 API 调用
  */
 
-import { api } from "./api";
+import { api, unwrapApiData, ensureApiSuccess } from "./api";
 
 // =====================================================
 // Types / 类型定义
@@ -104,6 +104,8 @@ export interface Course {
   coverImage?: string;
   color: string;
   knowledgeTag: KnowledgeTag;
+  /** 经典实验子分类；null/缺省 = 未分类 */
+  experimentCategoryId?: string | null;
   sortOrder: number;
   mainSlide?: MainSlide;
   media: CourseMedia[];
@@ -144,6 +146,7 @@ export interface CreateCourseInput {
   coverImage?: string | null;
   color?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
 }
 
 export interface UpdateCourseInput {
@@ -155,6 +158,7 @@ export interface UpdateCourseInput {
   coverImage?: string | null;
   color?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   sortOrder?: number;
 }
 
@@ -241,10 +245,7 @@ export const courseApi = {
    */
   async getPublicCourses(): Promise<Course[]> {
     const response = await api.get<Course[]>("/api/courses/public");
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch courses");
+    return unwrapApiData(response, "Failed to fetch courses");
   },
 
   /**
@@ -253,10 +254,7 @@ export const courseApi = {
    */
   async getPublicCourse(courseId: string): Promise<Course> {
     const response = await api.get<Course>(`/api/courses/public/${courseId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch course");
+    return unwrapApiData(response, "Failed to fetch course");
   },
 
   /**
@@ -267,10 +265,7 @@ export const courseApi = {
     const response = await api.get<CourseDiscussionComment[]>(
       `/api/courses/public/${courseId}/discussion-comments`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch discussion comments");
+    return unwrapApiData(response, "Failed to fetch discussion comments");
   },
 
   // =====================================================
@@ -283,10 +278,7 @@ export const courseApi = {
    */
   async getAllCourses(): Promise<Course[]> {
     const response = await api.get<Course[]>("/api/courses");
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch courses");
+    return unwrapApiData(response, "Failed to fetch courses");
   },
 
   /**
@@ -295,10 +287,7 @@ export const courseApi = {
    */
   async getCourse(courseId: string): Promise<Course> {
     const response = await api.get<Course>(`/api/courses/${courseId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch course");
+    return unwrapApiData(response, "Failed to fetch course");
   },
 
   /**
@@ -307,10 +296,7 @@ export const courseApi = {
    */
   async createCourse(data: CreateCourseInput): Promise<Course> {
     const response = await api.post<Course>("/api/courses", data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to create course");
+    return unwrapApiData(response, "Failed to create course");
   },
 
   /**
@@ -319,10 +305,7 @@ export const courseApi = {
    */
   async updateCourse(courseId: string, data: UpdateCourseInput): Promise<Course> {
     const response = await api.put<Course>(`/api/courses/${courseId}`, data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to update course");
+    return unwrapApiData(response, "Failed to update course");
   },
 
   /**
@@ -331,9 +314,7 @@ export const courseApi = {
    */
   async deleteCourse(courseId: string): Promise<void> {
     const response = await api.delete<null>(`/api/courses/${courseId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete course");
-    }
+    ensureApiSuccess(response, "Failed to delete course");
   },
 
   // =====================================================
@@ -352,10 +333,7 @@ export const courseApi = {
       `/api/courses/${courseId}/main-slide`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to upsert main slide");
+    return unwrapApiData(response, "Failed to upsert main slide");
   },
 
   /**
@@ -364,9 +342,7 @@ export const courseApi = {
    */
   async deleteMainSlide(courseId: string): Promise<void> {
     const response = await api.delete<null>(`/api/courses/${courseId}/main-slide`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete main slide");
-    }
+    ensureApiSuccess(response, "Failed to delete main slide");
   },
 
   /**
@@ -381,10 +357,7 @@ export const courseApi = {
       `/api/courses/${courseId}/discussion-comments`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to add discussion comment");
+    return unwrapApiData(response, "Failed to add discussion comment");
   },
 
   /**
@@ -393,9 +366,7 @@ export const courseApi = {
    */
   async deleteDiscussionComment(commentId: string): Promise<void> {
     const response = await api.delete<null>(`/api/courses/discussion-comments/${commentId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete discussion comment");
-    }
+    ensureApiSuccess(response, "Failed to delete discussion comment");
   },
 
   /**
@@ -410,10 +381,7 @@ export const courseApi = {
       `/api/courses/${courseId}/discussion-images`,
       file
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "上传讨论图片失败");
+    return unwrapApiData(response, "上传讨论图片失败");
   },
 
   // =====================================================
@@ -432,10 +400,7 @@ export const courseApi = {
       `/api/courses/${courseId}/media`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to create media");
+    return unwrapApiData(response, "Failed to create media");
   },
 
   /**
@@ -447,10 +412,7 @@ export const courseApi = {
       `/api/courses/media/${mediaId}`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to update media");
+    return unwrapApiData(response, "Failed to update media");
   },
 
   /**
@@ -459,9 +421,7 @@ export const courseApi = {
    */
   async deleteMedia(mediaId: string): Promise<void> {
     const response = await api.delete<null>(`/api/courses/media/${mediaId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete media");
-    }
+    ensureApiSuccess(response, "Failed to delete media");
   },
 
   /**
@@ -472,10 +432,7 @@ export const courseApi = {
     const response = await api.delete<DeleteMediaBatchResult>("/api/courses/media", {
       mediaIds,
     });
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to batch delete media");
+    return unwrapApiData(response, "Failed to batch delete media");
   },
 
   /**
@@ -487,9 +444,7 @@ export const courseApi = {
       `/api/courses/${courseId}/media/reorder`,
       { mediaIds }
     );
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to reorder media");
-    }
+    ensureApiSuccess(response, "Failed to reorder media");
   },
 
   // =====================================================
@@ -508,10 +463,7 @@ export const courseApi = {
       `/api/courses/${courseId}/hyperlinks`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to create hyperlink");
+    return unwrapApiData(response, "Failed to create hyperlink");
   },
 
   /**
@@ -526,10 +478,7 @@ export const courseApi = {
       `/api/courses/hyperlinks/${hyperlinkId}`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to update hyperlink");
+    return unwrapApiData(response, "Failed to update hyperlink");
   },
 
   /**
@@ -538,8 +487,6 @@ export const courseApi = {
    */
   async deleteHyperlink(hyperlinkId: string): Promise<void> {
     const response = await api.delete<null>(`/api/courses/hyperlinks/${hyperlinkId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete hyperlink");
-    }
+    ensureApiSuccess(response, "Failed to delete hyperlink");
   },
 };

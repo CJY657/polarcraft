@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, unwrapApiData } from './api';
 import type { UserType } from './auth.service';
 
 export type AdminUserRoleFilter = 'all' | 'user' | 'admin';
@@ -236,11 +236,7 @@ export interface AdminUserActivityResponse {
 export const adminUserApi = {
   async getStats(): Promise<AdminUserStats> {
     const response = await api.get<AdminUserStats>('/api/users/stats');
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取用户统计失败');
+    return unwrapApiData(response, '获取用户统计失败');
   },
 
   async list(params: {
@@ -291,20 +287,12 @@ export const adminUserApi = {
     const response = await api.get<AdminUserListResult>(
       `/api/users${query ? `?${query}` : ''}`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取用户列表失败');
+    return unwrapApiData(response, '获取用户列表失败');
   },
 
   async getDetail(userId: string): Promise<AdminUserDetail> {
     const response = await api.get<AdminUserDetail>(`/api/users/${userId}/details`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取用户详情失败');
+    return unwrapApiData(response, '获取用户详情失败');
   },
 
   async getPostHogAnalytics(
@@ -313,11 +301,7 @@ export const adminUserApi = {
     const response = await api.get<AdminUserPostHogAnalyticsResponse>(
       `/api/users/${userId}/posthog-analytics`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取行为数据失败');
+    return unwrapApiData(response, '获取行为数据失败');
   },
 
   async getActivity(query: AdminActivityQuery): Promise<AdminActivityResponse> {
@@ -330,11 +314,7 @@ export const adminUserApi = {
     const response = await api.get<AdminActivityResponse>(
       `/api/users/activity?${search.toString()}`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取用户活动失败');
+    return unwrapApiData(response, '获取用户活动失败');
   },
 
   async getActivityDetail(
@@ -345,10 +325,6 @@ export const adminUserApi = {
     const response = await api.get<AdminUserActivityResponse>(
       `/api/users/${userId}/activity?${search.toString()}`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || '获取用户活动详情失败');
+    return unwrapApiData(response, '获取用户活动详情失败');
   },
 };

@@ -18,6 +18,22 @@ interface MobileState {
 const MOBILE_BREAKPOINT = 768
 const TABLET_BREAKPOINT = 1024
 
+function readViewportState(): MobileState {
+  const width = window.innerWidth
+  const height = window.innerHeight
+
+  return {
+    isMobile: width < MOBILE_BREAKPOINT,
+    isTablet: width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT,
+    isDesktop: width >= TABLET_BREAKPOINT,
+    isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+    screenWidth: width,
+    screenHeight: height,
+    isPortrait: height > width,
+    isLandscape: width >= height,
+  }
+}
+
 export function useIsMobile(): MobileState {
   const [state, setState] = useState<MobileState>(() => {
     // SSR-safe initial state
@@ -34,35 +50,11 @@ export function useIsMobile(): MobileState {
       }
     }
 
-    const width = window.innerWidth
-    const height = window.innerHeight
-
-    return {
-      isMobile: width < MOBILE_BREAKPOINT,
-      isTablet: width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT,
-      isDesktop: width >= TABLET_BREAKPOINT,
-      isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
-      screenWidth: width,
-      screenHeight: height,
-      isPortrait: height > width,
-      isLandscape: width >= height,
-    }
+    return readViewportState()
   })
 
   const updateState = useCallback(() => {
-    const width = window.innerWidth
-    const height = window.innerHeight
-
-    setState({
-      isMobile: width < MOBILE_BREAKPOINT,
-      isTablet: width >= MOBILE_BREAKPOINT && width < TABLET_BREAKPOINT,
-      isDesktop: width >= TABLET_BREAKPOINT,
-      isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
-      screenWidth: width,
-      screenHeight: height,
-      isPortrait: height > width,
-      isLandscape: width >= height,
-    })
+    setState(readViewportState())
   }, [])
 
   useEffect(() => {

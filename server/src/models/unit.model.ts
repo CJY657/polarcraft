@@ -14,6 +14,8 @@ import type {
   CreateUnitInput,
   UpdateUnitInput,
   UpsertUnitMainSlideInput,
+  ExperimentCategory,
+  ExperimentCategoryInput,
 } from '../types/unit.types.js';
 import type { CourseRow } from '../types/course.types.js';
 
@@ -136,6 +138,114 @@ export class UnitModel {
 
     logger.info('Units reordered');
     return true;
+  }
+
+  // ============================================================
+  // Experiment Categories / 经典实验子分类
+  // ============================================================
+
+  /** 读取单元分类，旧文档缺字段时返回空数组 */
+  static async getExperimentCategories(unitId: string): Promise<ExperimentCategory[] | null> {
+    const unit = await this.getUnitById(unitId);
+    return unit ? (unit.experiment_categories ?? []) : null;
+  }
+
+  private static async setExperimentCategories(
+    unitId: string,
+    categories: ExperimentCategory[]
+  ): Promise<void> {
+    await unitsCollection().updateOne(
+      { id: unitId },
+      { $set: { experiment_categories: categories, updated_at: new Date() } }
+    );
+  }
+
+  static async createExperimentCategory(
+    unitId: string,
+    data: ExperimentCategoryInput
+  ): Promise<ExperimentCategory | null> {
+    const categories = await this.getExperimentCategories(unitId);
+    if (!categories) {
+      return null;
+    }
+
+    const category: ExperimentCategory = {
+      id: generateId(),
+      name_zh: data.name_zh,
+      name_en: data.name_en || null,
+    };
+    await this.setExperimentCategories(unitId, [...categories, category]);
+
+    logger.info(`Experiment category created: ${unitId}/${category.id}`);
+    return category;
+  }
+
+  static async updateExperimentCategory(
+    unitId: string,
+    categoryId: string,
+    data: ExperimentCategoryInput
+  ): Promise<ExperimentCategory | null> {
+    const categories = await this.getExperimentCategories(unitId);
+    const existing = categories?.find((category) => category.id === categoryId);
+    if (!categories || !existing) {
+      return null;
+    }
+
+    const updated: ExperimentCategory = {
+      ...existing,
+      name_zh: data.name_zh,
+      name_en: data.name_en || null,
+    };
+    await this.setExperimentCategories(
+      unitId,
+      categories.map((category) => (category.id === categoryId ? updated : category))
+    );
+
+    logger.info(`Experiment category updated: ${unitId}/${categoryId}`);
+    return updated;
+  }
+
+  /** 删除分类并把该分类下的实验置为未分类（不删除实验） */
+  static async deleteExperimentCategory(unitId: string, categoryId: string): Promise<boolean> {
+    const categories = await this.getExperimentCategories(unitId);
+    if (!categories?.some((category) => category.id === categoryId)) {
+      return false;
+    }
+
+    await this.setExperimentCategories(
+      unitId,
+      categories.filter((category) => category.id !== categoryId)
+    );
+    await CourseModel.clearExperimentCategory(unitId, categoryId);
+
+    logger.info(`Experiment category deleted: ${unitId}/${categoryId}`);
+    return true;
+  }
+
+  /** 按给定 ID 顺序重排；ID 集合必须与现有分类完全一致 */
+  static async reorderExperimentCategories(
+    unitId: string,
+    categoryIds: string[]
+  ): Promise<ExperimentCategory[] | null> {
+    const categories = await this.getExperimentCategories(unitId);
+    if (!categories) {
+      return null;
+    }
+
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    const sameSet =
+      categoryIds.length === categories.length &&
+      new Set(categoryIds).size === categoryIds.length &&
+      categoryIds.every((id) => byId.has(id));
+    if (!sameSet) {
+      return null;
+    }
+
+    const reordered = categoryIds.map((id) => byId.get(id)!);
+    await this.setExperimentCategories(unitId, reordered);
+
+    logger.info(`Experiment categories reordered: ${unitId}`);
+    return reordered;
   }
 
   /**

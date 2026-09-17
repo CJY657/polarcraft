@@ -7,6 +7,7 @@ import {
   buildExperimentalDataFiles,
   buildPresentationFiles,
   countExperiments,
+  findCategoryIdForExperiment,
   findFirstExperimentId,
   findUnitIdForExperiment,
   toHierarchyUnits,
@@ -190,5 +191,78 @@ describe("hierarchy lookups", () => {
     expect(findUnitIdForExperiment(units, "course-3")).toBe("unit-2");
     expect(findUnitIdForExperiment(units, "missing")).toBeNull();
     expect(findUnitIdForExperiment(units, null)).toBeNull();
+  });
+});
+
+describe("toHierarchyUnits experiment categories", () => {
+  const categorizedUnit: Unit = {
+    ...createUnit("unit-1", 0),
+    experimentCategories: [
+      { id: "cat-basic", name: { "zh-CN": "基础实验" } },
+      { id: "cat-empty", name: { "zh-CN": "拓展实验" } },
+    ],
+  };
+
+  it("groups classic experiments by category first, then uncategorized, preserving order", () => {
+    const units = toHierarchyUnits([
+      {
+        unit: categorizedUnit,
+        courses: [
+          { ...createUnitCourse("course-1", "foundation"), experimentCategoryId: null },
+          { ...createUnitCourse("course-2", "foundation"), experimentCategoryId: "cat-basic" },
+          // 失效引用 → 未分类
+          { ...createUnitCourse("course-3", "foundation"), experimentCategoryId: "cat-gone" },
+          // 旧数据没有字段 → 未分类
+          createUnitCourse("course-4", "foundation"),
+          { ...createUnitCourse("app-1", "optical_device"), experimentCategoryId: "cat-basic" },
+        ],
+      },
+    ]);
+
+    expect(units[0].categories.map((category) => category.id)).toEqual(["cat-basic", "cat-empty"]);
+    expect(units[0].categories[0].experiments.map((experiment) => experiment.id)).toEqual([
+      "course-2",
+    ]);
+    expect(units[0].categories[1].experiments).toEqual([]);
+    expect(units[0].experiments.map((experiment) => experiment.id)).toEqual([
+      "course-1",
+      "course-3",
+      "course-4",
+    ]);
+    expect(countExperiments(units)).toBe(4);
+    // 首个实验取显示顺序（分类在前）
+    expect(findFirstExperimentId(units)).toBe("course-2");
+    expect(findUnitIdForExperiment(units, "course-2")).toBe("unit-1");
+    expect(findCategoryIdForExperiment(units, "course-2")).toBe("cat-basic");
+    expect(findCategoryIdForExperiment(units, "course-3")).toBeNull();
+  });
+
+  it("keeps category-only units visible but hides units with neither", () => {
+    const units = toHierarchyUnits([
+      { unit: categorizedUnit, courses: [] },
+      { unit: createUnit("unit-2", 1), courses: [] },
+      { unit: { ...createUnit("unit-3", 2), experimentCategories: [] }, courses: [] },
+    ]);
+
+    expect(units.map((unit) => unit.id)).toEqual(["unit-1"]);
+    expect(countExperiments(units)).toBe(0);
+    expect(findFirstExperimentId(units)).toBeNull();
+  });
+
+  it("ignores categories entirely for the applications module", () => {
+    const units = toHierarchyUnits(
+      [
+        {
+          unit: categorizedUnit,
+          courses: [
+            { ...createUnitCourse("app-1", "optical_device"), experimentCategoryId: "cat-basic" },
+          ],
+        },
+      ],
+      "optical_device",
+    );
+
+    expect(units[0].categories).toEqual([]);
+    expect(units[0].experiments.map((experiment) => experiment.id)).toEqual(["app-1"]);
   });
 });

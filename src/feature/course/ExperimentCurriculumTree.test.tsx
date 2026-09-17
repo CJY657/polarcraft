@@ -11,6 +11,7 @@ const units: HierarchyUnit[] = [
     id: "unit-1",
     title: { "zh-CN": "第一单元" },
     color: "#0ea5e9",
+    categories: [],
     experiments: [
       { id: "course-1", unitId: "unit-1", title: { "zh-CN": "冰洲石实验" } },
       { id: "course-2", unitId: "unit-1", title: { "zh-CN": "马吕斯定律" } },
@@ -20,6 +21,7 @@ const units: HierarchyUnit[] = [
     id: "unit-2",
     title: { "zh-CN": "第二单元" },
     color: "#f97316",
+    categories: [],
     experiments: [{ id: "course-3", unitId: "unit-2", title: { "zh-CN": "色偏振" } }],
   },
 ];
@@ -244,11 +246,7 @@ describe("ExperimentCurriculumTree", () => {
   });
 
   it("shows an empty state when no foundation experiments exist", () => {
-    renderTree({
-      navigation: {
-        units: [{ id: "unit-1", title: { "zh-CN": "第一单元" }, color: "#0ea5e9", experiments: [] }],
-      },
-    });
+    renderTree({ navigation: { units: [] } });
 
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("暂无实验内容");
   });
@@ -257,12 +255,56 @@ describe("ExperimentCurriculumTree", () => {
     renderTree({
       navigation: {
         contentKind: "application",
-        units: [{ id: "unit-1", title: { "zh-CN": "第一单元" }, color: "#0ea5e9", experiments: [] }],
+        units: [],
       },
     });
 
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("暂无前沿应用");
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("光学设备应用");
+  });
+
+  it("renders categories before uncategorized experiments and auto-expands the active path", () => {
+    const categorizedUnits: HierarchyUnit[] = [
+      {
+        id: "unit-1",
+        title: { "zh-CN": "第一单元" },
+        color: "#0ea5e9",
+        categories: [
+          {
+            id: "cat-basic",
+            name: { "zh-CN": "基础实验" },
+            experiments: [{ id: "course-1", unitId: "unit-1", title: { "zh-CN": "冰洲石实验" } }],
+          },
+          { id: "cat-empty", name: { "zh-CN": "拓展实验", "en-US": "Extended" }, experiments: [] },
+        ],
+        experiments: [{ id: "course-2", unitId: "unit-1", title: { "zh-CN": "马吕斯定律" } }],
+      },
+    ];
+    const { onSelectExperiment } = renderTree({
+      navigation: { units: categorizedUnits, activeExperimentId: "course-1" },
+    });
+
+    const basic = screen.getByRole("button", { name: /基础实验/ });
+    expect(basic.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: /冰洲石实验/ }).getAttribute("aria-current")).toBe("true");
+
+    // 显示顺序：分类 → 未分类
+    const rows = screen.getAllByRole("button").map((button) => button.textContent ?? "");
+    expect(rows.findIndex((text) => text.includes("基础实验"))).toBeLessThan(
+      rows.findIndex((text) => text.includes("马吕斯定律"))
+    );
+
+    // 空分类默认收起，展开后显示空状态；折叠不导航
+    const empty = screen.getByRole("button", { name: /拓展实验/ });
+    expect(empty.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(empty);
+    expect(empty.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("该分类暂无实验")).toBeTruthy();
+    expect(onSelectExperiment).not.toHaveBeenCalled();
+
+    // 未分类实验可直接选择
+    fireEvent.click(screen.getByRole("button", { name: /马吕斯定律/ }));
+    expect(onSelectExperiment).toHaveBeenCalledWith("course-2");
   });
 
   it("shows a single empty hint when the active experiment has no files at all", () => {

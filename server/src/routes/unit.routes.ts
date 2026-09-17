@@ -125,6 +125,29 @@ router.delete("/:id/main-slide", requireAdmin, UnitController.deleteMainSlide);
 
 /**
  * =====================================================
+ * Experiment Category Routes / 经典实验子分类路由 (Admin Only)
+ * =====================================================
+ */
+
+router.post("/:id/experiment-categories", requireAdmin, UnitController.createExperimentCategory);
+router.put(
+  "/:id/experiment-categories/reorder",
+  requireAdmin,
+  UnitController.reorderExperimentCategories
+);
+router.put(
+  "/:id/experiment-categories/:categoryId",
+  requireAdmin,
+  UnitController.updateExperimentCategory
+);
+router.delete(
+  "/:id/experiment-categories/:categoryId",
+  requireAdmin,
+  UnitController.deleteExperimentCategory
+);
+
+/**
+ * =====================================================
  * Unit Courses Routes / 单元课程路由
  * =====================================================
  */

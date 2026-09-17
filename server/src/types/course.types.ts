@@ -29,6 +29,8 @@ export interface CreateCourseInput {
   coverImage?: string | null;
   color?: string;
   knowledgeTag?: KnowledgeTag;
+  /** 仅 foundation（经典实验）可归入单元子分类；null = 未分类 */
+  experimentCategoryId?: string | null;
 }
 
 export interface UpdateCourseInput {
@@ -40,6 +42,7 @@ export interface UpdateCourseInput {
   coverImage?: string | null;
   color?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   sortOrder?: number;
 }
 
@@ -105,6 +108,7 @@ export interface CourseRow {
   cover_image: string | null;
   color: string;
   knowledge_tag?: KnowledgeTag | null;
+  experiment_category_id?: string | null;
   sort_order: number;
   created_at: Date;
   updated_at: Date;

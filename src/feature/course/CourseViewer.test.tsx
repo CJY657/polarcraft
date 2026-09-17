@@ -611,6 +611,7 @@ describe("CourseViewer hierarchical workspace", () => {
           id: "unit-media",
           title: { "zh-CN": "第一单元" },
           color: "#0ea5e9",
+          categories: [],
           experiments: [
             { id: "course-media", unitId: "unit-media", title: { "zh-CN": "媒体联动实验" } },
             { id: "course-next", unitId: "unit-media", title: { "zh-CN": "下一个实验" } },

@@ -35,28 +35,15 @@ function formatMessage(level: LogLevel, message: string): string {
   return `${prefix} ${message}`;
 }
 
+function log(level: LogLevel, message: string, ...args: unknown[]): void {
+  if (shouldLog(level)) {
+    console[level](formatMessage(level, message), ...args);
+  }
+}
+
 export const logger = {
-  debug: (message: string, ...args: unknown[]) => {
-    if (shouldLog('debug')) {
-      console.debug(formatMessage('debug', message), ...args);
-    }
-  },
-
-  info: (message: string, ...args: unknown[]) => {
-    if (shouldLog('info')) {
-      console.info(formatMessage('info', message), ...args);
-    }
-  },
-
-  warn: (message: string, ...args: unknown[]) => {
-    if (shouldLog('warn')) {
-      console.warn(formatMessage('warn', message), ...args);
-    }
-  },
-
-  error: (message: string, ...args: unknown[]) => {
-    if (shouldLog('error')) {
-      console.error(formatMessage('error', message), ...args);
-    }
-  },
+  debug: (message: string, ...args: unknown[]) => log('debug', message, ...args),
+  info: (message: string, ...args: unknown[]) => log('info', message, ...args),
+  warn: (message: string, ...args: unknown[]) => log('warn', message, ...args),
+  error: (message: string, ...args: unknown[]) => log('error', message, ...args),
 };

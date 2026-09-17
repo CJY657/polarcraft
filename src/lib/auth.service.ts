@@ -11,7 +11,7 @@
  * 第二层（服务器）：bcrypt(哈希) - 防止数据库泄露暴露
  */
 
-import { api } from './api';
+import { api, unwrapApiData, ensureApiSuccess } from './api';
 import type { ApiResponse } from './api';
 import {
   preparePasswordForRegistration,
@@ -107,10 +107,7 @@ export const authApi = {
    */
   getUserSalt: async (username: string): Promise<UserSaltResponse> => {
     const response = await api.get<UserSaltResponse>(`/api/auth/salt/${encodeURIComponent(username)}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Failed to get user salt');
+    return unwrapApiData(response, 'Failed to get user salt');
   },
 
   /**
@@ -133,12 +130,9 @@ export const authApi = {
       user_type: input.user_type,
       clientSalt: salt,
     });
-    if (response.success && response.data) {
-      // Tokens are set via HTTP-only cookie by backend
-      // Token 由后端通过 HTTP-only cookie 设置
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Registration failed');
+    // Tokens are set via HTTP-only cookie by backend
+    // Token 由后端通过 HTTP-only cookie 设置
+    return unwrapApiData(response, 'Registration failed');
   },
 
   /**
@@ -162,14 +156,11 @@ export const authApi = {
       password: hashedPassword,
       rememberMe: input.rememberMe,
     });
-    if (response.success && response.data) {
-      // Tokens are set via HTTP-only cookie by backend
-      // Token 由后端通过 HTTP-only cookie 设置
-      // rememberMe affects cookie persistence (session vs persistent)
-      // rememberMe 影响 cookie 持久性（session vs persistent）
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Login failed');
+    // Tokens are set via HTTP-only cookie by backend
+    // Token 由后端通过 HTTP-only cookie 设置
+    // rememberMe affects cookie persistence (session vs persistent)
+    // rememberMe 影响 cookie 持久性（session vs persistent）
+    return unwrapApiData(response, 'Login failed');
   },
 
   /**
@@ -195,12 +186,9 @@ export const authApi = {
       {} // Backend reads refresh token from cookie
     );
 
-    if (response.success && response.data) {
-      // New tokens are set via HTTP-only cookie by backend
-      // 新 token 由后端通过 HTTP-only cookie 设置
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Token refresh failed');
+    // New tokens are set via HTTP-only cookie by backend
+    // 新 token 由后端通过 HTTP-only cookie 设置
+    return unwrapApiData(response, 'Token refresh failed');
   },
 
   /**
@@ -209,10 +197,7 @@ export const authApi = {
    */
   getCurrentUser: async (): Promise<UserProfile> => {
     const response = await api.get<UserProfile>('/api/auth/me');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Failed to get user');
+    return unwrapApiData(response, 'Failed to get user');
   },
 
   /**
@@ -221,10 +206,7 @@ export const authApi = {
    */
   updateProfile: async (input: UpdateProfileInput): Promise<UserProfile> => {
     const response = await api.put<UserProfile>('/api/users/profile', input);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Failed to update profile');
+    return unwrapApiData(response, 'Failed to update profile');
   },
 
   /**
@@ -233,9 +215,7 @@ export const authApi = {
    */
   changePassword: async (input: ChangePasswordInput): Promise<void> => {
     const response = await api.post('/api/users/change-password', input);
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to change password');
-    }
+    ensureApiSuccess(response, 'Failed to change password');
   },
 
   /**
@@ -244,9 +224,7 @@ export const authApi = {
    */
   forgotPassword: async (input: ForgotPasswordInput): Promise<ApiResponse<{ message: string }>> => {
     const response = await api.post<{ message: string }>('/api/auth/forgot-password', input);
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to request password reset');
-    }
+    ensureApiSuccess(response, 'Failed to request password reset');
     return response;
   },
 
@@ -256,10 +234,7 @@ export const authApi = {
    */
   validateResetToken: async (token: string): Promise<ResetPasswordTokenValidation> => {
     const response = await api.post<ResetPasswordTokenValidation>('/api/auth/validate-reset-token', { token });
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Failed to validate password reset token');
+    return unwrapApiData(response, 'Failed to validate password reset token');
   },
 
   /**
@@ -268,9 +243,7 @@ export const authApi = {
    */
   resetPassword: async (token: string, newPassword: string, clientSalt: string): Promise<void> => {
     const response = await api.post('/api/auth/reset-password', { token, newPassword, clientSalt });
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to reset password');
-    }
+    ensureApiSuccess(response, 'Failed to reset password');
   },
 
   /**
@@ -279,9 +252,7 @@ export const authApi = {
    */
   verifyEmail: async (token: string): Promise<void> => {
     const response = await api.post('/api/auth/verify-email', { token });
-    if (!response.success) {
-      throw new Error(response.error?.message || '邮箱验证链接无效或已过期');
-    }
+    ensureApiSuccess(response, '邮箱验证链接无效或已过期');
   },
 
   /**
@@ -290,9 +261,7 @@ export const authApi = {
    */
   sendVerificationEmail: async (): Promise<string> => {
     const response = await api.post<{ message: string }>('/api/auth/send-verification', {});
-    if (!response.success) {
-      throw new Error(response.error?.message || '验证邮件发送失败，请稍后重试');
-    }
+    ensureApiSuccess(response, '验证邮件发送失败，请稍后重试');
     return response.data?.message || '验证邮件已发送，请查收';
   },
 

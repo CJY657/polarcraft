@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-09-16-experiment-subcategories',
+    date: '2026年9月16日',
+    title: '经典实验支持子分类',
+    description:
+      '“基础知识”的实验目录现在可以在单元下再分一层子分类，层级为“单元 → 子分类 → 实验 → 文件”。管理员可在单元编辑页的“实验”标签中新建、重命名、上下排序或删除分类，并在编辑课件时把实验归入某个分类；删除分类只把其中的实验变为未分类，不会删除实验。学生端可同时展开多个分类，进入某个实验时会自动展开它所在的单元与分类，未分类的实验仍直接挂在单元下。',
+    href: '/experiments',
+  },
+  {
     id: '2026-09-15-immersive-timeline-flight',
     date: '2026年9月15日',
     title: '沉浸式时间线飞行重制',

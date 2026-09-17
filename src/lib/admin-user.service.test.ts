@@ -4,7 +4,8 @@ const { get } = vi.hoisted(() => ({
   get: vi.fn(),
 }));
 
-vi.mock('./api', () => ({
+vi.mock('./api', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./api')>(),
   api: {
     get,
   },

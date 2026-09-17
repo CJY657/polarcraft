@@ -3,7 +3,7 @@
  * 上传服务
  */
 
-import { api } from './api';
+import { api, unwrapApiData } from './api';
 
 export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx';
 
@@ -38,10 +38,7 @@ export const uploadApi = {
       unitId ? { unitId } : undefined
     );
 
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Upload failed');
+    return unwrapApiData(response, 'Upload failed');
   },
 
   /**
@@ -50,10 +47,7 @@ export const uploadApi = {
    */
   async getUploadConfig(): Promise<UploadConfig> {
     const response = await api.get<UploadConfig>('/api/upload/config');
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || 'Failed to get config');
+    return unwrapApiData(response, 'Failed to get config');
   },
 };
 

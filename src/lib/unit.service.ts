@@ -6,7 +6,7 @@
  * 处理单元管理相关的所有 API 调用
  */
 
-import { api } from "./api";
+import { api, unwrapApiData, ensureApiSuccess } from "./api";
 import type { KnowledgeTag, LabelI18n } from "./course.service";
 
 // =====================================================
@@ -20,6 +20,12 @@ export interface UnitMainSlide {
   knowledgeTag?: KnowledgeTag;
 }
 
+/** 经典实验子分类（单元内有序） */
+export interface ExperimentCategory {
+  id: string;
+  name: LabelI18n;
+}
+
 export interface Unit {
   id: string;
   title: LabelI18n;
@@ -27,6 +33,8 @@ export interface Unit {
   coverImage?: string;
   color: string;
   sortOrder: number;
+  /** 旧接口/旧数据可能缺省，按空数组处理 */
+  experimentCategories?: ExperimentCategory[];
   mainSlide?: UnitMainSlide;
   courses?: UnitCourse[];
   courseCount?: number;
@@ -42,6 +50,8 @@ export interface UnitCourse {
   thumbnailImage?: string;
   color: string;
   knowledgeTag: KnowledgeTag;
+  /** 仅经典实验有效；缺省或 null 表示未分类 */
+  experimentCategoryId?: string | null;
   mainSlide?: UnitMainSlide;
   mediaCount?: number;
 }
@@ -75,6 +85,11 @@ export interface UpsertUnitMainSlideInput {
   title_en?: string;
 }
 
+export interface ExperimentCategoryInput {
+  name_zh: string;
+  name_en?: string;
+}
+
 // =====================================================
 // Unit API Service / 单元 API 服务
 // =====================================================
@@ -90,10 +105,7 @@ export const unitApi = {
    */
   async getPublicUnits(): Promise<Unit[]> {
     const response = await api.get<Unit[]>("/api/units/public");
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch units");
+    return unwrapApiData(response, "Failed to fetch units");
   },
 
   /**
@@ -104,10 +116,7 @@ export const unitApi = {
     const response = await api.get<UnitCourse[]>(
       `/api/units/public/${unitId}/courses`
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch unit courses");
+    return unwrapApiData(response, "Failed to fetch unit courses");
   },
 
   // =====================================================
@@ -120,10 +129,7 @@ export const unitApi = {
    */
   async getAllUnits(): Promise<Unit[]> {
     const response = await api.get<Unit[]>("/api/units");
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch units");
+    return unwrapApiData(response, "Failed to fetch units");
   },
 
   /**
@@ -132,10 +138,7 @@ export const unitApi = {
    */
   async getUnit(unitId: string): Promise<Unit> {
     const response = await api.get<Unit>(`/api/units/${unitId}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to fetch unit");
+    return unwrapApiData(response, "Failed to fetch unit");
   },
 
   /**
@@ -144,10 +147,7 @@ export const unitApi = {
    */
   async createUnit(data: CreateUnitInput): Promise<Unit> {
     const response = await api.post<Unit>("/api/units", data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to create unit");
+    return unwrapApiData(response, "Failed to create unit");
   },
 
   /**
@@ -156,10 +156,7 @@ export const unitApi = {
    */
   async updateUnit(unitId: string, data: UpdateUnitInput): Promise<Unit> {
     const response = await api.put<Unit>(`/api/units/${unitId}`, data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to update unit");
+    return unwrapApiData(response, "Failed to update unit");
   },
 
   /**
@@ -168,9 +165,7 @@ export const unitApi = {
    */
   async deleteUnit(unitId: string): Promise<void> {
     const response = await api.delete<null>(`/api/units/${unitId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete unit");
-    }
+    ensureApiSuccess(response, "Failed to delete unit");
   },
 
   /**
@@ -179,9 +174,7 @@ export const unitApi = {
    */
   async reorderUnits(unitIds: string[]): Promise<void> {
     const response = await api.put<null>("/api/units/reorder", { unitIds });
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to reorder units");
-    }
+    ensureApiSuccess(response, "Failed to reorder units");
   },
 
   // =====================================================
@@ -200,10 +193,7 @@ export const unitApi = {
       `/api/units/${unitId}/main-slide`,
       data
     );
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || "Failed to upsert main slide");
+    return unwrapApiData(response, "Failed to upsert main slide");
   },
 
   /**
@@ -212,9 +202,48 @@ export const unitApi = {
    */
   async deleteMainSlide(unitId: string): Promise<void> {
     const response = await api.delete<null>(`/api/units/${unitId}/main-slide`);
-    if (!response.success) {
-      throw new Error(response.error?.message || "Failed to delete main slide");
-    }
+    ensureApiSuccess(response, "Failed to delete main slide");
   },
 
+  // =====================================================
+  // Experiment Categories / 经典实验子分类
+  // =====================================================
+
+  async createExperimentCategory(
+    unitId: string,
+    data: ExperimentCategoryInput
+  ): Promise<ExperimentCategory> {
+    const response = await api.post<ExperimentCategory>(
+      `/api/units/${unitId}/experiment-categories`,
+      data
+    );
+    return unwrapApiData(response, "Failed to create category");
+  },
+
+  async updateExperimentCategory(
+    unitId: string,
+    categoryId: string,
+    data: ExperimentCategoryInput
+  ): Promise<ExperimentCategory> {
+    const response = await api.put<ExperimentCategory>(
+      `/api/units/${unitId}/experiment-categories/${categoryId}`,
+      data
+    );
+    return unwrapApiData(response, "Failed to update category");
+  },
+
+  async deleteExperimentCategory(unitId: string, categoryId: string): Promise<void> {
+    const response = await api.delete<null>(
+      `/api/units/${unitId}/experiment-categories/${categoryId}`
+    );
+    ensureApiSuccess(response, "Failed to delete category");
+  },
+
+  async reorderExperimentCategories(unitId: string, categoryIds: string[]): Promise<void> {
+    const response = await api.put<ExperimentCategory[]>(
+      `/api/units/${unitId}/experiment-categories/reorder`,
+      { categoryIds }
+    );
+    ensureApiSuccess(response, "Failed to reorder categories");
+  },
 };

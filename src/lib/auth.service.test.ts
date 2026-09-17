@@ -5,7 +5,8 @@ const mocks = vi.hoisted(() => ({
   preparePasswordForRegistration: vi.fn(),
 }));
 
-vi.mock('./api', () => ({
+vi.mock('./api', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./api')>(),
   api: {
     get: vi.fn(),
     post: mocks.post,

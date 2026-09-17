@@ -18,6 +18,8 @@ import type {
   CreateUnitInput,
   UpdateUnitInput,
   UpsertUnitMainSlideInput,
+  ExperimentCategory,
+  ExperimentCategoryInput,
 } from "../types/unit.types.js";
 import type {
   CourseRow,
@@ -47,6 +49,27 @@ function normalizeKnowledgeTag(
     : fallback;
 }
 
+function transformExperimentCategory(category: ExperimentCategory) {
+  return {
+    id: category.id,
+    name: {
+      "zh-CN": category.name_zh,
+      "en-US": category.name_en || undefined,
+    },
+  };
+}
+
+/** 校验分类输入：中文名必填，英文名可选 */
+function parseExperimentCategoryInput(body: unknown): ExperimentCategoryInput | null {
+  const record = (body ?? {}) as Record<string, unknown>;
+  const nameZh = typeof record.name_zh === "string" ? record.name_zh.trim() : "";
+  if (!nameZh) {
+    return null;
+  }
+  const nameEn = typeof record.name_en === "string" ? record.name_en.trim() : "";
+  return { name_zh: nameZh, name_en: nameEn || undefined };
+}
+
 /**
  * Transform unit row to API response format
  */
@@ -64,6 +87,7 @@ function transformUnitRow(row: UnitRow) {
     coverImage: row.cover_image || undefined,
     color: row.color,
     sortOrder: row.sort_order,
+    experimentCategories: (row.experiment_categories ?? []).map(transformExperimentCategory),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -102,6 +126,9 @@ function transformCourseRowSimple(row: CourseRow) {
     coverImage: row.cover_image || undefined,
     color: row.color,
     knowledgeTag,
+    // 分类只对经典实验有效；其它模块或失效引用一律视为未分类
+    experimentCategoryId:
+      knowledgeTag === "foundation" ? row.experiment_category_id ?? null : null,
     sortOrder: row.sort_order,
   };
 }
@@ -426,6 +453,71 @@ export class UnitController {
 
     logger.info(`Unit main slide deleted by ${req.user!.username} for unit: ${id}`);
     res.success(null, "主课件删除成功");
+  });
+
+  // ============================================================
+  // Experiment Categories / 经典实验子分类
+  // ============================================================
+
+  static createExperimentCategory = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const input = parseExperimentCategoryInput(req.body);
+    if (!input) {
+      return res.error("缺少分类名称", "VALIDATION_ERROR", 400);
+    }
+
+    const category = await UnitModel.createExperimentCategory(id, input);
+    if (!category) {
+      return res.error("单元不存在", "NOT_FOUND", 404);
+    }
+
+    logger.info(`Experiment category created by ${req.user!.username}: ${id}/${category.id}`);
+    res.success(transformExperimentCategory(category), "分类创建成功", 201);
+  });
+
+  static updateExperimentCategory = asyncHandler(async (req: Request, res: Response) => {
+    const { id, categoryId } = req.params;
+    const input = parseExperimentCategoryInput(req.body);
+    if (!input) {
+      return res.error("缺少分类名称", "VALIDATION_ERROR", 400);
+    }
+
+    const category = await UnitModel.updateExperimentCategory(id, categoryId, input);
+    if (!category) {
+      return res.error("分类不存在", "NOT_FOUND", 404);
+    }
+
+    logger.info(`Experiment category updated by ${req.user!.username}: ${id}/${categoryId}`);
+    res.success(transformExperimentCategory(category));
+  });
+
+  static deleteExperimentCategory = asyncHandler(async (req: Request, res: Response) => {
+    const { id, categoryId } = req.params;
+
+    const deleted = await UnitModel.deleteExperimentCategory(id, categoryId);
+    if (!deleted) {
+      return res.error("分类不存在", "NOT_FOUND", 404);
+    }
+
+    logger.info(`Experiment category deleted by ${req.user!.username}: ${id}/${categoryId}`);
+    res.success(null, "分类删除成功");
+  });
+
+  static reorderExperimentCategories = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { categoryIds } = req.body;
+
+    if (!Array.isArray(categoryIds) || categoryIds.some((item) => typeof item !== "string")) {
+      return res.error("无效的排序数据", "VALIDATION_ERROR", 400);
+    }
+
+    const categories = await UnitModel.reorderExperimentCategories(id, categoryIds);
+    if (!categories) {
+      return res.error("排序数据与现有分类不匹配", "VALIDATION_ERROR", 400);
+    }
+
+    logger.info(`Experiment categories reordered by ${req.user!.username}: ${id}`);
+    res.success(categories.map(transformExperimentCategory), "排序更新成功");
   });
 
   // ============================================================

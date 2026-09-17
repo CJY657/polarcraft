@@ -10,7 +10,8 @@ const { deleteRequest, getRequest, patchRequest, postRequest, uploadRequest, ens
     ensureApiSuccess: vi.fn(),
   }));
 
-vi.mock('./api', () => ({
+vi.mock('./api', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./api')>(),
   api: {
     delete: deleteRequest,
     get: getRequest,

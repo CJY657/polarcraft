@@ -1,4 +1,4 @@
-import { api, ensureApiSuccess } from "./api";
+import { api, ensureApiSuccess, unwrapApiData } from "./api";
 
 export type FeedbackCategory = "experiment" | "product";
 
@@ -82,11 +82,7 @@ export const feedbackApi = {
           ),
         )
       : await api.post<FeedbackSubmissionResult>("/api/feedback", fields);
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || "提交反馈失败");
+    return unwrapApiData(response, "提交反馈失败");
   },
 
   async list(params?: {
@@ -105,20 +101,12 @@ export const feedbackApi = {
 
     const query = search.toString();
     const response = await api.get<FeedbackListResult>(`/api/feedback${query ? `?${query}` : ""}`);
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || "获取反馈列表失败");
+    return unwrapApiData(response, "获取反馈列表失败");
   },
 
   async listPublic(): Promise<PublicFeedbackListResult> {
     const response = await api.get<PublicFeedbackListResult>("/api/feedback/public");
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error?.message || "获取公开反馈失败");
+    return unwrapApiData(response, "获取公开反馈失败");
   },
 
   async setVisibility(id: string, isPublic: boolean): Promise<void> {

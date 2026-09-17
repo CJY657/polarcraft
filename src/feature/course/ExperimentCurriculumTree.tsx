@@ -1,7 +1,8 @@
 /**
  * ExperimentCurriculumTree - 实验目录层级导航
  *
- * 固定层级：单元 → 实验 → 文件
+ * 固定层级：单元 → (子分类) → 实验 → 文件
+ * 子分类是可选的一层，只在经典实验模块里出现；未分类实验直接挂在单元下。
  * 使用嵌套列表 + 展开按钮（aria-expanded / aria-controls），而不是自定义 tree 控件，
  * 以便键盘与读屏行为保持原生语义。
  */
@@ -11,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  Folder,
   Image as ImageIcon,
   Layers,
   Play,
@@ -18,9 +20,11 @@ import {
 } from "lucide-react";
 
 import {
-  countExperiments,
+  findCategoryIdForExperiment,
   findUnitIdForExperiment,
+  listUnitExperiments,
   type ExperimentFile,
+  type ExperimentSummary,
   type HierarchyUnit,
 } from "./experimentHierarchy";
 
@@ -76,7 +80,11 @@ export function ExperimentCurriculumTree({
     contentKind = "experiment",
   } = navigation;
   const activeUnitId = findUnitIdForExperiment(units, activeExperimentId);
+  const activeCategoryId = findCategoryIdForExperiment(units, activeExperimentId);
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(activeUnitId);
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(
+    () => new Set(activeCategoryId ? [activeCategoryId] : []),
+  );
   const [isActiveExperimentExpanded, setIsActiveExperimentExpanded] = useState(true);
 
   // 只保持激活路径展开：单元与实验跟随当前实验同步
@@ -84,12 +92,33 @@ export function ExperimentCurriculumTree({
     setExpandedUnitId(activeUnitId);
   }, [activeUnitId]);
 
+  // 分类允许多开（同单元内对比），但激活实验所在分类始终自动展开
+  useEffect(() => {
+    if (activeCategoryId) {
+      setExpandedCategoryIds((current) =>
+        current.has(activeCategoryId) ? current : new Set(current).add(activeCategoryId),
+      );
+    }
+  }, [activeCategoryId]);
+
   useEffect(() => {
     setIsActiveExperimentExpanded(true);
   }, [activeExperimentId]);
 
   const toggleUnit = useCallback((unitId: string) => {
     setExpandedUnitId((currentUnitId) => (currentUnitId === unitId ? null : unitId));
+  }, []);
+
+  const toggleCategory = useCallback((categoryId: string) => {
+    setExpandedCategoryIds((current) => {
+      const next = new Set(current);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
   }, []);
 
   const isDark = theme === "dark";
@@ -113,6 +142,12 @@ export function ExperimentCurriculumTree({
     : "bg-indigo-100 text-indigo-950";
   const unitBarClass = isDark ? "bg-indigo-400/50" : "bg-indigo-300";
   const unitBarActiveClass = isDark ? "bg-indigo-300" : "bg-indigo-600";
+
+  // 可选层：子分类（与单元同色系但更轻，介于单元和实验之间）
+  const categoryRowClass = isDark
+    ? "text-indigo-200/90 hover:bg-indigo-500/10"
+    : "text-indigo-900 hover:bg-indigo-50";
+  const categoryActiveClass = isDark ? "text-indigo-100" : "text-indigo-950";
 
   // 第二层：实验
   const experimentRowClass = isDark
@@ -213,7 +248,10 @@ export function ExperimentCurriculumTree({
     );
   }
 
-  if (countExperiments(units) === 0) {
+  const emptyCategoryLabel = isZh ? "该分类暂无实验" : "No experiments in this category";
+
+  // 层级构建阶段已过滤掉既无分类也无实验的单元，这里只需判断是否完全为空
+  if (units.length === 0) {
     return (
       <div
         data-testid="curriculum-empty"
@@ -263,6 +301,65 @@ export function ExperimentCurriculumTree({
               ""}
           </span>
         </button>
+      </li>
+    );
+  };
+
+  const renderExperiment = (experiment: ExperimentSummary) => {
+    const isActiveExperiment = experiment.id === activeExperimentId;
+    const isExpanded = isActiveExperiment && isActiveExperimentExpanded;
+    const experimentPanelId = `${idPrefix}-experiment-${experiment.id}`;
+
+    return (
+      <li key={experiment.id}>
+        <button
+          type="button"
+          onClick={() => {
+            if (isActiveExperiment) {
+              setIsActiveExperimentExpanded((current) => !current);
+              return;
+            }
+
+            onSelectExperiment(experiment.id);
+            onAfterSelect?.();
+          }}
+          aria-expanded={isExpanded}
+          aria-controls={isExpanded ? experimentPanelId : undefined}
+          aria-current={isActiveExperiment ? "true" : undefined}
+          className={`${rowBaseClass} py-2 text-[13px] ${
+            isActiveExperiment
+              ? `${experimentActiveClass} font-bold`
+              : `${experimentRowClass} font-semibold`
+          }`}
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={`h-4 w-4 shrink-0 transition-transform ${
+              isExpanded ? "rotate-90" : ""
+            }`}
+          />
+          <span className="min-w-0 flex-1 truncate">
+            {experiment.title[isZh ? "zh-CN" : "en-US"] ||
+              experiment.title["zh-CN"] ||
+              experiment.title["en-US"] ||
+              ""}
+          </span>
+        </button>
+
+        {isExpanded ? (
+          <ul
+            id={experimentPanelId}
+            className={nestedListClass}
+          >
+            {activeExperimentFiles.length === 0 ? (
+              <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
+                {isZh ? "暂无资源" : "No resources"}
+              </li>
+            ) : (
+              activeExperimentFiles.map(renderFile)
+            )}
+          </ul>
+        ) : null}
       </li>
     );
   };
@@ -318,7 +415,7 @@ export function ExperimentCurriculumTree({
                     ""}
                 </span>
                 <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>
-                  {unit.experiments.length}
+                  {listUnitExperiments(unit).length}
                 </span>
               </button>
 
@@ -327,69 +424,72 @@ export function ExperimentCurriculumTree({
                 hidden={!isUnitExpanded}
                 className={nestedListClass}
               >
-                {unit.experiments.length === 0 ? (
+                {unit.categories.length === 0 && unit.experiments.length === 0 ? (
                   <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
                     {emptyUnitLabel}
                   </li>
                 ) : (
-                  unit.experiments.map((experiment) => {
-                    const isActiveExperiment = experiment.id === activeExperimentId;
-                    const isExpanded = isActiveExperiment && isActiveExperimentExpanded;
-                    const experimentPanelId = `${idPrefix}-experiment-${experiment.id}`;
+                  <>
+                    {unit.categories.map((category) => {
+                      const isCategoryExpanded = expandedCategoryIds.has(category.id);
+                      const isCategoryActive = category.id === activeCategoryId;
+                      const categoryPanelId = `${idPrefix}-category-${category.id}`;
 
-                    return (
-                      <li key={experiment.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isActiveExperiment) {
-                              setIsActiveExperimentExpanded((current) => !current);
-                              return;
-                            }
-
-                            onSelectExperiment(experiment.id);
-                            onAfterSelect?.();
-                          }}
-                          aria-expanded={isExpanded}
-                          aria-controls={isExpanded ? experimentPanelId : undefined}
-                          aria-current={isActiveExperiment ? "true" : undefined}
-                          className={`${rowBaseClass} py-2 text-[13px] ${
-                            isActiveExperiment
-                              ? `${experimentActiveClass} font-bold`
-                              : `${experimentRowClass} font-semibold`
-                          }`}
-                        >
-                          <ChevronRight
-                            aria-hidden="true"
-                            className={`h-4 w-4 shrink-0 transition-transform ${
-                              isExpanded ? "rotate-90" : ""
+                      return (
+                        <li key={category.id}>
+                          <button
+                            type="button"
+                            onClick={() => toggleCategory(category.id)}
+                            aria-expanded={isCategoryExpanded}
+                            aria-controls={categoryPanelId}
+                            className={`${rowBaseClass} py-2 text-[13px] font-bold ${
+                              isCategoryActive ? categoryActiveClass : categoryRowClass
                             }`}
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {experiment.title[isZh ? "zh-CN" : "en-US"] ||
-                              experiment.title["zh-CN"] ||
-                              experiment.title["en-US"] ||
-                              ""}
-                          </span>
-                        </button>
+                          >
+                            {isCategoryExpanded ? (
+                              <ChevronDown
+                                aria-hidden="true"
+                                className="h-4 w-4 shrink-0"
+                              />
+                            ) : (
+                              <ChevronRight
+                                aria-hidden="true"
+                                className="h-4 w-4 shrink-0"
+                              />
+                            )}
+                            <Folder
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 shrink-0"
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {category.name[isZh ? "zh-CN" : "en-US"] ||
+                                category.name["zh-CN"] ||
+                                category.name["en-US"] ||
+                                ""}
+                            </span>
+                            <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>
+                              {category.experiments.length}
+                            </span>
+                          </button>
 
-                        {isExpanded ? (
                           <ul
-                            id={experimentPanelId}
+                            id={categoryPanelId}
+                            hidden={!isCategoryExpanded}
                             className={nestedListClass}
                           >
-                            {activeExperimentFiles.length === 0 ? (
+                            {category.experiments.length === 0 ? (
                               <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
-                                {isZh ? "暂无资源" : "No resources"}
+                                {emptyCategoryLabel}
                               </li>
                             ) : (
-                              activeExperimentFiles.map(renderFile)
+                              category.experiments.map(renderExperiment)
                             )}
                           </ul>
-                        ) : null}
-                      </li>
-                    );
-                  })
+                        </li>
+                      );
+                    })}
+                    {unit.experiments.map(renderExperiment)}
+                  </>
                 )}
               </ul>
             </li>

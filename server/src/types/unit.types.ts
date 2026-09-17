@@ -26,6 +26,11 @@ export interface UpdateUnitInput {
   sortOrder?: number;
 }
 
+export interface ExperimentCategoryInput {
+  name_zh: string;
+  name_en?: string;
+}
+
 export interface UpsertUnitMainSlideInput {
   url: string;
   title_zh?: string;
@@ -36,6 +41,13 @@ export interface UpsertUnitMainSlideInput {
 // Database Row Types / 数据库行类型
 // =====================================================
 
+/** 经典实验子分类（单元内有序，实验通过 experiment_category_id 引用） */
+export interface ExperimentCategory {
+  id: string;
+  name_zh: string;
+  name_en: string | null;
+}
+
 export interface UnitRow {
   id: string;
   title_zh: string;
@@ -45,6 +57,8 @@ export interface UnitRow {
   cover_image: string | null;
   color: string;
   sort_order: number;
+  /** 旧文档没有该字段，读取时视为空数组 */
+  experiment_categories?: ExperimentCategory[];
   created_at: Date;
   updated_at: Date;
 }

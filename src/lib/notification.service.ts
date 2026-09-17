@@ -3,7 +3,7 @@
  * 通知 API 服务
  */
 
-import { api } from './api';
+import { api, unwrapApiData, ensureApiSuccess } from './api';
 
 // =====================================================
 // Types / 类型定义
@@ -64,10 +64,7 @@ export const notificationApi = {
     const url = queryString ? `/api/notifications?${queryString}` : '/api/notifications';
 
     const response = await api.get<NotificationListResponse>(url);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '获取通知失败');
+    return unwrapApiData(response, '获取通知失败');
   },
 
   /**
@@ -76,10 +73,7 @@ export const notificationApi = {
    */
   getUnreadCount: async (): Promise<number> => {
     const response = await api.get<{ count: number }>('/api/notifications/unread-count');
-    if (response.success && response.data) {
-      return response.data.count;
-    }
-    throw new Error(response.error?.message || '获取未读数量失败');
+    return unwrapApiData(response, '获取未读数量失败').count;
   },
 
   /**
@@ -88,9 +82,7 @@ export const notificationApi = {
    */
   markAsRead: async (notificationId: string): Promise<void> => {
     const response = await api.put(`/api/notifications/${notificationId}/read`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '标记已读失败');
-    }
+    ensureApiSuccess(response, '标记已读失败');
   },
 
   /**
@@ -99,9 +91,7 @@ export const notificationApi = {
    */
   markAllAsRead: async (): Promise<void> => {
     const response = await api.put('/api/notifications/read-all');
-    if (!response.success) {
-      throw new Error(response.error?.message || '标记已读失败');
-    }
+    ensureApiSuccess(response, '标记已读失败');
   },
 
   /**
@@ -110,8 +100,6 @@ export const notificationApi = {
    */
   deleteNotification: async (notificationId: string): Promise<void> => {
     const response = await api.delete(`/api/notifications/${notificationId}`);
-    if (!response.success) {
-      throw new Error(response.error?.message || '删除通知失败');
-    }
+    ensureApiSuccess(response, '删除通知失败');
   },
 };

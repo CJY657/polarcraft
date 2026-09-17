@@ -12,6 +12,7 @@ import { Request, Response } from "express";
 import { appPaths } from "../config/paths.js";
 import { uploadConfig } from "../config/upload.config.js";
 import { CourseModel } from "../models/course.model.js";
+import { UnitModel } from "../models/unit.model.js";
 import { asyncHandler } from "../middleware/error.middleware.js";
 import { ManagedUploadCleanupService } from "../services/managed-upload-cleanup.service.js";
 import { logger } from "../utils/logger.js";
@@ -90,6 +91,32 @@ function parseMediaTypeInput(value: unknown): MediaType | undefined | null {
 }
 
 /**
+ * 解析经典实验子分类归属。
+ * 返回 undefined = 不变；null = 清空；string = 校验通过的分类 ID。
+ * 非 foundation 模块或分类不属于目标单元时抛出 VALIDATION_ERROR 文案。
+ */
+async function resolveExperimentCategoryId(
+  raw: unknown,
+  unitId: string,
+  knowledgeTag: KnowledgeTag
+): Promise<string | null | undefined | { error: string }> {
+  if (raw === undefined || raw === null || raw === "") {
+    return raw === undefined ? undefined : null;
+  }
+  if (typeof raw !== "string") {
+    return { error: "分类 ID 无效" };
+  }
+  if (knowledgeTag !== "foundation") {
+    return { error: "只有经典实验可以设置子分类" };
+  }
+  const categories = await UnitModel.getExperimentCategories(unitId);
+  if (!categories?.some((category) => category.id === raw)) {
+    return { error: "分类不属于该单元" };
+  }
+  return raw;
+}
+
+/**
  * Transform course row to API response format
  */
 function transformCourseRow(row: CourseRow) {
@@ -109,6 +136,8 @@ function transformCourseRow(row: CourseRow) {
     coverImage: row.cover_image || undefined,
     color: row.color,
     knowledgeTag,
+    experimentCategoryId:
+      knowledgeTag === "foundation" ? row.experiment_category_id ?? null : null,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -467,6 +496,16 @@ export class CourseController {
       return res.error("缺少必要字段", "VALIDATION_ERROR", 400);
     }
 
+    const categoryId = await resolveExperimentCategoryId(
+      req.body.experimentCategoryId,
+      data.unitId,
+      data.knowledgeTag!
+    );
+    if (categoryId && typeof categoryId === "object") {
+      return res.error(categoryId.error, "VALIDATION_ERROR", 400);
+    }
+    data.experimentCategoryId = categoryId ?? null;
+
     const courseId = await CourseModel.createCourse(data);
     const course = await CourseModel.getCourseById(courseId);
 
@@ -508,6 +547,23 @@ export class CourseController {
 
     if (typeof data.unitId === "string" && data.unitId.length === 0) {
       return res.error("实验必须归属于一个单元", "VALIDATION_ERROR", 400);
+    }
+
+    const nextUnitId = data.unitId ?? course.unit_id;
+    const nextKnowledgeTag = data.knowledgeTag ?? normalizeKnowledgeTag(course.knowledge_tag);
+    const categoryId = await resolveExperimentCategoryId(
+      req.body.experimentCategoryId,
+      nextUnitId,
+      nextKnowledgeTag
+    );
+    if (categoryId && typeof categoryId === "object") {
+      return res.error(categoryId.error, "VALIDATION_ERROR", 400);
+    }
+    if (categoryId !== undefined) {
+      data.experimentCategoryId = categoryId;
+    } else if (nextUnitId !== course.unit_id || nextKnowledgeTag !== "foundation") {
+      // 跨单元或离开经典实验模块时，原分类归属失效
+      data.experimentCategoryId = null;
     }
 
     const coverImageChanged = hasCoverImage && normalizedCoverImage !== course.cover_image;

@@ -1,7 +1,10 @@
 import type { Stats } from 'fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCourseModel, mockManagedUploadCleanupService, mockFsStatSync } = vi.hoisted(() => ({
+const { mockCourseModel, mockUnitModel, mockManagedUploadCleanupService, mockFsStatSync } = vi.hoisted(() => ({
+  mockUnitModel: {
+    getExperimentCategories: vi.fn(),
+  },
   mockCourseModel: {
     getCourseById: vi.fn(),
     getAllCourses: vi.fn(),
@@ -41,6 +44,10 @@ vi.mock('fs', async () => {
 
 vi.mock('../models/course.model.js', () => ({
   CourseModel: mockCourseModel,
+}));
+
+vi.mock('../models/unit.model.js', () => ({
+  UnitModel: mockUnitModel,
 }));
 
 vi.mock('../services/managed-upload-cleanup.service.js', () => ({
@@ -576,5 +583,118 @@ describe('CourseController resource downloads', () => {
     expect(mockCourseModel.getMediaById).toHaveBeenCalledWith('missing-media');
     expect(res.error).toHaveBeenCalledWith('媒体资源不存在', 'NOT_FOUND', 404);
     expect(res.download).not.toHaveBeenCalled();
+  });
+});
+
+describe('CourseController experiment categories', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const legacyCourse = {
+    id: 'course-1',
+    unit_id: 'unit-1',
+    title_zh: '实验',
+    title_en: null,
+    description_zh: null,
+    description_en: null,
+    cover_image: null,
+    color: '#000',
+    knowledge_tag: 'foundation',
+    experiment_category_id: 'cat-1',
+    sort_order: 0,
+    created_at: now,
+    updated_at: now,
+  };
+
+  it('rejects assigning a category that does not belong to the unit', async () => {
+    mockUnitModel.getExperimentCategories.mockResolvedValue([{ id: 'cat-other' }]);
+    const res = createResponse();
+
+    await invokeHandler(
+      CourseController.createCourse,
+      {
+        body: { unitId: 'unit-1', title_zh: '实验', experimentCategoryId: 'cat-1' },
+        user: { username: 'admin' },
+      },
+      res
+    );
+
+    expect(res.error).toHaveBeenCalledWith('分类不属于该单元', 'VALIDATION_ERROR', 400);
+    expect(mockCourseModel.createCourse).not.toHaveBeenCalled();
+  });
+
+  it('rejects categories on non-classic modules', async () => {
+    const res = createResponse();
+
+    await invokeHandler(
+      CourseController.createCourse,
+      {
+        body: {
+          unitId: 'unit-1',
+          title_zh: '应用',
+          knowledgeTag: 'optical_device',
+          experimentCategoryId: 'cat-1',
+        },
+        user: { username: 'admin' },
+      },
+      res
+    );
+
+    expect(res.error).toHaveBeenCalledWith('只有经典实验可以设置子分类', 'VALIDATION_ERROR', 400);
+  });
+
+  it('clears the category when the experiment moves to another unit', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue(legacyCourse);
+    mockCourseModel.updateCourse.mockResolvedValue(true);
+    const res = createResponse();
+
+    await invokeHandler(
+      CourseController.updateCourse,
+      { params: { id: 'course-1' }, body: { unitId: 'unit-2' }, user: { username: 'admin' } },
+      res
+    );
+
+    expect(mockCourseModel.updateCourse).toHaveBeenCalledWith(
+      'course-1',
+      expect.objectContaining({ unitId: 'unit-2', experimentCategoryId: null })
+    );
+  });
+
+  it('clears the category when the experiment leaves the classic module', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue(legacyCourse);
+    mockCourseModel.updateCourse.mockResolvedValue(true);
+    const res = createResponse();
+
+    await invokeHandler(
+      CourseController.updateCourse,
+      {
+        params: { id: 'course-1' },
+        body: { knowledgeTag: 'optical_device' },
+        user: { username: 'admin' },
+      },
+      res
+    );
+
+    expect(mockCourseModel.updateCourse).toHaveBeenCalledWith(
+      'course-1',
+      expect.objectContaining({ knowledgeTag: 'optical_device', experimentCategoryId: null })
+    );
+  });
+
+  it('keeps the category untouched on unrelated updates and exposes it in responses', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue(legacyCourse);
+    mockCourseModel.updateCourse.mockResolvedValue(true);
+    const res = createResponse();
+
+    await invokeHandler(
+      CourseController.updateCourse,
+      { params: { id: 'course-1' }, body: { title_zh: '新标题' }, user: { username: 'admin' } },
+      res
+    );
+
+    const updateInput = mockCourseModel.updateCourse.mock.calls[0][1];
+    expect('experimentCategoryId' in updateInput).toBe(false);
+    expect(res.success.mock.calls[0][0].experimentCategoryId).toBe('cat-1');
   });
 });
