@@ -17,6 +17,8 @@ const { mockCourseModel, mockUnitModel, mockManagedUploadCleanupService, mockFsS
     updateCourse: vi.fn(),
     deleteCourse: vi.fn(),
     createMedia: vi.fn(),
+    updateMedia: vi.fn(),
+    upsertMainSlide: vi.fn(),
     deleteMediaBatch: vi.fn(),
   },
   mockManagedUploadCleanupService: {
@@ -49,6 +51,14 @@ vi.mock('../models/course.model.js', () => ({
 vi.mock('../models/unit.model.js', () => ({
   UnitModel: mockUnitModel,
 }));
+
+vi.mock('../models/experiment-category.model.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../models/experiment-category.model.js')>();
+  return { ExperimentCategoryModel: {
+    getCategories: vi.fn(async (course) => course.experiment_categories ?? []),
+    resolveAssignment: actual.ExperimentCategoryModel.resolveAssignment,
+  } };
+});
 
 vi.mock('../services/managed-upload-cleanup.service.js', () => ({
   ManagedUploadCleanupService: mockManagedUploadCleanupService,
@@ -696,5 +706,74 @@ describe('CourseController experiment categories', () => {
     const updateInput = mockCourseModel.updateCourse.mock.calls[0][1];
     expect('experimentCategoryId' in updateInput).toBe(false);
     expect(res.success.mock.calls[0][0].experimentCategoryId).toBe('cat-1');
+  });
+});
+
+describe('CourseController file categories', () => {
+  const course = {
+    id: 'course-1', unit_id: 'unit-1', title_zh: 'Experiment', knowledge_tag: 'foundation',
+    experiment_category_id: 'custom',
+    experiment_categories: [{ id: 'custom', name_zh: 'Custom', name_en: null }],
+  };
+  const media = { id: 'media-1', course_id: 'course-1', type: 'image', url: '/img.png', title_zh: 'Image' };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCourseModel.getCourseById.mockResolvedValue(course);
+    mockCourseModel.getMediaById.mockResolvedValue(media);
+    mockCourseModel.getMainSlide.mockResolvedValue({ ...media, id: 'main', url: '/main.pdf' });
+    mockCourseModel.getMediaByCourse.mockResolvedValue([media, { ...media, id: 'explicit-null', experiment_category_id: null }]);
+    mockCourseModel.getHyperlinksByCourse.mockResolvedValue([]);
+    mockCourseModel.createMedia.mockResolvedValue('media-1');
+  });
+
+  it('returns experiment-owned names and legacy defaults on public course resources', async () => {
+    const res = createResponse();
+    await invokeHandler(CourseController.getCourse, { params: { id: 'course-1' } }, res);
+    const data = res.success.mock.calls[0][0];
+    expect(data.experimentCategories).toEqual([{ id: 'custom', name: { 'zh-CN': 'Custom', 'en-US': undefined } }]);
+    expect(data.mainSlide.experimentCategoryId).toBe('custom');
+    expect(data.media.map((item: { experimentCategoryId: string | null }) => item.experimentCategoryId)).toEqual(['custom', null]);
+  });
+
+  it.each(['createMedia', 'updateMedia', 'upsertMainSlide'] as const)('validates file ownership in %s', async (method) => {
+    const res = createResponse();
+    await invokeHandler(CourseController[method], {
+      params: { id: 'course-1', mediaId: 'media-1' },
+      body: { type: 'image', url: '/img.png', title_zh: 'Image', experimentCategoryId: 'foreign' },
+      user: { username: 'admin' },
+    }, res);
+    expect(res.error).toHaveBeenCalledWith('分类不属于该实验', 'VALIDATION_ERROR', 400);
+    expect(mockCourseModel[method]).not.toHaveBeenCalled();
+  });
+
+  it.each(['createMedia', 'updateMedia', 'upsertMainSlide'] as const)('persists explicit file assignments in %s', async (method) => {
+    const res = createResponse();
+    await invokeHandler(CourseController[method], {
+      params: { id: 'course-1', mediaId: 'media-1' },
+      body: { type: 'image', url: '/img.png', title_zh: 'Image', experimentCategoryId: 'custom' },
+      user: { username: 'admin' },
+    }, res);
+    expect(mockCourseModel[method]).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ experimentCategoryId: 'custom' }));
+  });
+
+  it('keeps omitted media assignments unchanged and permits explicit removal', async () => {
+    for (const experimentCategoryId of [undefined, null]) {
+      const res = createResponse();
+      await invokeHandler(CourseController.updateMedia, {
+        params: { mediaId: 'media-1' }, body: { title_zh: 'New name', experimentCategoryId }, user: { username: 'admin' },
+      }, res);
+      expect(mockCourseModel.updateMedia).toHaveBeenLastCalledWith('media-1', expect.objectContaining({ experimentCategoryId }));
+    }
+  });
+
+  it('rejects assigning categories on applications and hides their categories on read', async () => {
+    mockCourseModel.getCourseById.mockResolvedValue({ ...course, knowledge_tag: 'optical_device' });
+    const res = createResponse();
+    await invokeHandler(CourseController.updateMedia, { params: { mediaId: 'media-1' }, body: { experimentCategoryId: 'custom' } }, res);
+    expect(res.error).toHaveBeenCalledWith(expect.any(String), 'VALIDATION_ERROR', 400);
+    await invokeHandler(CourseController.getCourse, { params: { id: 'course-1' } }, res);
+    const data = res.success.mock.calls[0][0];
+    expect(data.experimentCategories).toEqual([]);
+    expect(data.mainSlide.experimentCategoryId).toBeNull();
   });
 });

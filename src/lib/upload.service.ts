@@ -5,7 +5,7 @@
 
 import { api, unwrapApiData } from './api';
 
-export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx';
+export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx' | 'html';
 
 interface UploadResult {
   url: string;
@@ -67,6 +67,8 @@ export function getFileCategory(file: File): FileCategory | null {
     'video/quicktime': 'video',
     'application/vnd.ms-powerpoint': 'pptx',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/zip': 'html',
+    'application/x-zip-compressed': 'html',
   };
 
   return mimeToCategory[file.type] || getFileCategoryFromExtension(file.name);
@@ -91,6 +93,7 @@ function getFileCategoryFromExtension(filename: string): FileCategory | null {
     mov: 'video',
     pptx: 'pptx',
     ppt: 'pptx',
+    zip: 'html',
   };
 
   return ext ? extToCategory[ext] || null : null;
@@ -118,6 +121,7 @@ export function getAcceptString(category: FileCategory): string {
     image: '.jpg,.jpeg,.png,.gif,.webp',
     video: '.mp4,.webm,.mov',
     pptx: '.pptx,.ppt',
+    html: '.zip',
   };
   return acceptMap[category];
 }

@@ -13,6 +13,7 @@ import { appPaths } from "../config/paths.js";
 import { uploadConfig } from "../config/upload.config.js";
 import { CourseModel } from "../models/course.model.js";
 import { UnitModel } from "../models/unit.model.js";
+import { ExperimentCategoryModel } from "../models/experiment-category.model.js";
 import { asyncHandler } from "../middleware/error.middleware.js";
 import { ManagedUploadCleanupService } from "../services/managed-upload-cleanup.service.js";
 import { logger } from "../utils/logger.js";
@@ -45,7 +46,7 @@ const KNOWLEDGE_TAGS = new Set<KnowledgeTag>([
   "student_poster",
   "student_project",
 ]);
-const MEDIA_TYPES = new Set<MediaType>(["pptx", "pdf", "image", "video"]);
+const MEDIA_TYPES = new Set<MediaType>(["pptx", "pdf", "image", "video", "html"]);
 
 function normalizeKnowledgeTag(
   value: unknown,
@@ -156,6 +157,7 @@ function transformMainSlideRow(row: MainSlideRow, fallbackKnowledgeTag = DEFAULT
       "en-US": row.title_en || undefined,
     },
     knowledgeTag: normalizeKnowledgeTag(row.knowledge_tag, fallbackKnowledgeTag),
+    experimentCategoryId: row.experiment_category_id ?? null,
   };
 }
 
@@ -173,6 +175,7 @@ function transformMediaRow(row: MediaRow, fallbackKnowledgeTag = DEFAULT_KNOWLED
       "en-US": row.title_en || undefined,
     },
     knowledgeTag: normalizeKnowledgeTag(row.knowledge_tag, fallbackKnowledgeTag),
+    experimentCategoryId: row.experiment_category_id ?? null,
     duration: row.duration || undefined,
     sortOrder: row.sort_order,
   };
@@ -412,6 +415,27 @@ function sendCourseResourceDownload(
   res.error("资源文件不存在", "RESOURCE_FILE_NOT_FOUND", 404);
 }
 
+async function categoryContext(course: CourseRow | null) {
+  const categories = course && normalizeKnowledgeTag(course.knowledge_tag) === 'foundation'
+    ? await ExperimentCategoryModel.getCategories(course) : [];
+  return {
+    experimentCategories: categories.map((c) => ({ id: c.id, name: { 'zh-CN': c.name_zh, 'en-US': c.name_en || undefined } })),
+    resource: <T extends MainSlideRow | MediaRow>(row: T): T => ({
+      ...row,
+      experiment_category_id: course ? ExperimentCategoryModel.resolveAssignment(row, course, categories) : null,
+    }),
+  };
+}
+
+async function validateFileCategory(raw: unknown, course: CourseRow | null) {
+  if (raw === undefined || raw === null || raw === '') return raw === undefined ? undefined : null;
+  if (!course || normalizeKnowledgeTag(course.knowledge_tag) !== 'foundation' || typeof raw !== 'string') {
+    return { error: '只有经典实验可以设置有效子分类' };
+  }
+  const categories = await ExperimentCategoryModel.getCategories(course);
+  return categories.some((c) => c.id === raw) ? raw : { error: '分类不属于该实验' };
+}
+
 export class CourseController {
   // ============================================================
   // Courses / 课程
@@ -431,11 +455,13 @@ export class CourseController {
         const media = await CourseModel.getMediaByCourse(course.id);
         const hyperlinks = await CourseModel.getHyperlinksByCourse(course.id);
         const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
+        const context = await categoryContext(course);
 
         return {
           ...transformCourseRow(course),
-          mainSlide: mainSlide ? transformMainSlideRow(mainSlide, courseKnowledgeTag) : undefined,
-          media: media.map((item) => transformMediaRow(item, courseKnowledgeTag)),
+          experimentCategories: context.experimentCategories,
+          mainSlide: mainSlide ? transformMainSlideRow(context.resource(mainSlide), courseKnowledgeTag) : undefined,
+          media: media.map((item) => transformMediaRow(context.resource(item), courseKnowledgeTag)),
           hyperlinks: hyperlinks.map(transformHyperlinkRow),
         };
       })
@@ -460,11 +486,13 @@ export class CourseController {
     const media = await CourseModel.getMediaByCourse(id);
     const hyperlinks = await CourseModel.getHyperlinksByCourse(id);
     const courseKnowledgeTag = normalizeKnowledgeTag(course.knowledge_tag);
+    const context = await categoryContext(course);
 
     res.success({
       ...transformCourseRow(course),
-      mainSlide: mainSlide ? transformMainSlideRow(mainSlide, courseKnowledgeTag) : undefined,
-      media: media.map((item) => transformMediaRow(item, courseKnowledgeTag)),
+      experimentCategories: context.experimentCategories,
+      mainSlide: mainSlide ? transformMainSlideRow(context.resource(mainSlide), courseKnowledgeTag) : undefined,
+      media: media.map((item) => transformMediaRow(context.resource(item), courseKnowledgeTag)),
       hyperlinks: hyperlinks.map(transformHyperlinkRow),
     });
   });
@@ -510,7 +538,8 @@ export class CourseController {
     const course = await CourseModel.getCourseById(courseId);
 
     logger.info(`Course created by ${req.user!.username}: ${courseId}`);
-    res.success(transformCourseRow(course!), "课程创建成功", 201);
+    const context = await categoryContext(course);
+    res.success({ ...transformCourseRow(course!), experimentCategories: context.experimentCategories }, "课程创建成功", 201);
   });
 
   /**
@@ -577,7 +606,8 @@ export class CourseController {
     const updatedCourse = await CourseModel.getCourseById(id);
 
     logger.info(`Course updated by ${req.user!.username}: ${id}`);
-    res.success(transformCourseRow(updatedCourse!));
+    const context = await categoryContext(updatedCourse);
+    res.success({ ...transformCourseRow(updatedCourse!), experimentCategories: context.experimentCategories });
   });
 
   /**
@@ -620,7 +650,8 @@ export class CourseController {
       return res.success(null);
     }
 
-    res.success(transformMainSlideRow(mainSlide, courseKnowledgeTag));
+    const context = await categoryContext(course);
+    res.success(transformMainSlideRow(context.resource(mainSlide), courseKnowledgeTag));
   });
 
   /**
@@ -665,6 +696,9 @@ export class CourseController {
     };
 
     const existingMainSlide = await CourseModel.getMainSlide(id);
+    const categoryId = await validateFileCategory(req.body.experimentCategoryId, course);
+    if (categoryId && typeof categoryId === 'object') return res.error(categoryId.error, 'VALIDATION_ERROR', 400);
+    data.experimentCategoryId = categoryId;
     await CourseModel.upsertMainSlide(id, data);
     await ManagedUploadCleanupService.cleanupUrls([existingMainSlide?.url], {
       reason: `course.main-slide.upsert:${id}`,
@@ -672,7 +706,8 @@ export class CourseController {
     const mainSlide = await CourseModel.getMainSlide(id);
 
     logger.info(`Main slide upserted by ${req.user!.username} for course: ${id}`);
-    res.success(transformMainSlideRow(mainSlide!, courseKnowledgeTag));
+    const context = await categoryContext(course);
+    res.success(transformMainSlideRow(context.resource(mainSlide!), courseKnowledgeTag));
   });
 
   /**
@@ -813,7 +848,8 @@ export class CourseController {
     const course = await CourseModel.getCourseById(id);
     const courseKnowledgeTag = normalizeKnowledgeTag(course?.knowledge_tag);
     const media = await CourseModel.getMediaByCourse(id);
-    res.success(media.map((item) => transformMediaRow(item, courseKnowledgeTag)));
+    const context = await categoryContext(course);
+    res.success(media.map((item) => transformMediaRow(context.resource(item), courseKnowledgeTag)));
   });
 
   /**
@@ -829,7 +865,8 @@ export class CourseController {
     }
 
     const course = await CourseModel.getCourseById(media.course_id);
-    res.success(transformMediaRow(media, normalizeKnowledgeTag(course?.knowledge_tag)));
+    const context = await categoryContext(course);
+    res.success(transformMediaRow(context.resource(media), normalizeKnowledgeTag(course?.knowledge_tag)));
   });
 
   /**
@@ -879,6 +916,9 @@ export class CourseController {
       knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
     };
 
+    const categoryId = await validateFileCategory(req.body.experimentCategoryId, course);
+    if (categoryId && typeof categoryId === 'object') return res.error(categoryId.error, 'VALIDATION_ERROR', 400);
+    data.experimentCategoryId = categoryId ?? null;
     const mediaId = await CourseModel.createMedia(id, data);
     const media = await CourseModel.getMediaById(mediaId);
 
@@ -915,6 +955,9 @@ export class CourseController {
       knowledgeTag: parsedKnowledgeTag || courseKnowledgeTag,
     };
 
+    const categoryId = await validateFileCategory(req.body.experimentCategoryId, course);
+    if (categoryId && typeof categoryId === 'object') return res.error(categoryId.error, 'VALIDATION_ERROR', 400);
+    data.experimentCategoryId = categoryId;
     await CourseModel.updateMedia(mediaId, data);
     await ManagedUploadCleanupService.cleanupUrls([media.url, media.preview_pdf_url], {
       reason: `course.media.update:${mediaId}`,
@@ -922,7 +965,8 @@ export class CourseController {
     const updatedMedia = await CourseModel.getMediaById(mediaId);
 
     logger.info(`Media updated by ${req.user!.username}: ${mediaId}`);
-    res.success(transformMediaRow(updatedMedia!, courseKnowledgeTag));
+    const context = await categoryContext(course);
+    res.success(transformMediaRow(context.resource(updatedMedia!), courseKnowledgeTag));
   });
 
   /**

@@ -144,6 +144,13 @@ function getManagedUploadFilePath(url: string): string | null {
   return resolvedFilePath;
 }
 
+/** 网页课件包目录：<scope>/html/<id>/…；返回包根目录，非课件包文件返回 null */
+export function getHtmlPackageDir(filePath: string): string | null {
+  const relative = path.relative(uploadRootDir, filePath).replace(/\\/g, '/');
+  const match = relative.match(/^([^/]+\/html\/[^/]+)\//);
+  return match ? path.join(uploadRootDir, match[1]) : null;
+}
+
 async function pruneEmptyUploadDirectories(filePath: string): Promise<void> {
   let currentDir = path.dirname(filePath);
 
@@ -323,7 +330,12 @@ export class ManagedUploadCleanupService {
         }
 
         try {
-          await fs.unlink(entry.filePath);
+          const packageDir = getHtmlPackageDir(entry.filePath);
+          if (packageDir) {
+            await fs.rm(packageDir, { recursive: true, force: true });
+          } else {
+            await fs.unlink(entry.filePath);
+          }
           result.deletedUrls.push(entry.url);
           await pruneEmptyUploadDirectories(entry.filePath);
         } catch (error: any) {
@@ -392,12 +404,16 @@ export class ManagedUploadCleanupService {
       ]);
 
       result.scannedFiles = uploadFiles.length;
+      const referencedPackageDirs = new Set(
+        [...referencedPaths].map(getHtmlPackageDir).filter((dir): dir is string => Boolean(dir))
+      );
 
       for (const filePath of uploadFiles) {
         const relativePath = path.relative(uploadRootDir, filePath);
         const url = `${publicUrlPrefix}/${relativePath.replace(/\\/g, '/')}`;
 
-        if (referencedPaths.has(filePath)) {
+        const packageDir = getHtmlPackageDir(filePath);
+        if (referencedPaths.has(filePath) || (packageDir && referencedPackageDirs.has(packageDir))) {
           result.skippedReferencedFiles.push(url);
           continue;
         }

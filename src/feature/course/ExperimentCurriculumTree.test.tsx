@@ -11,7 +11,6 @@ const units: HierarchyUnit[] = [
     id: "unit-1",
     title: { "zh-CN": "第一单元" },
     color: "#0ea5e9",
-    categories: [],
     experiments: [
       { id: "course-1", unitId: "unit-1", title: { "zh-CN": "冰洲石实验" } },
       { id: "course-2", unitId: "unit-1", title: { "zh-CN": "马吕斯定律" } },
@@ -21,7 +20,6 @@ const units: HierarchyUnit[] = [
     id: "unit-2",
     title: { "zh-CN": "第二单元" },
     color: "#f97316",
-    categories: [],
     experiments: [{ id: "course-3", unitId: "unit-2", title: { "zh-CN": "色偏振" } }],
   },
 ];
@@ -263,35 +261,26 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByTestId("curriculum-empty").textContent).toContain("光学设备应用");
   });
 
-  it("renders categories before uncategorized experiments and auto-expands the active path", () => {
-    const categorizedUnits: HierarchyUnit[] = [
-      {
-        id: "unit-1",
-        title: { "zh-CN": "第一单元" },
-        color: "#0ea5e9",
-        categories: [
-          {
-            id: "cat-basic",
-            name: { "zh-CN": "基础实验" },
-            experiments: [{ id: "course-1", unitId: "unit-1", title: { "zh-CN": "冰洲石实验" } }],
-          },
-          { id: "cat-empty", name: { "zh-CN": "拓展实验", "en-US": "Extended" }, experiments: [] },
-        ],
-        experiments: [{ id: "course-2", unitId: "unit-1", title: { "zh-CN": "马吕斯定律" } }],
-      },
-    ];
-    const { onSelectExperiment } = renderTree({
-      navigation: { units: categorizedUnits, activeExperimentId: "course-1" },
+  it("renders custom categories inside each experiment before uncategorized files", () => {
+    const { onSelectExperiment, onSelectFile } = renderTree({
+      categories: [
+        { id: 'cat-basic', name: { 'zh-CN': '基础实验' } },
+        { id: 'cat-empty', name: { 'zh-CN': '拓展实验', 'en-US': 'Extended' } },
+      ],
+      presentationFiles: presentationFiles.map((file) => ({ ...file, experimentCategoryId: 'cat-basic' })),
     });
 
     const basic = screen.getByRole("button", { name: /基础实验/ });
     expect(basic.getAttribute("aria-expanded")).toBe("true");
     expect(screen.getByRole("button", { name: /冰洲石实验/ }).getAttribute("aria-current")).toBe("true");
 
-    // 显示顺序：分类 → 未分类
+    const experimentPanel = document.getElementById(screen.getByRole('button', { name: /冰洲石实验/ }).getAttribute('aria-controls')!);
+    expect(experimentPanel?.contains(basic)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '课件二' }));
+    expect(onSelectFile).toHaveBeenCalledWith(expect.objectContaining({ id: 'ppt-2' }));
     const rows = screen.getAllByRole("button").map((button) => button.textContent ?? "");
     expect(rows.findIndex((text) => text.includes("基础实验"))).toBeLessThan(
-      rows.findIndex((text) => text.includes("马吕斯定律"))
+      rows.findIndex((text) => text.includes("实验视频"))
     );
 
     // 空分类默认收起，展开后显示空状态；折叠不导航
@@ -299,12 +288,52 @@ describe("ExperimentCurriculumTree", () => {
     expect(empty.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(empty);
     expect(empty.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText("该分类暂无实验")).toBeTruthy();
+    expect(screen.getByText("该分类暂无资源")).toBeTruthy();
     expect(onSelectExperiment).not.toHaveBeenCalled();
 
     // 未分类实验可直接选择
     fireEvent.click(screen.getByRole("button", { name: /马吕斯定律/ }));
     expect(onSelectExperiment).toHaveBeenCalledWith("course-2");
+  });
+
+  it('keeps stale file assignments visible and ignores categories for applications', () => {
+    renderTree({
+      navigation: { contentKind: 'application' },
+      categories: [{ id: 'cat', name: { 'zh-CN': '自定义' } }],
+      presentationFiles: [{ ...presentationFiles[0], experimentCategoryId: 'cat' }],
+      experimentalDataFiles: [{ ...experimentalDataFiles[0], experimentCategoryId: 'deleted' }],
+    });
+    expect(screen.queryByRole('button', { name: /自定义/ })).toBeNull();
+    expect(screen.getByRole('button', { name: '课件一' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '实验视频' })).toBeTruthy();
+  });
+
+  it('keeps stale file assignments directly under classic experiments', () => {
+    renderTree({ categories: [{ id: 'cat', name: { 'zh-CN': '自定义' } }],
+      experimentalDataFiles: [{ ...experimentalDataFiles[0], experimentCategoryId: 'deleted' }] });
+    expect(screen.getByRole('button', { name: '实验视频' })).toBeTruthy();
+  });
+
+  it('keeps manually opened folders when selecting files and resets them for another experiment', () => {
+    const props: TreeProps = {
+      navigation: { units, activeExperimentId: 'course-1', isLoading: false, error: null, onRetry: vi.fn(), onSelectExperiment: vi.fn() },
+      categories: [
+        { id: 'manual', name: { 'zh-CN': 'Manual folder' } },
+        { id: 'selected', name: { 'zh-CN': 'Selected folder' } },
+      ],
+      presentationFiles: [],
+      experimentalDataFiles: [{ ...experimentalDataFiles[0], experimentCategoryId: 'selected' }],
+      activePresentationFileId: null, activeExperimentalDataFileId: null,
+      onSelectFile: vi.fn(), theme: 'light', isZh: true,
+    };
+    const { rerender } = render(<ExperimentCurriculumTree {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: /Manual folder/ }));
+    rerender(<ExperimentCurriculumTree {...props} activeExperimentalDataFileId="video-1" />);
+    expect(screen.getByRole('button', { name: /Manual folder/ }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: /Selected folder/ }).getAttribute('aria-expanded')).toBe('true');
+    rerender(<ExperimentCurriculumTree {...props} navigation={{ ...props.navigation, activeExperimentId: 'course-2' }} />);
+    expect(screen.getByRole('button', { name: /Manual folder/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /Selected folder/ }).getAttribute('aria-expanded')).toBe('false');
   });
 
   it("shows a single empty hint when the active experiment has no files at all", () => {

@@ -105,6 +105,18 @@ vi.mock('../utils/logger.js', () => ({
 import courseRoutes from './course.routes.js';
 
 describe('course.routes', () => {
+  it('protects all experiment category mutations and orders reorder before the category id route', () => {
+    const routes = courseRoutes.stack
+      .map((layer) => (layer as { route?: MockedDeleteRoute }).route)
+      .filter((route): route is MockedDeleteRoute => Boolean(route?.path.includes('experiment-categories')));
+    expect(routes).toHaveLength(4);
+    routes.forEach((route) => expect(route.stack.map((layer) => layer.handle)).toContain(testDoubles.requireAdminMiddleware));
+    expect(routes.findIndex((r) => r.path.endsWith('/reorder'))).toBeLessThan(routes.findIndex((r) => r.path.endsWith('/:categoryId')));
+    const authIndex = courseRoutes.stack.findIndex((layer) => layer.handle === testDoubles.passthroughMiddleware && !(layer as { route?: unknown }).route);
+    const firstCategory = courseRoutes.stack.findIndex((layer) => (layer as { route?: MockedDeleteRoute }).route?.path.includes('experiment-categories'));
+    expect(authIndex).toBeGreaterThanOrEqual(0);
+    expect(authIndex).toBeLessThan(firstCategory);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -26,6 +26,22 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-09-19-html-courseware',
+    date: '2026年9月19日',
+    title: '新增交互式网页课件',
+    description:
+      '经典实验 →“光的偏振态及其调制与测量”→“光的基础知识”→“基础知识”下新增“偏振实验（交互课件）”，包含偏振原理讲解、可操作的偏振仿真、随堂练习、进度保存与报告下载。管理员可在实验的媒体页选择“网页课件”类型，上传含 index.html 的 ZIP 包发布同类课件。',
+    href: '/experiments',
+  },
+  {
+    id: '2026-09-17-experiment-file-categories',
+    date: '2026年9月17日',
+    title: '自定义分类移至实验内',
+    description:
+      '经典实验目录调整为“单元 → 实验 → 自定义分类 → 文件”。可在每个实验的媒体页管理分类，并为文件选择分类；原有自定义名称保留，删除分类不会删除文件。',
+    href: '/experiments',
+  },
+  {
     id: '2026-09-16-experiment-subcategories',
     date: '2026年9月16日',
     title: '经典实验支持子分类',

@@ -21,27 +21,18 @@ export interface ExperimentSummary {
   color?: string;
 }
 
-/** 单元内的经典实验子分类（可为空） */
-export interface HierarchyCategory {
-  id: string;
-  name: LabelI18n;
-  experiments: ExperimentSummary[];
-}
-
 /** 层级中的单元条目 */
 export interface HierarchyUnit {
   id: string;
   title: LabelI18n;
   color: string;
-  /** 按管理端配置顺序排列的子分类；应用模块恒为空 */
-  categories: HierarchyCategory[];
-  /** 未归入任何分类、直接挂在单元下的条目 */
+  /** 实验直接挂在单元下，分类归属于实验内的文件。 */
   experiments: ExperimentSummary[];
 }
 
-/** 单元内的全部条目，按展示顺序：分类（按配置顺序）→ 未分类 */
+/** 单元内的全部条目，保持接口排序。 */
 export function listUnitExperiments(unit: HierarchyUnit): ExperimentSummary[] {
-  return [...unit.categories.flatMap((category) => category.experiments), ...unit.experiments];
+  return unit.experiments;
 }
 
 /** 实验目录中的单个文件 */
@@ -49,6 +40,7 @@ export interface ExperimentFile {
   id: string;
   title: LabelI18n;
   type: MediaType;
+  experimentCategoryId?: string | null;
   /** 没有 PPT 时使用主课件（PDF）兜底 */
   isMainSlide?: boolean;
 }
@@ -62,7 +54,7 @@ export function buildPresentationFiles(
 ): ExperimentFile[] {
   const presentationFiles = (course?.media ?? [])
     .filter((media) => media.type === "pptx")
-    .map((media) => ({ id: media.id, title: media.title, type: media.type }));
+    .map((media) => ({ id: media.id, title: media.title, type: media.type, experimentCategoryId: media.experimentCategoryId }));
 
   if (presentationFiles.length === 0 && course?.mainSlide) {
     return [
@@ -71,6 +63,7 @@ export function buildPresentationFiles(
         title: course.mainSlide.title,
         type: "pdf",
         isMainSlide: true,
+        experimentCategoryId: course.mainSlide.experimentCategoryId,
       },
     ];
   }
@@ -87,7 +80,7 @@ export function buildExperimentalDataFiles(
 ): ExperimentFile[] {
   return (course?.media ?? [])
     .filter((media) => media.type !== "pptx")
-    .map((media) => ({ id: media.id, title: media.title, type: media.type }));
+    .map((media) => ({ id: media.id, title: media.title, type: media.type, experimentCategoryId: media.experimentCategoryId }));
 }
 
 /** 把公开单元与其课程摘要转换成指定内容分类的层级视图模型 */
@@ -104,33 +97,16 @@ export function toHierarchyUnits(
           unitId: unit.id,
           title: course.title,
           color: course.color,
-          categoryId: course.experimentCategoryId ?? null,
         }));
-
-      // 子分类只对经典实验模块生效；失效的分类引用按未分类处理
-      const categories =
-        knowledgeTag === "foundation"
-          ? (unit.experimentCategories ?? []).map((category) => ({
-              id: category.id,
-              name: category.name,
-              experiments: experiments
-                .filter((experiment) => experiment.categoryId === category.id)
-                .map(({ categoryId: _categoryId, ...experiment }) => experiment),
-            }))
-          : [];
-      const categoryIds = new Set(categories.map((category) => category.id));
 
       return {
         id: unit.id,
         title: unit.title,
         color: unit.color,
-        categories,
-        experiments: experiments
-          .filter((experiment) => !experiment.categoryId || !categoryIds.has(experiment.categoryId))
-          .map(({ categoryId: _categoryId, ...experiment }) => experiment),
+        experiments,
       };
     })
-    .filter((unit) => unit.categories.length > 0 || unit.experiments.length > 0);
+    .filter((unit) => unit.experiments.length > 0);
 }
 
 /** 首个可用实验（用于 /experiments 无 ID 时的落位） */
@@ -159,26 +135,6 @@ export function findUnitIdForExperiment(
       listUnitExperiments(unit).some((experiment) => experiment.id === experimentId),
     )?.id ?? null
   );
-}
-
-/** 当前实验所属子分类（未分类或不存在时为 null），用于展开激活路径 */
-export function findCategoryIdForExperiment(
-  units: HierarchyUnit[],
-  experimentId: string | null,
-): string | null {
-  if (!experimentId) {
-    return null;
-  }
-
-  for (const unit of units) {
-    for (const category of unit.categories) {
-      if (category.experiments.some((experiment) => experiment.id === experimentId)) {
-        return category.id;
-      }
-    }
-  }
-
-  return null;
 }
 
 /** 层级中的实验总数 */

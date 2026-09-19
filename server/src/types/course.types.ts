@@ -2,12 +2,13 @@
  * Course Types
  * 课程相关类型定义
  */
+import type { ExperimentCategory } from './unit.types.js';
 
 // =====================================================
 // Media Types / 媒体类型
 // =====================================================
 
-export type MediaType = 'pptx' | 'pdf' | 'image' | 'video';
+export type MediaType = 'pptx' | 'pdf' | 'image' | 'video' | 'html';
 
 export type KnowledgeTag =
   | 'foundation'
@@ -51,6 +52,7 @@ export interface CreateMainSlideInput {
   title_zh?: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
 }
 
 export interface CreateMediaInput {
@@ -60,6 +62,7 @@ export interface CreateMediaInput {
   title_zh: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   duration?: number;
 }
 
@@ -70,6 +73,7 @@ export interface UpdateMediaInput {
   title_zh?: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   duration?: number;
   sort_order?: number;
 }
@@ -109,6 +113,7 @@ export interface CourseRow {
   color: string;
   knowledge_tag?: KnowledgeTag | null;
   experiment_category_id?: string | null;
+  experiment_categories?: ExperimentCategory[];
   sort_order: number;
   created_at: Date;
   updated_at: Date;
@@ -121,6 +126,7 @@ export interface MainSlideRow {
   title_zh: string | null;
   title_en: string | null;
   knowledge_tag?: KnowledgeTag | null;
+  experiment_category_id?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -134,6 +140,7 @@ export interface MediaRow {
   title_zh: string;
   title_en: string | null;
   knowledge_tag?: KnowledgeTag | null;
+  experiment_category_id?: string | null;
   duration: number | null;
   sort_order: number;
   created_at: Date;

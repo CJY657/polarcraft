@@ -7,9 +7,10 @@
  */
 
 import type { KnowledgeTag } from "@/lib/course.service";
+import type { ExperimentCategory } from "@/lib/unit.service";
 
 /** 媒体类型 */
-export type MediaType = "pptx" | "pdf" | "image" | "video";
+export type MediaType = "pptx" | "pdf" | "image" | "video" | "html";
 
 /** 主课件（PDF） */
 export interface MainSlide {
@@ -20,6 +21,7 @@ export interface MainSlide {
   title: LabelI18n;
   /** 知识分类 */
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
 }
 
 /** PPT/PDF 预览上的超链接区域 */
@@ -52,6 +54,7 @@ export interface MediaResource {
   title: LabelI18n;
   /** 知识分类 */
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   /** 持续时间（秒，用于视频） */
   duration?: number;
 }
@@ -71,6 +74,7 @@ export interface CourseData {
   color: string;
   /** 知识分类 */
   knowledgeTag?: KnowledgeTag;
+  experimentCategories?: ExperimentCategory[];
   /** 主课件 PDF */
   mainSlide?: MainSlide;
   /** PPT/PDF 预览上的超链接区域 */

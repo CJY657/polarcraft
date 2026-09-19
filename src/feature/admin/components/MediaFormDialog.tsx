@@ -18,6 +18,7 @@ import type {
 import { FileUpload } from '@/components/ui/FileUpload';
 import { FileCategory } from '@/lib/upload.service';
 import { X } from 'lucide-react';
+import type { ExperimentCategory } from '@/lib/unit.service';
 
 interface MediaFormDialogProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface MediaFormDialogProps {
   isGalleryResults?: boolean;
   mode: 'create' | 'edit';
   media?: CourseMedia;
+  categories?: ExperimentCategory[];
 }
 
 const MEDIA_TYPES: { value: MediaType; label: string }[] = [
@@ -36,6 +38,7 @@ const MEDIA_TYPES: { value: MediaType; label: string }[] = [
   { value: 'pdf', label: 'PDF' },
   { value: 'image', label: '图片' },
   { value: 'video', label: '视频' },
+  { value: 'html', label: '网页课件' },
 ];
 
 const KNOWLEDGE_TAG_OPTIONS: { value: KnowledgeTag; label: string }[] = [
@@ -50,6 +53,7 @@ const getUploadCategory = (type: MediaType): FileCategory => {
   if (type === 'pdf') return 'pdf';
   if (type === 'image') return 'image';
   if (type === 'video') return 'video';
+  if (type === 'html') return 'html';
   return 'image';
 };
 
@@ -63,6 +67,7 @@ export function MediaFormDialog({
   isGalleryResults = false,
   mode,
   media,
+  categories,
 }: MediaFormDialogProps) {
   const { createMedia, updateMedia, isLoading, error } = useCourseAdminStore();
 
@@ -74,6 +79,7 @@ export function MediaFormDialog({
     title_en: '',
     duration: '',
     knowledgeTag: courseKnowledgeTag,
+    experimentCategoryId: '',
   });
 
   useEffect(() => {
@@ -86,6 +92,7 @@ export function MediaFormDialog({
         title_en: media.title['en-US'] || '',
         duration: media.duration?.toString() || '',
         knowledgeTag: media.knowledgeTag || courseKnowledgeTag,
+        experimentCategoryId: media.experimentCategoryId ?? '',
       });
     } else {
       setFormData({
@@ -96,6 +103,7 @@ export function MediaFormDialog({
         title_en: '',
         duration: '',
         knowledgeTag: courseKnowledgeTag,
+        experimentCategoryId: '',
       });
     }
   }, [mode, media, isOpen, courseKnowledgeTag]);
@@ -112,6 +120,7 @@ export function MediaFormDialog({
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
           knowledgeTag: formData.knowledgeTag,
+          ...(categories ? { experimentCategoryId: formData.experimentCategoryId || null } : {}),
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
         };
         await createMedia(courseId, input);
@@ -123,6 +132,7 @@ export function MediaFormDialog({
           title_zh: formData.title_zh,
           title_en: formData.title_en || undefined,
           knowledgeTag: formData.knowledgeTag,
+          ...(categories ? { experimentCategoryId: formData.experimentCategoryId || null } : {}),
           duration: formData.duration ? parseInt(formData.duration, 10) : undefined,
         };
         await updateMedia(media.id, input);
@@ -155,6 +165,17 @@ export function MediaFormDialog({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {categories && (
+            <label className="block text-sm font-medium text-gray-300">
+              文件分类
+              <select aria-label="文件分类" value={formData.experimentCategoryId}
+                onChange={(e) => setFormData({ ...formData, experimentCategoryId: e.target.value })}
+                className="mt-1 w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <option value="">无分类</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name['zh-CN'] || category.name['en-US']}</option>)}
+              </select>
+            </label>
+          )}
           {/* Type */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">类型 *</label>
@@ -209,6 +230,11 @@ export function MediaFormDialog({
               }
               preview={formData.type === 'image'}
             />
+            {formData.type === 'html' && (
+              <p className="mt-1 text-xs text-gray-500">
+                上传 ZIP 压缩包：包内需有 index.html（可在根目录或唯一的顶层文件夹内），其余 CSS/JS/图片用相对路径引用；上传后自动解压，学生端以内嵌网页方式打开。
+              </p>
+            )}
           </div>
 
           {formData.type === 'pptx' && (

@@ -42,6 +42,7 @@ const TYPE_ICONS: Record<MediaType, typeof File> = {
   video: Video,
   pdf: FileText,
   pptx: FileText,
+  html: FileText,
 };
 
 const getMediaTypeFromFile = (file: File): MediaType | null => {

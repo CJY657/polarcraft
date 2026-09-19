@@ -7,6 +7,7 @@
  */
 
 import { api, unwrapApiData, ensureApiSuccess } from "./api";
+import type { ExperimentCategory, ExperimentCategoryInput } from "./unit.service";
 
 // =====================================================
 // Types / 类型定义
@@ -17,7 +18,7 @@ export interface LabelI18n {
   "en-US"?: string;
 }
 
-export type MediaType = "pptx" | "pdf" | "image" | "video";
+export type MediaType = "pptx" | "pdf" | "image" | "video" | "html";
 
 export const KNOWLEDGE_TAGS = [
   "foundation",
@@ -72,6 +73,7 @@ export interface MainSlide {
   url: string;
   title: LabelI18n;
   knowledgeTag: KnowledgeTag;
+  experimentCategoryId?: string | null;
 }
 
 export interface CourseMedia {
@@ -81,6 +83,7 @@ export interface CourseMedia {
   previewPdfUrl?: string;
   title: LabelI18n;
   knowledgeTag: KnowledgeTag;
+  experimentCategoryId?: string | null;
   duration?: number;
   sortOrder?: number;
 }
@@ -104,6 +107,7 @@ export interface Course {
   coverImage?: string;
   color: string;
   knowledgeTag: KnowledgeTag;
+  experimentCategories?: ExperimentCategory[];
   /** 经典实验子分类；null/缺省 = 未分类 */
   experimentCategoryId?: string | null;
   sortOrder: number;
@@ -167,6 +171,7 @@ export interface UpsertMainSlideInput {
   title_zh?: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
 }
 
 export interface CreateMediaInput {
@@ -176,6 +181,7 @@ export interface CreateMediaInput {
   title_zh: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   duration?: number;
 }
 
@@ -186,6 +192,7 @@ export interface UpdateMediaInput {
   title_zh?: string;
   title_en?: string;
   knowledgeTag?: KnowledgeTag;
+  experimentCategoryId?: string | null;
   duration?: number;
 }
 
@@ -235,6 +242,29 @@ export interface DeleteMediaBatchResult {
 // =====================================================
 
 export const courseApi = {
+  async createExperimentCategory(courseId: string, data: ExperimentCategoryInput): Promise<ExperimentCategory> {
+    return unwrapApiData(await api.post<ExperimentCategory>(
+      `/api/courses/${courseId}/experiment-categories`, data
+    ), "Failed to create category");
+  },
+
+  async updateExperimentCategory(courseId: string, categoryId: string, data: ExperimentCategoryInput): Promise<ExperimentCategory> {
+    return unwrapApiData(await api.put<ExperimentCategory>(
+      `/api/courses/${courseId}/experiment-categories/${categoryId}`, data
+    ), "Failed to update category");
+  },
+
+  async deleteExperimentCategory(courseId: string, categoryId: string): Promise<void> {
+    ensureApiSuccess(await api.delete<null>(
+      `/api/courses/${courseId}/experiment-categories/${categoryId}`
+    ), "Failed to delete category");
+  },
+
+  async reorderExperimentCategories(courseId: string, categoryIds: string[]): Promise<void> {
+    ensureApiSuccess(await api.put<ExperimentCategory[]>(
+      `/api/courses/${courseId}/experiment-categories/reorder`, { categoryIds }
+    ), "Failed to reorder categories");
+  },
   // =====================================================
   // Public Courses / 公开课程 (无需认证)
   // =====================================================

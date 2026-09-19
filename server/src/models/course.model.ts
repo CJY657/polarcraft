@@ -7,6 +7,7 @@ import { getCollection } from '../database/connection.js';
 import { normalizeDocument, normalizeDocuments, normalizeImageUrls, pickDefined } from '../database/mongo.util.js';
 import { generateId } from '../utils/crypto.util.js';
 import { logger } from '../utils/logger.js';
+import { ExperimentCategoryModel } from './experiment-category.model.js';
 import type {
   CourseRow,
   MainSlideRow,
@@ -135,6 +136,7 @@ export class CourseModel {
       color: data.color || '#C9A227',
       knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
       experiment_category_id: data.experimentCategoryId ?? null,
+      experiment_categories: [],
       sort_order: 0,
       created_at: now,
       updated_at: now,
@@ -151,6 +153,10 @@ export class CourseModel {
    * 更新课程
    */
   static async updateCourse(courseId: string, data: UpdateCourseInput): Promise<boolean> {
+    if (data.unitId !== undefined || data.knowledgeTag !== undefined || data.experimentCategoryId !== undefined) {
+      const course = await this.getCourseById(courseId);
+      if (course) await ExperimentCategoryModel.materialize(course);
+    }
     const updateDoc = pickDefined({
       unit_id: data.unitId,
       title_zh: data.title_zh,
@@ -223,6 +229,7 @@ export class CourseModel {
             title_zh: data.title_zh || null,
             title_en: data.title_en || null,
             knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
+            ...pickDefined({ experiment_category_id: data.experimentCategoryId }),
             updated_at: now,
           },
         }
@@ -239,6 +246,7 @@ export class CourseModel {
       title_zh: data.title_zh || null,
       title_en: data.title_en || null,
       knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
+      experiment_category_id: data.experimentCategoryId ?? null,
       created_at: now,
       updated_at: now,
     };
@@ -511,6 +519,7 @@ export class CourseModel {
       title_zh: data.title_zh,
       title_en: data.title_en || null,
       knowledge_tag: data.knowledgeTag || DEFAULT_KNOWLEDGE_TAG,
+      experiment_category_id: data.experimentCategoryId ?? null,
       duration: data.duration || null,
       sort_order: sortOrder,
       created_at: now,
@@ -535,6 +544,7 @@ export class CourseModel {
       title_zh: data.title_zh,
       title_en: data.title_en,
       knowledge_tag: data.knowledgeTag,
+      experiment_category_id: data.experimentCategoryId,
       duration: data.duration,
       sort_order: data.sort_order,
     });

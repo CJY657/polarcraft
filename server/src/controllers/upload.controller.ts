@@ -9,6 +9,7 @@ import fs from 'fs';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { uploadConfig, FileCategory } from '../config/upload.config.js';
 import { logger } from '../utils/logger.js';
+import { extractHtmlPackage } from '../services/html-package.service.js';
 
 interface UploadResponse {
   url: string;
@@ -40,7 +41,7 @@ export class UploadController {
     // its own allow-list, e.g. 'document' is only reachable via the research
     // meeting-record route)
     // 验证类别（兜底校验；各路由另有自己的类别白名单，如 document 仅会议记录路由可用）
-    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx', 'document'];
+    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx', 'document', 'html'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
@@ -48,11 +49,27 @@ export class UploadController {
       });
     }
 
+    // HTML courseware arrives as a ZIP: extract beside it and point the URL at the entry page
+    // 网页课件以 ZIP 上传：解压到同名目录，URL 指向入口页
+    let storedPath = req.file.path;
+    if (category === 'html') {
+      const packageDir = storedPath.replace(/\.zip$/i, '');
+      try {
+        const entry = await extractHtmlPackage(storedPath, packageDir);
+        storedPath = path.join(packageDir, entry);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_HTML_PACKAGE', message: error instanceof Error ? error.message : '压缩包解压失败' },
+        });
+      }
+    }
+
     // Construct public URL
     // 构建公共 URL
     const relativePath = path.relative(
       uploadConfig.uploadDir,
-      req.file.path
+      storedPath
     );
     const url = `${uploadConfig.publicUrlPrefix}/${relativePath.replace(/\\/g, '/')}`;
 

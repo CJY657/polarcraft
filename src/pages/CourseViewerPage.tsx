@@ -5,7 +5,7 @@
  * 单元 → 内容条目 → 文件。
  */
 
-import { Suspense, lazy, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, MessageSquarePlus, MessageSquare } from "lucide-react";
@@ -264,6 +264,7 @@ export default function CourseViewerPage() {
       coverImage: course.coverImage,
       color: course.color,
       knowledgeTag: course.knowledgeTag,
+      experimentCategories: course.experimentCategories,
       lastUpdated: course.updatedAt,
       mainSlide: mainSlide
         ? {
@@ -274,6 +275,7 @@ export default function CourseViewerPage() {
               "en-US": mainSlide.title["en-US"] || "",
             },
             knowledgeTag: mainSlide.knowledgeTag,
+            experimentCategoryId: mainSlide.experimentCategoryId,
           }
         : undefined,
       hyperlinks: hyperlinks.map((hyperlink) => ({
@@ -293,6 +295,7 @@ export default function CourseViewerPage() {
         previewPdfUrl: item.previewPdfUrl,
         title: { "zh-CN": item.title["zh-CN"] || "", "en-US": item.title["en-US"] || "" },
         knowledgeTag: item.knowledgeTag,
+        experimentCategoryId: item.experimentCategoryId,
         duration: item.duration,
       })),
     };
@@ -313,6 +316,8 @@ export default function CourseViewerPage() {
   );
 
   const isViewerPending = isLoading || isPendingInitialLoad;
+  // 交互课件独占工作区时隐藏右下角悬浮按钮，避免遮挡课件
+  const [isHtmlWorkspace, setIsHtmlWorkspace] = useState(false);
   const hasViewerContent =
     Boolean(course && courseData) &&
     isCourseInCurrentWorkspace &&
@@ -320,7 +325,7 @@ export default function CourseViewerPage() {
     !isViewerPending;
 
   const renderViewerActions = () => (
-    <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-3">
+    <div className={`fixed bottom-6 right-6 z-30 flex flex-col gap-3 ${isHtmlWorkspace ? "hidden" : ""}`}>
       <Link
         to={`/feedback?${feedbackSearch}#feedback`}
         className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-[0_14px_36px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.24)] sm:px-4 ${
@@ -434,6 +439,7 @@ export default function CourseViewerPage() {
               backPath={viewerRootPath}
               backLabel={isZh ? "返回" : "Back"}
               navigation={navigation}
+              onHtmlWorkspaceChange={setIsHtmlWorkspace}
             />
           </Suspense>
 

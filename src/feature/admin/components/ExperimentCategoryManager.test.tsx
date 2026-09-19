@@ -12,7 +12,7 @@ const { mockUnitApi } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/lib/unit.service", () => ({ unitApi: mockUnitApi }));
+vi.mock("@/lib/course.service", () => ({ courseApi: mockUnitApi }));
 
 import { ExperimentCategoryManager } from "./ExperimentCategoryManager";
 
@@ -30,7 +30,7 @@ describe("ExperimentCategoryManager", () => {
     mockUnitApi.createExperimentCategory.mockRejectedValueOnce(new Error("网络错误"));
     mockUnitApi.createExperimentCategory.mockResolvedValueOnce({ id: "cat-3", name: { "zh-CN": "应用" } });
     const onChanged = vi.fn();
-    render(<ExperimentCategoryManager unitId="unit-1" categories={[]} theme="light" onChanged={onChanged} />);
+    render(<ExperimentCategoryManager courseId="course-1" categories={[]} theme="light" onChanged={onChanged} />);
 
     fireEvent.click(screen.getByRole("button", { name: /新建分类/ }));
     const createButton = screen.getByRole("button", { name: /创建/ });
@@ -45,7 +45,7 @@ describe("ExperimentCategoryManager", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /创建/ }));
     await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
-    expect(mockUnitApi.createExperimentCategory).toHaveBeenLastCalledWith("unit-1", {
+    expect(mockUnitApi.createExperimentCategory).toHaveBeenLastCalledWith("course-1", {
       name_zh: "应用",
       name_en: undefined,
     });
@@ -56,26 +56,27 @@ describe("ExperimentCategoryManager", () => {
     mockUnitApi.deleteExperimentCategory.mockResolvedValue(undefined);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const onChanged = vi.fn();
-    render(<ExperimentCategoryManager unitId="unit-1" categories={categories} theme="dark" onChanged={onChanged} />);
+    render(<ExperimentCategoryManager courseId="course-1" categories={categories} theme="dark" onChanged={onChanged} />);
 
     const [moveUpFirst] = screen.getAllByRole("button", { name: "上移分类" });
     expect((moveUpFirst as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getAllByRole("button", { name: "下移分类" })[0]);
     await waitFor(() =>
-      expect(mockUnitApi.reorderExperimentCategories).toHaveBeenCalledWith("unit-1", ["cat-2", "cat-1"])
+      expect(mockUnitApi.reorderExperimentCategories).toHaveBeenCalledWith("course-1", ["cat-2", "cat-1"])
     );
+    await waitFor(() => expect((screen.getAllByRole('button', { name: '删除分类' })[1] as HTMLButtonElement).disabled).toBe(false));
 
     fireEvent.click(screen.getAllByRole("button", { name: "删除分类" })[1]);
     expect(confirmSpy.mock.calls[0][0]).toContain("拓展实验");
-    expect(confirmSpy.mock.calls[0][0]).toContain("实验会保留");
-    await waitFor(() => expect(mockUnitApi.deleteExperimentCategory).toHaveBeenCalledWith("unit-1", "cat-2"));
-    expect(onChanged).toHaveBeenCalledTimes(2);
+    expect(confirmSpy.mock.calls[0][0]).toContain("文件会保留");
+    await waitFor(() => expect(mockUnitApi.deleteExperimentCategory).toHaveBeenCalledWith("course-1", "cat-2"));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(2));
     confirmSpy.mockRestore();
   });
 
   it("renames inline with Enter", async () => {
     mockUnitApi.updateExperimentCategory.mockResolvedValue(categories[0]);
-    render(<ExperimentCategoryManager unitId="unit-1" categories={categories} theme="light" onChanged={vi.fn()} />);
+    render(<ExperimentCategoryManager courseId="course-1" categories={categories} theme="light" onChanged={vi.fn()} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: "重命名分类" })[0]);
     const input = screen.getByLabelText("分类名称（中文）") as HTMLInputElement;
@@ -84,7 +85,7 @@ describe("ExperimentCategoryManager", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() =>
-      expect(mockUnitApi.updateExperimentCategory).toHaveBeenCalledWith("unit-1", "cat-1", {
+      expect(mockUnitApi.updateExperimentCategory).toHaveBeenCalledWith("course-1", "cat-1", {
         name_zh: "入门实验",
         name_en: undefined,
       })

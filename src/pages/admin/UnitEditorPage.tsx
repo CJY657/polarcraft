@@ -12,9 +12,7 @@ import { cn } from "@/utils/classNames";
 import { useUnitAdminStore } from "@/stores/unitAdminStore";
 import { useCourseAdminStore } from "@/stores/courseAdminStore";
 import { UnitFormDialog } from "@/feature/admin/components/UnitFormDialog";
-import { ExperimentCategoryManager } from "@/feature/admin/components/ExperimentCategoryManager";
 import type { KnowledgeTag } from "@/lib/course.service";
-import type { ExperimentCategory } from "@/lib/unit.service";
 import {
   ArrowLeft,
   Settings,
@@ -387,16 +385,11 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
     description_en: "",
     color: "#06b6d4",
     knowledgeTag: "foundation" as KnowledgeTag,
-    experimentCategoryId: "",
   });
 
   if (!unit) return null;
 
   const currentCourses = unit.courses || [];
-  const categories: ExperimentCategory[] = unit.experimentCategories || [];
-  const categoryNameById = new Map(
-    categories.map((category) => [category.id, category.name["zh-CN"] || category.name["en-US"] || ""]),
-  );
 
   const handleRemoveCourse = async (courseId: string) => {
     if (!confirm("确定要永久删除此实验吗？删除后其主课件、媒体和超链接记录会一并删除，系统也会尝试回收不再被引用的上传文件。")) {
@@ -464,10 +457,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         description_en: newCourse.description_en || undefined,
         color: newCourse.color,
         knowledgeTag: newCourse.knowledgeTag,
-        experimentCategoryId:
-          newCourse.knowledgeTag === "foundation" && newCourse.experimentCategoryId
-            ? newCourse.experimentCategoryId
-            : null,
       });
 
       // Reset form and refresh
@@ -478,7 +467,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
         description_en: "",
         color: "#06b6d4",
         knowledgeTag: "foundation",
-        experimentCategoryId: "",
       });
       setShowCreateForm(false);
       fetchUnit(unit.id);
@@ -696,37 +684,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   ))}
                 </select>
               </div>
-              {newCourse.knowledgeTag === "foundation" && (
-                <div>
-                  <label
-                    className={cn(
-                      "block text-sm font-medium mb-2",
-                      theme === "dark" ? "text-gray-300" : "text-gray-700",
-                    )}
-                  >
-                    子分类
-                  </label>
-                  <select
-                    value={newCourse.experimentCategoryId}
-                    onChange={(e) =>
-                      setNewCourse({ ...newCourse, experimentCategoryId: e.target.value })
-                    }
-                    className={cn(
-                      "px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm",
-                      theme === "dark"
-                        ? "bg-slate-700 border-slate-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900",
-                    )}
-                  >
-                    <option value="">无分类</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {categoryNameById.get(category.id)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -762,14 +719,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
           </div>
         </div>
       )}
-
-      {/* Experiment Categories */}
-      <ExperimentCategoryManager
-        unitId={unit.id}
-        categories={categories}
-        theme={theme}
-        onChanged={() => fetchUnit(unit.id)}
-      />
 
       {/* Current Courses List */}
       {currentCourses.length === 0 ? (
@@ -869,20 +818,6 @@ function ExperimentsTab({ unit, theme }: { unit: any; theme: string }) {
                   >
                     {course.knowledgeTag === "optical_device" ? "光学设备" : "基础知识"}
                   </span>
-                  {course.knowledgeTag !== "optical_device" &&
-                    course.experimentCategoryId &&
-                    categoryNameById.has(course.experimentCategoryId) && (
-                      <span
-                        className={cn(
-                          "mt-1 ml-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
-                          theme === "dark"
-                            ? "border-indigo-300/25 bg-indigo-400/10 text-indigo-200"
-                            : "border-indigo-200 bg-indigo-50 text-indigo-700",
-                        )}
-                      >
-                        {categoryNameById.get(course.experimentCategoryId)}
-                      </span>
-                    )}
                 </div>
 
                 {/* Reorder Buttons */}

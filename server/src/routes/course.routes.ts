@@ -5,6 +5,7 @@
 
 import { NextFunction, Request, Response, Router } from "express";
 import { CourseController } from "../controllers/course.controller.js";
+import { ExperimentCategoryController } from "../controllers/experiment-category.controller.js";
 import { UploadController } from "../controllers/upload.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { discussionRateLimiter } from "../middleware/rate-limit.middleware.js";
@@ -105,6 +106,11 @@ router.get("/public/:id/discussion-comments", CourseController.getDiscussionComm
 // All remaining course routes require authentication
 // 所有剩余课程路由需要认证
 router.use(authenticate);
+
+router.post('/:id/experiment-categories', requireAdmin, ExperimentCategoryController.create);
+router.put('/:id/experiment-categories/reorder', requireAdmin, ExperimentCategoryController.reorder);
+router.put('/:id/experiment-categories/:categoryId', requireAdmin, ExperimentCategoryController.update);
+router.delete('/:id/experiment-categories/:categoryId', requireAdmin, ExperimentCategoryController.delete);
 
 /**
  * =====================================================

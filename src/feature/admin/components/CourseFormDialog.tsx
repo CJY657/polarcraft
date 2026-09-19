@@ -9,7 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import type { Course, CreateCourseInput, KnowledgeTag, UpdateCourseInput } from '@/lib/course.service';
-import { unitApi, type ExperimentCategory } from '@/lib/unit.service';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { X } from 'lucide-react';
 
@@ -45,25 +44,7 @@ export function CourseFormDialog({
     coverImage: '',
     color: DEFAULT_COLOR,
     knowledgeTag: 'foundation' as KnowledgeTag,
-    experimentCategoryId: '',
   });
-  const [categories, setCategories] = useState<ExperimentCategory[]>([]);
-
-  // 子分类只属于所选单元；单元变化时重新拉取（拉取失败按无分类处理）
-  useEffect(() => {
-    if (!isOpen || !formData.unitId) {
-      setCategories([]);
-      return;
-    }
-    let cancelled = false;
-    unitApi
-      .getUnit(formData.unitId)
-      .then((unit) => !cancelled && setCategories(unit.experimentCategories ?? []))
-      .catch(() => !cancelled && setCategories([]));
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, formData.unitId]);
 
   useEffect(() => {
     if (mode === 'edit' && course) {
@@ -76,7 +57,6 @@ export function CourseFormDialog({
         coverImage: course.coverImage || '',
         color: course.color,
         knowledgeTag: course.knowledgeTag,
-        experimentCategoryId: course.experimentCategoryId ?? '',
       });
     } else {
       setFormData({
@@ -88,14 +68,9 @@ export function CourseFormDialog({
         coverImage: '',
         color: DEFAULT_COLOR,
         knowledgeTag: 'foundation',
-        experimentCategoryId: '',
       });
     }
   }, [mode, course, isOpen]);
-
-  const showCategorySelect = formData.knowledgeTag === 'foundation';
-  const experimentCategoryId =
-    showCategorySelect && formData.experimentCategoryId ? formData.experimentCategoryId : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +86,6 @@ export function CourseFormDialog({
           coverImage: formData.coverImage || undefined,
           color: formData.color,
           knowledgeTag: formData.knowledgeTag,
-          experimentCategoryId,
         };
         await createCourse(input);
       } else if (course) {
@@ -123,7 +97,6 @@ export function CourseFormDialog({
           coverImage: formData.coverImage || undefined,
           color: formData.color,
           knowledgeTag: formData.knowledgeTag,
-          experimentCategoryId,
         };
         await updateCourse(course.id, input);
       }
@@ -254,32 +227,6 @@ export function CourseFormDialog({
               ))}
             </select>
           </div>
-
-          {/* Experiment Category (classic experiments only) */}
-          {showCategorySelect && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                子分类
-              </label>
-              <select
-                value={formData.experimentCategoryId}
-                onChange={(e) =>
-                  setFormData({ ...formData, experimentCategoryId: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="">无分类</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name['zh-CN'] || category.name['en-US']}
-                  </option>
-                ))}
-              </select>
-              {categories.length === 0 && (
-                <p className="mt-1 text-xs text-gray-400">该单元还没有子分类，可在单元编辑页的“实验”标签中创建。</p>
-              )}
-            </div>
-          )}
 
           {/* Cover Image */}
           <div>

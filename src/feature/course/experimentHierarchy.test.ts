@@ -7,7 +7,6 @@ import {
   buildExperimentalDataFiles,
   buildPresentationFiles,
   countExperiments,
-  findCategoryIdForExperiment,
   findFirstExperimentId,
   findUnitIdForExperiment,
   toHierarchyUnits,
@@ -203,7 +202,7 @@ describe("toHierarchyUnits experiment categories", () => {
     ],
   };
 
-  it("groups classic experiments by category first, then uncategorized, preserving order", () => {
+  it("lists experiments directly under units in API order regardless of legacy categories", () => {
     const units = toHierarchyUnits([
       {
         unit: categorizedUnit,
@@ -219,32 +218,25 @@ describe("toHierarchyUnits experiment categories", () => {
       },
     ]);
 
-    expect(units[0].categories.map((category) => category.id)).toEqual(["cat-basic", "cat-empty"]);
-    expect(units[0].categories[0].experiments.map((experiment) => experiment.id)).toEqual([
-      "course-2",
-    ]);
-    expect(units[0].categories[1].experiments).toEqual([]);
     expect(units[0].experiments.map((experiment) => experiment.id)).toEqual([
       "course-1",
+      "course-2",
       "course-3",
       "course-4",
     ]);
     expect(countExperiments(units)).toBe(4);
-    // 首个实验取显示顺序（分类在前）
-    expect(findFirstExperimentId(units)).toBe("course-2");
+    expect(findFirstExperimentId(units)).toBe("course-1");
     expect(findUnitIdForExperiment(units, "course-2")).toBe("unit-1");
-    expect(findCategoryIdForExperiment(units, "course-2")).toBe("cat-basic");
-    expect(findCategoryIdForExperiment(units, "course-3")).toBeNull();
   });
 
-  it("keeps category-only units visible but hides units with neither", () => {
+  it("hides empty units even when they retain legacy category metadata", () => {
     const units = toHierarchyUnits([
       { unit: categorizedUnit, courses: [] },
       { unit: createUnit("unit-2", 1), courses: [] },
       { unit: { ...createUnit("unit-3", 2), experimentCategories: [] }, courses: [] },
     ]);
 
-    expect(units.map((unit) => unit.id)).toEqual(["unit-1"]);
+    expect(units).toEqual([]);
     expect(countExperiments(units)).toBe(0);
     expect(findFirstExperimentId(units)).toBeNull();
   });
@@ -262,7 +254,18 @@ describe("toHierarchyUnits experiment categories", () => {
       "optical_device",
     );
 
-    expect(units[0].categories).toEqual([]);
     expect(units[0].experiments.map((experiment) => experiment.id)).toEqual(["app-1"]);
   });
+});
+
+it('preserves category assignments on every resource type', () => {
+  expect(buildPresentationFiles({ media: [], mainSlide: {
+    id: 'main', url: '/main.pdf', title: {}, experimentCategoryId: 'cat-main',
+  } })[0].experimentCategoryId).toBe('cat-main');
+  const media = [
+    { id: 'ppt', type: 'pptx' as const, url: '/slides.pptx', title: {}, experimentCategoryId: 'cat-ppt' },
+    { id: 'img', type: 'image' as const, url: '/image.png', title: {}, experimentCategoryId: 'cat-img' },
+  ];
+  expect(buildPresentationFiles({ media })[0].experimentCategoryId).toBe('cat-ppt');
+  expect(buildExperimentalDataFiles({ media })[0].experimentCategoryId).toBe('cat-img');
 });

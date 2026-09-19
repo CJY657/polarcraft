@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
+  Globe,
   Image as ImageIcon,
   FileText,
   Download,
@@ -54,6 +55,8 @@ interface CourseViewerProps {
    * 实验或前沿应用工作台的层级导航；不传时保持独立查看器行为。
    */
   navigation?: ExperimentCurriculumNavigation;
+  /** 交互课件独占工作区时通知父级（用于隐藏站点悬浮按钮，避免遮挡课件右下角） */
+  onHtmlWorkspaceChange?: (active: boolean) => void;
 }
 
 // 媒体类型图标映射
@@ -62,6 +65,7 @@ const MEDIA_TYPE_ICONS: Record<MediaType, React.ReactNode> = {
   pdf: <FileText className="h-5 w-5" />,
   image: <ImageIcon className="h-5 w-5" />,
   video: <Play className="h-5 w-5" />,
+  html: <Globe className="h-5 w-5" />,
 };
 
 // 媒体类型颜色
@@ -70,6 +74,7 @@ const MEDIA_TYPE_COLORS: Record<MediaType, string> = {
   pdf: "#DC2626",
   image: "#8B5CF6",
   video: "#EF4444",
+  html: "#0EA5E9",
 };
 
 // PPTX Previewer instance type
@@ -1103,6 +1108,7 @@ export function CourseViewer({
   backPath = "/experiments",
   backLabel,
   navigation,
+  onHtmlWorkspaceChange,
 }: CourseViewerProps) {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language.startsWith("zh");
@@ -1184,14 +1190,24 @@ export function CourseViewer({
   const videoMediaList = previewMediaList.filter((media) => media.type === "video");
   const imageMediaList = previewMediaList.filter((media) => media.type === "image");
   const pdfMediaList = previewMediaList.filter((media) => media.type === "pdf");
+  const htmlMediaList = previewMediaList.filter((media) => media.type === "html");
   const hasPptxLayout = pptMediaList.length > 0;
   // 层级导航模式下始终使用双栏工作台（没有 PPT 时由主课件兜底）
   const isNavigationMode = Boolean(navigation);
   const showWorkspaceLayout = isNavigationMode || hasPptxLayout;
   const activePptMedia = selectedPptMedia ?? pptMediaList[0] ?? null;
+  // 网页课件只在用户主动点击时展示（独占工作区），不作为默认预览
   const defaultPreviewMedia =
-    previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null;
+    previewMediaList.find((media) => media.type === "video") ??
+    previewMediaList.find((media) => media.type !== "html") ??
+    null;
   const activePreviewMedia = selectedMedia ?? defaultPreviewMedia;
+  // 交互课件独占整个工作区，PPT 演示区暂时隐藏；点回 PPT 或其他资源即恢复
+  const isHtmlWorkspace = activePreviewMedia?.type === "html";
+  useEffect(() => {
+    onHtmlWorkspaceChange?.(isHtmlWorkspace);
+    return () => onHtmlWorkspaceChange?.(false);
+  }, [isHtmlWorkspace, onHtmlWorkspaceChange]);
   const activeHighlightedMediaId = activePreviewMedia?.id ?? null;
   const mediaSignature = mediaList.map((media) => media.id).join("|");
   // 目录中的课件材料与实验数据共用右侧现有展示区
@@ -1210,6 +1226,16 @@ export function CourseViewer({
         theme === "dark"
           ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
           : "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    {
+      key: "html",
+      count: htmlMediaList.length,
+      label: isZh ? "个交互课件" : "interactive",
+      icon: <Globe className="h-3 w-3" />,
+      className:
+        theme === "dark"
+          ? "border-sky-400/20 bg-sky-500/10 text-sky-200"
+          : "border-sky-200 bg-sky-50 text-sky-700",
     },
     {
       key: "video",
@@ -1249,6 +1275,14 @@ export function CourseViewer({
       description: isZh ? "优先查看主课件与讲解页" : "Main teaching decks first",
       items: pptMediaList,
       accent: MEDIA_TYPE_COLORS.pptx,
+      priority: "primary",
+    },
+    {
+      id: "html",
+      title: isZh ? "交互课件" : "Interactive courseware",
+      description: isZh ? "可操作的网页课件与仿真" : "Hands-on web lessons and simulations",
+      items: htmlMediaList,
+      accent: MEDIA_TYPE_COLORS.html,
       priority: "primary",
     },
     {
@@ -1343,12 +1377,14 @@ export function CourseViewer({
       if (type === "pptx") return "PPT";
       if (type === "pdf") return "PDF";
       if (type === "image") return "图片";
+      if (type === "html") return "网页课件";
       return "视频";
     }
 
     if (type === "pptx") return "PPT";
     if (type === "pdf") return "PDF";
     if (type === "image") return "Image";
+    if (type === "html") return "Web";
     return "Video";
   };
 
@@ -1401,6 +1437,9 @@ export function CourseViewer({
   ) => {
     if (media.type === "pptx") {
       setSelectedPptMedia(media);
+      if (selectedMedia?.type === "html") {
+        setSelectedMedia(null);
+      }
       return;
     }
 
@@ -1487,7 +1526,9 @@ export function CourseViewer({
     }
 
     const initialPreviewMedia =
-      previewMediaList.find((media) => media.type === "video") ?? previewMediaList[0] ?? null;
+      previewMediaList.find((media) => media.type === "video") ??
+      previewMediaList.find((media) => media.type !== "html") ??
+      null;
 
     setSelectedPptMedia(pptMediaList[0] ?? null);
     setSelectedMedia(initialPreviewMedia);
@@ -1636,6 +1677,7 @@ export function CourseViewer({
     return (
       <ExperimentCurriculumTree
         navigation={navigation}
+        categories={course.experimentCategories}
         presentationFiles={curriculumPresentationFiles}
         experimentalDataFiles={curriculumExperimentalDataFiles}
         activePresentationFileId={activePresentationFileId}
@@ -1764,6 +1806,42 @@ export function CourseViewer({
                 playbackPositionRef.current[media.id] = previewVideoRef.current.currentTime;
               }}
             />
+          );
+
+        case "html":
+          // 网页课件：整页内嵌，滚动交给 iframe 内部，不套用 PPT 宽高比；全屏按钮悬浮在左下角（避开课件顶部导航与站点右下角悬浮按钮）
+          return (
+            <div className="relative h-full w-full">
+              <iframe
+                key={media.id}
+                data-testid="html-courseware-frame"
+                src={media.url}
+                title={getMediaTitle(media)}
+                loading="lazy"
+                className={
+                  isFullscreen
+                    ? "block h-full w-full border-0 bg-white"
+                    : `block h-full w-full rounded-[28px] border bg-white ${
+                        theme === "dark"
+                          ? "border-slate-700/80 shadow-2xl shadow-black/40"
+                          : "border-slate-200 shadow-xl shadow-slate-200/50"
+                      }`
+                }
+              />
+              <button
+                type="button"
+                data-testid="preview-fullscreen-toggle"
+                onClick={toggleFullscreen}
+                className={`absolute bottom-3 left-3 z-10 rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
+                  theme === "dark"
+                    ? "text-slate-300 bg-slate-800/90 hover:bg-slate-700 border border-slate-700"
+                    : "text-slate-600 bg-white/90 hover:bg-slate-50 border border-slate-200 shadow-sm"
+                }`}
+                title={isFullscreen ? t("page.courses.exitfullscreen") : t("page.courses.fullscreen")}
+              >
+                {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+              </button>
+            </div>
           );
 
         default:
@@ -2103,8 +2181,15 @@ export function CourseViewer({
               )}
 
               {/* 第一行：演示 + 视频 */}
-              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]">
-                {/* 课件演示区域 */}
+              <div
+                className={
+                  isHtmlWorkspace
+                    ? "grid grid-cols-1 items-start gap-4"
+                    : "grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.84fr)] 2xl:grid-cols-[minmax(0,1.26fr)_minmax(400px,0.8fr)]"
+                }
+              >
+                {/* 课件演示区域（交互课件独占时隐藏） */}
+                {!isHtmlWorkspace && (
                 <section className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3 px-1">
                     <div>
@@ -2232,9 +2317,12 @@ export function CourseViewer({
                     )}
                   </div>
                 </section>
+                )}
 
                 {/* 资源预览区域 */}
                 <section className="flex flex-col gap-4">
+                  {/* 交互课件独占时去掉标题行，全屏按钮改为悬浮在窗口右上角 */}
+                  {!isHtmlWorkspace && (
                   <div className="flex items-start justify-between gap-3 px-1">
                     <div>
                       <h3
@@ -2253,7 +2341,8 @@ export function CourseViewer({
                     {activePreviewMedia && (
                       <div className="flex items-center gap-2">
                         {(activePreviewMedia.type === "video" ||
-                          activePreviewMedia.type === "image") && (
+                          activePreviewMedia.type === "image" ||
+                          activePreviewMedia.type === "html") && (
                           <button
                             data-testid="preview-fullscreen-toggle"
                             onClick={toggleFullscreen}
@@ -2275,7 +2364,7 @@ export function CourseViewer({
                             )}
                           </button>
                         )}
-                        {canDownloadResources && (
+                        {canDownloadResources && activePreviewMedia.type !== "html" && (
                           <button
                             onClick={() => openDownloadUrl(getMediaDownloadUrl(activePreviewMedia))}
                             className={`rounded-xl p-2.5 transition-all hover:scale-110 active:scale-95 ${
@@ -2291,9 +2380,14 @@ export function CourseViewer({
                       </div>
                     )}
                   </div>
+                  )}
 
                   <div
-                    className="aspect-video lg:aspect-auto lg:h-[380px] xl:h-[420px] 2xl:h-[480px] flex items-center justify-center overflow-visible transition-all duration-500"
+                    className={`flex items-center justify-center overflow-visible transition-all duration-500 ${
+                      isHtmlWorkspace
+                        ? "h-[calc(100vh-140px)] min-h-[560px]"
+                        : "aspect-video lg:aspect-auto lg:h-[380px] xl:h-[420px] 2xl:h-[480px]"
+                    }`}
                   >
                     {activePreviewMedia ? (
                       renderMedia(activePreviewMedia)

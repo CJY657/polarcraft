@@ -33,7 +33,7 @@ router.post(
   '/:category',
   (req, res, next): void => {
     const category = req.params.category as FileCategory;
-    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx'];
+    const validCategories: FileCategory[] = ['pdf', 'image', 'video', 'pptx', 'html'];
 
     if (!validCategories.includes(category)) {
       res.status(400).json({

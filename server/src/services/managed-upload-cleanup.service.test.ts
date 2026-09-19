@@ -33,3 +33,21 @@ describe('managed upload reference extraction', () => {
     ])).toEqual(['/uploads/one.png', '/uploads/two.png']);
   });
 });
+
+describe('getHtmlPackageDir', () => {
+  it('maps files inside <scope>/html/<id>/ to the package root and ignores other uploads', async () => {
+    const path = await import('path');
+    const { uploadConfig } = await import('../config/upload.config.js');
+    const { getHtmlPackageDir } = await import('./managed-upload-cleanup.service.js');
+    const root = path.resolve(uploadConfig.uploadDir);
+
+    expect(getHtmlPackageDir(path.join(root, 'unit-1', 'html', 'abc', 'assets', 'a.js'))).toBe(
+      path.join(root, 'unit-1', 'html', 'abc')
+    );
+    expect(getHtmlPackageDir(path.join(root, 'unit-1', 'html', 'abc', 'index.html'))).toBe(
+      path.join(root, 'unit-1', 'html', 'abc')
+    );
+    expect(getHtmlPackageDir(path.join(root, 'unit-1', 'html', 'abc.zip'))).toBeNull();
+    expect(getHtmlPackageDir(path.join(root, 'unit-1', 'pdf', 'x.pdf'))).toBeNull();
+  });
+});

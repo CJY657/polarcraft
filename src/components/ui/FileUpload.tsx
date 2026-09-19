@@ -36,6 +36,7 @@ const ICON_MAP: Record<FileCategory, typeof File> = {
   image: Image,
   video: Video,
   pptx: File,
+  html: File,
 };
 
 export function FileUpload({

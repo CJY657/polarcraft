@@ -5,7 +5,7 @@
 
 import { appPaths } from './paths.js';
 
-export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx' | 'document';
+export type FileCategory = 'pdf' | 'image' | 'video' | 'pptx' | 'document' | 'html';
 
 export const uploadConfig = {
   // Storage path - relative to project root
@@ -24,6 +24,7 @@ export const uploadConfig = {
     video: 500 * 1024 * 1024,    // 500MB for videos
     pptx: 100 * 1024 * 1024,     // 100MB for PowerPoint
     document: 25 * 1024 * 1024,  // 25MB for text documents (meeting records)
+    html: 50 * 1024 * 1024,      // 50MB zipped web courseware (extracted on upload)
     default: 50 * 1024 * 1024,   // 50MB default
   },
 
@@ -44,6 +45,7 @@ export const uploadConfig = {
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ],
+    html: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
   },
 
   // File extensions for validation
@@ -54,5 +56,6 @@ export const uploadConfig = {
     video: ['.mp4', '.webm', '.mov'],
     pptx: ['.pptx', '.ppt'],
     document: ['.txt', '.md', '.doc', '.docx'],
+    html: ['.zip'],
   },
 };

@@ -1,8 +1,8 @@
 /**
  * ExperimentCurriculumTree - 实验目录层级导航
  *
- * 固定层级：单元 → (子分类) → 实验 → 文件
- * 子分类是可选的一层，只在经典实验模块里出现；未分类实验直接挂在单元下。
+ * 固定层级：单元 → 实验 → (子分类) → 文件
+ * 子分类只在经典实验模块里出现；未分类文件直接挂在实验下。
  * 使用嵌套列表 + 展开按钮（aria-expanded / aria-controls），而不是自定义 tree 控件，
  * 以便键盘与读屏行为保持原生语义。
  */
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   FileText,
   Folder,
+  Globe,
   Image as ImageIcon,
   Layers,
   Play,
@@ -20,13 +21,15 @@ import {
 } from "lucide-react";
 
 import {
-  findCategoryIdForExperiment,
   findUnitIdForExperiment,
   listUnitExperiments,
   type ExperimentFile,
   type ExperimentSummary,
   type HierarchyUnit,
 } from "./experimentHierarchy";
+import type { ExperimentCategory } from "@/lib/unit.service";
+
+const EMPTY_CATEGORIES: ExperimentCategory[] = [];
 
 export type CurriculumContentKind = "experiment" | "application";
 
@@ -43,6 +46,7 @@ export interface ExperimentCurriculumNavigation {
 
 interface ExperimentCurriculumTreeProps {
   navigation: ExperimentCurriculumNavigation;
+  categories?: ExperimentCategory[];
   /** 当前实验的课件材料（PPT，没有 PPT 时是主课件） */
   presentationFiles: ExperimentFile[];
   /** 当前实验的视频、图片与补充 PDF */
@@ -60,6 +64,7 @@ interface ExperimentCurriculumTreeProps {
 
 export function ExperimentCurriculumTree({
   navigation,
+  categories = EMPTY_CATEGORIES,
   presentationFiles,
   experimentalDataFiles,
   activePresentationFileId,
@@ -80,11 +85,18 @@ export function ExperimentCurriculumTree({
     contentKind = "experiment",
   } = navigation;
   const activeUnitId = findUnitIdForExperiment(units, activeExperimentId);
-  const activeCategoryId = findCategoryIdForExperiment(units, activeExperimentId);
+  const visibleCategories = contentKind === 'application' ? EMPTY_CATEGORIES : categories;
+  const activeExperimentFiles = [...presentationFiles, ...experimentalDataFiles];
+  const categoryIds = new Set(visibleCategories.map((category) => category.id));
+  const activePresentationCategoryId = presentationFiles.find((file) => file.id === activePresentationFileId)?.experimentCategoryId;
+  const activeDataCategoryId = experimentalDataFiles.find((file) => file.id === activeExperimentalDataFileId)?.experimentCategoryId;
+  const presentationCategoryId = activePresentationCategoryId && categoryIds.has(activePresentationCategoryId) ? activePresentationCategoryId : null;
+  const dataCategoryId = activeDataCategoryId && categoryIds.has(activeDataCategoryId) ? activeDataCategoryId : null;
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(activeUnitId);
-  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(
-    () => new Set(activeCategoryId ? [activeCategoryId] : []),
-  );
+  const [expandedCategories, setExpandedCategories] = useState(() => ({
+    experimentId: activeExperimentId,
+    ids: new Set([presentationCategoryId, dataCategoryId].filter((id): id is string => Boolean(id))),
+  }));
   const [isActiveExperimentExpanded, setIsActiveExperimentExpanded] = useState(true);
 
   // 只保持激活路径展开：单元与实验跟随当前实验同步
@@ -92,14 +104,15 @@ export function ExperimentCurriculumTree({
     setExpandedUnitId(activeUnitId);
   }, [activeUnitId]);
 
-  // 分类允许多开（同单元内对比），但激活实验所在分类始终自动展开
+  // 文件选择变化时展开其分类；切换实验不继承旧实验的展开状态。
   useEffect(() => {
-    if (activeCategoryId) {
-      setExpandedCategoryIds((current) =>
-        current.has(activeCategoryId) ? current : new Set(current).add(activeCategoryId),
-      );
-    }
-  }, [activeCategoryId]);
+    setExpandedCategories((current) => {
+      const ids = new Set(current.experimentId === activeExperimentId ? current.ids : []);
+      if (presentationCategoryId) ids.add(presentationCategoryId);
+      if (dataCategoryId) ids.add(dataCategoryId);
+      return { experimentId: activeExperimentId, ids };
+    });
+  }, [activeExperimentId, presentationCategoryId, dataCategoryId]);
 
   useEffect(() => {
     setIsActiveExperimentExpanded(true);
@@ -110,14 +123,14 @@ export function ExperimentCurriculumTree({
   }, []);
 
   const toggleCategory = useCallback((categoryId: string) => {
-    setExpandedCategoryIds((current) => {
-      const next = new Set(current);
+    setExpandedCategories((current) => {
+      const next = new Set(current.ids);
       if (next.has(categoryId)) {
         next.delete(categoryId);
       } else {
         next.add(categoryId);
       }
-      return next;
+      return { ...current, ids: next };
     });
   }, []);
 
@@ -143,7 +156,7 @@ export function ExperimentCurriculumTree({
   const unitBarClass = isDark ? "bg-indigo-400/50" : "bg-indigo-300";
   const unitBarActiveClass = isDark ? "bg-indigo-300" : "bg-indigo-600";
 
-  // 可选层：子分类（与单元同色系但更轻，介于单元和实验之间）
+  // 实验内的可选文件分类。
   const categoryRowClass = isDark
     ? "text-indigo-200/90 hover:bg-indigo-500/10"
     : "text-indigo-900 hover:bg-indigo-50";
@@ -248,9 +261,9 @@ export function ExperimentCurriculumTree({
     );
   }
 
-  const emptyCategoryLabel = isZh ? "该分类暂无实验" : "No experiments in this category";
+  const emptyCategoryLabel = isZh ? "该分类暂无资源" : "No resources in this category";
 
-  // 层级构建阶段已过滤掉既无分类也无实验的单元，这里只需判断是否完全为空
+  // 层级构建阶段已过滤掉无实验的单元。
   if (units.length === 0) {
     return (
       <div
@@ -268,14 +281,15 @@ export function ExperimentCurriculumTree({
     );
   }
 
-  // 课件材料 / 实验数据两个分组不再显示，文件直接挂在实验下面
-  const activeExperimentFiles = [...presentationFiles, ...experimentalDataFiles];
+  const uncategorizedFiles = activeExperimentFiles.filter((file) =>
+    !file.experimentCategoryId || !categoryIds.has(file.experimentCategoryId));
   const isActiveFileId = (fileId: string) =>
     fileId === activePresentationFileId || fileId === activeExperimentalDataFileId;
 
   const renderFile = (file: ExperimentFile) => {
     const isActiveFile = isActiveFileId(file.id);
-    const FileIcon = file.type === "video" ? Play : file.type === "image" ? ImageIcon : FileText;
+    const FileIcon =
+      file.type === "video" ? Play : file.type === "image" ? ImageIcon : file.type === "html" ? Globe : FileText;
 
     return (
       <li key={file.id}>
@@ -351,12 +365,32 @@ export function ExperimentCurriculumTree({
             id={experimentPanelId}
             className={nestedListClass}
           >
-            {activeExperimentFiles.length === 0 ? (
+            {visibleCategories.map((category) => {
+              const files = activeExperimentFiles.filter((file) => file.experimentCategoryId === category.id);
+              const expanded = expandedCategories.ids.has(category.id);
+              const panelId = `${idPrefix}-experiment-${experiment.id}-category-${category.id}`;
+              return (
+                <li key={category.id}>
+                  <button type="button" onClick={() => toggleCategory(category.id)}
+                    aria-expanded={expanded} aria-controls={panelId}
+                    className={`${rowBaseClass} py-2 text-[13px] font-semibold ${category.id === presentationCategoryId || category.id === dataCategoryId ? categoryActiveClass : categoryRowClass}`}>
+                    {expanded ? <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" /> : <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" />}
+                    <Folder aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 break-words">{category.name[isZh ? 'zh-CN' : 'en-US'] || category.name['zh-CN'] || category.name['en-US']}</span>
+                    <span className={`shrink-0 text-[10px] ${mutedTextClass}`}>{files.length}</span>
+                  </button>
+                  <ul id={panelId} hidden={!expanded} className={nestedListClass}>
+                    {files.length ? files.map(renderFile) : <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>{emptyCategoryLabel}</li>}
+                  </ul>
+                </li>
+              );
+            })}
+            {activeExperimentFiles.length === 0 && visibleCategories.length === 0 ? (
               <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
                 {isZh ? "暂无资源" : "No resources"}
               </li>
             ) : (
-              activeExperimentFiles.map(renderFile)
+              uncategorizedFiles.map(renderFile)
             )}
           </ul>
         ) : null}
@@ -424,72 +458,12 @@ export function ExperimentCurriculumTree({
                 hidden={!isUnitExpanded}
                 className={nestedListClass}
               >
-                {unit.categories.length === 0 && unit.experiments.length === 0 ? (
+                {unit.experiments.length === 0 ? (
                   <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
                     {emptyUnitLabel}
                   </li>
                 ) : (
-                  <>
-                    {unit.categories.map((category) => {
-                      const isCategoryExpanded = expandedCategoryIds.has(category.id);
-                      const isCategoryActive = category.id === activeCategoryId;
-                      const categoryPanelId = `${idPrefix}-category-${category.id}`;
-
-                      return (
-                        <li key={category.id}>
-                          <button
-                            type="button"
-                            onClick={() => toggleCategory(category.id)}
-                            aria-expanded={isCategoryExpanded}
-                            aria-controls={categoryPanelId}
-                            className={`${rowBaseClass} py-2 text-[13px] font-bold ${
-                              isCategoryActive ? categoryActiveClass : categoryRowClass
-                            }`}
-                          >
-                            {isCategoryExpanded ? (
-                              <ChevronDown
-                                aria-hidden="true"
-                                className="h-4 w-4 shrink-0"
-                              />
-                            ) : (
-                              <ChevronRight
-                                aria-hidden="true"
-                                className="h-4 w-4 shrink-0"
-                              />
-                            )}
-                            <Folder
-                              aria-hidden="true"
-                              className="h-3.5 w-3.5 shrink-0"
-                            />
-                            <span className="min-w-0 flex-1 truncate">
-                              {category.name[isZh ? "zh-CN" : "en-US"] ||
-                                category.name["zh-CN"] ||
-                                category.name["en-US"] ||
-                                ""}
-                            </span>
-                            <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>
-                              {category.experiments.length}
-                            </span>
-                          </button>
-
-                          <ul
-                            id={categoryPanelId}
-                            hidden={!isCategoryExpanded}
-                            className={nestedListClass}
-                          >
-                            {category.experiments.length === 0 ? (
-                              <li className={`px-2 py-1.5 text-[11px] ${mutedTextClass}`}>
-                                {emptyCategoryLabel}
-                              </li>
-                            ) : (
-                              category.experiments.map(renderExperiment)
-                            )}
-                          </ul>
-                        </li>
-                      );
-                    })}
-                    {unit.experiments.map(renderExperiment)}
-                  </>
+                  unit.experiments.map(renderExperiment)
                 )}
               </ul>
             </li>

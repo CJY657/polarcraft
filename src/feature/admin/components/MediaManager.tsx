@@ -9,9 +9,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCourseAdminStore } from '@/stores/courseAdminStore';
 import { getKnowledgeTagLabel, type CourseMedia, type KnowledgeTag, type MediaType } from '@/lib/course.service';
-import { Plus, Pencil, Trash2, FileText, Image, Video, GripVertical, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileText, Image, Video, Globe, GripVertical, Upload } from 'lucide-react';
 import { MediaFormDialog } from './MediaFormDialog';
 import { BatchMediaUploadDialog } from './BatchMediaUploadDialog';
+import { ExperimentCategoryManager } from './ExperimentCategoryManager';
 
 interface MediaManagerProps {
   courseId: string;
@@ -20,7 +21,7 @@ interface MediaManagerProps {
 }
 
 export function MediaManager({ courseId, unitId, isGalleryResults = false }: MediaManagerProps) {
-  const { currentCourse, deleteMedia, deleteMediaBatch, reorderMedia, isLoading, error } =
+  const { currentCourse, deleteMedia, deleteMediaBatch, reorderMedia, upsertMainSlide, fetchCourse, isLoading, error } =
     useCourseAdminStore();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -32,6 +33,21 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
 
   const media = currentCourse?.media || [];
   const courseKnowledgeTag = currentCourse?.knowledgeTag || 'foundation';
+  const hasCategories = !isGalleryResults && courseKnowledgeTag === 'foundation';
+  const categories = currentCourse?.experimentCategories ?? [];
+  const mainSlide = currentCourse?.mainSlide;
+  const handleMainSlideCategory = async (categoryId: string) => {
+    if (!mainSlide) return;
+    try {
+      await upsertMainSlide(courseId, {
+        url: mainSlide.url,
+        title_zh: mainSlide.title['zh-CN'],
+        title_en: mainSlide.title['en-US'],
+        knowledgeTag: mainSlide.knowledgeTag,
+        experimentCategoryId: categoryId || null,
+      });
+    } catch { /* The store displays the save error. */ }
+  };
   const mediaNoun = isGalleryResults ? '成果文件' : '媒体资源';
   const knowledgeTagOptions = isGalleryResults
     ? [{ value: courseKnowledgeTag as KnowledgeTag, label: getKnowledgeTagLabel(courseKnowledgeTag, true) }]
@@ -130,6 +146,8 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
         return <Image className="w-5 h-5" />;
       case 'video':
         return <Video className="w-5 h-5" />;
+      case 'html':
+        return <Globe className="w-5 h-5" />;
     }
   };
 
@@ -143,17 +161,35 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
         return 'text-green-400';
       case 'video':
         return 'text-blue-400';
+      case 'html':
+        return 'text-cyan-400';
     }
   };
 
   return (
     <div className="space-y-4">
+      {hasCategories && (
+        <ExperimentCategoryManager key={courseId} courseId={courseId} categories={categories}
+          theme="dark" onChanged={() => fetchCourse(courseId)} />
+      )}
+      {hasCategories && mainSlide && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-700 pb-4">
+          <FileText className="h-5 w-5 shrink-0 text-red-400" />
+          <span className="min-w-0 flex-1 break-words text-sm text-white">{mainSlide.title['zh-CN'] || '主课件 PDF'}</span>
+          <select aria-label="主课件文件分类" value={mainSlide.experimentCategoryId ?? ''}
+            disabled={isLoading} onChange={(e) => void handleMainSlideCategory(e.target.value)}
+            className="max-w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white">
+            <option value="">无分类</option>
+            {categories.map((category) => <option key={category.id} value={category.id}>{category.name['zh-CN'] || category.name['en-US']}</option>)}
+          </select>
+        </div>
+      )}
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-gray-400">
           管理此{isGalleryResults ? '成果' : '实验'}的{mediaNoun}。拖拽可重新排序。
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {media.length > 0 && (
             <button
               onClick={toggleSelectAll}
@@ -255,6 +291,9 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
                 <span className="mt-1 inline-flex rounded-full border border-slate-600 bg-slate-700/70 px-2 py-0.5 text-xs text-slate-200">
                   {getKnowledgeTagLabel(item.knowledgeTag, true)}
                 </span>
+                {hasCategories && item.experimentCategoryId && (
+                  <span className="ml-2 text-xs text-gray-300">{categories.find((c) => c.id === item.experimentCategoryId)?.name['zh-CN']}</span>
+                )}
               </div>
 
               {/* Duration (for videos) */}
@@ -266,6 +305,8 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setEditingMedia(item)}
+                  aria-label={`编辑媒体 ${item.title['zh-CN'] || item.id}`}
+                  title="编辑媒体"
                   className="p-2 text-gray-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                 >
                   <Pencil className="w-4 h-4" />
@@ -302,6 +343,7 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
         courseId={courseId}
         unitId={unitId}
         courseKnowledgeTag={courseKnowledgeTag}
+        categories={hasCategories ? categories : undefined}
         knowledgeTagOptions={knowledgeTagOptions}
         isGalleryResults={isGalleryResults}
         mode="create"
@@ -325,6 +367,7 @@ export function MediaManager({ courseId, unitId, isGalleryResults = false }: Med
           media={editingMedia}
           unitId={unitId}
           courseKnowledgeTag={courseKnowledgeTag}
+          categories={hasCategories ? categories : undefined}
           knowledgeTagOptions={knowledgeTagOptions}
           isGalleryResults={isGalleryResults}
           mode="edit"

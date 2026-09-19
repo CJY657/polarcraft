@@ -379,6 +379,56 @@ describe("CourseViewer media preview regressions", () => {
     });
   });
 
+  it("embeds html courseware in an iframe with fullscreen but no download", async () => {
+    const course: CourseData = {
+      ...courseFixture,
+      media: [
+        ...courseFixture.media,
+        {
+          id: "html-1",
+          type: "html",
+          url: "/uploads/courses/unit-1/html/pkg/index.html",
+          title: { "zh-CN": "偏振实验（交互课件）" },
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter>
+        <CourseViewer course={course} theme="light" canDownloadResources />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /偏振实验（交互课件）/ })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /偏振实验（交互课件）/ }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("html-courseware-frame").getAttribute("src")).toBe(
+        "/uploads/courses/unit-1/html/pkg/index.html"
+      );
+    });
+
+    // 交互课件独占工作区：PPT 演示区隐藏；点回 PPT 后恢复
+    expect(screen.queryByTestId("mock-pdf-viewer:/slides/main.pdf")).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /补充课件/ })[0]);
+    await waitFor(() => {
+      expect(screen.queryByTestId("html-courseware-frame")).toBeNull();
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: /偏振实验（交互课件）/ })[0]);
+    await waitFor(() => {
+      expect(screen.getByTestId("html-courseware-frame")).toBeTruthy();
+    });
+
+    // 标题行已隐藏，全屏按钮悬浮在课件窗口内；没有下载按钮
+    expect(screen.queryByRole("heading", { name: "偏振实验（交互课件）" })).toBeNull();
+    const fullscreenToggle = screen.getByTestId("preview-fullscreen-toggle");
+    expect(fullscreenToggle.parentElement?.querySelector('[data-testid="html-courseware-frame"]')).toBeTruthy();
+    expect(fullscreenToggle.parentElement?.querySelector('[title="page.courses.download"]')).toBeNull();
+  });
+
   it("hides course resource download controls for non-admin viewers", async () => {
     render(
       <MemoryRouter>
@@ -611,7 +661,6 @@ describe("CourseViewer hierarchical workspace", () => {
           id: "unit-media",
           title: { "zh-CN": "第一单元" },
           color: "#0ea5e9",
-          categories: [],
           experiments: [
             { id: "course-media", unitId: "unit-media", title: { "zh-CN": "媒体联动实验" } },
             { id: "course-next", unitId: "unit-media", title: { "zh-CN": "下一个实验" } },
