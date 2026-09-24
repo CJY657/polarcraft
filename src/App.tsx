@@ -46,6 +46,7 @@ const UnitRedirectPage = lazy(() => import("@/pages/UnitRedirectPage"));
 // 冰洲石案件 × 偏振推理
 const DevicesPage = lazy(() => import("@/pages/DevicesPage"));
 const CalciteCasePage = lazy(() => import("@/pages/CalciteCasePage"));
+const CalciteSimPage = lazy(() => import("@/pages/CalciteSimPage"));
 
 // Module 3: 理论模拟
 // 基础理论 × 计算模拟
@@ -364,6 +365,10 @@ function AppRouterContent() {
           <Route
             path="/devices/calcite-case"
             element={<CalciteCasePage />}
+          />
+          <Route
+            path="/devices/calcite-sim"
+            element={<CalciteSimPage />}
           />
 
           {/* Module 4: 游戏挑战 */}

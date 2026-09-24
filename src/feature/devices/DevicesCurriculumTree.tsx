@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, Compass, Gem } from "lucide-react";
+import { Atom, ChevronRight, Compass, Gem } from "lucide-react";
 
 interface DevicesCurriculumTreeProps {
   theme: "dark" | "light";
@@ -16,6 +16,7 @@ export function DevicesCurriculumTree({
   const location = useLocation();
   const isOverviewActive = location.pathname === "/devices";
   const isChallengeActive = location.pathname === "/devices/calcite-case";
+  const isSimActive = location.pathname === "/devices/calcite-sim";
   const [isModuleExpanded, setIsModuleExpanded] = useState(true);
 
   const isDark = theme === "dark";
@@ -59,7 +60,7 @@ export function DevicesCurriculumTree({
               className="h-4 w-1 shrink-0 rounded-full bg-[#f4a261]"
             />
             <span className="min-w-0 flex-1 truncate">偏振挑战</span>
-            <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>1</span>
+            <span className={`shrink-0 text-[10px] font-bold ${mutedTextClass}`}>2</span>
           </button>
 
           <ul
@@ -95,6 +96,21 @@ export function DevicesCurriculumTree({
               >
                 <Gem aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 flex-1">冰洲石双影迷案</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/devices/calcite-sim"
+                onClick={onAfterSelect}
+                aria-current={isSimActive ? "page" : undefined}
+                className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 pl-7 text-left text-[12.5px] font-semibold transition-colors ${focusRingClass} ${
+                  isSimActive
+                    ? activeClass
+                    : `${hoverClass} ${isDark ? "text-slate-300" : "text-slate-700"}`
+                }`}
+              >
+                <Atom aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 flex-1">方解石双折射仿真</span>
               </Link>
             </li>
           </ul>

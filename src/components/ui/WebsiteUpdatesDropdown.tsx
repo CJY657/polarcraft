@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-09-24-calcite-birefringence-simulation',
+    date: '2026年9月24日',
+    title: '方解石双折射虚拟仿真上线',
+    description:
+      '“偏振挑战”新增方解石双折射仿真，可拖动入射光与光轴方向，调节晶体形状、尺寸、姿态、光源波长及偏振态，实时观察 o 光与 e 光的传播路径。支持典型场景切换、光轴与晶体联动，以及折射数据和原理说明。',
+    href: '/devices/calcite-sim',
+  },
+  {
     id: '2026-09-19-html-courseware',
     date: '2026年9月19日',
     title: '新增交互式网页课件',

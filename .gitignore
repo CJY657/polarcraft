@@ -36,6 +36,9 @@ server/.env
 uploads
 /deploy-production.sh
 
+# 本地保留，不入库不部署
+/feishuapp.zip
+
 .codex
 /vite
 .claude/
