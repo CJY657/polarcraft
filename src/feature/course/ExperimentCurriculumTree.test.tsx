@@ -308,6 +308,45 @@ describe("ExperimentCurriculumTree", () => {
     expect(screen.getByRole('button', { name: '实验视频' })).toBeTruthy();
   });
 
+  it('preserves category file order, duplicate entries, and original selection objects', () => {
+    const presentation = { ...presentationFiles[0], experimentCategoryId: 'cat' };
+    const data = { ...experimentalDataFiles[0], experimentCategoryId: 'cat' };
+    const { onSelectFile } = renderTree({
+      categories: [{ id: 'cat', name: { 'zh-CN': '分类' } }],
+      presentationFiles: [presentation, presentation],
+      experimentalDataFiles: [data, presentation],
+    });
+    const category = screen.getByRole('button', { name: /分类/ });
+    expect(category.textContent).toBe('分类4');
+    const panel = document.getElementById(category.getAttribute('aria-controls')!);
+    const files = Array.from(panel!.querySelectorAll('button'));
+    expect(files.map((file) => file.textContent)).toEqual(['课件一', '课件一', '实验视频', '课件一']);
+    files.forEach((file) => fireEvent.click(file));
+    [presentation, presentation, data, presentation].forEach((file, index) => {
+      expect(onSelectFile.mock.calls[index][0]).toBe(file);
+    });
+  });
+
+  it('retains duplicate category rows and empty-id files in both their folder and unclassified rows', () => {
+    renderTree({
+      categories: [
+        { id: '', name: { 'zh-CN': '空标识分类' } },
+        { id: '', name: { 'zh-CN': '重复分类' } },
+      ],
+      presentationFiles: [{ ...presentationFiles[0], experimentCategoryId: '' }],
+      experimentalDataFiles: [
+        { ...experimentalDataFiles[0], experimentCategoryId: null },
+        { ...experimentalDataFiles[1], experimentCategoryId: 'deleted' },
+        experimentalDataFiles[2],
+      ],
+    });
+    const experiment = screen.getByRole('button', { name: '冰洲石实验' });
+    const panel = document.getElementById(experiment.getAttribute('aria-controls')!);
+    expect(Array.from(panel!.querySelectorAll('button')).map((button) => button.textContent)).toEqual([
+      '空标识分类1', '课件一', '重复分类1', '课件一', '课件一', '实验视频', '实验图片', '补充资料',
+    ]);
+  });
+
   it('keeps stale file assignments directly under classic experiments', () => {
     renderTree({ categories: [{ id: 'cat', name: { 'zh-CN': '自定义' } }],
       experimentalDataFiles: [{ ...experimentalDataFiles[0], experimentCategoryId: 'deleted' }] });

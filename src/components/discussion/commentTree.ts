@@ -27,14 +27,16 @@ export function buildCommentTree<T>(
   }
 
   const buildBranch = (parentId: string | null): WithReplies<T>[] => {
-    const siblings = [...(grouped.get(parentId) ?? [])];
-    siblings.sort((left, right) => {
-      const leftTime = new Date(createdAtOf(left)).getTime();
-      const rightTime = new Date(createdAtOf(right)).getTime();
-      return parentId === null ? rightTime - leftTime : leftTime - rightTime;
-    });
+    const siblings = grouped.get(parentId) ?? [];
+    const sorted = siblings.map((comment) => ({
+      comment,
+      time: siblings.length > 1 ? new Date(createdAtOf(comment)).getTime() : 0,
+    }));
+    sorted.sort((left, right) =>
+      parentId === null ? right.time - left.time : left.time - right.time
+    );
 
-    return siblings.map((comment) => ({
+    return sorted.map(({ comment }) => ({
       ...comment,
       replies: buildBranch(idOf(comment)),
     }));

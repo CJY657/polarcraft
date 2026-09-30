@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Behavior preservation and test runtime"}
+{"file":".trellis/spec/backend/index.md","reason":"Backend conventions and contract boundaries"}
+{"file":".trellis/spec/backend/research-meetings.md","reason":"Leaderboard arithmetic, filtering and ranking"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Minimal changes and reuse"}

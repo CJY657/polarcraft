@@ -437,10 +437,6 @@ export type LeaderboardRatingInput = Pick<
   'meeting_id' | 'rater_id' | 'ratee_id' | 'score'
 >;
 
-function meanOf(values: number[]): number {
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
 /**
  * Compute the project performance leaderboard in memory.
  * 计算课题表现榜：每位成员的 AI 分均值折算 5 分制（÷20）与互评均分各占
@@ -454,8 +450,8 @@ export function computeLeaderboard(
   activeMemberIds: string[]
 ): MeetingLeaderboardEntry[] {
   const memberIds = new Set(activeMemberIds);
-  const aiScoresByUser = new Map<string, number[]>();
-  const peerScoresByUser = new Map<string, number[]>();
+  const aiScoresByUser = new Map<string, { sum: number; count: number }>();
+  const peerScoresByUser = new Map<string, { sum: number; count: number }>();
   const ratedMeetingsByUser = new Map<string, Set<string>>();
 
   const markRatedMeeting = (userId: string, meetingId: string): void => {
@@ -475,8 +471,9 @@ export function computeLeaderboard(
       if (typeof aiScore.score !== 'number' || !Number.isFinite(aiScore.score)) {
         continue;
       }
-      const scores = aiScoresByUser.get(aiScore.user_id) ?? [];
-      scores.push(aiScore.score);
+      const scores = aiScoresByUser.get(aiScore.user_id) ?? { sum: 0, count: 0 };
+      scores.sum += aiScore.score;
+      scores.count += 1;
       aiScoresByUser.set(aiScore.user_id, scores);
       markRatedMeeting(aiScore.user_id, meeting.id);
     }
@@ -493,8 +490,9 @@ export function computeLeaderboard(
     if (typeof rating.score !== 'number' || !Number.isFinite(rating.score)) {
       continue;
     }
-    const scores = peerScoresByUser.get(rating.ratee_id) ?? [];
-    scores.push(rating.score);
+    const scores = peerScoresByUser.get(rating.ratee_id) ?? { sum: 0, count: 0 };
+    scores.sum += rating.score;
+    scores.count += 1;
     peerScoresByUser.set(rating.ratee_id, scores);
     markRatedMeeting(rating.ratee_id, rating.meeting_id);
   }
@@ -504,8 +502,8 @@ export function computeLeaderboard(
     const aiScores = aiScoresByUser.get(userId);
     const peerScores = peerScoresByUser.get(userId);
     // AI 分为 0–100，除以 20 折算 5 分制
-    const aiAvg = aiScores && aiScores.length > 0 ? meanOf(aiScores) / 20 : null;
-    const peerAvg = peerScores && peerScores.length > 0 ? meanOf(peerScores) : null;
+    const aiAvg = aiScores ? aiScores.sum / aiScores.count / 20 : null;
+    const peerAvg = peerScores ? peerScores.sum / peerScores.count : null;
     const composite = aiAvg !== null && peerAvg !== null
       ? (aiAvg + peerAvg) / 2
       : aiAvg ?? peerAvg;

@@ -283,6 +283,13 @@ export function ExperimentCurriculumTree({
 
   const uncategorizedFiles = activeExperimentFiles.filter((file) =>
     !file.experimentCategoryId || !categoryIds.has(file.experimentCategoryId));
+  const filesByCategory = new Map<ExperimentFile['experimentCategoryId'], ExperimentFile[]>(
+    visibleCategories.map((category) => [category.id, []]));
+  if (filesByCategory.size) {
+    for (const file of activeExperimentFiles) {
+      filesByCategory.get(file.experimentCategoryId)?.push(file);
+    }
+  }
   const isActiveFileId = (fileId: string) =>
     fileId === activePresentationFileId || fileId === activeExperimentalDataFileId;
 
@@ -366,7 +373,7 @@ export function ExperimentCurriculumTree({
             className={nestedListClass}
           >
             {visibleCategories.map((category) => {
-              const files = activeExperimentFiles.filter((file) => file.experimentCategoryId === category.id);
+              const files = filesByCategory.get(category.id)!;
               const expanded = expandedCategories.ids.has(category.id);
               const panelId = `${idPrefix}-experiment-${experiment.id}-category-${category.id}`;
               return (

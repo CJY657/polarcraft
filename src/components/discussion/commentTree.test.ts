@@ -43,6 +43,49 @@ describe('buildCommentTree', () => {
     expect(countReplies(tree[1])).toBe(3);
     expect(countReplies(tree[0])).toBe(0);
   });
+
+  it('keeps equal timestamps stable and retains invalid-date comparison behavior', () => {
+    const comments = [
+      { id: 'older', parent: null, at: '2026-01-01' },
+      { id: 'invalid', parent: null, at: 'invalid' },
+      { id: 'newer', parent: null, at: '2026-01-03' },
+      { id: 'equal', parent: null, at: '2026-01-03' },
+      { id: 'reply', parent: 'older', at: '2026-01-03' },
+      { id: 'reply-equal', parent: 'older', at: '2026-01-03' },
+      { id: 'reply-invalid', parent: 'older', at: '' },
+      { id: 'reply-earlier', parent: 'older', at: '2026-01-01' },
+    ];
+    const tree = buildCommentTree(comments, ACCESSORS);
+
+    expect(tree.map((comment) => comment.id)).toEqual(['older', 'invalid', 'newer', 'equal']);
+    expect(tree[0].replies.map((comment) => comment.id)).toEqual([
+      'reply', 'reply-equal', 'reply-invalid', 'reply-earlier',
+    ]);
+  });
+
+  it('sorts duplicate IDs by each record timestamp without mutating input records', () => {
+    const comments = [
+      { id: 'same', parent: null, at: '2026-01-01' },
+      { id: 'same', parent: null, at: '2026-01-03' },
+      { id: 'child', parent: 'same', at: '2026-01-02' },
+      { id: 'late', parent: 'child', at: '2026-01-05' },
+      { id: 'early', parent: 'child', at: '2026-01-04' },
+      { id: 'orphan', parent: 'missing', at: 'invalid' },
+    ];
+    const original = structuredClone(comments);
+    comments.forEach(Object.freeze);
+    Object.freeze(comments);
+    const tree = buildCommentTree(comments, ACCESSORS);
+
+    expect(tree.map((comment) => comment.at)).toEqual(['2026-01-03', '2026-01-01']);
+    for (const root of tree) {
+      expect(root.replies.map((comment) => comment.id)).toEqual(['child']);
+      expect(root.replies[0].replies.map((comment) => comment.id)).toEqual(['early', 'late']);
+    }
+    expect(tree[0]).not.toBe(comments[1]);
+    expect(tree[0].replies[0]).not.toBe(tree[1].replies[0]);
+    expect(comments).toEqual(original);
+  });
 });
 
 describe('comment ancestry', () => {

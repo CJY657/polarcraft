@@ -469,6 +469,47 @@ describe('computeLeaderboard', () => {
     expect(computeLeaderboard([], [], ['user-a'])).toEqual([]);
   });
 
+  it('weights duplicate fractional scores and counts distinct meetings across both sources', () => {
+    const meetings = [
+      {
+        id: 'meeting-1',
+        status: 'completed' as const,
+        ai_scores: [80.5, 80.5, 20.5, NaN, Infinity].map((score) => ({
+          user_id: 'user-a', score, comment: '',
+        })),
+      },
+      { id: 'meeting-2', status: 'completed' as const, ai_scores: null },
+    ];
+    const ratings = [
+      { meeting_id: 'meeting-1', rater_id: 'former-member', ratee_id: 'user-a', score: 1.5 },
+      { meeting_id: 'meeting-1', rater_id: 'former-member', ratee_id: 'user-a', score: 1.5 },
+      { meeting_id: 'missing-meeting', rater_id: 'user-b', ratee_id: 'user-a', score: 4.5 },
+      { meeting_id: 'invalid-meeting', rater_id: 'user-b', ratee_id: 'user-a', score: NaN },
+      { meeting_id: 'invalid-meeting', rater_id: 'user-b', ratee_id: 'user-a', score: -Infinity },
+    ];
+
+    expect(computeLeaderboard(meetings, ratings, ['user-b', 'user-a', 'user-a'])).toEqual([
+      { user_id: 'user-a', rank: 1, composite: 2.7625, ai_avg: 3.025, peer_avg: 2.5, rated_meetings: 2 },
+    ]);
+  });
+
+  it('keeps fractional ties and competition ranks with repeated meeting rows', () => {
+    const meetings = [
+      { id: 'meeting-1', status: 'completed' as const, ai_scores: [{ user_id: 'user-b', score: 65, comment: '' }] },
+      { id: 'meeting-1', status: 'completed' as const, ai_scores: [{ user_id: 'user-b', score: 65, comment: '' }] },
+    ];
+    const ratings = [
+      { meeting_id: 'meeting-1', rater_id: 'user-b', ratee_id: 'user-a', score: 3.25 },
+      { meeting_id: 'meeting-2', rater_id: 'user-a', ratee_id: 'user-c', score: 2.5 },
+    ];
+
+    expect(computeLeaderboard(meetings, ratings, ['user-c', 'user-b', 'user-a'])).toEqual([
+      { user_id: 'user-a', rank: 1, composite: 3.25, ai_avg: null, peer_avg: 3.25, rated_meetings: 1 },
+      { user_id: 'user-b', rank: 1, composite: 3.25, ai_avg: 3.25, peer_avg: null, rated_meetings: 1 },
+      { user_id: 'user-c', rank: 3, composite: 2.5, ai_avg: null, peer_avg: 2.5, rated_meetings: 1 },
+    ]);
+  });
+
   it('ignores non-completed meetings, non-member ratees and self ratings', () => {
     const meetings = [
       {
