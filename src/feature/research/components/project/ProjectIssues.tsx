@@ -125,7 +125,7 @@ export function ProjectIssuePreview({
     <div className={cn('research-panel-soft rounded-2xl p-4', className)}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {issue.issueNumberLabel && <ResearchChip>{issue.issueNumberLabel}</ResearchChip>}
-        <ProjectIssueStateBadge status={project.status} />
+        {issue.state.key === 'open' && <ProjectIssueStateBadge status={project.status} />}
         <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
         <ResearchChip accent>{issue.difficultyLabel}</ResearchChip>
         <ResearchChip>{issue.recruitmentState}</ResearchChip>
