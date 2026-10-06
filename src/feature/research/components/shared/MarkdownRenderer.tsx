@@ -15,7 +15,6 @@ import { cn } from "@/utils/classNames";
 interface MarkdownRendererProps {
   content: string;
   className?: string;
-  maxLines?: number;
 }
 
 function isEscaped(text: string, index: number): boolean {
@@ -144,7 +143,7 @@ function renderMathChildren(children: ReactNode): ReactNode[] {
   );
 }
 
-export const MarkdownRenderer = memo(({ content, className, maxLines }: MarkdownRendererProps) => {
+export const MarkdownRenderer = memo(({ content, className }: MarkdownRendererProps) => {
   if (!content) return null;
   const normalizedContent = normalizeBracketMath(content);
 
@@ -163,7 +162,6 @@ export const MarkdownRenderer = memo(({ content, className, maxLines }: Markdown
         "prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:text-cyan-300",
         "prose-blockquote:border-l-2 prose-blockquote:border-amber-500 prose-blockquote:pl-4 prose-blockquote:italic",
         "prose-hr:border-slate-700",
-        maxLines && `line-clamp-${maxLines}`,
         className,
       )}
     >
@@ -194,40 +192,3 @@ export const MarkdownRenderer = memo(({ content, className, maxLines }: Markdown
 
 MarkdownRenderer.displayName = "MarkdownRenderer";
 
-/**
- * Compact Markdown Renderer for Node Cards
- * 节点卡片的紧凑版 Markdown 渲染器
- */
-interface CompactMarkdownProps {
-  content: string;
-  maxLines?: number;
-}
-
-export const CompactMarkdown = memo(({ content }: CompactMarkdownProps) => {
-  if (!content) return null;
-
-  return (
-    <div className={cn("text-sm text-gray-400")}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => <p className="text-gray-400 my-1">{children}</p>,
-          strong: ({ children }) => <span className="font-semibold text-white">{children}</span>,
-          em: ({ children }) => <span className="italic">{children}</span>,
-          code: ({ children }) => (
-            <code className="text-cyan-400 bg-slate-900/50 px-1 rounded text-sm">{children}</code>
-          ),
-          a: ({ children }) => <span className="text-cyan-400 underline">{children}</span>,
-          ul: ({ children }) => <ul className="list-disc list-inside my-1 pl-4">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-inside my-1 pl-4">{children}</ol>,
-          li: ({ children }) => <li className="text-gray-400">{children}</li>,
-          br: () => <br />,
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-});
-
-CompactMarkdown.displayName = "CompactMarkdown";

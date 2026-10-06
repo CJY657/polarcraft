@@ -167,11 +167,6 @@ export function PublicProjectExplorePage() {
       openDialog("login");
       return;
     }
-    if (project.is_recruiting === false) {
-      setSelectedProject(project);
-      setIsApplicationFormOpen(true);
-      return;
-    }
     setSelectedProject(project);
     setIsApplicationFormOpen(true);
   };
@@ -401,14 +396,7 @@ export function PublicProjectExplorePage() {
         )}
 
         {!isSystemHealthy && !isLoading && (
-          <div
-            className="mb-8 rounded-[1.55rem] p-4"
-            style={{
-              border: "1px solid color-mix(in srgb, #d7994c 28%, var(--glass-stroke))",
-              background: "color-mix(in srgb, #d7994c 10%, transparent)",
-              color: "#a45a13",
-            }}
-          >
+          <div className="research-tint-ochre mb-8 rounded-[1.55rem] border-[1.5px] p-4">
             <p className="text-base font-medium">研究服务暂时不可用，当前无法加载课题列表或新建课题。</p>
           </div>
         )}
@@ -421,14 +409,7 @@ export function PublicProjectExplorePage() {
         )}
 
         {error && !isLoading && (
-          <div
-            className="mb-8 rounded-[1.55rem] p-4"
-            style={{
-              border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
-              background: "color-mix(in srgb, #d95b5b 10%, transparent)",
-              color: "#b33d3d",
-            }}
-          >
+          <div className="research-error mb-8 rounded-[1.55rem] p-4">
             <p className="text-base font-medium">{error}</p>
           </div>
         )}
@@ -439,7 +420,7 @@ export function PublicProjectExplorePage() {
               <article
                 key={project.id}
                 data-testid={`project-card-${project.id}`}
-                className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1.7rem] p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-[var(--paper-accent)]/10 bg-gradient-to-br from-transparent to-[var(--glass-surface)]/40 border border-transparent hover:border-[var(--glass-stroke)]"
+                className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1.7rem] p-5 transition-all duration-300 hover:-translate-y-1.5 border border-transparent hover:border-[var(--research-edge)] hover:shadow-[var(--research-lift)]"
               >
                 <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-black/5 dark:ring-white/10">
                   <ProjectCoverImage

@@ -106,7 +106,7 @@ export default function TopicBacklinksSection({
                 <Link
                   key={`${location.type}-${location.comment_id ?? ""}`}
                   to={locationHref(group.project_id, location)}
-                  className="rounded-md border border-[var(--glass-border)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)] transition-colors hover:text-[var(--paper-foreground)]"
+                  className="rounded-md border border-[var(--research-line)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)] transition-colors hover:text-[var(--paper-foreground)]"
                 >
                   {LOCATION_LABELS[location.type]}
                 </Link>

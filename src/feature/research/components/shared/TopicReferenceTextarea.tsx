@@ -446,7 +446,7 @@ export default function TopicReferenceTextarea({
           id={listboxId}
           role="listbox"
           aria-label="引用议题"
-          className="glass-panel absolute left-0 right-0 top-full z-30 mt-1 max-h-64 list-none overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-1 shadow-xl"
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 list-none overflow-y-auto rounded-xl border border-[var(--research-line)] bg-[var(--research-surface)] p-1 shadow-xl"
         >
           {candidates.map((candidate, index) => (
             <li key={candidate.id} role="none">
@@ -461,7 +461,7 @@ export default function TopicReferenceTextarea({
                   "flex w-full items-baseline gap-2 rounded-lg px-3 py-2 text-left text-base",
                   index === activeIndex
                     ? "bg-[var(--paper-accent)]/15 text-[var(--paper-foreground)]"
-                    : "text-[var(--glass-text)]"
+                    : "text-[var(--glass-text-muted)]"
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{candidate.name_zh}</span>

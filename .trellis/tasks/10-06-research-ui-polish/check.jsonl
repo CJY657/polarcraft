@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check pass validates against the binding quality contract and its gate"}
+{"file": ".trellis/spec/guides/index.md", "reason": "Verification and pre-modification rules for the final check"}

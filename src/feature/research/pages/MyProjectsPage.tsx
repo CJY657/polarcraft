@@ -259,14 +259,7 @@ export function MyProjectsPage() {
             </div>
           </section>
         ) : error ? (
-          <section
-            className="rounded-[1.6rem] p-5"
-            style={{
-              border: "1px solid color-mix(in srgb, #d95b5b 28%, var(--glass-stroke))",
-              background: "color-mix(in srgb, #d95b5b 10%, transparent)",
-              color: "#b33d3d",
-            }}
-          >
+          <section className="research-error rounded-[1.6rem] p-5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5" />
               <div>
