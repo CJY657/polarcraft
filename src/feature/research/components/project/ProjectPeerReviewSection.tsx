@@ -301,7 +301,7 @@ export function ProjectPeerReviewSection({
           </label>
 
           {formError && (
-            <div className="research-error mt-3 rounded-2xl px-4 py-3 text-base">
+            <div role="alert" className="research-error mt-3 rounded-2xl px-4 py-3 text-base">
               {formError}
             </div>
           )}

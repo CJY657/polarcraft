@@ -181,6 +181,7 @@ export function ResearchAgentPanel({
                 <>
                   <div
                     ref={scrollRef}
+                    aria-live="polite"
                     className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
                   >
                     {!isEnabled && (
@@ -190,7 +191,7 @@ export function ResearchAgentPanel({
                     )}
 
                     {error && (
-                      <div className="research-error rounded-md p-3 text-sm leading-6">{error}</div>
+                      <div role="alert" className="research-error rounded-md p-3 text-sm leading-6">{error}</div>
                     )}
 
                     {messages.length === 0 && !isSending ? (

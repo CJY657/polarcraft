@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Clock, User, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Check, X, Clock, User, ChevronDown, ChevronUp, Users, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
@@ -71,17 +71,14 @@ export function ApplicationManagementDialog({
     }
   };
 
-  const handleReject = async (applicationId: string) => {
-    const notes = prompt(t('profile.application.reviewNotes') || '审核备注（可选）');
-    if (notes === null) return; // Cancelled
-
+  const handleReject = async (applicationId: string, notes: string) => {
     setProcessingId(applicationId);
     try {
-      await profileApi.updateApplicationStatus(applicationId, 'rejected', notes || undefined);
+      await profileApi.updateApplicationStatus(applicationId, 'rejected', notes.trim() || undefined);
       setApplications((prev) =>
         prev.map((a) =>
           a.id === applicationId
-            ? { ...a, status: 'rejected' as const, review_notes: notes || null }
+            ? { ...a, status: 'rejected' as const, review_notes: notes.trim() || null }
             : a
         )
       );
@@ -185,7 +182,7 @@ export function ApplicationManagementDialog({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {error && (
-            <div className={cn(
+            <div role="alert" className={cn(
               "mb-4 p-3 rounded-lg text-base",
               theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
             )}>
@@ -194,11 +191,16 @@ export function ApplicationManagementDialog({
           )}
 
           {isLoading ? (
-            <div className={cn(
-              "text-center py-8",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )}>
-              {t('common.loading')}
+            <div
+              role="status"
+              aria-busy="true"
+              className={cn(
+                "flex items-center justify-center gap-2 py-8",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>{t('common.loading')}</span>
             </div>
           ) : applications.length === 0 ? (
             <div className={cn(
@@ -222,7 +224,7 @@ export function ApplicationManagementDialog({
                   expanded={expandedId === app.id}
                   onToggleExpand={() => setExpandedId(expandedId === app.id ? null : app.id)}
                   onApprove={() => handleApprove(app.id)}
-                  onReject={() => handleReject(app.id)}
+                  onReject={(notes: string) => handleReject(app.id, notes)}
                   isProcessing={processingId === app.id}
                   getStatusBadge={getStatusBadge}
                   getStatusText={getStatusText}
@@ -270,7 +272,7 @@ interface ApplicationCardProps {
   expanded: boolean;
   onToggleExpand: () => void;
   onApprove?: () => void;
-  onReject?: () => void;
+  onReject?: (notes: string) => void;
   isProcessing?: boolean;
   getStatusBadge: (status: string) => string;
   getStatusText: (status: string) => string;
@@ -291,6 +293,8 @@ function ApplicationCard({
   formatDate,
   t,
 }: ApplicationCardProps) {
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
   const desiredRole = application.desired_role || application.expertise || '未填写';
   const proposedContribution = application.proposed_contribution || application.motivation || '未填写';
   const weeklyTimeCommitment = application.weekly_time_commitment || '未填写';
@@ -521,7 +525,7 @@ function ApplicationCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onReject();
+                    setIsRejecting(true);
                   }}
                   disabled={isProcessing}
                   className={cn(
@@ -534,6 +538,72 @@ function ApplicationCard({
                   <X className="w-4 h-4" />
                   {t('profile.application.rejected')}
                 </button>
+              </div>
+            )}
+
+            {application.status === 'pending' && isRejecting && (
+              <div
+                className={cn(
+                  "rounded-lg border p-3",
+                  theme === "dark" ? "border-gray-600 bg-gray-800/60" : "border-gray-200 bg-white"
+                )}
+              >
+                <label
+                  htmlFor={`reject-notes-${application.id}`}
+                  className={cn(
+                    "mb-2 block text-base font-medium",
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
+                  )}
+                >
+                  {t('profile.application.reviewNotes') || '审核备注（可选）'}
+                </label>
+                <textarea
+                  id={`reject-notes-${application.id}`}
+                  value={rejectNotes}
+                  onChange={(e) => setRejectNotes(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  rows={3}
+                  disabled={isProcessing}
+                  placeholder="可填写拒绝原因，申请人可见（选填）"
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2 text-base outline-none transition-colors focus:border-teal-500",
+                    theme === "dark"
+                      ? "border-gray-600 bg-gray-900/60 text-gray-200 placeholder:text-gray-500"
+                      : "border-gray-300 bg-white text-gray-800 placeholder:text-gray-400"
+                  )}
+                />
+                <div className="mt-2 flex justify-end gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRejecting(false);
+                    }}
+                    disabled={isProcessing}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-base font-medium transition-colors",
+                      theme === "dark"
+                        ? "bg-gray-600 text-gray-200 hover:bg-gray-500"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    )}
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReject?.(rejectNotes);
+                    }}
+                    disabled={isProcessing}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-base font-medium text-white transition-colors disabled:opacity-50",
+                      theme === "dark"
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-red-500 hover:bg-red-600"
+                    )}
+                  >
+                    {isProcessing ? '处理中…' : '拒绝申请'}
+                  </button>
+                </div>
               </div>
             )}
           </div>

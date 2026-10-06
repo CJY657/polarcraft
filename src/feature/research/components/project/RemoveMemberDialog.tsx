@@ -32,10 +32,15 @@ export function RemoveMemberDialog({
 }) {
   return (
     <Dialog isOpen={true} onClose={onCancel}>
-      <div className={cn(
-        "w-full max-w-md p-6 rounded-xl",
-        theme === "dark" ? "bg-gray-800" : "bg-white"
-      )}>
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={isSelf ? "退出课题组" : "移除成员"}
+        className={cn(
+          "w-full max-w-md p-6 rounded-xl",
+          theme === "dark" ? "bg-gray-800" : "bg-white"
+        )}
+      >
         <div className="flex items-center gap-3 mb-4">
           <div className={cn(
             "p-2 rounded-lg",
@@ -63,7 +68,7 @@ export function RemoveMemberDialog({
         </div>
 
         {error && (
-          <div className={cn(
+          <div role="alert" className={cn(
             "mb-4 p-3 rounded-lg text-base",
             theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
           )}>

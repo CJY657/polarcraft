@@ -278,7 +278,7 @@ export function ProjectMembersSection({
           </summary>
 
           {restoreMemberError && (
-            <div className="research-error mt-2 rounded-md px-3 py-2 text-sm">{restoreMemberError}</div>
+            <div role="alert" className="research-error mt-2 rounded-md px-3 py-2 text-sm">{restoreMemberError}</div>
           )}
 
           <ul className="mt-2 grid gap-1">

@@ -559,10 +559,16 @@ html {
     opacity: 0.7;
   }
 
+  /* Notebook focus ring for every interactive element on research pages / 课题组页面统一墨色聚焦环 */
+  .research-page :focus-visible {
+    outline: 2px solid var(--research-edge);
+    outline-offset: 2px;
+  }
+
   .research-input:focus,
   .research-input:focus-visible {
     border-color: var(--research-edge);
-    box-shadow: var(--research-lift);
+    box-shadow: var(--research-lift), 0 0 0 3px color-mix(in srgb, var(--research-edge) 16%, transparent);
     outline: none;
   }
 
