@@ -10,6 +10,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
+import { ResearchChip } from '../shared/ResearchChip';
 import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import TopicReferenceText from '../shared/TopicReferenceText';
@@ -1292,9 +1293,9 @@ export function ProjectDiscussionSection({
         title="课题讨论区"
         note="围绕研究问题展开的组内讨论"
         actions={
-          <span className="research-chip rounded-md px-3 py-1 text-sm font-semibold tabular-nums">
+          <ResearchChip className="rounded-md font-semibold tabular-nums">
             {comments.length} 条讨论
-          </span>
+          </ResearchChip>
         }
       >
         <div className="space-y-2.5">

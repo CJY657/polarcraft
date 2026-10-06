@@ -20,6 +20,7 @@ import { PersistentHeader } from "@/components/shared";
 import { researchApi, type ResearchProject } from "@/lib/research.service";
 import { useAuthDialogStore } from "@/stores/authDialogStore";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
+import { ResearchChip } from "../components/shared/ResearchChip";
 import { ProjectIssuePreview } from "../components/project/ProjectIssues";
 import { ProjectDeleteAction } from "../components/project/ProjectDeleteAction";
 import { getHealthDisplay } from "../components/project/researchHealthDisplay";
@@ -320,9 +321,9 @@ export function MyProjectsPage() {
                 </p>
               </div>
 
-              <span className="research-chip inline-flex self-start rounded-full px-3 py-1.5 text-sm font-medium sm:self-auto">
+              <ResearchChip className="self-start px-3 py-1.5 sm:self-auto">
                 共 {projects.length} 个课题
-              </span>
+              </ResearchChip>
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -356,10 +357,10 @@ export function MyProjectsPage() {
                     <div className="research-panel-soft mt-auto rounded-[1rem] px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-sm font-medium text-[var(--research-muted)]">课题成员</p>
-                        <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
+                        <ResearchChip className="gap-1.5">
                           <Users className="h-3.5 w-3.5" />
                           {project.member_count} 人
-                        </span>
+                        </ResearchChip>
                       </div>
                     </div>
                   </div>

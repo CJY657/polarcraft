@@ -150,18 +150,19 @@ export const MarkdownRenderer = memo(({ content, className }: MarkdownRendererPr
   return (
     <div
       className={cn(
-        "prose prose-invert prose-sm max-w-none",
-        "prose-headings:font-semibold prose-headings:text-white",
-        "prose-p:text-gray-300 prose-p:my-1",
-        "prose-strong:text-white prose-strong:font-semibold",
-        "prose-code:text-cyan-400 prose-code:bg-slate-900 prose-code:px-1 prose-code:rounded",
-        "prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-700",
-        "prose-ul:text-gray-300 prose-ul:my-1 prose-ul:pl-4",
-        "prose-ol:text-gray-300 prose-ol:my-1 prose-ol:pl-4",
-        "prose-li:text-gray-300 prose-li:my-0.5",
-        "prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:text-cyan-300",
-        "prose-blockquote:border-l-2 prose-blockquote:border-amber-500 prose-blockquote:pl-4 prose-blockquote:italic",
-        "prose-hr:border-slate-700",
+        "prose prose-sm max-w-none",
+        "prose-headings:font-semibold prose-headings:text-[var(--paper-foreground)]",
+        "prose-p:text-[var(--paper-foreground)] prose-p:my-1",
+        "prose-strong:text-[var(--paper-foreground)] prose-strong:font-semibold",
+        "prose-code:text-[var(--paper-link)] prose-code:bg-[var(--research-chip)] prose-code:px-1 prose-code:rounded",
+        "prose-pre:bg-[var(--research-head)] prose-pre:border prose-pre:border-[var(--research-line)]",
+        "prose-ul:text-[var(--paper-foreground)] prose-ul:my-1 prose-ul:pl-4",
+        "prose-ol:text-[var(--paper-foreground)] prose-ol:my-1 prose-ol:pl-4",
+        "prose-li:text-[var(--paper-foreground)] prose-li:my-0.5",
+        "prose-th:text-[var(--paper-foreground)] prose-td:text-[var(--paper-foreground)]",
+        "prose-a:text-[var(--paper-link)] prose-a:no-underline hover:prose-a:text-[var(--paper-accent)]",
+        "prose-blockquote:border-l-2 prose-blockquote:border-[var(--clay-ochre)] prose-blockquote:pl-4 prose-blockquote:italic",
+        "prose-hr:border-[var(--research-line)]",
         className,
       )}
     >
@@ -169,7 +170,7 @@ export const MarkdownRenderer = memo(({ content, className }: MarkdownRendererPr
         remarkPlugins={[remarkGfm]}
         components={{
           // Customize paragraph rendering
-          p: ({ children }) => <p className="text-gray-300 my-1">{renderMathChildren(children)}</p>,
+          p: ({ children }) => <p className="my-1 text-[var(--paper-foreground)]">{renderMathChildren(children)}</p>,
           li: ({ children }) => <li>{renderMathChildren(children)}</li>,
           strong: ({ children }) => <strong>{renderMathChildren(children)}</strong>,
           em: ({ children }) => <em>{renderMathChildren(children)}</em>,

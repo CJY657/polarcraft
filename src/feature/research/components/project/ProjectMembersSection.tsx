@@ -7,6 +7,7 @@
  */
 
 import { Crown, Loader2 } from "lucide-react";
+import { ResearchChip } from '../shared/ResearchChip';
 import { cn } from "@/utils/classNames";
 import { formatUserIdentity, getUserIdentityInitial } from "@/lib/identity";
 import type {
@@ -79,9 +80,9 @@ export function ProjectMembersSection({
       title="团队成员"
       actions={
         <>
-          <span className="research-chip rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums">
+          <ResearchChip className="px-2.5 py-0.5 font-semibold tabular-nums">
             {members.length}
-          </span>
+          </ResearchChip>
           {canManageProject && (
             <button
               onClick={onOpenApplications}
@@ -224,14 +225,14 @@ export function ProjectMembersSection({
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
-                <span
+                <ResearchChip
                   className={cn(
                     "rounded-md px-2 py-0.5 text-xs font-semibold",
-                    member.role === "owner" ? "research-chip research-chip-accent" : "research-chip"
+                    member.role === "owner" && "research-chip-accent"
                   )}
                 >
                   {getRoleLabel(member.role)}
-                </span>
+                </ResearchChip>
                 {(canNominate || canRemove) && (
                   <div className="flex items-center gap-1">
                     {canNominate && (

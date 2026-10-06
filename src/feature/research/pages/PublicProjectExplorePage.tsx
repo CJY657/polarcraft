@@ -31,7 +31,7 @@ import {
   formatProjectIssueNumber,
   PROJECT_ISSUE_DIFFICULTY_OPTIONS,
 } from "../components/project/projectIssue";
-import { ProjectIssueStateBadge } from "../components/project/ProjectIssues";
+import { ResearchChip } from "../components/shared/ResearchChip";
 import { getProjectStatusMeta } from "../projectLifecycle";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
 import { ResearchGroupGuideDialog } from "../components/project/ResearchGroupGuideDialog";
@@ -423,7 +423,7 @@ export function PublicProjectExplorePage() {
                 data-testid={`project-card-${project.id}`}
                 className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1rem] p-5 transition-all duration-300 hover:-translate-y-1.5 border border-transparent hover:border-[var(--research-edge)] hover:shadow-[var(--research-lift)]"
               >
-                <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-black/5 dark:ring-white/10">
+                <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-[var(--research-line)]">
                   <ProjectCoverImage
                     src={project.thumbnail || project.cover_image}
                     alt={project.name_zh}
@@ -447,16 +447,15 @@ export function PublicProjectExplorePage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <ProjectIssueStateBadge status={project.status} />
                         <span
                           className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold"
                           style={getProjectStatusMeta(project.status).style}
                         >
                           {getProjectStatusMeta(project.status).label}
                         </span>
-                        <span className="research-chip research-chip-accent inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold">
+                        <ResearchChip accent className="text-xs font-semibold">
                           {getDifficultyLabel(project)}
-                        </span>
+                        </ResearchChip>
                       </div>
                     </div>
                     <p className="mt-2 text-base font-semibold text-[var(--paper-foreground)]">
@@ -484,7 +483,7 @@ export function PublicProjectExplorePage() {
                       className={cn(
                         "research-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
                         project.is_recruiting === false && !project.has_pending_application
-                          ? "border-[#f59e0b]/50 bg-[#f59e0b]/15 text-[#78350f] hover:border-[#f59e0b]/70 dark:text-[#fef3c7]"
+                          ? "research-tint-ochre text-[var(--paper-foreground)]"
                           : "research-button-primary text-white"
                       )}
                     >

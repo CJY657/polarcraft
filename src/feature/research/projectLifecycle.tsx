@@ -38,7 +38,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     label: '招募中',
     style: {
       color: 'var(--clay-ink)',
-      borderColor: '#d93670',
+      borderColor: 'color-mix(in srgb, var(--clay-pink) 78%, var(--clay-ink))',
       background: 'var(--clay-pink)',
     },
   },
@@ -46,7 +46,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     label: '组队中',
     style: {
       color: 'var(--clay-ink)',
-      borderColor: '#8f78c9',
+      borderColor: 'color-mix(in srgb, var(--clay-lavender) 78%, var(--clay-ink))',
       background: 'var(--clay-lavender)',
     },
   },
@@ -54,7 +54,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     label: '进行中',
     style: {
       color: 'var(--clay-ink)',
-      borderColor: '#6cae99',
+      borderColor: 'color-mix(in srgb, var(--clay-mint) 78%, var(--clay-ink))',
       background: 'var(--clay-mint)',
     },
   },
@@ -62,7 +62,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     label: '待评审',
     style: {
       color: 'var(--clay-ink)',
-      borderColor: '#b8891d',
+      borderColor: 'color-mix(in srgb, var(--clay-ochre) 78%, var(--clay-ink))',
       background: 'var(--clay-ochre)',
     },
   },
@@ -70,7 +70,7 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
     label: '已展示',
     style: {
       color: 'var(--clay-ink)',
-      borderColor: '#d98255',
+      borderColor: 'color-mix(in srgb, var(--clay-peach) 78%, var(--clay-ink))',
       background: 'var(--clay-peach)',
     },
   },

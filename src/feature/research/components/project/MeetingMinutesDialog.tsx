@@ -13,6 +13,7 @@ import { FileText, Loader2, PenLine, Sparkles } from 'lucide-react';
 
 import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/utils/classNames';
+import { ResearchChip } from '../shared/ResearchChip';
 import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { ApiRequestError } from '@/lib/api';
 import { formatUserIdentity } from '@/lib/identity';
@@ -400,14 +401,14 @@ export function MeetingMinutesDialog({
           <section className="grid gap-2.5">
             <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
               ④ 纪要预览（可编辑）
-              <span
+              <ResearchChip
                 className={cn(
-                  'ml-2 inline-flex rounded-md px-2 py-0.5 text-xs font-semibold',
-                  generatedByAi ? 'research-chip research-chip-accent' : 'research-chip'
+                  'ml-2 rounded-md px-2 py-0.5 text-xs font-semibold',
+                  generatedByAi && 'research-chip-accent'
                 )}
               >
                 {generatedByAi ? 'AI 生成' : '手动撰写'}
-              </span>
+              </ResearchChip>
             </h3>
             <textarea
               value={minutesContent}
@@ -428,9 +429,9 @@ export function MeetingMinutesDialog({
                 <ul className="divide-y divide-[var(--research-line)]">
                   {aiScores.map((score) => (
                     <li key={score.user_id} className="flex items-start gap-3 px-4 py-2.5">
-                      <span className="research-chip shrink-0 rounded-md px-2.5 py-1 text-sm font-bold tabular-nums">
+                      <ResearchChip className="shrink-0 rounded-md px-2.5 py-1 font-bold tabular-nums">
                         {score.score} 分
-                      </span>
+                      </ResearchChip>
                       <div className="min-w-0">
                         <p className="text-base font-semibold text-[var(--paper-foreground)]">
                           {getMemberName(score.user_id)}

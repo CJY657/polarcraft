@@ -222,10 +222,7 @@ export function ResearchAgentPanel({
                                 <time>{formatMessageTime(message.created_at)}</time>
                               </div>
                               {isAssistant ? (
-                                <MarkdownRenderer
-                                  content={message.content}
-                                  className="[&_a]:!text-[var(--paper-link)] [&_code]:!bg-[var(--research-chip)] [&_code]:!text-[var(--paper-link)] [&_li]:!text-[var(--paper-foreground)] [&_p]:!text-[var(--paper-foreground)] [&_strong]:!text-[var(--paper-foreground)]"
-                                />
+                                <MarkdownRenderer content={message.content} />
                               ) : (
                                 <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
                               )}

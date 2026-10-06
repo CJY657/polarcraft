@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarPlus, ChevronDown, Download, Loader2, Star, Trash2, Trophy } from 'lucide-react';
 
+import { ResearchChip } from '../shared/ResearchChip';
 import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { cn } from '@/utils/classNames';
 import { formatDateTime } from '@/lib/datetime.util';
@@ -46,16 +47,15 @@ interface ProjectMeetingsSectionProps {
 
 function MeetingStatusChip({ status }: { status: ProjectMeetingStatus }) {
   return (
-    <span
+    <ResearchChip
       className={cn(
-        'inline-flex whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold',
-        status === 'scheduled' && 'research-chip research-chip-accent',
-        status === 'completed' && 'research-tint-mint border',
-        status === 'cancelled' && 'research-chip'
+        'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold',
+        status === 'scheduled' && 'research-chip-accent',
+        status === 'completed' && 'research-tint-mint border'
       )}
     >
       {MEETING_STATUS_LABELS[status]}
-    </span>
+    </ResearchChip>
   );
 }
 
@@ -428,9 +428,9 @@ export function ProjectMeetingsSection({
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="text-sm font-semibold text-[var(--research-muted)]">会议纪要</h4>
-                  <span className="research-chip rounded-md px-2 py-0.5 text-xs font-semibold">
+                  <ResearchChip className="rounded-md px-2 py-0.5 text-xs font-semibold">
                     {detail.minutes.generated_by_ai ? 'AI 生成' : '手动撰写'}
-                  </span>
+                  </ResearchChip>
                   <span className="text-sm text-[var(--research-muted)]">
                     归档于 {formatDateTime(detail.minutes.archived_at)}
                   </span>

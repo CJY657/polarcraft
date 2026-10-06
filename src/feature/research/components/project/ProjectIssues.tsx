@@ -10,6 +10,7 @@ import {
   type ProjectIssueSource,
 } from './projectIssue';
 import { ProjectRoleBadge } from './ProjectRoleBadge';
+import { ResearchChip } from '../shared/ResearchChip';
 
 interface ProjectIssuePreviewProps {
   project: ProjectIssueSource;
@@ -20,19 +21,6 @@ interface ProjectIssuePreviewProps {
 interface ProjectIssueDetailProps {
   project: ProjectIssueSource;
   className?: string;
-}
-
-function IssueChip({ children, accent = false }: { children: ReactNode; accent?: boolean }) {
-  return (
-    <span
-      className={cn(
-        'research-chip inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
-        accent && 'research-chip-accent font-semibold'
-      )}
-    >
-      {children}
-    </span>
-  );
 }
 
 function IssueList({
@@ -50,7 +38,7 @@ function IssueList({
   return (
     <div className="flex flex-wrap gap-2">
       {renderedItems.map((item) => (
-        <IssueChip key={item}>{item}</IssueChip>
+        <ResearchChip key={item}>{item}</ResearchChip>
       ))}
     </div>
   );
@@ -136,11 +124,11 @@ export function ProjectIssuePreview({
   return (
     <div className={cn('research-panel-soft rounded-2xl p-4', className)}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {issue.issueNumberLabel && <IssueChip>{issue.issueNumberLabel}</IssueChip>}
+        {issue.issueNumberLabel && <ResearchChip>{issue.issueNumberLabel}</ResearchChip>}
         <ProjectIssueStateBadge status={project.status} />
         <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
-        <IssueChip accent>{issue.difficultyLabel}</IssueChip>
-        <IssueChip>{issue.recruitmentState}</IssueChip>
+        <ResearchChip accent>{issue.difficultyLabel}</ResearchChip>
+        <ResearchChip>{issue.recruitmentState}</ResearchChip>
       </div>
 
       <div className="space-y-3">
@@ -218,8 +206,8 @@ export function ProjectIssueDetail({ project, className }: ProjectIssueDetailPro
             <h3 className="mb-2.5 text-base font-bold text-[var(--paper-foreground)]">标签</h3>
             <div className="flex flex-wrap gap-2">
               <ProjectLifecycleBadges status={project.status} isDormant={project.is_dormant} />
-              <IssueChip accent>{issue.difficultyLabel}</IssueChip>
-              <IssueChip>{issue.recruitmentState}</IssueChip>
+              <ResearchChip accent>{issue.difficultyLabel}</ResearchChip>
+              <ResearchChip>{issue.recruitmentState}</ResearchChip>
             </div>
           </section>
         </div>

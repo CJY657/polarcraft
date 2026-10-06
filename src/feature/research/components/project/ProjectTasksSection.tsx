@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 
+import { ResearchChip } from '../shared/ResearchChip';
 import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
@@ -247,9 +248,9 @@ export function ProjectTasksSection({
       flush
       actions={
         tasks.length > 0 && (
-          <span className="research-chip rounded-md px-3 py-1 text-sm font-semibold tabular-nums">
+          <ResearchChip className="rounded-md font-semibold tabular-nums">
             {statusCounts.doing} 进行中 · {statusCounts.todo} 待办 · {statusCounts.done} 已完成
-          </span>
+          </ResearchChip>
         )
       }
     >
@@ -356,16 +357,15 @@ export function ProjectTasksSection({
                       {overdue && ' · 逾期'}
                     </td>
                     <td className="px-3 py-3">
-                      <span
+                      <ResearchChip
                         className={cn(
-                          'inline-flex whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold',
-                          task.status === 'doing' && 'research-chip research-chip-accent',
-                          task.status === 'done' && 'research-tint-mint border',
-                          task.status === 'todo' && 'research-chip'
+                          'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold',
+                          task.status === 'doing' && 'research-chip-accent',
+                          task.status === 'done' && 'research-tint-mint border'
                         )}
                       >
                         {TASK_STATUS_LABELS[task.status]}
-                      </span>
+                      </ResearchChip>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1">
