@@ -238,8 +238,8 @@ export function PublicProjectExplorePage() {
       />
 
       <main className="research-shell py-6 md:py-8">
-        <section className="research-panel relative mb-6 flex flex-col gap-4 overflow-hidden rounded-[1.75rem] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+        <section className="research-panel relative mb-6 overflow-hidden rounded-[1.5rem] p-4 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           
           <div className="relative flex items-center gap-4">
             <div className="research-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
@@ -302,9 +302,9 @@ export function PublicProjectExplorePage() {
               新建课题
             </button>
           </div>
-        </section>
+          </div>
 
-        <section className="research-panel mb-6 rounded-[1.8rem] p-5 sm:p-6">
+          <div className="mt-4 border-t border-[var(--research-line)] pt-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 flex-1">
               <label className="mb-2 block text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
@@ -360,10 +360,11 @@ export function PublicProjectExplorePage() {
               </span>
             </div>
           </div>
+          </div>
         </section>
 
         {isSystemHealthy && !authLoading && !isAuthenticated && (
-          <section className="research-panel-soft mb-6 flex flex-col gap-4 rounded-[1.55rem] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="research-panel-soft mb-6 flex flex-col gap-4 rounded-[1.25rem] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="research-chip flex h-10 w-10 items-center justify-center rounded-2xl">
                 <AlertCircle className="h-4 w-4 text-[var(--paper-link)]" />
@@ -396,20 +397,20 @@ export function PublicProjectExplorePage() {
         )}
 
         {!isSystemHealthy && !isLoading && (
-          <div className="research-tint-ochre mb-8 rounded-[1.55rem] border-[1.5px] p-4">
+          <div className="research-tint-ochre mb-8 rounded-[1.25rem] border-[1.5px] p-4">
             <p className="text-base font-medium">研究服务暂时不可用，当前无法加载课题列表或新建课题。</p>
           </div>
         )}
 
         {isLoading && (
-          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.75rem] py-16">
+          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.5rem] py-16">
             <Loader2 className="h-7 w-7 animate-spin text-[var(--paper-accent)]" />
             <p className="mt-4 text-base text-[var(--glass-text-muted)]">正在检索公开课题…</p>
           </div>
         )}
 
         {error && !isLoading && (
-          <div className="research-error mb-8 rounded-[1.55rem] p-4">
+          <div className="research-error mb-8 rounded-[1.25rem] p-4">
             <p className="text-base font-medium">{error}</p>
           </div>
         )}
@@ -420,7 +421,7 @@ export function PublicProjectExplorePage() {
               <article
                 key={project.id}
                 data-testid={`project-card-${project.id}`}
-                className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1.7rem] p-5 transition-all duration-300 hover:-translate-y-1.5 border border-transparent hover:border-[var(--research-edge)] hover:shadow-[var(--research-lift)]"
+                className="group/card research-panel relative flex flex-col overflow-hidden rounded-[1rem] p-5 transition-all duration-300 hover:-translate-y-1.5 border border-transparent hover:border-[var(--research-edge)] hover:shadow-[var(--research-lift)]"
               >
                 <div className="mb-5 aspect-[16/9] w-full overflow-hidden rounded-[1.25rem] ring-1 ring-black/5 dark:ring-white/10">
                   <ProjectCoverImage
@@ -430,7 +431,7 @@ export function PublicProjectExplorePage() {
                   />
                 </div>
                 <div className="mt-4 flex flex-1 flex-col space-y-3">
-                  <div className="research-panel-soft rounded-[1.2rem] px-4 py-3">
+                  <div className="research-panel-soft rounded-[1rem] px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="research-chip flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
@@ -515,7 +516,7 @@ export function PublicProjectExplorePage() {
         )}
 
         {!isLoading && !error && projects.length === 0 && (
-          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.8rem] py-16 text-center">
+          <div className="research-panel-soft flex flex-col items-center justify-center rounded-[1.5rem] py-16 text-center">
             <div className="research-chip flex h-16 w-16 items-center justify-center rounded-[1.8rem]">
               <FlaskConical className="h-8 w-8 text-[var(--glass-text-muted)]" />
             </div>
@@ -542,7 +543,7 @@ export function PublicProjectExplorePage() {
         )}
 
         {!isLoading && !error && projects.length > 0 && (
-          <section className="research-panel mt-6 rounded-[1.8rem] p-5 sm:p-6">
+          <section className="research-panel mt-6 rounded-[1.5rem] p-5 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2

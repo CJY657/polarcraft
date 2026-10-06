@@ -102,8 +102,8 @@ export function MyProjectsPage() {
 
         <main className="research-shell py-8">
           <section className="mb-8 grid gap-4 md:grid-cols-3">
-            <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[2.15rem] p-6 sm:p-8 md:col-span-3">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+            <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[1.5rem] p-6 sm:p-8 md:col-span-3">
+              
               <div className="relative">
                 <div className="mb-2 flex items-center gap-3">
                   <div className="research-chip flex h-12 w-12 items-center justify-center rounded-2xl">
@@ -157,8 +157,8 @@ export function MyProjectsPage() {
 
       <main className="research-shell py-6 md:py-8">
         <section className="mb-8 grid gap-4 md:grid-cols-3">
-          <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[2.15rem] p-6 sm:p-8 md:col-span-2">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--paper-accent-soft)]/20 to-transparent pointer-events-none"></div>
+          <div className="research-panel relative flex flex-col justify-between overflow-hidden rounded-[1.5rem] p-6 sm:p-8 md:col-span-2">
+            
             <div className="relative">
               <div className="mb-2 flex items-center gap-3">
                 <div className="research-chip flex h-12 w-12 items-center justify-center rounded-2xl">
@@ -195,13 +195,13 @@ export function MyProjectsPage() {
           </div>
 
           <div className="grid grid-rows-2 gap-4">
-            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
+            <div className="research-panel flex flex-col items-center justify-center rounded-[1.5rem] p-5 text-center">
               <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
                 全部课题
               </p>
               <p className="mt-2 text-4xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
             </div>
-            <div className="research-panel flex flex-col items-center justify-center rounded-[2.15rem] p-5 text-center">
+            <div className="research-panel flex flex-col items-center justify-center rounded-[1.5rem] p-5 text-center">
               <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
                 进行中
               </p>
@@ -234,7 +234,7 @@ export function MyProjectsPage() {
         )}
 
         {isLoading ? (
-          <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
+          <section className="research-panel rounded-[1.5rem] p-5 sm:p-6">
             <div className="mb-5">
               <h2
                 className="text-2xl font-semibold text-[var(--paper-foreground)]"
@@ -248,7 +248,7 @@ export function MyProjectsPage() {
               {[1, 2, 3].map((item) => (
                 <div
                   key={item}
-                  className="research-panel-soft animate-pulse rounded-[1.45rem] p-4"
+                  className="research-panel-soft animate-pulse rounded-[1rem] p-4"
                 >
                   <div className="h-4 w-24 rounded bg-[var(--glass-chip)]" />
                   <div className="mt-3 h-6 w-2/3 rounded bg-[var(--glass-chip)]" />
@@ -259,7 +259,7 @@ export function MyProjectsPage() {
             </div>
           </section>
         ) : error ? (
-          <section className="research-error rounded-[1.6rem] p-5">
+          <section className="research-error rounded-[1.25rem] p-5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5" />
               <div>
@@ -274,7 +274,7 @@ export function MyProjectsPage() {
             </div>
           </section>
         ) : projects.length === 0 ? (
-          <section className="research-panel rounded-[1.9rem] p-6 sm:p-7">
+          <section className="research-panel rounded-[1.5rem] p-6 sm:p-7">
             <div className="max-w-2xl">
               <h2
                 className="text-2xl font-semibold text-[var(--paper-foreground)]"
@@ -306,7 +306,7 @@ export function MyProjectsPage() {
             </div>
           </section>
         ) : (
-          <section className="research-panel rounded-[1.9rem] p-5 sm:p-6">
+          <section className="research-panel rounded-[1.5rem] p-5 sm:p-6">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2
@@ -329,7 +329,7 @@ export function MyProjectsPage() {
               {projects.map((project) => (
                 <article
                   key={project.id}
-                  className="research-panel flex flex-col rounded-[1.7rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+                  className="research-panel flex flex-col rounded-[1rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
                 >
                   <ProjectCoverImage
                     src={project.thumbnail || project.cover_image}
@@ -353,7 +353,7 @@ export function MyProjectsPage() {
                   <div className="mt-4 flex flex-1 flex-col space-y-3">
                     <ProjectIssuePreview project={project} />
 
-                    <div className="research-panel-soft mt-auto rounded-[1.2rem] px-4 py-3">
+                    <div className="research-panel-soft mt-auto rounded-[1rem] px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-sm font-medium text-[var(--glass-text-muted)]">课题成员</p>
                         <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">

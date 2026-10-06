@@ -433,7 +433,7 @@ export function ResearchProjectPage() {
     return (
       <div className="research-page research-project-detail min-h-screen">
         <main className="research-shell py-6 md:py-8" aria-busy="true">
-          <div className="grid animate-pulse gap-7 motion-reduce:animate-none lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <div className="grid animate-pulse gap-7 motion-reduce:animate-none lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div>
               <div className="h-6 w-52 rounded-full bg-[var(--research-head)]" />
               <div className="mt-5 h-9 w-4/5 rounded-lg bg-[var(--research-head)]" />
@@ -593,7 +593,7 @@ export function ResearchProjectPage() {
         )}
 
         {/* Project Header — compact hero, cover demoted to the side column */}
-        <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0">
             <div className="mb-3.5 flex flex-wrap items-center gap-2">
               <span className="research-kicker mr-1">课题详情</span>
