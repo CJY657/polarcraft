@@ -611,7 +611,7 @@ export function ResearchProjectPage() {
             </div>
 
             <h1
-              className="text-balance text-[clamp(1.6rem,2.6vw,2.15rem)] font-bold leading-[1.28] text-[var(--paper-foreground)]"
+              className="text-balance text-[clamp(1.9rem,2.8vw,2.5rem)] font-bold leading-[1.22] text-[var(--paper-foreground)]"
               style={{ fontFamily: "var(--font-ui-display)" }}
             >
               {displayProject.name_zh}

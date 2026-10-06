@@ -365,7 +365,7 @@ html {
   .research-card {
     overflow: hidden;
     border: 1px solid var(--research-line);
-    border-radius: 0.75rem;
+    border-radius: 1rem;
     background: var(--research-surface);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--research-surface) 35%, white);
   }
@@ -375,7 +375,7 @@ html {
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
-    padding: 0.875rem 1.25rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--research-line);
     background: var(--research-head);
   }
@@ -420,9 +420,17 @@ html {
     color: #ffffff;
   }
 
+  /* Page title — projection-scale / 页面主标题（投影可读） */
+  .research-title-page {
+    font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+  }
+
   .research-kicker {
     color: var(--glass-text-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -458,7 +466,7 @@ html {
     padding: 0.5rem 0.875rem;
     border-radius: 0.5rem;
     color: var(--glass-text-muted);
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 500;
     white-space: nowrap;
     transition: background-color 150ms var(--glass-ease), color 150ms var(--glass-ease);
@@ -600,8 +608,8 @@ html {
   }
 
   .research-section-note {
-    font-size: 0.9375rem;
-    line-height: 1.4rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
     color: var(--glass-text-muted);
   }
 

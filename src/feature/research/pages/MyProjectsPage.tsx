@@ -110,7 +110,7 @@ export function MyProjectsPage() {
                     <Users className="h-6 w-6 text-[var(--paper-link)]" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
+                    <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                       我的课题
                     </h1>
                     <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
@@ -165,7 +165,7 @@ export function MyProjectsPage() {
                   <Users className="h-6 w-6 text-[var(--paper-link)]" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
+                  <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                     我的课题
                   </h1>
                   <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">

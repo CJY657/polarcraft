@@ -163,7 +163,7 @@ export function MeetingScheduleDialog({
       <div className="flex items-start justify-between gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4">
         <div>
           <h2
-            className="text-lg font-semibold text-[var(--paper-foreground)]"
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: 'var(--font-ui-display)' }}
           >
             {isEditMode ? '编辑会议' : '安排会议'}

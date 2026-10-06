@@ -729,7 +729,7 @@ export function ProjectEvidenceSection({
                             <span className="shrink-0 text-[var(--paper-link)]">待上传</span>
                           )}
                         </div>
-                        <span className="text-xs text-[var(--glass-text-muted)]">
+                        <span className="text-sm text-[var(--glass-text-muted)]">
                           {formatFileSize(attachmentSize)}
                         </span>
                       </div>

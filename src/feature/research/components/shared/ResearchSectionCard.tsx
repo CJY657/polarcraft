@@ -39,7 +39,7 @@ export function ResearchSectionCard({
       <div className="research-card-head">
         <div className="min-w-0">
           <h2
-            className="text-lg font-semibold text-[var(--paper-foreground)]"
+            className="text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: "var(--font-ui-display)" }}
           >
             {title}

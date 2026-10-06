@@ -432,7 +432,7 @@ export function ProjectMeetingsSection({
                   <span className="research-chip rounded-md px-2 py-0.5 text-xs font-semibold">
                     {detail.minutes.generated_by_ai ? 'AI 生成' : '手动撰写'}
                   </span>
-                  <span className="text-xs text-[var(--glass-text-muted)]">
+                  <span className="text-sm text-[var(--glass-text-muted)]">
                     归档于 {formatDateTime(detail.minutes.archived_at)}
                   </span>
                 </div>

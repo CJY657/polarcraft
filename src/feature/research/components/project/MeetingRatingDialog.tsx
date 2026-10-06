@@ -151,7 +151,7 @@ export function MeetingRatingDialog({
       <div className="flex items-start justify-between gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4">
         <div className="min-w-0">
           <h2
-            className="truncate text-lg font-semibold text-[var(--paper-foreground)]"
+            className="truncate text-xl font-semibold text-[var(--paper-foreground)]"
             style={{ fontFamily: 'var(--font-ui-display)' }}
           >
             成员互评 · {meeting.title}

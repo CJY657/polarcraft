@@ -214,7 +214,7 @@ export function ResearchAgentPanel({
                             >
                               <div
                                 className={cn(
-                                  "mb-1.5 flex items-center justify-between gap-3 text-xs",
+                                  "mb-1.5 flex items-center justify-between gap-3 text-sm",
                                   isAssistant ? "text-[var(--glass-text-muted)]" : "opacity-70"
                                 )}
                               >
@@ -234,7 +234,7 @@ export function ResearchAgentPanel({
                         })}
                         {isSending && (
                           <article className="mr-auto max-w-[86%] rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-3 text-sm">
-                            <div className="mb-1.5 text-xs text-[var(--glass-text-muted)]">AI 顾问</div>
+                            <div className="mb-1.5 text-sm text-[var(--glass-text-muted)]">AI 顾问</div>
                             <div className="inline-flex items-center gap-2 leading-6">
                               <Loader2 className="h-4 w-4 animate-spin text-[var(--paper-accent)]" />
                               <span className="text-[var(--glass-text-muted)]">思考中...</span>

@@ -247,7 +247,7 @@ export function PublicProjectExplorePage() {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-semibold text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
+                <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                   公开课题
                 </h1>
                 <button
@@ -439,7 +439,7 @@ export function PublicProjectExplorePage() {
                         <div>
                           <p className="text-sm font-medium text-[var(--glass-text-muted)]">课题与成员</p>
                           {formatProjectIssueNumber(project.issue_number) && (
-                            <p className="mt-0.5 text-xs font-semibold tabular-nums text-[var(--paper-foreground)]">
+                            <p className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--paper-foreground)]">
                               {formatProjectIssueNumber(project.issue_number)}
                             </p>
                           )}
