@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-09-30-browsing-performance',
+    date: '2026年9月30日',
+    title: '实验目录与讨论性能优化',
+    description:
+      '优化了实验文件分类、讨论与回复排序，以及课题表现榜的计算，减少内容较多时的重复处理。目录展示、讨论顺序和评分规则保持不变。',
+    href: '/experiments',
+  },
+  {
     id: '2026-09-24-calcite-birefringence-simulation',
     date: '2026年9月24日',
     title: '方解石双折射虚拟仿真上线',
