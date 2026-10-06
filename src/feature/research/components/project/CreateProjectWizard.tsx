@@ -187,9 +187,9 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
   ];
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose}>
+    <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
       <div className={cn(
-        "w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-xl",
+        "w-full max-w-2xl max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"
       )}>
         {/* Header */}
@@ -202,7 +202,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
           </h2>
 
           {/* Step indicators */}
-          <div className="flex items-center gap-2 mt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {stepLabels.map((label, index) => (
               <div key={index} className="flex items-center">
                 <div className={cn(

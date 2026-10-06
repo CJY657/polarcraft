@@ -31,13 +31,13 @@ export function RemoveMemberDialog({
   onConfirm: () => void;
 }) {
   return (
-    <Dialog isOpen={true} onClose={onCancel}>
+    <Dialog isOpen={true} onClose={onCancel} containerClassName="items-end sm:items-center">
       <div
         role="alertdialog"
         aria-modal="true"
         aria-label={isSelf ? "退出课题组" : "移除成员"}
         className={cn(
-          "w-full max-w-md p-6 rounded-xl",
+          "w-full max-w-md rounded-t-[1.25rem] p-6 sm:rounded-xl",
           theme === "dark" ? "bg-gray-800" : "bg-white"
         )}
       >

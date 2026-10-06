@@ -132,9 +132,9 @@ export function ApplicationManagementDialog({
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose}>
+    <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
       <div className={cn(
-        "w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl",
+        "w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-t-[1.25rem] sm:rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"
       )}>
         {/* Header */}

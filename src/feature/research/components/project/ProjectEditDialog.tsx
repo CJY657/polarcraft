@@ -157,9 +157,9 @@ export function ProjectEditDialog({
 
   return (
     <>
-      <Dialog isOpen={isOpen} onClose={onClose}>
+      <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
         <div className={cn(
-        "w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 rounded-xl",
+        "w-full max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl",
         theme === "dark" ? "bg-gray-800" : "bg-white"
       )}>
         {/* Header */}

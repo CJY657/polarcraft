@@ -70,9 +70,9 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      containerClassName="research-project-detail"
+      containerClassName="research-project-detail items-end sm:items-center"
     >
-      <div className="research-panel max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.9rem] p-6">
+      <div className="research-panel max-h-[min(92dvh,90vh)] w-full max-w-lg overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-[1.5rem]">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
