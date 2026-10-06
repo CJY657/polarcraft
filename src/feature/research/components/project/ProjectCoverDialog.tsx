@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { AlertTriangle, Check, ImagePlus, Loader2, Trash2, UploadCloud, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react";
 
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/utils/classNames";
+import { ResearchDangerPanel } from "../shared/ResearchDangerPanel";
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from "../shared/ResearchDialog";
 import {
   researchApi,
   type ProjectWithMembers,
@@ -200,27 +202,17 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
       className="max-w-2xl border-0 bg-transparent shadow-none"
       containerClassName="research-project-detail"
     >
-      <div className="research-panel max-h-[88vh] overflow-y-auto rounded-[1.65rem] p-5 sm:p-6">
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h2
-              className="text-xl font-semibold text-[var(--paper-foreground)]"
-              style={{ fontFamily: "var(--font-ui-display)" }}
-            >
-              课题封面
-            </h2>
-            <p className="mt-1 text-base text-[var(--research-muted)]">{project.name_zh}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="关闭"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+      <div className={cn(RESEARCH_DIALOG_PANEL, "max-h-[88vh] overflow-y-auto rounded-[1.65rem] p-5 sm:p-6")}>
+        <ResearchDialogHead
+          title="课题封面"
+          note={project.name_zh}
+          onClose={() => {
+            if (!isSaving) {
+              onClose();
+            }
+          }}
+          className="-mx-5 -mt-5 mb-5 sm:-mx-6 sm:-mt-6"
+        />
 
         <ProjectCoverImage
           src={effectivePreviewUrl}
@@ -272,32 +264,17 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                   setError(null);
                 }}
                 disabled={isSaving}
-                className="research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium text-[var(--color-destructive)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
                 删除封面
               </button>
             ) : (
-              <div
-                className="rounded-[1.2rem] border px-4 py-3"
-                style={{
-                  borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--research-line))",
-                  background: "color-mix(in srgb, #cb6a4f 8%, var(--research-surface))",
-                }}
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#cb6a4f]/12 text-[#a24432]">
-                      <AlertTriangle className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除当前封面</p>
-                      <p className="mt-1 text-base leading-6 text-[var(--research-muted)]">
-                        删除后会恢复自动封面（讨论区图片或画布图片）。
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
+              <ResearchDangerPanel
+                title="确认删除当前封面"
+                description="删除后会恢复自动封面（讨论区图片或画布图片）。"
+                actions={
+                  <>
                     <button
                       type="button"
                       onClick={() => setIsConfirmingDelete(false)}
@@ -310,14 +287,14 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                       type="button"
                       onClick={() => void handleDeleteCover()}
                       disabled={isSaving}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#a24432] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="research-button-danger inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       {isSaving ? "删除中..." : "确认删除封面"}
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </>
+                }
+              />
             )}
           </div>
         )}
@@ -370,7 +347,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
         </div>
 
         {error && (
-          <div className="mt-4 rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
+          <div className="research-error mt-4 rounded-[1rem] px-4 py-3 text-base">
             {error}
           </div>
         )}

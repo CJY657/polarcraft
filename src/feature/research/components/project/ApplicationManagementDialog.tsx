@@ -6,9 +6,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, X, Clock, User, ChevronDown, ChevronUp, Users, Loader2 } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { profileApi, ProjectApplication } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
 import { ProjectRoleBadge } from './ProjectRoleBadge';
@@ -27,7 +27,6 @@ export function ApplicationManagementDialog({
   onStatusChange,
 }: ApplicationManagementDialogProps) {
   const { t } = useTranslation();
-  const { theme } = useTheme();
 
   const [applications, setApplications] = useState<ProjectApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,18 +94,10 @@ export function ApplicationManagementDialog({
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: theme === 'dark'
-        ? 'bg-yellow-900/50 text-yellow-400'
-        : 'bg-yellow-100 text-yellow-700',
-      approved: theme === 'dark'
-        ? 'bg-green-900/50 text-green-400'
-        : 'bg-green-100 text-green-700',
-      rejected: theme === 'dark'
-        ? 'bg-red-900/50 text-red-400'
-        : 'bg-red-100 text-red-700',
-      withdrawn: theme === 'dark'
-        ? 'bg-gray-700 text-gray-400'
-        : 'bg-gray-100 text-gray-500',
+      pending: 'research-tint-ochre',
+      approved: 'research-tint-mint',
+      rejected: 'research-tint-pink',
+      withdrawn: 'research-chip',
     };
     return styles[status] || styles.pending;
   };
@@ -133,59 +124,18 @@ export function ApplicationManagementDialog({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
-      <div className={cn(
-        "w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-t-[1.25rem] sm:rounded-xl",
-        theme === "dark" ? "bg-gray-800" : "bg-white"
-      )}>
+      <div className={cn(RESEARCH_DIALOG_PANEL, "flex max-h-[min(92dvh,90vh)] flex-col rounded-t-[1.25rem] sm:rounded-xl")}>
         {/* Header */}
-        <div className={cn(
-          "flex items-center justify-between p-4 border-b flex-shrink-0",
-          theme === "dark" ? "border-gray-700" : "border-gray-200"
-        )}>
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-2 rounded-lg",
-              theme === "dark" ? "bg-teal-500/20 text-teal-400" : "bg-teal-100 text-teal-600"
-            )}>
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className={cn(
-                "text-lg font-bold",
-                theme === "dark" ? "text-white" : "text-gray-900"
-              )}>
-                {t('project.application.title')}
-              </h2>
-              {pendingApplications.length > 0 && (
-                <p className={cn(
-                  "text-base",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
-                  {pendingApplications.length} 个待处理申请
-                </p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              theme === "dark"
-                ? "hover:bg-gray-700 text-gray-400"
-                : "hover:bg-gray-100 text-gray-500"
-            )}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <ResearchDialogHead
+          title={t('project.application.title')}
+          note={pendingApplications.length > 0 ? `${pendingApplications.length} 个待处理申请` : undefined}
+          onClose={onClose}
+        />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {error && (
-            <div role="alert" className={cn(
-              "mb-4 p-3 rounded-lg text-base",
-              theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
-            )}>
+            <div role="alert" className="research-error mb-4 rounded-lg p-3 text-base">
               {error}
             </div>
           )}
@@ -194,23 +144,14 @@ export function ApplicationManagementDialog({
             <div
               role="status"
               aria-busy="true"
-              className={cn(
-                "flex items-center justify-center gap-2 py-8",
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              )}
+              className="flex items-center justify-center gap-2 py-8 text-[var(--research-muted)]"
             >
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>{t('common.loading')}</span>
             </div>
           ) : applications.length === 0 ? (
-            <div className={cn(
-              "text-center py-12",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )}>
-              <Users className={cn(
-                "w-12 h-12 mx-auto mb-3 opacity-50",
-                theme === "dark" ? "text-gray-600" : "text-gray-300"
-              )} />
+            <div className="py-12 text-center text-[var(--research-muted)]">
+              <Users className="mx-auto mb-3 h-12 w-12 text-[var(--research-muted)] opacity-50" />
               <p>{t('profile.application.noApplications')}</p>
             </div>
           ) : (
@@ -220,7 +161,6 @@ export function ApplicationManagementDialog({
                 <ApplicationCard
                   key={app.id}
                   application={app}
-                  theme={theme}
                   expanded={expandedId === app.id}
                   onToggleExpand={() => setExpandedId(expandedId === app.id ? null : app.id)}
                   onApprove={() => handleApprove(app.id)}
@@ -236,17 +176,13 @@ export function ApplicationManagementDialog({
               {/* Processed applications */}
               {processedApplications.length > 0 && (
                 <>
-                  <div className={cn(
-                    "text-base font-medium pt-4 pb-2",
-                    theme === "dark" ? "text-gray-400" : "text-gray-500"
-                  )}>
+                  <div className="pt-4 pb-2 text-base font-medium text-[var(--research-muted)]">
                     已处理
                   </div>
                   {processedApplications.map((app) => (
                     <ApplicationCard
                       key={app.id}
                       application={app}
-                      theme={theme}
                       expanded={expandedId === app.id}
                       onToggleExpand={() => setExpandedId(expandedId === app.id ? null : app.id)}
                       getStatusBadge={getStatusBadge}
@@ -268,7 +204,6 @@ export function ApplicationManagementDialog({
 // Application Card sub-component
 interface ApplicationCardProps {
   application: ProjectApplication;
-  theme: string;
   expanded: boolean;
   onToggleExpand: () => void;
   onApprove?: () => void;
@@ -282,7 +217,6 @@ interface ApplicationCardProps {
 
 function ApplicationCard({
   application,
-  theme,
   expanded,
   onToggleExpand,
   onApprove,
@@ -301,25 +235,14 @@ function ApplicationCard({
   const displayName = formatUserIdentity(application, application.display_name);
 
   return (
-    <div className={cn(
-      "rounded-lg border overflow-hidden",
-      theme === "dark"
-        ? "bg-gray-700/50 border-gray-600"
-        : "bg-gray-50 border-gray-200"
-    )}>
+    <div className="research-panel-soft overflow-hidden rounded-xl">
       {/* Header - always visible */}
       <div
         onClick={onToggleExpand}
-        className={cn(
-          "p-4 cursor-pointer flex items-center justify-between",
-          theme === "dark" ? "hover:bg-gray-600/50" : "hover:bg-gray-100"
-        )}
+        className="flex cursor-pointer items-center justify-between p-4 transition-colors hover:bg-[var(--research-chip)]"
       >
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center",
-            theme === "dark" ? "bg-gray-600" : "bg-gray-200"
-          )}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--research-chip)]">
             {application.avatar_url ? (
               <img
                 src={application.avatar_url}
@@ -327,23 +250,14 @@ function ApplicationCard({
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <User className={cn(
-                "w-5 h-5",
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              )} />
+              <User className="h-5 w-5 text-[var(--research-muted)]" />
             )}
           </div>
           <div>
-            <div className={cn(
-              "font-medium",
-              theme === "dark" ? "text-white" : "text-gray-900"
-            )}>
+            <div className="font-medium text-[var(--paper-foreground)]">
               {displayName}
             </div>
-            <div className={cn(
-              "text-base",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )}>
+            <div className="text-base text-[var(--research-muted)]">
               {application.organization}
               {application.major && ` · ${application.major}`}
             </div>
@@ -355,31 +269,22 @@ function ApplicationCard({
 
         <div className="flex items-center gap-3">
           <span className={cn(
-            "px-2 py-1 rounded-full text-sm font-medium",
+            "rounded-full border px-2 py-1 text-sm font-medium",
             getStatusBadge(application.status)
           )}>
             {getStatusText(application.status)}
           </span>
           {expanded ? (
-            <ChevronUp className={cn(
-              "w-5 h-5",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )} />
+            <ChevronUp className="h-5 w-5 text-[var(--research-muted)]" />
           ) : (
-            <ChevronDown className={cn(
-              "w-5 h-5",
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            )} />
+            <ChevronDown className="h-5 w-5 text-[var(--research-muted)]" />
           )}
         </div>
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div className={cn(
-          "px-4 pb-4 border-t",
-          theme === "dark" ? "border-gray-600" : "border-gray-200"
-        )}>
+        <div className="border-t border-[var(--research-line)] px-4 pb-4">
           <div className="pt-4 space-y-3">
             <div>
               <ProjectRoleBadge seed={desiredRole}>
@@ -388,47 +293,29 @@ function ApplicationCard({
             </div>
 
             <div>
-              <span className={cn(
-                "text-base font-medium block mb-1",
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              )}>
+              <span className="mb-1 block text-base font-medium text-[var(--research-muted)]">
                 可贡献内容:
               </span>
-              <p className={cn(
-                "text-base whitespace-pre-wrap",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <p className="whitespace-pre-wrap text-base text-[var(--paper-foreground)]">
                 {proposedContribution}
               </p>
             </div>
 
             <div>
-              <span className={cn(
-                "text-base font-medium",
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              )}>
+              <span className="text-base font-medium text-[var(--research-muted)]">
                 每周可投入时间:
               </span>
-              <span className={cn(
-                "ml-2",
-                theme === "dark" ? "text-gray-300" : "text-gray-700"
-              )}>
+              <span className="ml-2 text-[var(--paper-foreground)]">
                 {weeklyTimeCommitment}
               </span>
             </div>
 
             {application.grade && (
               <div>
-                <span className={cn(
-                  "text-base font-medium",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
+                <span className="text-base font-medium text-[var(--research-muted)]">
                   {t('project.application.form.grade')}:
                 </span>
-                <span className={cn(
-                  "ml-2",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <span className="ml-2 text-[var(--paper-foreground)]">
                   {application.grade}
                 </span>
               </div>
@@ -436,16 +323,10 @@ function ApplicationCard({
 
             {application.research_experience && (
               <div>
-                <span className={cn(
-                  "text-base font-medium block mb-1",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
+                <span className="mb-1 block text-base font-medium text-[var(--research-muted)]">
                   {t('project.application.form.researchExperience')}:
                 </span>
-                <p className={cn(
-                  "text-base whitespace-pre-wrap",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <p className="whitespace-pre-wrap text-base text-[var(--paper-foreground)]">
                   {application.research_experience}
                 </p>
               </div>
@@ -453,16 +334,10 @@ function ApplicationCard({
 
             {application.expertise && (
               <div>
-                <span className={cn(
-                  "text-base font-medium block mb-1",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
+                <span className="mb-1 block text-base font-medium text-[var(--research-muted)]">
                   {t('project.application.form.expertise')}:
                 </span>
-                <p className={cn(
-                  "text-base whitespace-pre-wrap",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <p className="whitespace-pre-wrap text-base text-[var(--paper-foreground)]">
                   {application.expertise}
                 </p>
               </div>
@@ -470,34 +345,22 @@ function ApplicationCard({
 
             {application.motivation && (
               <div>
-                <span className={cn(
-                  "text-base font-medium block mb-1",
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
+                <span className="mb-1 block text-base font-medium text-[var(--research-muted)]">
                   {t('project.application.form.motivation')}:
                 </span>
-                <p className={cn(
-                  "text-base whitespace-pre-wrap",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <p className="whitespace-pre-wrap text-base text-[var(--paper-foreground)]">
                   {application.motivation}
                 </p>
               </div>
             )}
 
-            <div className={cn(
-              "text-sm",
-              theme === "dark" ? "text-gray-500" : "text-gray-400"
-            )}>
+            <div className="text-sm text-[var(--research-muted)]">
               <Clock className="w-3 h-3 inline mr-1" />
               {formatDate(application.created_at)}
             </div>
 
             {application.review_notes && (
-              <div className={cn(
-                "p-2 rounded text-base",
-                theme === "dark" ? "bg-gray-600/50" : "bg-gray-200"
-              )}>
+              <div className="rounded-lg bg-[var(--research-chip)] p-2 text-base">
                 <span className="font-medium">{t('profile.application.reviewNotes')}: </span>
                 {application.review_notes}
               </div>
@@ -512,12 +375,7 @@ function ApplicationCard({
                     onApprove();
                   }}
                   disabled={isProcessing}
-                  className={cn(
-                    "flex-1 px-3 py-2 rounded-lg text-base font-medium flex items-center justify-center gap-1 transition-colors",
-                    theme === "dark"
-                      ? "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
-                      : "bg-green-500 hover:bg-green-600 text-white disabled:opacity-50"
-                  )}
+                  className="research-button-primary flex flex-1 items-center justify-center gap-1 rounded-full px-3 py-2 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Check className="w-4 h-4" />
                   通过为 {desiredRole} 成员
@@ -528,12 +386,7 @@ function ApplicationCard({
                     setIsRejecting(true);
                   }}
                   disabled={isProcessing}
-                  className={cn(
-                    "flex-1 px-3 py-2 rounded-lg text-base font-medium flex items-center justify-center gap-1 transition-colors",
-                    theme === "dark"
-                      ? "bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-                      : "bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
-                  )}
+                  className="research-button-danger flex flex-1 items-center justify-center gap-1 rounded-full px-3 py-2 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <X className="w-4 h-4" />
                   {t('profile.application.rejected')}
@@ -542,18 +395,10 @@ function ApplicationCard({
             )}
 
             {application.status === 'pending' && isRejecting && (
-              <div
-                className={cn(
-                  "rounded-lg border p-3",
-                  theme === "dark" ? "border-gray-600 bg-gray-800/60" : "border-gray-200 bg-white"
-                )}
-              >
+              <div className="research-panel-soft rounded-xl p-3">
                 <label
                   htmlFor={`reject-notes-${application.id}`}
-                  className={cn(
-                    "mb-2 block text-base font-medium",
-                    theme === "dark" ? "text-gray-300" : "text-gray-600"
-                  )}
+                  className="mb-2 block text-base font-medium text-[var(--paper-foreground)]"
                 >
                   {t('profile.application.reviewNotes') || '审核备注（可选）'}
                 </label>
@@ -565,12 +410,7 @@ function ApplicationCard({
                   rows={3}
                   disabled={isProcessing}
                   placeholder="可填写拒绝原因，申请人可见（选填）"
-                  className={cn(
-                    "w-full rounded-lg border px-3 py-2 text-base outline-none transition-colors focus:border-teal-500",
-                    theme === "dark"
-                      ? "border-gray-600 bg-gray-900/60 text-gray-200 placeholder:text-gray-500"
-                      : "border-gray-300 bg-white text-gray-800 placeholder:text-gray-400"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 />
                 <div className="mt-2 flex justify-end gap-2">
                   <button
@@ -579,12 +419,7 @@ function ApplicationCard({
                       setIsRejecting(false);
                     }}
                     disabled={isProcessing}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-base font-medium transition-colors",
-                      theme === "dark"
-                        ? "bg-gray-600 text-gray-200 hover:bg-gray-500"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    )}
+                    className="research-button rounded-full px-3 py-1.5 text-base font-medium"
                   >
                     取消
                   </button>
@@ -594,12 +429,7 @@ function ApplicationCard({
                       onReject?.(rejectNotes);
                     }}
                     disabled={isProcessing}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-base font-medium text-white transition-colors disabled:opacity-50",
-                      theme === "dark"
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-red-500 hover:bg-red-600"
-                    )}
+                    className="research-button-danger rounded-full px-3 py-1.5 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isProcessing ? '处理中…' : '拒绝申请'}
                   </button>

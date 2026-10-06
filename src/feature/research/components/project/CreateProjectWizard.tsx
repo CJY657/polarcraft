@@ -7,10 +7,10 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { profileApi, UserEducation, CreateProjectSettingsInput } from '@/lib/profile.service';
 import { formatUserIdentity } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
@@ -30,7 +30,6 @@ type Step = 1 | 2 | 3;
 
 export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjectWizardProps) {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -188,62 +187,48 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
-      <div className={cn(
-        "w-full max-w-2xl max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl",
-        theme === "dark" ? "bg-gray-800" : "bg-white"
-      )}>
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className={cn(
-            "text-2xl font-bold",
-            theme === "dark" ? "text-white" : "text-gray-900"
-          )}>
-            {t('project.create.title')}
-          </h2>
+      <div className={cn(RESEARCH_DIALOG_PANEL, "max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl")}>
+        <ResearchDialogHead
+          title={t('project.create.title')}
+          onClose={onClose}
+          className="-mx-6 -mt-6 mb-6"
+        />
 
-          {/* Step indicators */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {stepLabels.map((label, index) => (
-              <div key={index} className="flex items-center">
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-base font-medium transition-colors",
-                  currentStep > index + 1
-                    ? "bg-green-500 text-white"
-                    : currentStep === index + 1
-                    ? theme === "dark"
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-500 text-white"
-                    : theme === "dark"
-                    ? "bg-gray-700 text-gray-400"
-                    : "bg-gray-200 text-gray-500"
-                )}>
-                  {currentStep > index + 1 ? <Check className="w-4 h-4" /> : index + 1}
-                </div>
-                <span className={cn(
-                  "ml-2 text-base",
-                  currentStep === index + 1
-                    ? theme === "dark" ? "text-white" : "text-gray-900"
-                    : theme === "dark" ? "text-gray-400" : "text-gray-500"
-                )}>
+        {/* Step indicators */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {stepLabels.map((label, index) => {
+            const stepState =
+              currentStep > index + 1 ? "completed" : currentStep === index + 1 ? "current" : "upcoming";
+            return (
+              <div key={index} className="flex items-center" data-state={stepState}>
+                <span className="research-step-dot" aria-hidden="true">
+                  {stepState === "completed" ? (
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  ) : (
+                    index + 1
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "ml-2 text-base",
+                    stepState === "current"
+                      ? "font-bold text-[var(--paper-foreground)]"
+                      : stepState === "completed"
+                      ? "font-medium text-[var(--paper-foreground)]"
+                      : "font-medium text-[var(--research-muted)]"
+                  )}
+                >
                   {label}
                 </span>
-                {index < 2 && (
-                  <ChevronRight className={cn(
-                    "w-4 h-4 mx-2",
-                    theme === "dark" ? "text-gray-600" : "text-gray-300"
-                  )} />
-                )}
+                {index < 2 && <ChevronRight className="mx-2 h-4 w-4 text-[var(--research-muted)]" />}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         {/* Error */}
         {error && (
-          <div className={cn(
-            "mb-4 p-3 rounded-lg text-base",
-            theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
-          )}>
+          <div className="research-error mb-4 rounded-lg p-3 text-base">
             {error}
           </div>
         )}
@@ -254,50 +239,31 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
           {currentStep === 1 && (
             <div className="space-y-4">
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('lab.projectName')} (中文) *
                 </label>
                 <input
                   type="text"
                   value={projectData.name_zh}
                   onChange={(e) => setProjectData({ ...projectData, name_zh: e.target.value })}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               {/* <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('lab.projectName')} (English)
                 </label>
                 <input
                   type="text"
                   value={projectData.name_en}
                   onChange={(e) => setProjectData({ ...projectData, name_en: e.target.value })}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 />
               </div> */}
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('lab.projectDescription')} (中文)
                 </label>
                 <TopicReferenceTextarea
@@ -305,20 +271,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onValueChange={(description_zh) => setProjectData({ ...projectData, description_zh })}
                   placeholder="输入 @ 可引用其他议题"
                   rows={4}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   研究问题（中文，每行一个）
                 </label>
                 <textarea
@@ -326,20 +284,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onChange={(e) => setProjectData({ ...projectData, research_questions_zh: e.target.value })}
                   rows={3}
                   placeholder="例如：气泡条纹与膜厚变化是否相关？"
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   研究假设（中文，每行一个）
                 </label>
                 <textarea
@@ -347,20 +297,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onChange={(e) => setProjectData({ ...projectData, research_hypotheses_zh: e.target.value })}
                   rows={3}
                   placeholder="例如：明暗图样由球面几何与线偏振耦合产生。"
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   基础问题与实验（中文）
                 </label>
                 <textarea
@@ -368,20 +310,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onChange={(e) => setProjectData({ ...projectData, basic_plan_zh: e.target.value })}
                   rows={3}
                   placeholder="记录基础实验、变量和第一轮问题。"
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   拓展问题、假设与实验（中文）
                 </label>
                 <textarea
@@ -389,19 +323,13 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onChange={(e) => setProjectData({ ...projectData, extended_plan_zh: e.target.value })}
                   rows={3}
                   placeholder="记录可继续验证的假设、延展实验和讨论线索。"
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <ProjectIssueFieldsEditor
                 value={projectData}
                 onChange={setProjectData}
-                theme={theme}
               />
             </div>
           )}
@@ -419,10 +347,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                       onChange={() => setCreatorData({ ...creatorData, useProfile: true })}
                       className="w-4 h-4"
                     />
-                    <span className={cn(
-                      "text-base",
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    )}>
+                    <span className="text-base text-[var(--paper-foreground)]">
                       {t('project.application.form.selectFromProfile')}
                     </span>
                   </label>
@@ -433,10 +358,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                       onChange={() => setCreatorData({ ...creatorData, useProfile: false })}
                       className="w-4 h-4"
                     />
-                    <span className={cn(
-                      "text-base",
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    )}>
+                    <span className="text-base text-[var(--paper-foreground)]">
                       {t('project.application.form.enterManually')}
                     </span>
                   </label>
@@ -445,21 +367,13 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
 
               {creatorData.useProfile && educations.length > 0 ? (
                 <div>
-                  <label className={cn(
-                    "block text-base font-medium mb-1.5",
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  )}>
+                  <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                     {t('project.application.form.organization')}
                   </label>
                   <select
                     value={creatorData.education_id}
                     onChange={(e) => setCreatorData({ ...creatorData, education_id: e.target.value })}
-                    className={cn(
-                      "w-full px-3 py-2 rounded-lg border transition-colors",
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                        : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                    )}
+                    className="research-input w-full rounded-lg px-3 py-2 text-base"
                   >
                     <option value="">{t('common.select')}</option>
                     {educations.map((edu) => (
@@ -472,52 +386,33 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
               ) : (
                 <>
                   <div>
-                    <label className={cn(
-                      "block text-base font-medium mb-1.5",
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    )}>
+                    <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                       {t('project.application.form.organization')} *
                     </label>
                     <input
                       type="text"
                       value={creatorData.organization}
                       onChange={(e) => setCreatorData({ ...creatorData, organization: e.target.value })}
-                      className={cn(
-                        "w-full px-3 py-2 rounded-lg border transition-colors",
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                          : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                      )}
+                      className="research-input w-full rounded-lg px-3 py-2 text-base"
                     />
                   </div>
 
                   <div>
-                    <label className={cn(
-                      "block text-base font-medium mb-1.5",
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    )}>
+                    <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                       {t('project.application.form.major')}
                     </label>
                     <input
                       type="text"
                       value={creatorData.major}
                       onChange={(e) => setCreatorData({ ...creatorData, major: e.target.value })}
-                      className={cn(
-                        "w-full px-3 py-2 rounded-lg border transition-colors",
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                          : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                      )}
+                      className="research-input w-full rounded-lg px-3 py-2 text-base"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('project.application.form.grade')}
                 </label>
                 <input
@@ -525,12 +420,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   value={creatorData.grade}
                   onChange={(e) => setCreatorData({ ...creatorData, grade: e.target.value })}
                   placeholder={t('project.application.form.gradePlaceholder')}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 />
               </div>
             </div>
@@ -540,21 +430,13 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
           {currentStep === 3 && (
             <div className="space-y-4">
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('project.settings.visibility')}
                 </label>
                 <select
                   value={settings.visibility}
                   onChange={(e) => setSettings({ ...settings, visibility: e.target.value as any })}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 >
                   <option value="private">{t('project.settings.private')}</option>
                   <option value="public">{t('project.settings.public')}</option>
@@ -572,10 +454,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 />
                 <label
                   htmlFor="require_approval"
-                  className={cn(
-                    "text-base",
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  )}
+                  className="text-base text-[var(--paper-foreground)]"
                 >
                   {t('project.settings.requireApproval')}
                 </label>
@@ -591,20 +470,14 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 />
                 <label
                   htmlFor="is_recruiting"
-                  className={cn(
-                    "text-base",
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  )}
+                  className="text-base text-[var(--paper-foreground)]"
                 >
                   {t('project.settings.isRecruiting')}
                 </label>
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('project.settings.recruitmentRequirements')}
                 </label>
                 <textarea
@@ -612,20 +485,12 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   onChange={(e) => setSettings({ ...settings, recruitment_requirements: e.target.value })}
                   placeholder={t('project.settings.recruitmentRequirementsPlaceholder')}
                   rows={3}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
                 />
               </div>
 
               <div>
-                <label className={cn(
-                  "block text-base font-medium mb-1.5",
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                )}>
+                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('project.settings.maxMembers')}
                 </label>
                 <input
@@ -634,29 +499,19 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                   value={settings.max_members || ''}
                   onChange={(e) => setSettings({ ...settings, max_members: e.target.value ? parseInt(e.target.value) : undefined })}
                   placeholder={t('project.settings.maxMembersPlaceholder')}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border transition-colors",
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500"
-                  )}
+                  className="research-input w-full rounded-lg px-3 py-2 text-base"
                 />
               </div>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex justify-between mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-8 flex justify-between border-t border-[var(--research-line)] pt-4">
             <button
               type="button"
               onClick={currentStep === 1 ? onClose : handleBack}
               disabled={isLoading}
-              className={cn(
-                "px-4 py-2 rounded-lg font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              )}
+              className="research-button rounded-full px-4 py-2 text-base font-medium"
             >
               {currentStep === 1 ? t('common.cancel') : (
                 <span className="flex items-center gap-1">
@@ -671,12 +526,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                )}
+                className="research-button-primary rounded-full px-4 py-2 text-base font-medium text-white"
               >
                 <span className="flex items-center gap-1">
                   {t('common.next')}
@@ -687,12 +537,7 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
               <button
                 type="submit"
                 disabled={isLoading}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                )}
+                className="research-button-primary rounded-full px-4 py-2 text-base font-medium text-white"
               >
                 {isLoading ? t('common.saving') : t('lab.createProject')}
               </button>

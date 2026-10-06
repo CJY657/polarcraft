@@ -10,7 +10,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import TopicReferenceText from '../shared/TopicReferenceText';
 import TopicReferenceTextarea from '../shared/TopicReferenceTextarea';
@@ -1305,7 +1305,7 @@ export function ProjectDiscussionSection({
         </div>
       </ResearchSectionCard>
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={confirmDeleteId !== null}
         title="删除这条留言？"
         description="删除后无法恢复。"

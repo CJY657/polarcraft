@@ -7,10 +7,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Star, X } from 'lucide-react';
+import { Loader2, Star } from 'lucide-react';
 
 import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/utils/classNames';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import {
   researchApi,
@@ -146,29 +147,13 @@ export function MeetingRatingDialog({
       onClose={handleClose}
       closeOnOverlayClick={!isBusy}
       closeOnEsc={!isBusy}
-      className="max-w-xl overflow-hidden rounded-xl border-[1.5px] border-[var(--research-edge)] bg-[var(--research-surface)] shadow-[var(--research-lift)]"
+      className={cn(RESEARCH_DIALOG_PANEL, 'max-w-xl')}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4">
-        <div className="min-w-0">
-          <h2
-            className="truncate text-xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            成员互评 · {meeting.title}
-          </h2>
-          <p className="research-section-note mt-0.5">
-            对每位实到成员打 1–5 星并附可选短评；评价匿名呈现，可随时修改
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+      <ResearchDialogHead
+        title={`成员互评 · ${meeting.title}`}
+        note="对每位实到成员打 1–5 星并附可选短评；评价匿名呈现，可随时修改"
+        onClose={handleClose}
+      />
 
       <div className="max-h-[min(72vh,36rem)] overflow-y-auto">
         {saveError && (

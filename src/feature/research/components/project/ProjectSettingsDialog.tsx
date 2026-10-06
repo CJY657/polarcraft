@@ -5,8 +5,10 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, Loader2, Settings } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
+import { cn } from '@/utils/classNames';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { profileApi, type ProjectSettings } from '@/lib/profile.service';
 
 interface ProjectSettingsDialogProps {
@@ -72,28 +74,12 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
       onClose={onClose}
       containerClassName="research-project-detail items-end sm:items-center"
     >
-      <div className="research-panel max-h-[min(92dvh,90vh)] w-full max-w-lg overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-[1.5rem]">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="research-chip flex h-11 w-11 items-center justify-center rounded-2xl">
-              <Settings className="h-5 w-5 text-[var(--paper-link)]" />
-            </div>
-            <h2
-              className="text-xl font-semibold text-[var(--paper-foreground)]"
-              style={{ fontFamily: 'var(--font-ui-display)' }}
-            >
-              {t('project.settings.title')}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="research-button rounded-full p-2 text-[var(--research-muted)]"
-            aria-label={t('common.cancel')}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+      <div className={cn(RESEARCH_DIALOG_PANEL, "max-h-[min(92dvh,90vh)] max-w-lg overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-[1.5rem]")}>
+        <ResearchDialogHead
+          title={t('project.settings.title')}
+          onClose={onClose}
+          className="-mx-6 -mt-6 mb-6"
+        />
 
         {/* Loading */}
         {isLoading ? (
@@ -208,7 +194,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
 
             {/* Error */}
             {error && (
-              <div className="rounded-[1rem] bg-red-50 px-4 py-3 text-base text-red-600 dark:bg-red-900/30 dark:text-red-300">
+              <div className="research-error rounded-[1rem] px-4 py-3 text-base">
                 {error}
               </div>
             )}

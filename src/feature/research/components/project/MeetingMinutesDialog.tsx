@@ -9,10 +9,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { FileText, Loader2, PenLine, Sparkles, X } from 'lucide-react';
+import { FileText, Loader2, PenLine, Sparkles } from 'lucide-react';
 
 import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/utils/classNames';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { ApiRequestError } from '@/lib/api';
 import { formatUserIdentity } from '@/lib/identity';
 import {
@@ -271,29 +272,13 @@ export function MeetingMinutesDialog({
       onClose={handleClose}
       closeOnOverlayClick={!isBusy}
       closeOnEsc={!isBusy}
-      className="max-w-2xl overflow-hidden rounded-xl border-[1.5px] border-[var(--research-edge)] bg-[var(--research-surface)] shadow-[var(--research-lift)]"
+      className={RESEARCH_DIALOG_PANEL}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4">
-        <div className="min-w-0">
-          <h2
-            className="truncate text-xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            整理会议纪要 · {meeting.title}
-          </h2>
-          <p className="research-section-note mt-0.5">
-            原始记录会随会议保存并对组内可见；归档后会议标记为已完成，并开启成员互评
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+      <ResearchDialogHead
+        title={`整理会议纪要 · ${meeting.title}`}
+        note="原始记录会随会议保存并对组内可见；归档后会议标记为已完成，并开启成员互评"
+        onClose={handleClose}
+      />
 
       <div className="grid max-h-[min(72vh,40rem)] gap-4 overflow-y-auto px-5 py-4">
         {/* ① 原始记录 */}

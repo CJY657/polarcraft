@@ -8,9 +8,11 @@
 
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import { Dialog } from '@/components/ui/dialog';
+import { cn } from '@/utils/classNames';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { researchApi, type ProjectMeeting } from '@/lib/research.service';
 
 const MAX_MEETING_TITLE_LENGTH = 100;
@@ -158,29 +160,13 @@ export function MeetingScheduleDialog({
       onClose={handleClose}
       closeOnOverlayClick={!isSubmitting}
       closeOnEsc={!isSubmitting}
-      className="max-w-lg overflow-hidden rounded-xl border-[1.5px] border-[var(--research-edge)] bg-[var(--research-surface)] shadow-[var(--research-lift)]"
+      className={cn(RESEARCH_DIALOG_PANEL, 'max-w-lg')}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4">
-        <div>
-          <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: 'var(--font-ui-display)' }}
-          >
-            {isEditMode ? '编辑会议' : '安排会议'}
-          </h2>
-          <p className="research-section-note mt-0.5">
-            {isEditMode ? '调整后将通知全体组员' : '线下例会排期，创建后将通知全体组员'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+      <ResearchDialogHead
+        title={isEditMode ? '编辑会议' : '安排会议'}
+        note={isEditMode ? '调整后将通知全体组员' : '线下例会排期，创建后将通知全体组员'}
+        onClose={handleClose}
+      />
 
       <form onSubmit={handleSubmit} className="grid gap-3.5 px-5 py-4">
         {error && <div className="research-error rounded-md px-4 py-2.5 text-base">{error}</div>}

@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import {
   researchApi,
   type ProjectEvidence,
@@ -245,7 +245,6 @@ export function ProjectEvidenceSection({
   projectId,
   canManage,
   usePublicEndpoint = false,
-  theme = 'light',
 }: ProjectEvidenceSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [evidenceItems, setEvidenceItems] = useState<ProjectEvidence[]>([]);
@@ -997,7 +996,7 @@ export function ProjectEvidenceSection({
         </div>
       )}
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={Boolean(deleteTarget)}
         title="删除这条证据？"
         description="删除后无法恢复，后续引用可能失去依据。"
@@ -1010,7 +1009,6 @@ export function ProjectEvidenceSection({
           }
         }}
         isPending={isDeleting}
-        theme={theme}
       />
     </ResearchSectionCard>
   );

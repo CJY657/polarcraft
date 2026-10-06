@@ -5,12 +5,12 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, Loader2 } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/classNames';
 import { Dialog } from '@/components/ui/dialog';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
+import { ResearchDialogHead, RESEARCH_DIALOG_PANEL } from '../shared/ResearchDialog';
 import { researchApi, type ResearchProject } from '@/lib/research.service';
 import TopicReferenceTextarea from '../shared/TopicReferenceTextarea';
 import {
@@ -39,7 +39,6 @@ export function ProjectEditDialog({
   initialFocusField,
 }: ProjectEditDialogProps) {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -158,81 +157,44 @@ export function ProjectEditDialog({
   return (
     <>
       <Dialog isOpen={isOpen} onClose={onClose} containerClassName="items-end sm:items-center">
-        <div className={cn(
-        "w-full max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl",
-        theme === "dark" ? "bg-gray-800" : "bg-white"
-      )}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={cn(
-            "text-xl font-bold",
-            theme === "dark" ? "text-white" : "text-gray-900"
-          )}>
-            {t('project.edit.title')}
-          </h2>
-          <button
-            onClick={onClose}
-            className={cn(
-              "p-1.5 rounded-lg transition-colors",
-              theme === "dark"
-                ? "hover:bg-gray-700 text-gray-400"
-                : "hover:bg-gray-100 text-gray-500"
-            )}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <div className={cn(RESEARCH_DIALOG_PANEL, "max-w-lg max-h-[min(92dvh,90vh)] overflow-y-auto rounded-t-[1.25rem] p-6 sm:rounded-xl")}>
+        <ResearchDialogHead
+          title={t('project.edit.title')}
+          onClose={onClose}
+          className="-mx-6 -mt-6 mb-6"
+        />
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Project Name (Chinese) */}
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               {t('lab.projectName')} (中文) *
             </label>
             <input
               type="text"
               value={formData.name_zh}
               onChange={(e) => setFormData({ ...formData, name_zh: e.target.value })}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           {/* Project Name (English) */}
           {/* <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               {t('lab.projectName')} (English)
             </label>
             <input
               type="text"
               value={formData.name_en}
               onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full rounded-lg px-3 py-2 text-base"
             />
           </div> */}
 
           {/* Description (Chinese) */}
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               {t('lab.projectDescription')} (中文)
             </label>
             <TopicReferenceTextarea
@@ -242,20 +204,12 @@ export function ProjectEditDialog({
               references={project?.references}
               placeholder="输入 @ 可引用其他议题"
               rows={4}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               研究问题（中文，每行一个）
             </label>
             <textarea
@@ -264,120 +218,74 @@ export function ProjectEditDialog({
               value={formData.research_questions_zh}
               onChange={(e) => setFormData({ ...formData, research_questions_zh: e.target.value })}
               rows={3}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               研究假设（中文，每行一个）
             </label>
             <textarea
               value={formData.research_hypotheses_zh}
               onChange={(e) => setFormData({ ...formData, research_hypotheses_zh: e.target.value })}
               rows={3}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               基础问题与实验（中文）
             </label>
             <textarea
               value={formData.basic_plan_zh}
               onChange={(e) => setFormData({ ...formData, basic_plan_zh: e.target.value })}
               rows={3}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               拓展问题、假设与实验（中文）
             </label>
             <textarea
               value={formData.extended_plan_zh}
               onChange={(e) => setFormData({ ...formData, extended_plan_zh: e.target.value })}
               rows={3}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div>
 
           <ProjectIssueFieldsEditor
             value={formData}
             onChange={setFormData}
-            theme={theme}
           />
 
           {/* Description (English) */}
           {/* <div>
-            <label className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               {t('lab.projectDescription')} (English)
             </label>
             <textarea
               value={formData.description_en}
               onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
               rows={4}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors resize-none",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
             />
           </div> */}
 
           {/* Status */}
           <div>
-            <label htmlFor="project-status" className={cn(
-              "block text-base font-medium mb-1.5",
-              theme === "dark" ? "text-gray-300" : "text-gray-700"
-            )}>
+            <label htmlFor="project-status" className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
               {t('project.edit.status')}
             </label>
             <select
               id="project-status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
-              className={cn(
-                "w-full px-3 py-2 rounded-lg border transition-colors",
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500"
-                  : "bg-white border-gray-300 text-gray-900 focus:border-blue-500"
-              )}
+              className="research-input w-full rounded-lg px-3 py-2 text-base"
             >
               {getProjectStatusControlOptions(project.status, user?.role === 'admin').map((option) => (
                 <option key={option.value} value={option.value} disabled={option.disabled}>
@@ -388,19 +296,13 @@ export function ProjectEditDialog({
           </div>
 
           {/* Hint about visibility */}
-          <div className={cn(
-            "p-3 rounded-lg text-base",
-            theme === "dark" ? "bg-blue-900/30 text-blue-300" : "bg-blue-50 text-blue-700"
-          )}>
+          <div className="research-tint-lavender rounded-lg border p-3 text-base">
             <p>{t('project.edit.visibilityHint')}</p>
           </div>
 
           {/* Error */}
           {error && (
-            <div className={cn(
-              "p-3 rounded-lg text-base",
-              theme === "dark" ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-600"
-            )}>
+            <div className="research-error rounded-lg p-3 text-base">
               {error}
             </div>
           )}
@@ -411,24 +313,14 @@ export function ProjectEditDialog({
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className={cn(
-                "flex-1 px-4 py-2 rounded-lg font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              )}
+              className="research-button flex-1 rounded-full px-4 py-2 text-base font-medium"
             >
               {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className={cn(
-                "flex-1 px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2",
-                theme === "dark"
-                  ? "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-                  : "bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
-              )}
+              className="research-button-primary flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -442,14 +334,13 @@ export function ProjectEditDialog({
         </div>
       </Dialog>
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={isAdvanceConfirmationOpen}
         title="确认推进课题阶段？"
         description="推进后你将无法自行回退，只有管理员可以回退课题进度。请确认当前阶段工作已经完成。"
         confirmLabel="仍然推进"
         cancelLabel="再想想"
         isPending={isLoading}
-        theme={theme}
         onCancel={() => setIsAdvanceConfirmationOpen(false)}
         onConfirm={() => {
           setIsAdvanceConfirmationOpen(false);

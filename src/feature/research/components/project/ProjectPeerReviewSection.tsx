@@ -19,7 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { ResearchSectionCard } from '@/feature/research/components/shared/ResearchSectionCard';
 import { formatResearchDateTime } from '@/lib/datetime.util';
 import { cn } from '@/utils/classNames';
@@ -76,7 +76,6 @@ export function ProjectPeerReviewSection({
   currentUserId,
   isActiveMember,
   usePublicEndpoint = false,
-  theme = 'light',
   onContentChange,
 }: ProjectPeerReviewSectionProps) {
   const [reviews, setReviews] = useState<ProjectReview[]>([]);
@@ -420,7 +419,7 @@ export function ProjectPeerReviewSection({
         </div>
       )}
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={isDeleteConfirmOpen}
         title="删除我的评审？"
         description="删除后课题的评审计数会同步减少，之后仍可以重新提交。"
@@ -433,7 +432,6 @@ export function ProjectPeerReviewSection({
           }
         }}
         isPending={isDeleting}
-        theme={theme}
       />
     </ResearchSectionCard>
   );

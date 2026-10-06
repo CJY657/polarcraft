@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
@@ -69,7 +69,6 @@ export function ProjectTasksSection({
   members,
   currentUserId,
   canManage,
-  theme = 'light',
 }: ProjectTasksSectionProps) {
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -436,7 +435,7 @@ export function ProjectTasksSection({
         </button>
       </form>
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={Boolean(deleteTarget)}
         title="删除这个任务？"
         description={deleteTarget ? `「${deleteTarget.title}」删除后无法恢复。` : '删除后无法恢复。'}
@@ -449,7 +448,6 @@ export function ProjectTasksSection({
           }
         }}
         isPending={isDeleting}
-        theme={theme}
       />
     </ResearchSectionCard>
   );

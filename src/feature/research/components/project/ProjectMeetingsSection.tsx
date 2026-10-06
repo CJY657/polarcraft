@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarPlus, ChevronDown, Download, Loader2, Star, Trash2, Trophy } from 'lucide-react';
 
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { cn } from '@/utils/classNames';
 import { formatDateTime } from '@/lib/datetime.util';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
@@ -98,7 +98,6 @@ export function ProjectMeetingsSection({
   members,
   currentUserId,
   canManage,
-  theme = 'light',
 }: ProjectMeetingsSectionProps) {
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [leaderboard, setLeaderboard] = useState<ProjectLeaderboard | null>(null);
@@ -787,7 +786,7 @@ export function ProjectMeetingsSection({
         />
       )}
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={Boolean(cancelTarget)}
         title="取消这场会议？"
         description={
@@ -804,10 +803,9 @@ export function ProjectMeetingsSection({
           }
         }}
         isPending={isCancelling}
-        theme={theme}
       />
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={Boolean(deleteTarget)}
         title="永久删除这场会议？"
         description={
@@ -824,7 +822,6 @@ export function ProjectMeetingsSection({
           }
         }}
         isPending={isDeleting}
-        theme={theme}
       />
     </ResearchSectionCard>
   );

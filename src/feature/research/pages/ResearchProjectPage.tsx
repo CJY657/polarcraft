@@ -13,7 +13,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getExampleProjectById } from "@/data/researchExampleProjects";
 import { PersistentHeader } from "@/components/shared";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ResearchConfirmDialog } from "../components/shared/ResearchConfirmDialog";
 import { formatUserIdentity } from "@/lib/identity";
 import { ApiRequestError } from "@/lib/api";
 import {
@@ -1017,7 +1017,6 @@ export function ResearchProjectPage() {
         <RemoveMemberDialog
           member={memberToRemove}
           isSelf={user?.id === memberToRemove.user_id}
-          theme={theme === "dark" ? "dark" : "light"}
           error={removeMemberError}
           isRemoving={isRemovingMember}
           onCancel={() => {
@@ -1028,7 +1027,7 @@ export function ResearchProjectPage() {
         />
       )}
 
-      <ConfirmDialog
+      <ResearchConfirmDialog
         open={leadershipTransferCandidate !== null}
         title={project?.pending_leadership_transfer ? "确认更换组长人选" : "确认转让组长"}
         description={
@@ -1041,7 +1040,6 @@ export function ResearchProjectPage() {
         onCancel={() => setLeadershipTransferCandidate(null)}
         onConfirm={handleNominateLeadershipTransfer}
         isPending={leadershipTransferAction?.startsWith("nominate:") === true}
-        theme={theme === "dark" ? "dark" : "light"}
       />
     </div>
   );

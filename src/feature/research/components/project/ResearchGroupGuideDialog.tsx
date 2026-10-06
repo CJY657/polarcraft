@@ -177,11 +177,11 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
       containerClassName="items-end sm:items-center"
     >
       <div
-        className="relative flex flex-col max-h-[min(92vh,44rem)] w-full overflow-hidden rounded-[1.5rem] border border-clay-surface-strong bg-clay-canvas"
+        className="relative flex max-h-[min(92vh,44rem)] w-full flex-col overflow-hidden rounded-[1.5rem] border-[1.5px] border-[var(--research-edge)] bg-[var(--research-surface)] shadow-[var(--research-lift)]"
         role="document"
         aria-labelledby="research-group-guide-title"
       >
-        <div className="flex-none flex items-start justify-between gap-4 border-b border-clay-surface-strong bg-clay-surface-soft px-5 py-4 sm:px-6">
+        <div className="flex flex-none items-start justify-between gap-4 border-b border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-clay-pink text-white">
               <BookOpenText className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
@@ -192,12 +192,12 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
               </p>
               <h2
                 id="research-group-guide-title"
-                className="mt-1 text-xl font-semibold text-clay-ink sm:text-2xl"
+                className="mt-1 text-xl font-semibold text-[var(--paper-foreground)] sm:text-2xl"
                 style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
               >
                 研究小组指南
               </h2>
-              <p className="mt-1 text-sm leading-6 text-clay-muted">
+              <p className="mt-1 text-sm leading-6 text-[var(--research-muted)]">
                 从发现、加入、协作到同伴评审，了解每个角色如何参与
               </p>
             </div>
@@ -206,14 +206,14 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-clay-surface-strong bg-clay-canvas text-clay-ink transition-colors hover:bg-clay-surface-card"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--research-line)] bg-[var(--research-surface)] text-[var(--paper-foreground)] transition-colors hover:bg-[var(--research-chip)]"
             aria-label="关闭研究小组指南"
           >
             <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-clay-canvas px-5 py-5 sm:px-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           <div className="space-y-8">
             {GUIDE_SECTIONS.map((section) => {
               const Icon = section.icon;
@@ -221,7 +221,7 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
                 <section
                   key={section.id}
                   aria-labelledby={`guide-section-${section.id}`}
-                  className="border-b border-clay-surface-strong pb-8 last:border-b-0 last:pb-0"
+                  className="border-b border-[var(--research-line)] pb-8 last:border-b-0 last:pb-0"
                 >
                   <div className="flex items-start gap-3">
                     <div
@@ -243,7 +243,7 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
                       </p>
                       <h3
                         id={`guide-section-${section.id}`}
-                        className="mt-1 text-lg font-semibold text-clay-ink"
+                        className="mt-1 text-lg font-semibold text-[var(--paper-foreground)]"
                         style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}
                       >
                         {section.title}
@@ -253,15 +253,15 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
 
                   <div className="mt-4 space-y-3 pl-0 sm:pl-12">
                     {section.paragraphs.map((paragraph) => (
-                      <p key={paragraph} className="text-sm leading-7 text-clay-body sm:text-[15px]">
+                      <p key={paragraph} className="text-sm leading-7 text-[var(--paper-foreground)] sm:text-[15px]">
                         {paragraph}
                       </p>
                     ))}
 
                     {section.bullets && section.bullets.length > 0 && (
-                      <ul className="mt-1 space-y-2 border-l-2 border-clay-surface-strong pl-4">
+                      <ul className="mt-1 space-y-2 border-l-2 border-[var(--research-line)] pl-4">
                         {section.bullets.map((item) => (
-                          <li key={item} className="text-sm leading-6 text-clay-body">
+                          <li key={item} className="text-sm leading-6 text-[var(--paper-foreground)]">
                             {item}
                           </li>
                         ))}
@@ -274,11 +274,11 @@ export function ResearchGroupGuideDialog({ isOpen, onClose }: ResearchGroupGuide
           </div>
         </div>
 
-        <div className="flex-none flex flex-col gap-3 border-t border-clay-surface-strong bg-clay-surface-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p className="text-sm leading-6 text-clay-muted">
+        <div className="flex flex-none flex-col gap-3 border-t border-[var(--research-line)] bg-[var(--research-head)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p className="text-sm leading-6 text-[var(--research-muted)]">
             先确认你要浏览、加入、评审还是发起课题，再从公开课题开始。
           </p>
-          <button type="button" onClick={onClose} className="clay-button-primary self-start sm:self-auto">
+          <button type="button" onClick={onClose} className="research-button research-button-primary self-start rounded-full px-5 py-2.5 text-base font-semibold text-white sm:self-auto">
             我已了解，即刻探索
           </button>
         </div>

@@ -20,7 +20,6 @@ export interface ProjectIssueFieldsValue {
 interface ProjectIssueFieldsEditorProps<T extends ProjectIssueFieldsValue> {
   value: T;
   onChange: (value: T) => void;
-  theme: string;
 }
 
 const issueFieldRows: Array<{
@@ -101,26 +100,17 @@ export const emptyProjectIssueFields: ProjectIssueFieldsValue = {
 export function ProjectIssueFieldsEditor<T extends ProjectIssueFieldsValue>({
   value,
   onChange,
-  theme,
 }: ProjectIssueFieldsEditorProps<T>) {
-  const labelClassName = cn(
-    'block text-base font-medium mb-1.5',
-    theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-  );
-  const inputClassName = cn(
-    'w-full px-3 py-2 rounded-lg border transition-colors',
-    theme === 'dark'
-      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500'
-  );
+  const labelClassName = 'mb-1.5 block text-base font-medium text-[var(--paper-foreground)]';
+  const inputClassName = 'research-input w-full rounded-lg px-3 py-2 text-base';
 
   return (
-    <div className="space-y-4 rounded-xl border border-gray-200/70 p-4 dark:border-gray-700/80">
+    <div className="research-panel-soft space-y-4 rounded-xl p-4">
       <div>
-        <h3 className={cn('text-lg font-semibold', theme === 'dark' ? 'text-white' : 'text-gray-900')}>
+        <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">
           学生议题
         </h3>
-        <p className={cn('mt-1 text-base', theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}>
+        <p className="mt-1 text-base text-[var(--research-muted)]">
           把课题写成学生能直接选择角色、开始行动、交付成果的议题。
         </p>
       </div>
