@@ -209,13 +209,13 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
             >
               课题封面
             </h2>
-            <p className="mt-1 text-base text-[var(--glass-text-muted)]">{project.name_zh}</p>
+            <p className="mt-1 text-base text-[var(--research-muted)]">{project.name_zh}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="关闭"
           >
             <X className="h-4 w-4" />
@@ -233,7 +233,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isSaving}
-            className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             <UploadCloud className="h-4 w-4 text-[var(--paper-link)]" />
             上传封面
@@ -242,7 +242,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
             type="button"
             onClick={handleClearManualCover}
             disabled={isSaving}
-            className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
             使用自动封面
@@ -257,7 +257,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
         </div>
 
         {selectedFile && (
-          <p className="mt-3 text-sm text-[var(--glass-text-muted)]">
+          <p className="mt-3 text-sm text-[var(--research-muted)]">
             已选择：<span className="font-medium text-[var(--paper-foreground)]">{selectedFile.name}</span>
           </p>
         )}
@@ -272,7 +272,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                   setError(null);
                 }}
                 disabled={isSaving}
-                className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
                 删除封面
@@ -281,8 +281,8 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
               <div
                 className="rounded-[1.2rem] border px-4 py-3"
                 style={{
-                  borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--glass-stroke))",
-                  background: "color-mix(in srgb, #cb6a4f 8%, var(--paper-surface-strong))",
+                  borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--research-line))",
+                  background: "color-mix(in srgb, #cb6a4f 8%, var(--research-surface))",
                 }}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -292,7 +292,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                     </div>
                     <div className="min-w-0">
                       <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除当前封面</p>
-                      <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
+                      <p className="mt-1 text-base leading-6 text-[var(--research-muted)]">
                         删除后会恢复自动封面（讨论区图片或画布图片）。
                       </p>
                     </div>
@@ -302,7 +302,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                       type="button"
                       onClick={() => setIsConfirmingDelete(false)}
                       disabled={isSaving}
-                      className="glass-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                      className="research-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       取消
                     </button>
@@ -326,7 +326,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="text-base font-semibold text-[var(--paper-foreground)]">讨论区图片</h3>
             {isLoadingImages && (
-              <span className="inline-flex items-center gap-2 text-sm text-[var(--glass-text-muted)]">
+              <span className="inline-flex items-center gap-2 text-sm text-[var(--research-muted)]">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 加载中
               </span>
@@ -334,7 +334,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
           </div>
 
           {!isLoadingImages && discussionImages.length === 0 && (
-            <div className="research-panel-soft rounded-[1.2rem] px-4 py-5 text-center text-base text-[var(--glass-text-muted)]">
+            <div className="research-panel-soft rounded-[1.2rem] px-4 py-5 text-center text-base text-[var(--research-muted)]">
               暂无可用图片
             </div>
           )}
@@ -353,7 +353,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
                       "group relative overflow-hidden rounded-[1rem] border transition disabled:cursor-not-allowed disabled:opacity-60",
                       isSelected
                         ? "border-[var(--paper-link)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--paper-link)_18%,transparent)]"
-                        : "border-[var(--glass-stroke)] hover:border-[var(--paper-link)]/60"
+                        : "border-[var(--research-line)] hover:border-[var(--paper-link)]/60"
                     )}
                   >
                     <ProjectCoverImage src={url} alt="讨论区图片" className="aspect-[16/10]" />
@@ -380,7 +380,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="glass-button rounded-full px-5 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button rounded-full px-5 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             取消
           </button>
@@ -388,7 +388,7 @@ export function ProjectCoverDialog({ isOpen, onClose, project, onSuccess }: Proj
             type="button"
             onClick={() => void handleSave()}
             disabled={isSaving}
-            className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
             保存封面

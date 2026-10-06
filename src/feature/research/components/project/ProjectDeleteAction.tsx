@@ -48,7 +48,7 @@ export function ProjectDeleteAction({
           setIsArmed(true);
         }}
         className={cn(
-          "glass-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d]",
+          "research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d]",
           className
         )}
       >
@@ -65,8 +65,8 @@ export function ProjectDeleteAction({
         className
       )}
       style={{
-        borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--glass-stroke))",
-        background: "color-mix(in srgb, #cb6a4f 8%, var(--paper-surface-strong))",
+        borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--research-line))",
+        background: "color-mix(in srgb, #cb6a4f 8%, var(--research-surface))",
       }}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -76,13 +76,13 @@ export function ProjectDeleteAction({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除「{projectName}」</p>
-            <p className="mt-1 text-base leading-6 text-[var(--glass-text-muted)]">
+            <p className="mt-1 text-base leading-6 text-[var(--research-muted)]">
               删除后会一并移除成员、画布和讨论记录，这个操作无法恢复。
             </p>
             <div className="mt-3 max-w-sm">
               <label
                 htmlFor={confirmationInputId}
-                className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--glass-text-muted)]"
+                className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--research-muted)]"
               >
                 输入大写 DELETE 以确认删除
               </label>
@@ -100,9 +100,9 @@ export function ProjectDeleteAction({
                 autoComplete="off"
                 spellCheck={false}
                 placeholder="DELETE"
-                className="mt-2 w-full rounded-2xl border border-[var(--glass-stroke)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[#cb6a4f] focus:ring-2 focus:ring-[#cb6a4f]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-950/40"
+                className="mt-2 w-full rounded-2xl border border-[var(--research-line)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[#cb6a4f] focus:ring-2 focus:ring-[#cb6a4f]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-950/40"
               />
-              <p className="mt-2 text-sm leading-5 text-[var(--glass-text-muted)]">
+              <p className="mt-2 text-sm leading-5 text-[var(--research-muted)]">
                 只有输入完全匹配的 <span className="font-semibold text-[var(--paper-foreground)]">DELETE</span> 才会启用删除按钮。
               </p>
             </div>
@@ -118,7 +118,7 @@ export function ProjectDeleteAction({
               setError(null);
             }}
             disabled={isDeleting}
-            className="glass-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
           >
             取消
           </button>

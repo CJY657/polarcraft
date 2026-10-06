@@ -176,7 +176,7 @@ export function MeetingScheduleDialog({
           type="button"
           onClick={handleClose}
           aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--glass-text-muted)] hover:bg-[var(--glass-chip)]"
+          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
         >
           <X className="h-5 w-5" />
         </button>
@@ -254,14 +254,14 @@ export function MeetingScheduleDialog({
             type="button"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="glass-button rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button research-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEditMode ? '保存修改' : '创建会议'}

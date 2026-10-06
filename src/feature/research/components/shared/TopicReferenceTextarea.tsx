@@ -461,7 +461,7 @@ export default function TopicReferenceTextarea({
                   "flex w-full items-baseline gap-2 rounded-lg px-3 py-2 text-left text-base",
                   index === activeIndex
                     ? "bg-[var(--paper-accent)]/15 text-[var(--paper-foreground)]"
-                    : "text-[var(--glass-text-muted)]"
+                    : "text-[var(--research-muted)]"
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{candidate.name_zh}</span>

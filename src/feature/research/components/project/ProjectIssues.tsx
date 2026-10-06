@@ -157,7 +157,7 @@ export function ProjectIssuePreview({
         )}
 
         <div>
-          <p className="mb-2 text-sm font-medium text-[var(--glass-text-muted)]">适合角色</p>
+          <p className="mb-2 text-sm font-medium text-[var(--research-muted)]">适合角色</p>
           <IssueList items={issue.roleItems} fallback={issue.roles} maxItems={4} />
         </div>
 
@@ -166,7 +166,7 @@ export function ProjectIssuePreview({
             className="rounded-2xl px-3 py-2"
             style={{ background: 'color-mix(in srgb, var(--paper-link) 8%, transparent)' }}
           >
-            <p className="text-sm font-medium text-[var(--glass-text-muted)]">第一步</p>
+            <p className="text-sm font-medium text-[var(--research-muted)]">第一步</p>
             <p className="mt-1 text-base leading-6 text-[var(--paper-foreground)]">
               {getProjectFirstStep(project)}
             </p>
@@ -266,7 +266,7 @@ export function ProjectIssueDetail({ project, className }: ProjectIssueDetailPro
 
         {participationSections.map((section) => (
           <IssueBodySection key={section.title} title={section.title}>
-            <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+            <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
               {section.text}
             </p>
           </IssueBodySection>

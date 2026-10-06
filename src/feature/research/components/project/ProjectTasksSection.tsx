@@ -270,12 +270,12 @@ export function ProjectTasksSection({
         <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-base font-semibold text-[var(--paper-foreground)]">任务列表加载失败</p>
-            <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
+            <p className="mt-1 text-base text-[var(--research-muted)]">{loadError}</p>
           </div>
           <button
             type="button"
             onClick={() => void loadTasks()}
-            className="glass-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
+            className="research-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
           >
             重试
           </button>
@@ -285,7 +285,7 @@ export function ProjectTasksSection({
       {!isLoading && !loadError && tasks.length === 0 && (
         <div className="px-5 py-8 text-center">
           <p className="text-lg font-semibold text-[var(--paper-foreground)]">还没有任务</p>
-          <p className="mt-2 text-base text-[var(--glass-text-muted)]">
+          <p className="mt-2 text-base text-[var(--research-muted)]">
             在下方添加第一个任务，从最小的一步开始。
           </p>
         </div>
@@ -295,7 +295,7 @@ export function ProjectTasksSection({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[38rem] border-collapse text-left">
             <thead>
-              <tr className="border-b border-[var(--research-line)] text-sm font-semibold text-[var(--glass-text-muted)]">
+              <tr className="border-b border-[var(--research-line)] text-sm font-semibold text-[var(--research-muted)]">
                 <th className="px-5 py-2.5 font-semibold">任务内容</th>
                 <th className="px-3 py-2.5 font-semibold">负责人</th>
                 <th className="px-3 py-2.5 font-semibold">截止日期</th>
@@ -327,7 +327,7 @@ export function ProjectTasksSection({
                       className={cn(
                         'px-5 py-3 text-base font-medium leading-6',
                         task.status === 'done'
-                          ? 'text-[var(--glass-text-muted)]'
+                          ? 'text-[var(--research-muted)]'
                           : 'text-[var(--paper-foreground)]'
                       )}
                     >
@@ -336,13 +336,13 @@ export function ProjectTasksSection({
                     <td className="px-3 py-3 text-base text-[var(--paper-foreground)]">
                       {assigneeName ? (
                         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-xs font-semibold text-[var(--glass-text-muted)]">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-xs font-semibold text-[var(--research-muted)]">
                             {getUserIdentityInitial({ username: task.assignee_username }, '成')}
                           </span>
                           {assigneeName}
                         </span>
                       ) : (
-                        <span className="text-[var(--glass-text-muted)]">待认领</span>
+                        <span className="text-[var(--research-muted)]">待认领</span>
                       )}
                     </td>
                     <td
@@ -350,7 +350,7 @@ export function ProjectTasksSection({
                         'whitespace-nowrap px-3 py-3 text-base tabular-nums',
                         overdue
                           ? 'font-semibold text-[var(--color-destructive)]'
-                          : 'text-[var(--glass-text-muted)]'
+                          : 'text-[var(--research-muted)]'
                       )}
                     >
                       {task.due_date ? formatDueDate(task.due_date) : '—'}
@@ -375,7 +375,7 @@ export function ProjectTasksSection({
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(task)}
-                            className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--glass-chip)]"
+                            className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--research-chip)]"
                             aria-label={`删除任务 ${task.title}`}
                           >
                             删除
@@ -429,7 +429,7 @@ export function ProjectTasksSection({
         <button
           type="submit"
           disabled={isCreating}
-          className="glass-button glass-button-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="research-button research-button-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
           添加任务

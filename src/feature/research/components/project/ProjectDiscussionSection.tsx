@@ -171,7 +171,7 @@ function DraftAttachmentPreviewList({
             <button
               type="button"
               onClick={() => onPreview(attachment)}
-              className="block h-28 w-full overflow-hidden bg-[var(--glass-chip)]"
+              className="block h-28 w-full overflow-hidden bg-[var(--research-chip)]"
             >
               <img
                 src={attachment.previewUrl}
@@ -198,7 +198,7 @@ function DraftAttachmentPreviewList({
             <X className="h-4 w-4" />
           </button>
           <div className="border-t border-[var(--research-line)] bg-[var(--research-head)] px-2.5 py-2">
-            <p className="truncate text-sm text-[var(--glass-text-muted)]">{attachment.file.name}</p>
+            <p className="truncate text-sm text-[var(--research-muted)]">{attachment.file.name}</p>
           </div>
         </div>
       ))}
@@ -817,7 +817,7 @@ export function ProjectDiscussionSection({
         )}
       >
         <div className="flex items-start gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">
             {getUserIdentityInitial(comment)}
           </div>
           <div className="min-w-0 flex-1">
@@ -825,16 +825,16 @@ export function ProjectDiscussionSection({
               <span className="text-base font-semibold text-[var(--paper-foreground)]">
                 {displayUsername}
               </span>
-              <span className="text-sm text-[var(--glass-text-muted)]">
+              <span className="text-sm text-[var(--research-muted)]">
                 {formatCommentTime(comment.created_at)}
               </span>
               {isEdited && (
-                <span className="rounded-md bg-[var(--glass-chip)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
+                <span className="rounded-md bg-[var(--research-chip)] px-2 py-0.5 text-sm text-[var(--research-muted)]">
                   已编辑
                 </span>
               )}
               {comment.is_deleted && (
-                <span className="rounded-full bg-[var(--glass-chip)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)]">
+                <span className="rounded-full bg-[var(--research-chip)] px-2 py-0.5 text-sm text-[var(--research-muted)]">
                   已删除
                 </span>
               )}
@@ -842,7 +842,7 @@ export function ProjectDiscussionSection({
 
             <div className="mt-1.5 text-base leading-6 text-[var(--paper-foreground)]">
               {comment.is_deleted ? (
-                <span className="italic text-[var(--glass-text-muted)]">这条留言已删除</span>
+                <span className="italic text-[var(--research-muted)]">这条留言已删除</span>
               ) : isEditingThis ? (
                 <div className="rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
                   <TopicReferenceTextarea
@@ -857,7 +857,7 @@ export function ProjectDiscussionSection({
                     className="research-input w-full resize-y rounded-xl px-3 py-2 text-base transition"
                   />
                   {(comment.image_urls.length > 0 || commentVideoUrls.length > 0) && (
-                    <p className="mt-2 text-sm text-[var(--glass-text-muted)]">
+                    <p className="mt-2 text-sm text-[var(--research-muted)]">
                       编辑只修改文字，已上传的图片和视频保持不变。
                     </p>
                   )}
@@ -867,7 +867,7 @@ export function ProjectDiscussionSection({
                       type="button"
                       onClick={cancelEditingComment}
                       disabled={savingEditCommentId === comment.id}
-                      className="glass-button rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                      className="research-button rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       取消
                     </button>
@@ -875,7 +875,7 @@ export function ProjectDiscussionSection({
                       type="button"
                       onClick={() => void handleSaveEditedComment(comment)}
                       disabled={savingEditCommentId === comment.id}
-                      className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {savingEditCommentId === comment.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -902,7 +902,7 @@ export function ProjectDiscussionSection({
                       />
                     </p>
                   ) : comment.image_urls.length > 0 || commentVideoUrls.length > 0 ? (
-                    <p className="text-[var(--glass-text-muted)]">
+                    <p className="text-[var(--research-muted)]">
                       发送了 {comment.image_urls.length} 张图片、{commentVideoUrls.length} 个视频
                     </p>
                   ) : null}
@@ -972,7 +972,7 @@ export function ProjectDiscussionSection({
                       [comment.id]: !(current[comment.id] ?? false),
                     }));
                   }}
-                  className="inline-flex items-center gap-1 rounded-md bg-[var(--glass-chip)] px-2.5 py-1 text-[var(--paper-foreground)] transition-colors hover:bg-[var(--research-head)]"
+                  className="inline-flex items-center gap-1 rounded-md bg-[var(--research-chip)] px-2.5 py-1 text-[var(--paper-foreground)] transition-colors hover:bg-[var(--research-head)]"
                 >
                   {isRepliesExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
                   <ChevronDown
@@ -1020,12 +1020,12 @@ export function ProjectDiscussionSection({
                         && attachedReplyCounts.video >= MAX_COMMENT_VIDEOS)
                       || submittingReplyToId === comment.id
                     }
-                    className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    className="research-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ImagePlus className="h-3.5 w-3.5 text-[var(--paper-link)]" />
                     添加附件
                   </button>
-                  <span className="text-sm text-[var(--glass-text-muted)]">
+                  <span className="text-sm text-[var(--research-muted)]">
                     最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
                   </span>
                 </div>
@@ -1047,7 +1047,7 @@ export function ProjectDiscussionSection({
                       setReplyTargetId(null);
                       setReplyError(null);
                     }}
-                    className="glass-button rounded-full px-3 py-1.5 text-sm font-medium"
+                    className="research-button rounded-full px-3 py-1.5 text-sm font-medium"
                   >
                     收起
                   </button>
@@ -1055,7 +1055,7 @@ export function ProjectDiscussionSection({
                     type="button"
                     onClick={() => void handleSubmitReply(comment.id)}
                     disabled={submittingReplyToId === comment.id}
-                    className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {submittingReplyToId === comment.id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1152,13 +1152,13 @@ export function ProjectDiscussionSection({
                   && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
                 )
               }
-              className="glass-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
               <Video className="h-4 w-4 text-[var(--paper-link)]" />
               添加附件
             </button>
-            <span className="text-sm text-[var(--glass-text-muted)]">
+            <span className="text-sm text-[var(--research-muted)]">
               最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
             </span>
           </div>
@@ -1177,7 +1177,7 @@ export function ProjectDiscussionSection({
               type="button"
               onClick={() => void handleSubmitComment()}
               disabled={!canParticipate || isSubmitting}
-              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+              className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1197,7 +1197,7 @@ export function ProjectDiscussionSection({
 
         <div className="mt-4">
           {isLoading ? (
-            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-2xl px-4 py-8 text-base text-[var(--glass-text-muted)]">
+            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-2xl px-4 py-8 text-base text-[var(--research-muted)]">
               <Loader2 className="h-4 w-4 animate-spin" />
               正在加载讨论内容
             </div>
@@ -1219,7 +1219,7 @@ export function ProjectDiscussionSection({
                 <button
                   type="button"
                   onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
-                  className="glass-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-medium"
+                  className="research-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-medium"
                 >
                   展开更早的讨论（还有 {hiddenThreadCount} 条）
                   <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
@@ -1252,18 +1252,18 @@ export function ProjectDiscussionSection({
           onClick={() => toggleDiscussionTopic(topic)}
           aria-expanded={isOpen}
           aria-controls={contentId}
-          className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--glass-chip)]"
+          className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--research-chip)]"
         >
           <div className="min-w-0 flex-1">
             {typeof topic === 'number' && (
-              <span className="mb-1 block text-sm font-semibold text-[var(--glass-text-muted)]">
+              <span className="mb-1 block text-sm font-semibold text-[var(--research-muted)]">
                 核心问题 {topic + 1}
               </span>
             )}
             <p className="text-base font-semibold leading-6 text-[var(--paper-foreground)]">
               {label}
             </p>
-            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--glass-text-muted)]">
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--research-muted)]">
               <span>{discussionCount} 条讨论</span>
               <span>
                 {isLoading
@@ -1276,7 +1276,7 @@ export function ProjectDiscussionSection({
           </div>
           <ChevronDown
             className={cn(
-              'h-5 w-5 shrink-0 text-[var(--glass-text-muted)] transition-transform duration-200',
+              'h-5 w-5 shrink-0 text-[var(--research-muted)] transition-transform duration-200',
               isOpen && 'rotate-180'
             )}
           />

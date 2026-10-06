@@ -207,11 +207,11 @@ function EvidenceOrderItem({
           }
         }}
         disabled={isSaving}
-        className="glass-button flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-xl text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="research-button flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-xl text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <span className="w-7 shrink-0 text-center text-sm font-semibold text-[var(--glass-text-muted)]">
+      <span className="w-7 shrink-0 text-center text-sm font-semibold text-[var(--research-muted)]">
         {index + 1}
       </span>
       <span className="min-w-0 flex-1 truncate text-base font-semibold text-[var(--paper-foreground)]">
@@ -222,7 +222,7 @@ function EvidenceOrderItem({
           type="button"
           onClick={onMoveUp}
           disabled={isSaving || index === 0}
-          className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-40"
           aria-label={`上移证据 ${evidence.title}`}
         >
           <ArrowUp className="h-4 w-4" />
@@ -231,7 +231,7 @@ function EvidenceOrderItem({
           type="button"
           onClick={onMoveDown}
           disabled={isSaving || isLast}
-          className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-40"
           aria-label={`下移证据 ${evidence.title}`}
         >
           <ArrowDown className="h-4 w-4" />
@@ -534,7 +534,7 @@ export function ProjectEvidenceSection({
                   type="button"
                   onClick={cancelEvidenceReorder}
                   disabled={isSavingOrder}
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   取消
                 </button>
@@ -542,7 +542,7 @@ export function ProjectEvidenceSection({
                   type="button"
                   onClick={() => void saveEvidenceOrder()}
                   disabled={isSavingOrder}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSavingOrder && <Loader2 className="h-4 w-4 animate-spin" />}
                   保存顺序
@@ -552,7 +552,7 @@ export function ProjectEvidenceSection({
               <button
                 type="button"
                 onClick={beginEvidenceReorder}
-                className="glass-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
+                className="research-button inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
               >
                 <GripVertical className="h-4 w-4" />
                 调整顺序
@@ -562,7 +562,7 @@ export function ProjectEvidenceSection({
               <button
                 type="button"
                 onClick={openCreateForm}
-                className="glass-button glass-button-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white"
+                className="research-button research-button-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white"
               >
                 新增证据
               </button>
@@ -572,7 +572,7 @@ export function ProjectEvidenceSection({
       }
     >
       {!canManage && (
-        <p className="research-panel-soft mb-4 rounded-md px-4 py-3 text-base leading-6 text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft mb-4 rounded-md px-4 py-3 text-base leading-6 text-[var(--research-muted)]">
           只读浏览：新增和编辑证据仅对课题成员开放。
         </p>
       )}
@@ -584,7 +584,7 @@ export function ProjectEvidenceSection({
               <h3 className="text-lg font-semibold text-[var(--paper-foreground)]">
                 {formMode === 'edit' ? '编辑研究证据' : '新增研究证据'}
               </h3>
-              <p className="mt-1 text-base text-[var(--glass-text-muted)]">
+              <p className="mt-1 text-base text-[var(--research-muted)]">
                 附件可选，不支持的表格文件可先用外部链接或附件说明记录。
               </p>
             </div>
@@ -592,7 +592,7 @@ export function ProjectEvidenceSection({
               type="button"
               onClick={() => closeForm()}
               disabled={isSaving}
-              className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="关闭证据表单"
             >
               <X className="h-4 w-4" />
@@ -664,17 +664,17 @@ export function ProjectEvidenceSection({
             </label>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[var(--glass-stroke)] bg-[var(--glass-chip)] p-4">
+          <div className="mt-4 rounded-2xl border border-[var(--research-line)] bg-[var(--research-chip)] p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">可选附件上传</p>
-                <p className="mt-1 text-sm text-[var(--glass-text-muted)]">支持图片、视频、PDF、PPTX。</p>
+                <p className="mt-1 text-sm text-[var(--research-muted)]">支持图片、视频、PDF、PPTX。</p>
               </div>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isSaving}
-                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+                className="research-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
               >
                 <UploadCloud className="h-4 w-4 text-[var(--paper-link)]" />
                 选择附件
@@ -689,7 +689,7 @@ export function ProjectEvidenceSection({
               className="hidden"
             />
 
-            <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--glass-text-muted)]">
+            <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--research-muted)]">
               <span>附件队列</span>
               <span>{draftAttachments.length}/{MAX_EVIDENCE_ATTACHMENTS}</span>
             </div>
@@ -716,20 +716,20 @@ export function ProjectEvidenceSection({
                       key={draftAttachment.id}
                       as="div"
                       value={draftAttachment}
-                      className="flex min-w-0 items-center gap-2 rounded-xl border border-[var(--glass-stroke)] bg-[var(--glass-chip)] px-3 py-2"
+                      className="flex min-w-0 items-center gap-2 rounded-xl border border-[var(--research-line)] bg-[var(--research-chip)] px-3 py-2"
                     >
                       <FileText className="h-4 w-4 shrink-0 text-[var(--paper-link)]" />
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-[var(--paper-foreground)]">
                           <span className="max-w-full truncate">{attachmentName}</span>
-                          <span className="shrink-0 text-[var(--glass-text-muted)]">
+                          <span className="shrink-0 text-[var(--research-muted)]">
                             {isPrimary ? '主附件' : '支持材料'}
                           </span>
                           {draftAttachment.status === 'pending' && (
                             <span className="shrink-0 text-[var(--paper-link)]">待上传</span>
                           )}
                         </div>
-                        <span className="text-sm text-[var(--glass-text-muted)]">
+                        <span className="text-sm text-[var(--research-muted)]">
                           {formatFileSize(attachmentSize)}
                         </span>
                       </div>
@@ -738,7 +738,7 @@ export function ProjectEvidenceSection({
                           type="button"
                           onClick={() => moveDraftAttachment(draftAttachment.id, -index)}
                           disabled={isSaving}
-                          className="glass-button rounded-full p-2 text-[var(--paper-link)] disabled:cursor-not-allowed disabled:opacity-40"
+                          className="research-button rounded-full p-2 text-[var(--paper-link)] disabled:cursor-not-allowed disabled:opacity-40"
                           aria-label={`设为主附件 ${attachmentName}`}
                         >
                           <Star className="h-4 w-4" />
@@ -748,7 +748,7 @@ export function ProjectEvidenceSection({
                         type="button"
                         onClick={() => moveDraftAttachment(draftAttachment.id, -1)}
                         disabled={isSaving || isPrimary}
-                        className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label={`上移附件 ${attachmentName}`}
                       >
                         <ArrowUp className="h-4 w-4" />
@@ -757,7 +757,7 @@ export function ProjectEvidenceSection({
                         type="button"
                         onClick={() => moveDraftAttachment(draftAttachment.id, 1)}
                         disabled={isSaving || index === draftAttachments.length - 1}
-                        className="glass-button rounded-full p-2 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="research-button rounded-full p-2 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label={`下移附件 ${attachmentName}`}
                       >
                         <ArrowDown className="h-4 w-4" />
@@ -766,7 +766,7 @@ export function ProjectEvidenceSection({
                         type="button"
                         onClick={() => removeDraftAttachment(draftAttachment.id)}
                         disabled={isSaving}
-                        className="glass-button rounded-full p-2 text-[var(--color-destructive)] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="research-button rounded-full p-2 text-[var(--color-destructive)] disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label={`移除附件 ${attachmentName}`}
                       >
                         <X className="h-4 w-4" />
@@ -796,14 +796,14 @@ export function ProjectEvidenceSection({
               type="button"
               onClick={() => closeForm()}
               disabled={isSaving}
-              className="glass-button rounded-full px-5 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button rounded-full px-5 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
             >
               取消
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
               {isSaving ? '保存中...' : '保存证据'}
@@ -827,13 +827,13 @@ export function ProjectEvidenceSection({
               <AlertCircle className="mt-0.5 h-5 w-5 text-[var(--color-destructive)]" />
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">证据库加载失败</p>
-                <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
+                <p className="mt-1 text-base text-[var(--research-muted)]">{loadError}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => void loadEvidence()}
-              className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium sm:self-auto"
+              className="research-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium sm:self-auto"
             >
               <RefreshCw className="h-4 w-4 text-[var(--paper-link)]" />
               重试
@@ -854,7 +854,7 @@ export function ProjectEvidenceSection({
             <button
               type="button"
               onClick={openCreateForm}
-              className="glass-button glass-button-primary mt-4 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white"
+              className="research-button research-button-primary mt-4 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white"
             >
               <Plus className="h-4 w-4" />
               上传第一条研究证据
@@ -915,7 +915,7 @@ export function ProjectEvidenceSection({
                       <button
                         type="button"
                         onClick={() => openEditForm(evidence)}
-                        className="glass-button rounded-full p-2 text-[var(--paper-link)]"
+                        className="research-button rounded-full p-2 text-[var(--paper-link)]"
                         aria-label={`编辑证据 ${evidence.title}`}
                       >
                         <Pencil className="h-4 w-4" />
@@ -923,7 +923,7 @@ export function ProjectEvidenceSection({
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(evidence)}
-                        className="glass-button rounded-full p-2 text-[var(--color-destructive)]"
+                        className="research-button rounded-full p-2 text-[var(--color-destructive)]"
                         aria-label={`删除证据 ${evidence.title}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -933,12 +933,12 @@ export function ProjectEvidenceSection({
                 </div>
 
                 {evidence.description && (
-                  <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+                  <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
                     {evidence.description}
                   </p>
                 )}
 
-                <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--glass-text-muted)]">
+                <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--research-muted)]">
                   <span>
                     {formatUserIdentity({
                       username: evidence.creator_username,
@@ -957,7 +957,7 @@ export function ProjectEvidenceSection({
                         href={evidence.external_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
+                        className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--research-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
                       >
                         <Link2 className="h-4 w-4 shrink-0" />
                         <span className="truncate">查看外部链接</span>
@@ -972,14 +972,14 @@ export function ProjectEvidenceSection({
                           href={attachment.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--glass-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
+                          className="inline-flex min-w-0 items-center gap-2 rounded-full bg-[var(--research-chip)] px-3 py-2 text-base font-medium text-[var(--paper-link)] transition hover:bg-[var(--paper-accent-soft)]"
                         >
                           <FileText className="h-4 w-4 shrink-0" />
                           <span className="truncate">{getAttachmentLabel(attachment)}</span>
-                          <span className="shrink-0 text-sm text-[var(--glass-text-muted)]">
+                          <span className="shrink-0 text-sm text-[var(--research-muted)]">
                             {index === 0 ? '主附件' : '支持材料'}
                           </span>
-                          {fileSize && <span className="shrink-0 text-sm text-[var(--glass-text-muted)]">{fileSize}</span>}
+                          {fileSize && <span className="shrink-0 text-sm text-[var(--research-muted)]">{fileSize}</span>}
                         </a>
                       );
                     })}
@@ -987,7 +987,7 @@ export function ProjectEvidenceSection({
                 )}
 
                 {evidence.attachment_note && (
-                  <p className="mt-3 rounded-2xl bg-[var(--glass-chip)] px-3 py-2 text-sm leading-6 text-[var(--glass-text-muted)]">
+                  <p className="mt-3 rounded-2xl bg-[var(--research-chip)] px-3 py-2 text-sm leading-6 text-[var(--research-muted)]">
                     {evidence.attachment_note}
                   </p>
                 )}

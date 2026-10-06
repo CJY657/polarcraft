@@ -20,18 +20,18 @@ interface ProjectStatusMeta {
 }
 
 const UNKNOWN_STATUS_STYLE: CSSProperties = {
-  color: 'var(--glass-text-muted)',
-  borderColor: 'var(--glass-stroke)',
-  background: 'color-mix(in srgb, var(--glass-chip) 90%, transparent)',
+  color: 'var(--research-muted)',
+  borderColor: 'var(--research-line)',
+  background: 'color-mix(in srgb, var(--research-chip) 90%, transparent)',
 };
 
 const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
   draft: {
     label: '草稿',
     style: {
-      color: 'var(--glass-text-muted)',
-      borderColor: 'var(--glass-stroke)',
-      background: 'color-mix(in srgb, var(--glass-chip) 90%, transparent)',
+      color: 'var(--research-muted)',
+      borderColor: 'var(--research-line)',
+      background: 'color-mix(in srgb, var(--research-chip) 90%, transparent)',
     },
   },
   recruiting: {
@@ -85,9 +85,9 @@ const PROJECT_STATUS_META: Record<ProjectStatus, ProjectStatusMeta> = {
   archived: {
     label: '已归档',
     style: {
-      color: 'var(--glass-text-muted)',
-      borderColor: 'var(--glass-stroke)',
-      background: 'color-mix(in srgb, var(--glass-panel-soft) 92%, transparent)',
+      color: 'var(--research-muted)',
+      borderColor: 'var(--research-line)',
+      background: 'color-mix(in srgb, var(--research-head) 92%, transparent)',
     },
   },
 };
@@ -197,7 +197,7 @@ export function ProjectLifecycleJourney({
                       ? 'font-bold text-[var(--paper-foreground)]'
                       : isCompleted
                         ? 'font-medium text-[var(--paper-foreground)]'
-                        : 'font-medium text-[var(--glass-text-muted)]'
+                        : 'font-medium text-[var(--research-muted)]'
                   }`}
                 >
                   {meta.label}
@@ -210,7 +210,7 @@ export function ProjectLifecycleJourney({
           })}
         </ol>
         {currentIndex < 0 && (
-          <p className="mt-1 text-sm text-[var(--glass-text-muted)]">当前状态尚未纳入标准课题流程。</p>
+          <p className="mt-1 text-sm text-[var(--research-muted)]">当前状态尚未纳入标准课题流程。</p>
         )}
       </section>
     );
@@ -228,7 +228,7 @@ export function ProjectLifecycleJourney({
         >
           课题旅程
         </h2>
-        <p className="mt-1 text-sm text-[var(--glass-text-muted)]">
+        <p className="mt-1 text-sm text-[var(--research-muted)]">
           从草稿到归档，当前阶段和后续路径一目了然。
         </p>
       </div>
@@ -252,7 +252,7 @@ export function ProjectLifecycleJourney({
                   aria-hidden="true"
                   className="absolute left-[0.9375rem] top-8 h-[calc(100%-1rem)] w-px md:left-1/2 md:top-4 md:h-px md:w-full"
                   style={{
-                    background: isCompleted ? 'var(--paper-accent)' : 'var(--glass-stroke-strong)',
+                    background: isCompleted ? 'var(--paper-accent)' : 'var(--research-edge)',
                   }}
                 />
               )}
@@ -269,7 +269,7 @@ export function ProjectLifecycleJourney({
 
               <span
                 className={`text-sm font-medium md:text-center ${
-                  isCurrent ? 'text-[var(--paper-foreground)]' : 'text-[var(--glass-text-muted)]'
+                  isCurrent ? 'text-[var(--paper-foreground)]' : 'text-[var(--research-muted)]'
                 }`}
               >
                 {meta.label}
@@ -280,7 +280,7 @@ export function ProjectLifecycleJourney({
       </ol>
 
       {currentIndex < 0 && (
-        <p className="mt-4 text-sm text-[var(--glass-text-muted)]">
+        <p className="mt-4 text-sm text-[var(--research-muted)]">
           当前状态尚未纳入标准课题流程。
         </p>
       )}

@@ -289,7 +289,7 @@ export function MeetingMinutesDialog({
           type="button"
           onClick={handleClose}
           aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--glass-text-muted)] hover:bg-[var(--glass-chip)]"
+          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
         >
           <X className="h-5 w-5" />
         </button>
@@ -322,25 +322,25 @@ export function MeetingMinutesDialog({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isBusy}
-              className="glass-button inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {isUploading ? '上传中…' : '上传记录文件'}
             </button>
-            <span className="text-sm text-[var(--glass-text-muted)]">
+            <span className="text-sm text-[var(--research-muted)]">
               支持 txt / md / doc / docx / pdf / 图片；txt 与 md 会自动读入文本框
             </span>
           </div>
           {recordFile && (
             <p className="inline-flex flex-wrap items-center gap-2 text-base text-[var(--paper-foreground)]">
-              <FileText className="h-4 w-4 shrink-0 text-[var(--glass-text-muted)]" />
+              <FileText className="h-4 w-4 shrink-0 text-[var(--research-muted)]" />
               <span className="font-medium">{recordFile.originalName}</span>
               <button
                 type="button"
                 onClick={() => setRecordFile(null)}
                 disabled={isBusy}
                 aria-label={`移除记录文件 ${recordFile.originalName}`}
-                className="rounded-md px-1.5 py-0.5 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--glass-chip)]"
+                className="rounded-md px-1.5 py-0.5 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--research-chip)]"
               >
                 移除
               </button>
@@ -355,7 +355,7 @@ export function MeetingMinutesDialog({
         <section className="grid gap-2">
           <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
             ② 勾选实到成员
-            <span className="ml-2 text-sm font-normal text-[var(--glass-text-muted)]">
+            <span className="ml-2 text-sm font-normal text-[var(--research-muted)]">
               已选 {attendeeIds.length} / {members.length} 人
             </span>
           </h3>
@@ -390,7 +390,7 @@ export function MeetingMinutesDialog({
               type="button"
               onClick={() => void handleGenerate()}
               disabled={isBusy}
-              className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button research-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {isGenerating ? '生成中…' : 'AI 生成纪要'}
@@ -399,7 +399,7 @@ export function MeetingMinutesDialog({
               type="button"
               onClick={handleManualMode}
               disabled={isBusy}
-              className="glass-button inline-flex items-center gap-1.5 rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              className="research-button inline-flex items-center gap-1.5 rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               <PenLine className="h-4 w-4" />
               手动撰写
@@ -451,7 +451,7 @@ export function MeetingMinutesDialog({
                           {getMemberName(score.user_id)}
                         </p>
                         {score.comment && (
-                          <p className="mt-0.5 text-base leading-6 text-[var(--glass-text-muted)]">
+                          <p className="mt-0.5 text-base leading-6 text-[var(--research-muted)]">
                             {score.comment}
                           </p>
                         )}
@@ -471,7 +471,7 @@ export function MeetingMinutesDialog({
                 type="button"
                 onClick={handleClose}
                 disabled={isBusy}
-                className="glass-button rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button rounded-md px-4 py-2.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
               >
                 取消
               </button>
@@ -479,7 +479,7 @@ export function MeetingMinutesDialog({
                 type="button"
                 onClick={() => void handleArchive()}
                 disabled={isBusy}
-                className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button research-button-primary inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isArchiving && <Loader2 className="h-4 w-4 animate-spin" />}
                 确认归档

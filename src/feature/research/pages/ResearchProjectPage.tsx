@@ -449,7 +449,7 @@ export function ResearchProjectPage() {
             <div className="aspect-[16/9] rounded-xl bg-[var(--research-head)]" />
           </div>
 
-          <div className="mt-7 flex items-center justify-center gap-3 text-[var(--glass-text-muted)]" role="status">
+          <div className="mt-7 flex items-center justify-center gap-3 text-[var(--research-muted)]" role="status">
             <Loader2 className="h-5 w-5 animate-spin text-[var(--paper-accent)] motion-reduce:animate-none" />
             <span className="text-base font-medium">正在加载课题详情...</span>
           </div>
@@ -466,7 +466,7 @@ export function ResearchProjectPage() {
           <p className="research-error rounded-lg px-4 py-3 text-lg">{error}</p>
           <Link
             to="/lab/projects"
-            className="glass-button glass-button-primary mt-5 inline-flex rounded-md px-5 py-2.5 text-base font-semibold text-white"
+            className="research-button research-button-primary mt-5 inline-flex rounded-md px-5 py-2.5 text-base font-semibold text-white"
           >
             返回课题列表
           </Link>
@@ -563,11 +563,11 @@ export function ResearchProjectPage() {
         moduleKey="labGroup"
         variant="glass"
         showBreadcrumb={false}
-        className="sticky top-0 z-40 bg-[var(--glass-panel)] text-[var(--paper-foreground)] backdrop-blur-xl [&_.bg-clay-surface-card]:bg-[var(--glass-chip)] [&_.text-clay-ink]:text-[var(--paper-foreground)] [&_.text-clay-muted]:text-[var(--glass-text-muted)]"
+        className="sticky top-0 z-40 bg-[var(--research-head)] text-[var(--paper-foreground)] backdrop-blur-xl [&_.bg-clay-surface-card]:bg-[var(--research-chip)] [&_.text-clay-ink]:text-[var(--paper-foreground)] [&_.text-clay-muted]:text-[var(--research-muted)]"
         rightContent={
           <Link
             to={backHref}
-            className="glass-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
+            className="research-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             返回
@@ -585,7 +585,7 @@ export function ResearchProjectPage() {
             <button
               onClick={handleApplyAction}
               disabled={applyButtonDisabled}
-              className="glass-button glass-button-primary w-full self-start rounded-md px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-auto"
+              className="research-button research-button-primary w-full self-start rounded-md px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-auto"
             >
               {applyBannerButtonLabel}
             </button>
@@ -618,7 +618,7 @@ export function ResearchProjectPage() {
             </h1>
 
             {displayProject.name_en && (
-              <p className="mt-2.5 text-base italic leading-6 text-[var(--glass-text-muted)]">
+              <p className="mt-2.5 text-base italic leading-6 text-[var(--research-muted)]">
                 {displayProject.name_en}
               </p>
             )}
@@ -656,7 +656,7 @@ export function ResearchProjectPage() {
             {/* 内联元信息（替代原三张大指标卡） */}
             <dl className="research-meta mt-5.5">
               <div className="flex items-baseline gap-2">
-                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">成员</dt>
+                <dt className="text-sm font-medium text-[var(--research-muted)]">成员</dt>
                 <dd className="text-sm font-semibold text-[var(--paper-foreground)]">
                   <span className="text-base font-extrabold tabular-nums text-[var(--clay-pink)]">
                     {displayProject.member_count}
@@ -665,13 +665,13 @@ export function ResearchProjectPage() {
                 </dd>
               </div>
               <div className="flex items-baseline gap-2">
-                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">创建时间</dt>
+                <dt className="text-sm font-medium text-[var(--research-muted)]">创建时间</dt>
                 <dd className="text-sm font-semibold tabular-nums text-[var(--paper-foreground)]">
                   {formatProjectDate(displayProject.created_at)}
                 </dd>
               </div>
               <div className="flex items-baseline gap-2">
-                <dt className="text-sm font-medium text-[var(--glass-text-muted)]">协作方式</dt>
+                <dt className="text-sm font-medium text-[var(--research-muted)]">协作方式</dt>
                 <dd className="text-sm font-semibold text-[var(--paper-foreground)]">
                   {isPublicGuestMode
                     ? "公开浏览"
@@ -690,7 +690,7 @@ export function ResearchProjectPage() {
                 <button
                   onClick={handleApplyAction}
                   disabled={applyButtonDisabled}
-                  className="glass-button glass-button-primary inline-flex w-full items-center justify-center rounded-md px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  className="research-button research-button-primary inline-flex w-full items-center justify-center rounded-md px-5 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                   {applyButtonLabel}
                 </button>
@@ -701,19 +701,19 @@ export function ResearchProjectPage() {
                       <>
                         <button
                           onClick={() => setIsCoverDialogOpen(true)}
-                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
+                          className="research-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
                           管理封面
                         </button>
                         <button
                           onClick={() => openEditDialog()}
-                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
+                          className="research-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
                           编辑信息
                         </button>
                         <button
                           onClick={() => setIsSettingsDialogOpen(true)}
-                          className="glass-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
+                          className="research-button inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold"
                         >
                           协作设置
                         </button>
@@ -738,7 +738,7 @@ export function ResearchProjectPage() {
               alt={displayProject.name_zh}
               className="aspect-[16/9] w-full rounded-xl border-[1.5px] border-[var(--research-edge)] shadow-[var(--research-lift)]"
             />
-            <figcaption className="mt-2.5 text-center text-xs italic text-[var(--glass-text-muted)]">
+            <figcaption className="mt-2.5 text-center text-xs italic text-[var(--research-muted)]">
               课题封面
             </figcaption>
           </figure>

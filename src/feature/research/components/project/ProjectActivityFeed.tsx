@@ -125,7 +125,7 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
           type="button"
           onClick={() => void loadActivities()}
           disabled={isLoading}
-          className="glass-button rounded-md p-1.5 text-[var(--glass-text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="research-button rounded-md p-1.5 text-[var(--research-muted)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="刷新最近动态"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -141,13 +141,13 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
       )}
 
       {!isLoading && loadError && (
-        <p className="research-panel-soft rounded-md px-3 py-2.5 text-base text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-md px-3 py-2.5 text-base text-[var(--research-muted)]">
           {loadError}
         </p>
       )}
 
       {!isLoading && !loadError && activities.length === 0 && (
-        <p className="research-panel-soft rounded-md px-3 py-3 text-base leading-6 text-[var(--glass-text-muted)]">
+        <p className="research-panel-soft rounded-md px-3 py-3 text-base leading-6 text-[var(--research-muted)]">
           还没有动态记录。
         </p>
       )}
@@ -162,15 +162,15 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
                 key={item.id}
                 className="flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-[var(--research-head)]"
               >
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">
                   {getUserIdentityInitial(item, '员')}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="break-words text-base leading-6 text-[var(--paper-foreground)]">
                     <span className="font-semibold">{actorName}</span>{' '}
-                    <span className="text-[var(--glass-text-muted)]">{getActivityLabel(item)}</span>
+                    <span className="text-[var(--research-muted)]">{getActivityLabel(item)}</span>
                   </p>
-                  <p className="mt-0.5 text-sm text-[var(--glass-text-muted)]">
+                  <p className="mt-0.5 text-sm text-[var(--research-muted)]">
                     {formatActivityTime(item.created_at)}
                   </p>
                 </div>

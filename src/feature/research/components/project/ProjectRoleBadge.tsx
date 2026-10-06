@@ -28,7 +28,7 @@ export function getProjectRoleBadgeStyle(
 
   return {
     color: accent.text,
-    borderColor: `color-mix(in srgb, ${accent.fill} ${borderStrength}%, var(--glass-stroke))`,
+    borderColor: `color-mix(in srgb, ${accent.fill} ${borderStrength}%, var(--research-line))`,
     background: `color-mix(in srgb, ${accent.fill} ${fillStrength}%, transparent)`,
   };
 }

@@ -88,7 +88,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
           </div>
           <button
             onClick={onClose}
-            className="glass-button rounded-full p-2 text-[var(--glass-text-muted)]"
+            className="research-button rounded-full p-2 text-[var(--research-muted)]"
             aria-label={t('common.cancel')}
           >
             <X className="h-5 w-5" />
@@ -219,14 +219,14 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="glass-button flex-1 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button flex-1 rounded-full px-4 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="glass-button glass-button-primary flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button research-button-primary flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -238,7 +238,7 @@ export function ProjectSettingsDialog({ isOpen, onClose, projectId, onSuccess }:
             </div>
           </form>
         ) : (
-          <div className="py-10 text-center text-base text-[var(--glass-text-muted)]">
+          <div className="py-10 text-center text-base text-[var(--research-muted)]">
             {t('common.error')}
           </div>
         )}

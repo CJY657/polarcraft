@@ -159,7 +159,7 @@ export function ResearchAgentPanel({
                 aria-expanded={isOpen}
                 aria-label="收起 AI 研究顾问"
                 onClick={() => setIsOpen(false)}
-                className="glass-button shrink-0 rounded-md px-2.5 py-1.5 text-sm font-semibold text-[var(--glass-text-muted)]"
+                className="research-button shrink-0 rounded-md px-2.5 py-1.5 text-sm font-semibold text-[var(--research-muted)]"
               >
                 收起
               </button>
@@ -195,7 +195,7 @@ export function ResearchAgentPanel({
                     )}
 
                     {messages.length === 0 && !isSending ? (
-                      <p className="py-8 text-center text-sm text-[var(--glass-text-muted)]">
+                      <p className="py-8 text-center text-sm text-[var(--research-muted)]">
                         还没有顾问消息。
                       </p>
                     ) : (
@@ -215,7 +215,7 @@ export function ResearchAgentPanel({
                               <div
                                 className={cn(
                                   "mb-1.5 flex items-center justify-between gap-3 text-sm",
-                                  isAssistant ? "text-[var(--glass-text-muted)]" : "opacity-70"
+                                  isAssistant ? "text-[var(--research-muted)]" : "opacity-70"
                                 )}
                               >
                                 <span>{isAssistant ? "AI 顾问" : "你的即时提问"}</span>
@@ -224,7 +224,7 @@ export function ResearchAgentPanel({
                               {isAssistant ? (
                                 <MarkdownRenderer
                                   content={message.content}
-                                  className="[&_a]:!text-[var(--paper-link)] [&_code]:!bg-[var(--glass-chip)] [&_code]:!text-[var(--paper-link)] [&_li]:!text-[var(--paper-foreground)] [&_p]:!text-[var(--paper-foreground)] [&_strong]:!text-[var(--paper-foreground)]"
+                                  className="[&_a]:!text-[var(--paper-link)] [&_code]:!bg-[var(--research-chip)] [&_code]:!text-[var(--paper-link)] [&_li]:!text-[var(--paper-foreground)] [&_p]:!text-[var(--paper-foreground)] [&_strong]:!text-[var(--paper-foreground)]"
                                 />
                               ) : (
                                 <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
@@ -234,10 +234,10 @@ export function ResearchAgentPanel({
                         })}
                         {isSending && (
                           <article className="mr-auto max-w-[86%] rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-3 text-sm">
-                            <div className="mb-1.5 text-sm text-[var(--glass-text-muted)]">AI 顾问</div>
+                            <div className="mb-1.5 text-sm text-[var(--research-muted)]">AI 顾问</div>
                             <div className="inline-flex items-center gap-2 leading-6">
                               <Loader2 className="h-4 w-4 animate-spin text-[var(--paper-accent)]" />
-                              <span className="text-[var(--glass-text-muted)]">思考中...</span>
+                              <span className="text-[var(--research-muted)]">思考中...</span>
                             </div>
                           </article>
                         )}
@@ -272,7 +272,7 @@ export function ResearchAgentPanel({
                         "border-[1.5px] border-[var(--research-edge)]",
                         "bg-[var(--paper-accent)] text-sm font-semibold text-[var(--paper-bg)]",
                         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--research-edge)]",
-                        "disabled:cursor-not-allowed disabled:border-[var(--research-line)] disabled:bg-[var(--glass-chip)] disabled:text-[var(--glass-text-muted)]",
+                        "disabled:cursor-not-allowed disabled:border-[var(--research-line)] disabled:bg-[var(--research-chip)] disabled:text-[var(--research-muted)]",
                       )}
                     >
                       {isSending && <Loader2 className="h-4 w-4 animate-spin" />}

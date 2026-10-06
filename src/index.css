@@ -226,6 +226,8 @@ html.light {
   --research-head: #faf5e8;
   --research-edge: #0a0a0a;
   --research-line: #d9d3c1;
+  --research-muted: #6a6a6a;
+  --research-chip: #f5f0e0;
   --research-lift: 2px 2px 0 0 var(--research-edge);
 }
 
@@ -235,6 +237,8 @@ html.dark {
   --research-head: #16333a;
   --research-edge: rgba(152, 193, 186, 0.42);
   --research-line: rgba(118, 159, 152, 0.26);
+  --research-muted: rgba(226, 243, 239, 0.72);
+  --research-chip: rgba(255, 255, 255, 0.06);
   --research-lift: 2px 2px 0 0 rgba(2, 9, 11, 0.55);
 }
 
@@ -384,23 +388,10 @@ html {
     padding: 1.125rem 1.25rem;
   }
 
+  /* Flat notebook panel — ink hairline over paper / 扁平笔记本面板 */
   .research-panel {
-    border: 1px solid var(--glass-stroke);
-    background: linear-gradient(
-      180deg,
-      var(--glass-panel),
-      color-mix(in srgb, var(--glass-panel-soft) 62%, transparent)
-    );
-    box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(16px);
-  }
-
-  .research-project-detail .research-panel {
     border: 1px solid var(--research-line);
-    border-radius: 0.75rem;
     background: var(--research-surface);
-    box-shadow: none;
-    backdrop-filter: none;
   }
 
   .research-panel-soft {
@@ -580,6 +571,54 @@ html {
     outline: none;
   }
 
+  /* Notebook buttons — flat ink fill, offset lift on hover, press on active / 笔记本按钮 */
+  .research-button,
+  .research-button-primary,
+  .research-button-danger {
+    border: 1.5px solid var(--research-edge);
+    transition:
+      transform 160ms var(--glass-ease),
+      box-shadow 160ms var(--glass-ease),
+      background-color 160ms var(--glass-ease),
+      border-color 160ms var(--glass-ease);
+  }
+
+  .research-button {
+    background: var(--research-surface);
+    color: var(--paper-foreground);
+  }
+
+  .research-button-primary {
+    background: var(--paper-accent);
+    color: var(--paper-bg);
+  }
+
+  .research-button-danger {
+    background: color-mix(in srgb, var(--color-destructive) 88%, #1a1a1a);
+    color: #ffffff;
+  }
+
+  .research-button:hover,
+  .research-button-primary:hover,
+  .research-button-danger:hover {
+    box-shadow: var(--research-lift);
+  }
+
+  .research-button:active,
+  .research-button-primary:active,
+  .research-button-danger:active {
+    transform: translate(1px, 1px);
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .research-button:active,
+    .research-button-primary:active,
+    .research-button-danger:active {
+      transform: none;
+    }
+  }
+
   .research-tint-pink {
     border-color: color-mix(in srgb, var(--clay-pink) 32%, var(--research-line));
     background: color-mix(in srgb, var(--clay-pink) 8%, transparent);
@@ -599,6 +638,11 @@ html {
     border-color: color-mix(in srgb, var(--clay-teal) 30%, var(--research-line));
     background: color-mix(in srgb, var(--clay-mint) 22%, transparent);
     color: color-mix(in srgb, var(--clay-teal) 72%, var(--paper-foreground));
+  }
+
+  .research-tint-lavender {
+    border-color: color-mix(in srgb, var(--clay-lavender) 40%, var(--research-line));
+    background: color-mix(in srgb, var(--clay-lavender) 10%, transparent);
   }
 
   .research-error {

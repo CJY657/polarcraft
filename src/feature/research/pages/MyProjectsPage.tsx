@@ -113,12 +113,12 @@ export function MyProjectsPage() {
                     <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                       我的课题
                     </h1>
-                    <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                    <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--research-muted)]">
                       My Research Projects
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--glass-text-muted)]">
+                <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--research-muted)]">
                   个人项目页会集中展示你参与的课题、当前状态和继续推进的入口。现在可以先去发现公开课题，或者直接登录开始创建。
                 </p>
               </div>
@@ -126,14 +126,14 @@ export function MyProjectsPage() {
               <div className="relative mt-8 flex flex-wrap gap-3">
                 <button
                   onClick={() => openDialog("login")}
-                  className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5"
+                  className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5"
                 >
                   <LogIn className="h-4 w-4" />
                   立即登录
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
+                  className="research-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   浏览公开课题
@@ -168,7 +168,7 @@ export function MyProjectsPage() {
                   <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                     我的课题
                   </h1>
-                  <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--glass-text-muted)]">
+                  <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--research-muted)]">
                     My Research Projects
                   </p>
                 </div>
@@ -179,14 +179,14 @@ export function MyProjectsPage() {
               <button
                 onClick={handleCreateProject}
                 disabled={!isSystemHealthy}
-                className="glass-button glass-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 <Plus className="h-4 w-4" />
                 创建新课题
               </button>
               <Link
                 to="/lab/explore"
-                className="glass-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
+                className="research-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
               >
                 <Search className="h-4 w-4 text-[var(--paper-link)]" />
                 寻找协作课题
@@ -196,13 +196,13 @@ export function MyProjectsPage() {
 
           <div className="grid grid-rows-2 gap-4">
             <div className="research-panel flex flex-col items-center justify-center rounded-[1.5rem] p-5 text-center">
-              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
+              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--research-muted)]">
                 全部课题
               </p>
               <p className="mt-2 text-4xl font-semibold text-[var(--paper-foreground)]">{projects.length}</p>
             </div>
             <div className="research-panel flex flex-col items-center justify-center rounded-[1.5rem] p-5 text-center">
-              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--glass-text-muted)]">
+              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[var(--research-muted)]">
                 进行中
               </p>
               <p className="mt-2 text-4xl font-semibold text-[var(--paper-accent-strong)]">{activeProjects}</p>
@@ -224,7 +224,7 @@ export function MyProjectsPage() {
               <button
                 onClick={() => checkHealth()}
                 disabled={isChecking}
-                className="glass-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                className="research-button inline-flex items-center justify-center gap-2 self-start rounded-full px-4 py-2 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${isChecking ? "animate-spin" : ""}`} />
                 重新检测
@@ -250,10 +250,10 @@ export function MyProjectsPage() {
                   key={item}
                   className="research-panel-soft animate-pulse rounded-[1rem] p-4"
                 >
-                  <div className="h-4 w-24 rounded bg-[var(--glass-chip)]" />
-                  <div className="mt-3 h-6 w-2/3 rounded bg-[var(--glass-chip)]" />
-                  <div className="mt-3 h-4 w-full rounded bg-[var(--glass-chip)]" />
-                  <div className="mt-2 h-4 w-1/2 rounded bg-[var(--glass-chip)]" />
+                  <div className="h-4 w-24 rounded bg-[var(--research-chip)]" />
+                  <div className="mt-3 h-6 w-2/3 rounded bg-[var(--research-chip)]" />
+                  <div className="mt-3 h-4 w-full rounded bg-[var(--research-chip)]" />
+                  <div className="mt-2 h-4 w-1/2 rounded bg-[var(--research-chip)]" />
                 </div>
               ))}
             </div>
@@ -282,7 +282,7 @@ export function MyProjectsPage() {
               >
                 还没有研究项目，先建立一个主课题
               </h2>
-              <p className="mt-3 text-base leading-6 text-[var(--glass-text-muted)]">
+              <p className="mt-3 text-base leading-6 text-[var(--research-muted)]">
                 先定义一个清晰的问题域，再把实验、证据和结论补充进画布。等课题结构稳定后，再开放给其他成员加入。
               </p>
 
@@ -290,14 +290,14 @@ export function MyProjectsPage() {
                 <button
                   onClick={handleCreateProject}
                   disabled={!isSystemHealthy}
-                  className="glass-button glass-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Plus className="h-4 w-4" />
                   创建第一个课题
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="glass-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
+                  className="research-button inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   先看别人怎么做
@@ -315,7 +315,7 @@ export function MyProjectsPage() {
                 >
                   全部研究课题
                 </h2>
-                <p className="mt-2 text-base leading-6 text-[var(--glass-text-muted)]">
+                <p className="mt-2 text-base leading-6 text-[var(--research-muted)]">
                   先看摘要和状态，再进入具体项目，不需要再逐个点开确认基本信息。
                 </p>
               </div>
@@ -329,7 +329,7 @@ export function MyProjectsPage() {
               {projects.map((project) => (
                 <article
                   key={project.id}
-                  className="research-panel flex flex-col rounded-[1rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--glass-shadow-strong)]"
+                  className="research-panel flex flex-col rounded-[1rem] p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--research-lift)]"
                 >
                   <ProjectCoverImage
                     src={project.thumbnail || project.cover_image}
@@ -355,7 +355,7 @@ export function MyProjectsPage() {
 
                     <div className="research-panel-soft mt-auto rounded-[1rem] px-4 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-[var(--glass-text-muted)]">课题成员</p>
+                        <p className="text-sm font-medium text-[var(--research-muted)]">课题成员</p>
                         <span className="research-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm">
                           <Users className="h-3.5 w-3.5" />
                           {project.member_count} 人
@@ -367,7 +367,7 @@ export function MyProjectsPage() {
                   <div className="mt-5 flex flex-col gap-2">
                     <Link
                       to={`/lab/projects/${project.id}`}
-                      className="glass-button glass-button-primary inline-flex w-full items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white"
+                      className="research-button research-button-primary inline-flex w-full items-center justify-center rounded-full px-4 py-2 text-base font-semibold text-white"
                     >
                       进入课题
                     </Link>

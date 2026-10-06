@@ -88,8 +88,8 @@ export function ProjectMembersSection({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold",
                 pendingApplicationCount > 0
-                  ? "glass-button glass-button-primary text-white"
-                  : "glass-button"
+                  ? "research-button research-button-primary text-white"
+                  : "research-button"
               )}
             >
               申请管理
@@ -112,7 +112,7 @@ export function ProjectMembersSection({
                 {formatUserIdentity(visiblePendingLeadershipTransfer.outgoing_owner)} 已邀请{" "}
                 {formatUserIdentity(visiblePendingLeadershipTransfer.nominee)} 接任组长
               </p>
-              <p className="mt-1 text-sm leading-5 text-[var(--glass-text-muted)]">
+              <p className="mt-1 text-sm leading-5 text-[var(--research-muted)]">
                 由 {formatUserIdentity(visiblePendingLeadershipTransfer.initiator)} 发起 · 有效期至{" "}
                 {new Date(visiblePendingLeadershipTransfer.expires_at).toLocaleString("zh-CN", {
                   year: "numeric",
@@ -134,7 +134,7 @@ export function ProjectMembersSection({
                   type="button"
                   onClick={onAcceptLeadershipTransfer}
                   disabled={isLeadershipTransferPending}
-                  className="glass-button glass-button-primary inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button research-button-primary inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {leadershipTransferAction === "accept" && <Loader2 className="h-3 w-3 animate-spin" />}
                   接受
@@ -145,7 +145,7 @@ export function ProjectMembersSection({
                   type="button"
                   onClick={onDeclineLeadershipTransfer}
                   disabled={isLeadershipTransferPending}
-                  className="glass-button inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {leadershipTransferAction === "decline" && <Loader2 className="h-3 w-3 animate-spin" />}
                   拒绝
@@ -156,7 +156,7 @@ export function ProjectMembersSection({
                   type="button"
                   onClick={onCancelLeadershipTransfer}
                   disabled={isLeadershipTransferPending}
-                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--glass-chip)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--research-chip)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {leadershipTransferAction === "cancel" && <Loader2 className="h-3 w-3 animate-spin" />}
                   取消转让
@@ -210,7 +210,7 @@ export function ProjectMembersSection({
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
                   member.role === "owner"
                     ? "research-tint-ochre text-[var(--clay-ochre)]"
-                    : "border-[var(--research-line)] bg-[var(--glass-chip)] text-[var(--glass-text-muted)]"
+                    : "border-[var(--research-line)] bg-[var(--research-chip)] text-[var(--research-muted)]"
                 )}
               >
                 {getUserIdentityInitial(member)}
@@ -220,7 +220,7 @@ export function ProjectMembersSection({
                   {formatUserIdentity(member)}
                 </p>
                 {memberRoleLabel && (
-                  <p className="truncate text-sm text-[var(--glass-text-muted)]">{memberRoleLabel}</p>
+                  <p className="truncate text-sm text-[var(--research-muted)]">{memberRoleLabel}</p>
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
@@ -243,7 +243,7 @@ export function ProjectMembersSection({
                           }
                         }}
                         disabled={isLeadershipTransferPending}
-                        className="glass-button inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                        className="research-button inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {leadershipTransferAction === nominateAction && (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -258,7 +258,7 @@ export function ProjectMembersSection({
                             onRequestRemoveMember(member);
                           }
                         }}
-                        className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--glass-chip)]"
+                        className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold text-[var(--color-destructive)] hover:bg-[var(--research-chip)]"
                       >
                         {isSelfRemoval ? "退出" : "移除"}
                       </button>
@@ -273,7 +273,7 @@ export function ProjectMembersSection({
 
       {canManageProject && formerMembers.length > 0 && (
         <details className="mt-3 border-t border-[var(--research-line)] pt-3">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--glass-text-muted)]">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--research-muted)]">
             已退出成员（{formerMembers.length}）
           </summary>
 
@@ -284,21 +284,21 @@ export function ProjectMembersSection({
           <ul className="mt-2 grid gap-1">
             {formerMembers.map((member) => (
               <li key={member.id} className="flex items-center gap-2.5 rounded-lg px-2 py-2">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">
                   {getUserIdentityInitial(member)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-medium text-[var(--paper-foreground)]">
                     {formatUserIdentity(member)}
                   </p>
-                  <p className="truncate text-sm text-[var(--glass-text-muted)]">
+                  <p className="truncate text-sm text-[var(--research-muted)]">
                     {member.removed_at ? `${formatProjectDate(member.removed_at)} 退出` : "已离开课题"}
                   </p>
                 </div>
                 <button
                   onClick={() => void onRestoreFormerMember(member)}
                   disabled={isAddingFormerMemberId === member.user_id}
-                  className="glass-button inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  className="research-button inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isAddingFormerMemberId === member.user_id && (
                     <Loader2 className="h-3 w-3 animate-spin" />

@@ -86,7 +86,7 @@ export default function TopicBacklinksSection({
     <section className="mt-6" aria-labelledby="topic-backlinks-heading">
       <h2
         id="topic-backlinks-heading"
-        className="text-sm font-semibold uppercase tracking-wider text-[var(--glass-text-muted)]"
+        className="text-sm font-semibold uppercase tracking-wider text-[var(--research-muted)]"
       >
         引用自 · Referenced by
       </h2>
@@ -106,7 +106,7 @@ export default function TopicBacklinksSection({
                 <Link
                   key={`${location.type}-${location.comment_id ?? ""}`}
                   to={locationHref(group.project_id, location)}
-                  className="rounded-md border border-[var(--research-line)] px-2 py-0.5 text-sm text-[var(--glass-text-muted)] transition-colors hover:text-[var(--paper-foreground)]"
+                  className="rounded-md border border-[var(--research-line)] px-2 py-0.5 text-sm text-[var(--research-muted)] transition-colors hover:text-[var(--paper-foreground)]"
                 >
                   {LOCATION_LABELS[location.type]}
                 </Link>

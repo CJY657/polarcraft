@@ -78,7 +78,7 @@ function LeaderboardRow({
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold',
           highlight
             ? 'research-tint-ochre text-[var(--clay-ochre)]'
-            : 'border-[var(--research-line)] bg-[var(--glass-chip)] text-[var(--glass-text-muted)]'
+            : 'border-[var(--research-line)] bg-[var(--research-chip)] text-[var(--research-muted)]'
         )}
       >
         {getUserIdentityInitial(entry, '成')}
@@ -395,7 +395,7 @@ export function ProjectMeetingsSection({
     return (
       <div className="border-t border-[var(--research-line)] px-5 py-4">
         {isDetailLoading && (
-          <div className="flex items-center gap-3 text-[var(--glass-text-muted)]" role="status">
+          <div className="flex items-center gap-3 text-[var(--research-muted)]" role="status">
             <Loader2 className="h-4 w-4 animate-spin text-[var(--paper-accent)]" />
             <span className="text-base font-medium">正在加载会议详情...</span>
           </div>
@@ -403,11 +403,11 @@ export function ProjectMeetingsSection({
 
         {!isDetailLoading && detailError && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-base text-[var(--glass-text-muted)]">{detailError}</p>
+            <p className="text-base text-[var(--research-muted)]">{detailError}</p>
             <button
               type="button"
               onClick={() => setDetailVersion((version) => version + 1)}
-              className="glass-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
+              className="research-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
             >
               重试
             </button>
@@ -418,7 +418,7 @@ export function ProjectMeetingsSection({
           <div className="grid gap-4">
             {detail.agenda && (
               <div>
-                <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">议程</h4>
+                <h4 className="text-sm font-semibold text-[var(--research-muted)]">议程</h4>
                 <p className="mt-1 whitespace-pre-wrap text-base leading-7 text-[var(--paper-foreground)]">
                   {detail.agenda}
                 </p>
@@ -428,11 +428,11 @@ export function ProjectMeetingsSection({
             {detail.minutes?.content ? (
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">会议纪要</h4>
+                  <h4 className="text-sm font-semibold text-[var(--research-muted)]">会议纪要</h4>
                   <span className="research-chip rounded-md px-2 py-0.5 text-xs font-semibold">
                     {detail.minutes.generated_by_ai ? 'AI 生成' : '手动撰写'}
                   </span>
-                  <span className="text-sm text-[var(--glass-text-muted)]">
+                  <span className="text-sm text-[var(--research-muted)]">
                     归档于 {formatDateTime(detail.minutes.archived_at)}
                   </span>
                 </div>
@@ -442,13 +442,13 @@ export function ProjectMeetingsSection({
               </div>
             ) : (
               meeting.status !== 'cancelled' && (
-                <p className="text-base text-[var(--glass-text-muted)]">会议纪要尚未归档。</p>
+                <p className="text-base text-[var(--research-muted)]">会议纪要尚未归档。</p>
               )
             )}
 
             {(detail.raw_notes || detail.raw_file) && (
               <div>
-                <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">原始记录</h4>
+                <h4 className="text-sm font-semibold text-[var(--research-muted)]">原始记录</h4>
                 {detail.raw_notes && (
                   <p className="mt-1.5 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-md border border-[var(--research-line)] px-4 py-3 text-base leading-7 text-[var(--paper-foreground)]">
                     {detail.raw_notes}
@@ -470,7 +470,7 @@ export function ProjectMeetingsSection({
 
             {detail.ai_scores && detail.ai_scores.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">AI 表现分</h4>
+                <h4 className="text-sm font-semibold text-[var(--research-muted)]">AI 表现分</h4>
                 <ul className="mt-1.5 grid gap-1.5">
                   {detail.ai_scores.map((score) => (
                     <li
@@ -485,7 +485,7 @@ export function ProjectMeetingsSection({
                         {score.score} 分
                       </span>
                       {score.comment && (
-                        <span className="text-[var(--glass-text-muted)]">{score.comment}</span>
+                        <span className="text-[var(--research-muted)]">{score.comment}</span>
                       )}
                     </li>
                   ))}
@@ -495,7 +495,7 @@ export function ProjectMeetingsSection({
 
             {ratings && ratings.aggregates.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">组内互评</h4>
+                <h4 className="text-sm font-semibold text-[var(--research-muted)]">组内互评</h4>
                 <ul className="mt-1.5 grid gap-1.5">
                   {ratings.aggregates.map((aggregate) => (
                     <li
@@ -507,7 +507,7 @@ export function ProjectMeetingsSection({
                         <Star className="h-4 w-4 fill-current text-[var(--clay-ochre)]" />
                         {aggregate.avg.toFixed(1)}
                       </span>
-                      <span className="text-[var(--glass-text-muted)]">{aggregate.count} 人评分</span>
+                      <span className="text-[var(--research-muted)]">{aggregate.count} 人评分</span>
                     </li>
                   ))}
                 </ul>
@@ -516,14 +516,14 @@ export function ProjectMeetingsSection({
 
             {ratings && ratings.my_received_comments.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-[var(--glass-text-muted)]">
+                <h4 className="text-sm font-semibold text-[var(--research-muted)]">
                   我收到的匿名短评
                 </h4>
                 <ul className="mt-1.5 grid gap-1.5">
                   {ratings.my_received_comments.map((comment, index) => (
                     <li
                       key={index}
-                      className="rounded-md bg-[var(--glass-chip)] px-3.5 py-2 text-base leading-6 text-[var(--paper-foreground)]"
+                      className="rounded-md bg-[var(--research-chip)] px-3.5 py-2 text-base leading-6 text-[var(--paper-foreground)]"
                     >
                       “{comment}”
                     </li>
@@ -551,7 +551,7 @@ export function ProjectMeetingsSection({
           <button
             type="button"
             onClick={openCreateDialog}
-            className="glass-button inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-base font-semibold"
+            className="research-button inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-base font-semibold"
           >
             <CalendarPlus className="h-4 w-4" />
             安排会议
@@ -575,12 +575,12 @@ export function ProjectMeetingsSection({
         <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-base font-semibold text-[var(--paper-foreground)]">会议列表加载失败</p>
-            <p className="mt-1 text-base text-[var(--glass-text-muted)]">{loadError}</p>
+            <p className="mt-1 text-base text-[var(--research-muted)]">{loadError}</p>
           </div>
           <button
             type="button"
             onClick={() => void load()}
-            className="glass-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
+            className="research-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
           >
             重试
           </button>
@@ -612,7 +612,7 @@ export function ProjectMeetingsSection({
             </div>
 
             {topEntries.length === 0 ? (
-              <p className="mt-2 text-base text-[var(--glass-text-muted)]">
+              <p className="mt-2 text-base text-[var(--research-muted)]">
                 暂无表现数据：归档会议纪要并完成互评后，这里会出现组内表现排名。
               </p>
             ) : (
@@ -631,7 +631,7 @@ export function ProjectMeetingsSection({
 
                 {isFullBoardOpen && fullBoard && fullBoard.length > 0 && (
                   <div className="mt-3 rounded-[0.625rem] border border-[var(--research-line)] px-4 py-3">
-                    <p className="text-sm font-semibold text-[var(--glass-text-muted)]">完整榜单</p>
+                    <p className="text-sm font-semibold text-[var(--research-muted)]">完整榜单</p>
                     <ol className="mt-2 grid gap-2">
                       {fullBoard.map((entry) => (
                         <LeaderboardRow key={entry.user_id} entry={entry} highlight={entry.rank <= 3} />
@@ -654,7 +654,7 @@ export function ProjectMeetingsSection({
               <button
                 type="button"
                 onClick={openCreateDialog}
-                className="glass-button glass-button-primary inline-flex shrink-0 items-center gap-1.5 self-start rounded-md px-4 py-2 text-base font-semibold text-white sm:self-auto"
+                className="research-button research-button-primary inline-flex shrink-0 items-center gap-1.5 self-start rounded-md px-4 py-2 text-base font-semibold text-white sm:self-auto"
               >
                 <CalendarPlus className="h-4 w-4" />
                 安排会议
@@ -676,7 +676,7 @@ export function ProjectMeetingsSection({
                 {formatMeetingMeta(upcomingMeeting)}
               </p>
               {upcomingMeeting.agenda && (
-                <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+                <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
                   {upcomingMeeting.agenda}
                 </p>
               )}
@@ -692,7 +692,7 @@ export function ProjectMeetingsSection({
           {meetings.length === 0 && (
             <div className="px-5 py-8 text-center">
               <p className="text-lg font-semibold text-[var(--paper-foreground)]">还没有会议</p>
-              <p className="mt-2 text-base text-[var(--glass-text-muted)]">
+              <p className="mt-2 text-base text-[var(--research-muted)]">
                 {canManage
                   ? '安排第一次例会，让讨论定期发生。'
                   : '等组长安排第一次例会后，这里会显示会议安排与纪要。'}
@@ -714,14 +714,14 @@ export function ProjectMeetingsSection({
                             className={cn(
                               'text-base font-semibold',
                               meeting.status === 'cancelled'
-                                ? 'text-[var(--glass-text-muted)] line-through'
+                                ? 'text-[var(--research-muted)] line-through'
                                 : 'text-[var(--paper-foreground)]'
                             )}
                           >
                             {meeting.title}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm tabular-nums text-[var(--glass-text-muted)]">
+                        <p className="mt-1 text-sm tabular-nums text-[var(--research-muted)]">
                           {formatMeetingMeta(meeting)}
                         </p>
                       </div>
@@ -732,7 +732,7 @@ export function ProjectMeetingsSection({
                           onClick={() => toggleExpanded(meeting.id)}
                           aria-expanded={isExpanded}
                           aria-label={`会议详情 ${meeting.title}`}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-[var(--paper-foreground)] hover:bg-[var(--glass-chip)]"
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-[var(--paper-foreground)] hover:bg-[var(--research-chip)]"
                         >
                           详情
                           <ChevronDown

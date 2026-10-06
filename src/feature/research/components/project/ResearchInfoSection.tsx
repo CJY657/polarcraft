@@ -34,7 +34,7 @@ export function ResearchInfoSection({
             <button
               type="button"
               onClick={onManageQuestions}
-              className="glass-button inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold"
+              className="research-button inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold"
             >
               管理问题
             </button>
@@ -63,7 +63,7 @@ export function ResearchInfoSection({
 
       {outline.basicPlan?.trim() && (
         <ResearchSectionCard title="基础实验与问题">
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
             {outline.basicPlan}
           </p>
         </ResearchSectionCard>
@@ -71,7 +71,7 @@ export function ResearchInfoSection({
 
       {outline.extendedPlan?.trim() && (
         <ResearchSectionCard title="拓展问题、假设与实验">
-          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--glass-text-muted)]">
+          <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
             {outline.extendedPlan}
           </p>
         </ResearchSectionCard>

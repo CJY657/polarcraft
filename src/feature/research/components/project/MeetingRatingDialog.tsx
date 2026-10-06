@@ -164,7 +164,7 @@ export function MeetingRatingDialog({
           type="button"
           onClick={handleClose}
           aria-label="关闭"
-          className="rounded-md p-1.5 text-[var(--glass-text-muted)] hover:bg-[var(--glass-chip)]"
+          className="rounded-md p-1.5 text-[var(--research-muted)] hover:bg-[var(--research-chip)]"
         >
           <X className="h-5 w-5" />
         </button>
@@ -176,7 +176,7 @@ export function MeetingRatingDialog({
         )}
 
         {isLoading && (
-          <div className="flex items-center justify-center gap-3 px-5 py-10 text-[var(--glass-text-muted)]" role="status">
+          <div className="flex items-center justify-center gap-3 px-5 py-10 text-[var(--research-muted)]" role="status">
             <Loader2 className="h-5 w-5 animate-spin text-[var(--paper-accent)]" />
             <span className="text-base font-medium">正在加载互评数据...</span>
           </div>
@@ -184,11 +184,11 @@ export function MeetingRatingDialog({
 
         {!isLoading && loadError && (
           <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-base text-[var(--glass-text-muted)]">{loadError}</p>
+            <p className="text-base text-[var(--research-muted)]">{loadError}</p>
             <button
               type="button"
               onClick={() => void loadMyRatings()}
-              className="glass-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
+              className="research-button inline-flex shrink-0 items-center justify-center self-start rounded-md px-4 py-2 text-base font-semibold sm:self-auto"
             >
               重试
             </button>
@@ -196,7 +196,7 @@ export function MeetingRatingDialog({
         )}
 
         {!isLoading && !loadError && fellowAttendeeIds.length === 0 && (
-          <p className="px-5 py-8 text-center text-base text-[var(--glass-text-muted)]">
+          <p className="px-5 py-8 text-center text-base text-[var(--research-muted)]">
             本次会议没有其他实到成员，无需互评。
           </p>
         )}
@@ -212,7 +212,7 @@ export function MeetingRatingDialog({
               return (
                 <li key={userId} className="grid gap-2.5 px-5 py-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--glass-chip)] text-sm font-semibold text-[var(--glass-text-muted)]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">
                       {getUserIdentityInitial(member, '成')}
                     </span>
                     <span className="text-base font-semibold text-[var(--paper-foreground)]">{name}</span>
@@ -239,7 +239,7 @@ export function MeetingRatingDialog({
                               'h-6 w-6',
                               filled
                                 ? 'fill-current text-[var(--clay-ochre)]'
-                                : 'text-[var(--glass-text-muted)]'
+                                : 'text-[var(--research-muted)]'
                             )}
                           />
                         </button>
@@ -267,7 +267,7 @@ export function MeetingRatingDialog({
                       onClick={() => void handleSave(userId, name)}
                       disabled={isBusy || draft.score < 1}
                       aria-label={`保存对 ${name} 的互评`}
-                      className="glass-button glass-button-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="research-button research-button-primary inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                       {savedRateeIds.has(userId) ? '更新' : '保存'}
@@ -285,7 +285,7 @@ export function MeetingRatingDialog({
           type="button"
           onClick={handleClose}
           disabled={isBusy}
-          className="glass-button rounded-md px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          className="research-button rounded-md px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           完成
         </button>

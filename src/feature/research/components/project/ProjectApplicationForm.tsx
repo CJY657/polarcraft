@@ -258,7 +258,7 @@ export function ProjectApplicationForm({
                 theme === "dark" ? "text-[#fef3c7]" : "text-[#78350f]"
               )}
               style={{
-                borderColor: "color-mix(in srgb, #f59e0b 42%, var(--glass-stroke))",
+                borderColor: "color-mix(in srgb, #f59e0b 42%, var(--research-line))",
                 background: "color-mix(in srgb, #f59e0b 14%, transparent)",
               }}
             >
