@@ -133,7 +133,7 @@ export function ResearchAgentPanel({
             "border-[1.5px] border-[var(--research-edge)]",
             "bg-[var(--research-surface)] text-[var(--paper-foreground)]",
             "shadow-[var(--research-lift)]",
-            "animate-fade-in-up",
+            "research-rise",
           )}
           style={{
             width: "min(calc(100vw - 2rem), 400px)",

@@ -232,7 +232,7 @@ export function ProjectPeerReviewSection({
             评审标准
             <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[var(--research-muted)] transition-transform group-open:rotate-180" />
           </summary>
-          <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
+          <p className="research-details-body mt-2 whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
             {reviewCriteria.trim()}
           </p>
         </details>

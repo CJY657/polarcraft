@@ -282,7 +282,7 @@ export function ProjectMembersSection({
             <div role="alert" className="research-error mt-2 rounded-md px-3 py-2 text-sm">{restoreMemberError}</div>
           )}
 
-          <ul className="mt-2 grid gap-1">
+          <ul className="research-details-body mt-2 grid gap-1">
             {formerMembers.map((member) => (
               <li key={member.id} className="flex items-center gap-2.5 rounded-lg px-2 py-2">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">

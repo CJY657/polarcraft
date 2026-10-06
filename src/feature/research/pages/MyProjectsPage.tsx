@@ -127,14 +127,14 @@ export function MyProjectsPage() {
               <div className="relative mt-8 flex flex-wrap gap-3">
                 <button
                   onClick={() => openDialog("login")}
-                  className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5"
+                  className="research-button research-button-primary research-hover-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white"
                 >
                   <LogIn className="h-4 w-4" />
                   立即登录
                 </button>
                 <Link
                   to="/lab/explore"
-                  className="research-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
+                  className="research-button research-hover-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium"
                 >
                   <Search className="h-4 w-4 text-[var(--paper-link)]" />
                   浏览公开课题
@@ -180,14 +180,14 @@ export function MyProjectsPage() {
               <button
                 onClick={handleCreateProject}
                 disabled={!isSystemHealthy}
-                className="research-button research-button-primary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="research-button research-button-primary research-hover-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus className="h-4 w-4" />
                 创建新课题
               </button>
               <Link
                 to="/lab/explore"
-                className="research-button inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-all hover:-translate-y-0.5"
+                className="research-button research-hover-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium"
               >
                 <Search className="h-4 w-4 text-[var(--paper-link)]" />
                 寻找协作课题

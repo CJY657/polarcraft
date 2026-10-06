@@ -392,7 +392,7 @@ export function ProjectMeetingsSection({
 
   function renderMeetingDetail(meeting: ProjectMeeting) {
     return (
-      <div className="border-t border-[var(--research-line)] px-5 py-4">
+      <div className="research-rise border-t border-[var(--research-line)] px-5 py-4">
         {isDetailLoading && (
           <div className="flex items-center gap-3 text-[var(--research-muted)]" role="status">
             <Loader2 className="h-4 w-4 animate-spin text-[var(--paper-accent)]" />

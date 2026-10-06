@@ -256,7 +256,7 @@ export function PublicProjectExplorePage() {
                   className={cn(
                     "group relative inline-flex h-8 items-center gap-1.5 rounded-full px-2 pr-2.5 text-xs font-semibold",
                     "bg-clay-lavender text-clay-ink",
-                    "transition-transform hover:-translate-y-0.5",
+                    "research-hover-lift",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-pink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-bg)]"
                   )}
                   aria-label="打开研究小组指南 Research Group Guide"
@@ -288,7 +288,7 @@ export function PublicProjectExplorePage() {
           <div className="relative flex shrink-0 items-center gap-2.5">
             <Link
               to="/lab/projects"
-              className="research-button inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all hover:-translate-y-0.5"
+              className="research-button research-hover-lift inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium"
             >
               <Users className="h-4 w-4 text-[var(--paper-link)]" />
               我的课题
@@ -296,7 +296,7 @@ export function PublicProjectExplorePage() {
             <button
               onClick={handleCreateProject}
               disabled={!isSystemHealthy}
-              className="research-button research-button-primary inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              className="research-button research-button-primary research-hover-lift inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Plus className="h-4 w-4" />
               新建课题
@@ -471,7 +471,7 @@ export function PublicProjectExplorePage() {
                   <Link
                     to={`/lab/projects/${project.id}`}
                     state={{ readOnly: !project.is_member }}
-                    className="research-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    className="research-button research-hover-lift inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-medium"
                   >
                     {project.is_member ? "进入课题" : "查看详情"}
                   </Link>
@@ -481,7 +481,7 @@ export function PublicProjectExplorePage() {
                       onClick={() => handleApplyClick(project)}
                       disabled={project.has_pending_application}
                       className={cn(
-                        "research-button inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
+                        "research-button research-hover-lift inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60",
                         project.is_recruiting === false && !project.has_pending_application
                           ? "research-tint-ochre text-[var(--paper-foreground)]"
                           : "research-button-primary text-white"
@@ -502,7 +502,7 @@ export function PublicProjectExplorePage() {
               type="button"
               onClick={() => void handleLoadMore()}
               disabled={isLoadingMore}
-              className="research-button inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-base font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              className="research-button research-hover-lift inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoadingMore ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

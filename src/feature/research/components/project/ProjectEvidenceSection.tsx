@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { Reorder, useDragControls } from 'framer-motion';
+import { Reorder, useDragControls, useReducedMotion } from 'framer-motion';
 import {
   AlertCircle,
   ArrowDown,
@@ -188,6 +188,7 @@ function EvidenceOrderItem({
   onMoveDown,
 }: EvidenceOrderItemProps) {
   const dragControls = useDragControls();
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <Reorder.Item
@@ -195,7 +196,7 @@ function EvidenceOrderItem({
       value={evidence}
       dragListener={false}
       dragControls={dragControls}
-      whileDrag={{ scale: 1.01, boxShadow: '0 18px 40px rgba(15, 23, 42, 0.18)' }}
+      whileDrag={shouldReduceMotion ? undefined : { scale: 1.01, boxShadow: '3px 3px 0 0 var(--research-edge)' }}
       className="research-panel-soft flex items-center gap-3 rounded-2xl p-3"
     >
       <button

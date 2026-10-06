@@ -1111,7 +1111,7 @@ export function ProjectDiscussionSection({
         id={contentId}
         role="region"
         aria-labelledby={`${contentId}-trigger`}
-        className="scroll-mt-28 border-t border-[var(--research-line)] bg-[var(--research-surface)] p-3 sm:p-4"
+        className="research-rise scroll-mt-28 border-t border-[var(--research-line)] bg-[var(--research-surface)] p-3 sm:p-4"
       >
         <div className="research-panel-soft rounded-lg p-4">
           <TopicReferenceTextarea

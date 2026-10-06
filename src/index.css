@@ -657,6 +657,59 @@ html {
     color: var(--glass-text-muted);
   }
 
+  /* Open-only motion: revealed content rises; hover lift; reduced-motion resets / 展开上浮与悬停抬升 */
+  @keyframes research-rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .research-rise {
+    animation: research-rise 200ms var(--glass-ease);
+  }
+
+  details[open] .research-details-body {
+    animation: research-rise 200ms var(--glass-ease);
+  }
+
+  .research-hover-lift {
+    transition:
+      transform 160ms var(--glass-ease),
+      box-shadow 160ms var(--glass-ease);
+  }
+
+  .research-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--research-lift);
+  }
+
+  .research-hover-lift:active {
+    transform: translate(1px, 1px);
+    box-shadow: none;
+  }
+
+  .research-hover-lift:disabled:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .research-rise,
+    details[open] .research-details-body {
+      animation: none;
+    }
+
+    .research-hover-lift:hover,
+    .research-hover-lift:active {
+      transform: none;
+    }
+  }
+
   /* ===== Clay claymation system ===== */
   .clay-canvas {
     background-color: var(--clay-canvas);
