@@ -10,11 +10,14 @@ export function ResearchDangerPanel({
   title,
   description,
   actions,
+  children,
   className,
 }: {
   title: string;
   description?: string;
   actions: ReactNode;
+  /** Extra body content under the description (e.g. a confirmation input). */
+  children?: ReactNode;
   className?: string;
 }) {
   return (
@@ -38,6 +41,7 @@ export function ResearchDangerPanel({
             {description && (
               <p className="mt-1 text-base leading-6 text-[var(--research-muted)]">{description}</p>
             )}
+            {children}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:justify-end">{actions}</div>

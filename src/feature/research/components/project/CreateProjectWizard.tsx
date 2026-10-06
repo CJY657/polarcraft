@@ -250,18 +250,6 @@ export function CreateProjectWizard({ isOpen, onClose, onSuccess }: CreateProjec
                 />
               </div>
 
-              {/* <div>
-                <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
-                  {t('lab.projectName')} (English)
-                </label>
-                <input
-                  type="text"
-                  value={projectData.name_en}
-                  onChange={(e) => setProjectData({ ...projectData, name_en: e.target.value })}
-                  className="research-input w-full rounded-lg px-3 py-2 text-base"
-                />
-              </div> */}
-
               <div>
                 <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
                   {t('lab.projectDescription')} (中文)

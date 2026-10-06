@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
-import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/utils/classNames";
+import { ResearchDangerPanel } from "../shared/ResearchDangerPanel";
 
 const DELETE_CONFIRMATION_KEYWORD = "DELETE";
 
@@ -48,7 +49,7 @@ export function ProjectDeleteAction({
           setIsArmed(true);
         }}
         className={cn(
-          "research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[#a24432] transition-colors hover:text-[#892c1d]",
+          "research-button inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-medium text-[var(--color-destructive)]",
           className
         )}
       >
@@ -59,57 +60,12 @@ export function ProjectDeleteAction({
   }
 
   return (
-    <div
-      className={cn(
-        "rounded-[1.45rem] border p-4",
-        className
-      )}
-      style={{
-        borderColor: "color-mix(in srgb, #cb6a4f 30%, var(--research-line))",
-        background: "color-mix(in srgb, #cb6a4f 8%, var(--research-surface))",
-      }}
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#cb6a4f]/12 text-[#a24432]">
-            <AlertTriangle className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-semibold text-[var(--paper-foreground)]">确认删除「{projectName}」</p>
-            <p className="mt-1 text-base leading-6 text-[var(--research-muted)]">
-              删除后会一并移除成员、画布和讨论记录，这个操作无法恢复。
-            </p>
-            <div className="mt-3 max-w-sm">
-              <label
-                htmlFor={confirmationInputId}
-                className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--research-muted)]"
-              >
-                输入大写 DELETE 以确认删除
-              </label>
-              <input
-                id={confirmationInputId}
-                type="text"
-                value={confirmationText}
-                onChange={(event) => {
-                  setConfirmationText(event.target.value);
-                  if (error) {
-                    setError(null);
-                  }
-                }}
-                disabled={isDeleting}
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="DELETE"
-                className="mt-2 w-full rounded-2xl border border-[var(--research-line)] bg-white/70 px-4 py-3 text-base text-[var(--paper-foreground)] outline-none transition focus:border-[#cb6a4f] focus:ring-2 focus:ring-[#cb6a4f]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-950/40"
-              />
-              <p className="mt-2 text-sm leading-5 text-[var(--research-muted)]">
-                只有输入完全匹配的 <span className="font-semibold text-[var(--paper-foreground)]">DELETE</span> 才会启用删除按钮。
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 sm:justify-end">
+    <ResearchDangerPanel
+      className={className}
+      title={`确认删除「${projectName}」`}
+      description="删除后会一并移除成员、画布和讨论记录，这个操作无法恢复。"
+      actions={
+        <>
           <button
             type="button"
             onClick={() => {
@@ -126,19 +82,45 @@ export function ProjectDeleteAction({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={isDeleting || !isConfirmationValid}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#a24432] px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-[#892c1d] disabled:cursor-not-allowed disabled:opacity-60"
+            className="research-button-danger inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             {isDeleting ? "删除中..." : "确认删除"}
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="mt-3 max-w-sm">
+        <label
+          htmlFor={confirmationInputId}
+          className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--research-muted)]"
+        >
+          输入大写 DELETE 以确认删除
+        </label>
+        <input
+          id={confirmationInputId}
+          type="text"
+          value={confirmationText}
+          onChange={(event) => {
+            setConfirmationText(event.target.value);
+            if (error) {
+              setError(null);
+            }
+          }}
+          disabled={isDeleting}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="DELETE"
+          className="research-input mt-2 w-full rounded-2xl px-4 py-3 text-base disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <p className="mt-2 text-sm leading-5 text-[var(--research-muted)]">
+          只有输入完全匹配的 <span className="font-semibold text-[var(--paper-foreground)]">DELETE</span> 才会启用删除按钮。
+        </p>
       </div>
 
       {error && (
-        <div className="mt-4 rounded-[1rem] border border-[#cb6a4f]/20 bg-[#cb6a4f]/8 px-4 py-3 text-base text-[#a24432]">
-          {error}
-        </div>
+        <div className="research-error mt-4 rounded-[1rem] px-4 py-3 text-base">{error}</div>
       )}
-    </div>
+    </ResearchDangerPanel>
   );
 }

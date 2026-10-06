@@ -179,19 +179,6 @@ export function ProjectEditDialog({
             />
           </div>
 
-          {/* Project Name (English) */}
-          {/* <div>
-            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
-              {t('lab.projectName')} (English)
-            </label>
-            <input
-              type="text"
-              value={formData.name_en}
-              onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-              className="research-input w-full rounded-lg px-3 py-2 text-base"
-            />
-          </div> */}
-
           {/* Description (Chinese) */}
           <div>
             <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
@@ -262,19 +249,6 @@ export function ProjectEditDialog({
             value={formData}
             onChange={setFormData}
           />
-
-          {/* Description (English) */}
-          {/* <div>
-            <label className="block text-base font-medium mb-1.5 text-[var(--paper-foreground)]">
-              {t('lab.projectDescription')} (English)
-            </label>
-            <textarea
-              value={formData.description_en}
-              onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
-              rows={4}
-              className="research-input w-full resize-none rounded-lg px-3 py-2 text-base"
-            />
-          </div> */}
 
           {/* Status */}
           <div>

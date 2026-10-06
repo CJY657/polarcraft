@@ -98,7 +98,7 @@ export function MyProjectsPage() {
           moduleKey="labGroup"
           moduleNameKey="我的研究项目"
           variant="glass"
-          className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
+          className="sticky top-0 z-40 bg-[var(--research-head)] text-[var(--paper-foreground)] backdrop-blur-xl [&_.bg-clay-surface-card]:bg-[var(--research-chip)] [&_.text-clay-ink]:text-[var(--paper-foreground)] [&_.text-clay-muted]:text-[var(--research-muted)]"
         />
 
         <main className="research-shell py-8">
@@ -151,7 +151,7 @@ export function MyProjectsPage() {
         moduleKey="labGroup"
         moduleNameKey="我的研究项目"
         variant="glass"
-        className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl dark:bg-slate-900/80"
+        className="sticky top-0 z-40 bg-[var(--research-head)] text-[var(--paper-foreground)] backdrop-blur-xl [&_.bg-clay-surface-card]:bg-[var(--research-chip)] [&_.text-clay-ink]:text-[var(--paper-foreground)] [&_.text-clay-muted]:text-[var(--research-muted)]"
       />
 
       <main className="research-shell py-6 md:py-8">
