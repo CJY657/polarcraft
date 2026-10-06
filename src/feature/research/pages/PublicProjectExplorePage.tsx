@@ -431,19 +431,21 @@ export function PublicProjectExplorePage() {
                   />
                 </div>
                 <div className="mt-4 flex flex-1 flex-col space-y-3">
-                  <div className="research-panel-soft rounded-[1rem] px-4 py-3">
+                  <div
+                    className={cn(
+                      "research-panel-soft rounded-[1rem] px-4 py-3",
+                      project.status === "forming" && "research-tint-lavender"
+                    )}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="research-chip flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
                           <FlaskConical className="h-4 w-4 text-[var(--paper-link)]" />
                         </span>
                         <div>
-                          <p className="text-sm font-medium text-[var(--research-muted)]">课题与成员</p>
-                          {formatProjectIssueNumber(project.issue_number) && (
-                            <p className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--paper-foreground)]">
-                              {formatProjectIssueNumber(project.issue_number)}
-                            </p>
-                          )}
+                          <p className="research-kicker">
+                            研究议题{formatProjectIssueNumber(project.issue_number) && ` · №${project.issue_number}`}
+                          </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">

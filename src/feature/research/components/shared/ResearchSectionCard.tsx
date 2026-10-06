@@ -12,6 +12,10 @@ import { cn } from "@/utils/classNames";
 
 interface ResearchSectionCardProps {
   title: string;
+  /** Small category eyebrow above the title (research-kicker). */
+  kicker?: string;
+  /** Notebook step number rendered as a step dot beside the title. */
+  step?: number;
   /** Rendered right-aligned in the head strip — counts, filters, buttons. */
   actions?: ReactNode;
   /** Short line under the title. Omit when the title already says enough. */
@@ -26,6 +30,8 @@ interface ResearchSectionCardProps {
 
 export function ResearchSectionCard({
   title,
+  kicker,
+  step,
   actions,
   note,
   children,
@@ -34,16 +40,30 @@ export function ResearchSectionCard({
   id,
   "aria-label": ariaLabel,
 }: ResearchSectionCardProps) {
+  const titleNode = (
+    <h2
+      className="text-xl font-semibold text-[var(--paper-foreground)]"
+      style={{ fontFamily: "var(--font-ui-display)" }}
+    >
+      {title}
+    </h2>
+  );
+
   return (
     <section id={id} aria-label={ariaLabel} className={cn("research-card", className)}>
       <div className="research-card-head">
         <div className="min-w-0">
-          <h2
-            className="text-xl font-semibold text-[var(--paper-foreground)]"
-            style={{ fontFamily: "var(--font-ui-display)" }}
-          >
-            {title}
-          </h2>
+          {kicker && <p className="research-kicker">{kicker}</p>}
+          {typeof step === "number" ? (
+            <div className="flex items-center gap-2.5">
+              <span className="research-step-dot" aria-hidden="true">
+                {step}
+              </span>
+              {titleNode}
+            </div>
+          ) : (
+            titleNode
+          )}
           {note && <p className="research-section-note mt-0.5">{note}</p>}
         </div>
         {actions && <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>}

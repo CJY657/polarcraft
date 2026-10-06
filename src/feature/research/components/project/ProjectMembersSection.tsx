@@ -78,6 +78,8 @@ export function ProjectMembersSection({
   return (
     <ResearchSectionCard
       title="团队成员"
+      kicker="Members"
+      step={7}
       actions={
         <>
           <ResearchChip className="px-2.5 py-0.5 font-semibold tabular-nums">

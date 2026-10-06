@@ -1291,6 +1291,8 @@ export function ProjectDiscussionSection({
     <>
       <ResearchSectionCard
         title="课题讨论区"
+        kicker="Discussion"
+        step={6}
         note="围绕研究问题展开的组内讨论"
         actions={
           <ResearchChip className="rounded-md font-semibold tabular-nums">

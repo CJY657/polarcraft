@@ -187,6 +187,8 @@ export function ProjectPeerReviewSection({
   return (
     <ResearchSectionCard
       title="同伴评审"
+      kicker="Peer Review"
+      step={3}
       note="其他同学对课题的评审反馈"
       actions={
         isReviewPending && (

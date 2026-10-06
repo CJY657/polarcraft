@@ -244,6 +244,8 @@ export function ProjectTasksSection({
   return (
     <ResearchSectionCard
       title="任务分工"
+      kicker="Tasks"
+      step={4}
       note="课题任务与认领情况"
       flush
       actions={

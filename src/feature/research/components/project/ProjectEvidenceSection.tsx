@@ -524,6 +524,8 @@ export function ProjectEvidenceSection({
   return (
     <ResearchSectionCard
       title="证据库"
+      kicker="Evidence"
+      step={2}
       note="实验记录、数据与阶段性成果"
       actions={
         canManage && (

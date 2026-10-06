@@ -284,7 +284,10 @@ export function MeetingMinutesDialog({
       <div className="grid max-h-[min(72vh,40rem)] gap-4 overflow-y-auto px-5 py-4">
         {/* ① 原始记录 */}
         <section className="grid gap-2">
-          <h3 className="text-base font-semibold text-[var(--paper-foreground)]">① 会议原始记录</h3>
+          <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
+            <span className="research-step-dot" aria-hidden="true">1</span>
+            会议原始记录
+          </h3>
           <textarea
             value={rawNotes}
             onChange={(event) => setRawNotes(event.target.value)}
@@ -339,9 +342,10 @@ export function MeetingMinutesDialog({
 
         {/* ② 实到成员 */}
         <section className="grid gap-2">
-          <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
-            ② 勾选实到成员
-            <span className="ml-2 text-sm font-normal text-[var(--research-muted)]">
+          <h3 className="flex flex-wrap items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
+            <span className="research-step-dot" aria-hidden="true">2</span>
+            勾选实到成员
+            <span className="text-sm font-normal text-[var(--research-muted)]">
               已选 {attendeeIds.length} / {members.length} 人
             </span>
           </h3>
@@ -370,7 +374,10 @@ export function MeetingMinutesDialog({
 
         {/* ③ 生成 / 手动撰写 */}
         <section className="grid gap-2">
-          <h3 className="text-base font-semibold text-[var(--paper-foreground)]">③ 生成结构化纪要</h3>
+          <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
+            <span className="research-step-dot" aria-hidden="true">3</span>
+            生成结构化纪要
+          </h3>
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
@@ -399,13 +406,11 @@ export function MeetingMinutesDialog({
         {/* ④ 预览编辑与归档 */}
         {isEditorOpen && (
           <section className="grid gap-2.5">
-            <h3 className="text-base font-semibold text-[var(--paper-foreground)]">
-              ④ 纪要预览（可编辑）
+            <h3 className="flex flex-wrap items-center gap-2 text-base font-semibold text-[var(--paper-foreground)]">
+              <span className="research-step-dot" aria-hidden="true">4</span>
+              纪要预览（可编辑）
               <ResearchChip
-                className={cn(
-                  'ml-2 rounded-md px-2 py-0.5 text-xs font-semibold',
-                  generatedByAi && 'research-chip-accent'
-                )}
+                className={cn('rounded-md px-2 py-0.5 text-xs font-semibold', generatedByAi && 'research-chip-accent')}
               >
                 {generatedByAi ? 'AI 生成' : '手动撰写'}
               </ResearchChip>

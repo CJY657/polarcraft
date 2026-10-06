@@ -543,6 +543,8 @@ export function ProjectMeetingsSection({
   return (
     <ResearchSectionCard
       title="会议"
+      kicker="Meetings"
+      step={5}
       note="例会排期、AI 纪要归档与成员表现"
       flush
       actions={

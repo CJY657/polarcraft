@@ -28,6 +28,8 @@ export function ResearchInfoSection({
     <div className="flex flex-col gap-4.5">
       <ResearchSectionCard
         title="研究信息"
+        kicker="Overview"
+        step={1}
         note="课题的研究主题、实验计划与研究假设"
         actions={
           canManageQuestions && (

@@ -114,9 +114,7 @@ export function MyProjectsPage() {
                     <h1 className="research-title-page text-[var(--paper-foreground)]" style={{ fontFamily: "var(--font-ui-display)" }}>
                       我的课题
                     </h1>
-                    <p className="mt-1 text-sm font-medium uppercase tracking-[0.18em] text-[var(--research-muted)]">
-                      My Research Projects
-                    </p>
+                    <p className="research-kicker mt-1">My Research Projects</p>
                   </div>
                 </div>
                 <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--research-muted)]">
