@@ -5,6 +5,7 @@
  * Renders the topic summary, plans, and read-only research hypotheses.
  */
 
+import { cn } from "@/utils/classNames";
 import { ResearchSectionCard } from "../shared/ResearchSectionCard";
 import { hasResearchOutline } from "../../pages/researchProjectViewModel";
 import type { ProjectDiscussionOutline } from "./ProjectDiscussionSection";
@@ -19,18 +20,24 @@ export function ResearchInfoSection({
   onManageQuestions: () => void;
 }) {
   const hasHypotheses = outline.hypotheses.length > 0;
+  const hasBasicPlan = Boolean(outline.basicPlan?.trim());
+  const hasExtendedPlan = Boolean(outline.extendedPlan?.trim());
+  // Two columns only when there is more than one card; a lone card would sit half-width.
+  // 仅多卡时双栏，单卡不半宽。
+  const useColumns = hasHypotheses || hasBasicPlan || hasExtendedPlan;
 
   if (!hasResearchOutline(outline)) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-4.5">
+    <div className={cn("flex flex-col gap-4.5", useColumns && "xl:block xl:columns-2")}>
       <ResearchSectionCard
         title="研究信息"
         kicker="Overview"
         step={1}
         note="课题的研究主题、实验计划与研究假设"
+        className="xl:mb-4.5 xl:break-inside-avoid"
         actions={
           canManageQuestions && (
             <button
@@ -49,7 +56,7 @@ export function ResearchInfoSection({
       </ResearchSectionCard>
 
       {hasHypotheses && (
-        <ResearchSectionCard title="研究假设">
+        <ResearchSectionCard title="研究假设" className="xl:mb-4.5 xl:break-inside-avoid">
           <ul className="flex flex-col gap-2.5">
             {outline.hypotheses.map((hypothesis, index) => (
               <li
@@ -63,16 +70,16 @@ export function ResearchInfoSection({
         </ResearchSectionCard>
       )}
 
-      {outline.basicPlan?.trim() && (
-        <ResearchSectionCard title="基础实验与问题">
+      {hasBasicPlan && (
+        <ResearchSectionCard title="基础实验与问题" className="xl:mb-4.5 xl:break-inside-avoid">
           <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
             {outline.basicPlan}
           </p>
         </ResearchSectionCard>
       )}
 
-      {outline.extendedPlan?.trim() && (
-        <ResearchSectionCard title="拓展问题、假设与实验">
+      {hasExtendedPlan && (
+        <ResearchSectionCard title="拓展问题、假设与实验" className="xl:mb-4.5 xl:break-inside-avoid">
           <p className="whitespace-pre-wrap text-base leading-7 text-[var(--research-muted)]">
             {outline.extendedPlan}
           </p>

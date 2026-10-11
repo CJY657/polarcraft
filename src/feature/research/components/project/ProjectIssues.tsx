@@ -181,15 +181,15 @@ export function ProjectIssueDetail({ project, className }: ProjectIssueDetailPro
   ];
 
   return (
-    <div className={cn('grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]', className)}>
+    <div className={cn('grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]', className)}>
       <aside
-        className="research-card self-start lg:col-start-2 lg:row-start-1"
+        className="research-card self-start xl:col-start-2 xl:row-start-1"
         aria-label="议题协作信息"
       >
         <div className="research-card-head">
           <h2 className="text-lg font-bold text-[var(--paper-foreground)]">协作信息</h2>
         </div>
-        <div className="divide-y divide-[var(--research-line)]">
+        <div className="divide-y divide-[var(--research-line)] md:max-xl:grid md:max-xl:grid-cols-3 md:max-xl:divide-x md:max-xl:divide-y-0">
           <section className="research-tint-pink p-4">
             <h3 className="mb-2.5 text-base font-bold text-[var(--paper-foreground)]">当前缺口</h3>
             <IssueRoleList
@@ -214,7 +214,7 @@ export function ProjectIssueDetail({ project, className }: ProjectIssueDetailPro
       </aside>
 
       <article
-        className="research-card lg:col-start-1 lg:row-start-1"
+        className="research-card xl:col-start-1 xl:row-start-1"
         aria-label="议题正文"
       >
         <IssueBodySection title="议题价值">

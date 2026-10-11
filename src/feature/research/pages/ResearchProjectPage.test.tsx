@@ -1034,7 +1034,7 @@ describe("ResearchProjectPage", () => {
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
     expect(await screen.findByText("关闭招募公开课题")).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "登录后加入" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "登录后申请加入" })[0]);
 
     expect(openDialog).toHaveBeenCalledWith("login");
     expect(screen.queryByRole("button", { name: "协作设置" })).toBeNull();

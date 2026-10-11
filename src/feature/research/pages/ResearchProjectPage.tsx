@@ -505,7 +505,6 @@ export function ResearchProjectPage() {
     hasPendingApplication,
     applicationProject,
     applyButtonLabel,
-    applyBannerButtonLabel,
     applyButtonDisabled,
     isPublicGuestMode,
     isAdmin,
@@ -567,7 +566,7 @@ export function ResearchProjectPage() {
         rightContent={
           <Link
             to={backHref}
-            className="research-button inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-base font-medium"
+            className="research-button inline-flex items-center gap-1 whitespace-nowrap rounded-full px-4 py-1.5 text-base font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             返回
@@ -578,17 +577,10 @@ export function ResearchProjectPage() {
       <main className="research-shell py-6 md:py-8">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div className="research-tint-ochre mb-7 flex flex-col gap-4 rounded-[0.625rem] border-[1.5px] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="research-tint-ochre mb-7 rounded-[0.625rem] border-[1.5px] px-5 py-3.5">
             <p className="text-base font-semibold text-[var(--paper-foreground)]">
               {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
             </p>
-            <button
-              onClick={handleApplyAction}
-              disabled={applyButtonDisabled}
-              className="research-button research-button-primary w-full self-start rounded-md px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-auto"
-            >
-              {applyBannerButtonLabel}
-            </button>
           </div>
         )}
 
@@ -758,7 +750,7 @@ export function ResearchProjectPage() {
             <div
               role="tablist"
               aria-label="课题内容导航"
-              className="research-tabbar sticky top-20 z-30 mb-5"
+              className="research-tabbar sticky top-16 z-30 mb-5"
             >
               {projectTabs.map((tab) => (
                 <button

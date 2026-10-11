@@ -1,0 +1,28 @@
+{
+  "id": "research-project-layout",
+  "name": "research-project-layout",
+  "title": "课题组：项目详情页多栏布局优化",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "polarcraft",
+  "assignee": "polarcraft",
+  "createdAt": "2026-10-11",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "参考 Shopify 多栏布局指南优化课题详情页：议题子栏改 xl 断点并在 768–1279px 折叠为三栏横带；研究设计 ≥1280px 多卡双栏；合并只读态重复 CTA；吸顶标签栏消缝。"
+  }
+}

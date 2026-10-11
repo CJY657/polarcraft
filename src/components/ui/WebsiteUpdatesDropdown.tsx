@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-10-06-research-ui-polish',
+    date: '2026年10月6日',
+    title: '虚拟课题组阅读与操作体验升级',
+    description:
+      '课题组页面统一了笔记式界面、字号与状态标识，议题卡片和步骤层级更清楚，投影阅读更轻松。弹窗适配手机底部展开，加入申请支持直接填写拒绝备注，并优化了深色模式、键盘焦点与展开动效。',
+    href: '/lab/explore',
+  },
+  {
     id: '2026-09-30-browsing-performance',
     date: '2026年9月30日',
     title: '实验目录与讨论性能优化',
