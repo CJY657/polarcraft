@@ -26,6 +26,22 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-10-14-about-platform-introduction',
+    date: '2026年10月14日',
+    title: '关于页面新增平台与模块介绍',
+    description:
+      '“关于”页面新增平台简介和六个模块说明，方便了解偏振光学实验、仪器探索、成果展示与虚拟课题组。模块三、四仍在建设中。',
+    href: '/about',
+  },
+  {
+    id: '2026-10-11-research-project-layout',
+    date: '2026年10月11日',
+    title: '课题组详情页版面优化',
+    description:
+      '课题详情页调整了不同屏幕宽度下的排版：平板上横向展示协作信息，宽屏下将多张研究信息卡片分栏；只有一张卡片时仍占满整行。',
+    href: '/lab/explore',
+  },
+  {
     id: '2026-10-06-research-ui-polish',
     date: '2026年10月6日',
     title: '虚拟课题组阅读与操作体验升级',

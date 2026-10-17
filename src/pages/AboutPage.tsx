@@ -99,6 +99,29 @@ const LEARNING_FLOW = [
   },
 ];
 
+const OFFICIAL_MODULES = [
+  {
+    label: "模块一",
+    text: "针对颠覆创新挑战营初级研究训练课程（PSRT）而设计，包含一系列基于偏振光学的基础性实验，以及前期学生所做拓展实验和应用。学生从最简单的基础实验展开探索，发现新现象，定义新问题，通过自组团队开展自主小课题研究。模块中包含大量案例，激发同学的创新欲望，产生自己的创新成果。",
+  },
+  {
+    label: "模块二",
+    text: "利用几种自行研发的偏振光学原创仪器设备，针对样本的微观结构特征进行表征和测量，探索在海洋颗粒物检测和精细分类，以及其他交叉学科领域的应用潜力。",
+  },
+  {
+    label: "模块三和四",
+    text: "仍在建设中，将分别提供计算模拟和游戏化功能。",
+  },
+  {
+    label: "模块五",
+    text: "为成果展示，保留历届学生的学习结果，展示典型成果。",
+  },
+  {
+    label: "模块六",
+    text: "提供虚拟课题组平台，学生可以针对自己感兴趣课题，自行组队，自主研究。模块六致力于AI时代的新型研究范式的探索和自组织创新生态建设，可对进阶研究-精神学习不同阶段和不同层次的研究课题进行组织、跟踪和评估。",
+  },
+];
+
 function Reveal({ children, className }: { children: ReactNode; className?: string; delay?: number }) {
   return <div className={className}>{children}</div>;
 }
@@ -215,6 +238,29 @@ export default function AboutPage() {
       <PersistentHeader variant="solid" showBreadcrumb={false} />
 
       <main className="relative mx-auto flex max-w-7xl flex-col px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+
+        <Reveal className="pb-4 pt-6 md:pb-8 md:pt-16">
+          <section aria-label="平台简介" className="max-w-3xl">
+            <Eyebrow>平台简介</Eyebrow>
+            <p className="mt-5 text-lg leading-9 text-[var(--glass-text-muted)] [font-family:var(--about-display)] sm:text-xl sm:leading-10">
+              本软件平台目前服务于深圳零一学院深空海地学域创新人才培养课程体系。平台围绕偏振光学基础知识和方法，以及海洋颗粒物探测方法和应用，让学生们体验零一学院所倡导的研究型学习教学方法，激发学生开展零到一研究、发明和创新的内生动力，筛选敢于突破边界的X型学生，进入零一陪长体系，按照进阶研究-精神学习阶梯持续成长。
+            </p>
+            <p className="mt-9 text-base font-medium leading-8 text-[var(--paper-foreground)]">平台包含六个模块。</p>
+            <ul className="mt-1">
+              {OFFICIAL_MODULES.map((module, index) => (
+                <li
+                  key={module.label}
+                  className="grid gap-2 py-5 sm:grid-cols-[5.5rem_minmax(0,1fr)] sm:gap-6"
+                  style={index < OFFICIAL_MODULES.length - 1 ? { boxShadow: "inset 0 -1px 0 var(--about-ring)" } : undefined}
+                >
+                  <span className="text-xs font-semibold tracking-[0.18em] text-[var(--paper-link)] sm:pt-2">{module.label}</span>
+                  <p className="text-base leading-8 text-[var(--glass-text-muted)]">{module.text}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </Reveal>
+
         <section className="grid min-h-[72dvh] gap-8 py-8 md:py-24 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.72fr)] lg:items-center">
           <Reveal>
             <div className="max-w-4xl">
