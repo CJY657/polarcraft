@@ -59,21 +59,20 @@ export function ResourceGallery({ resources, isZh, theme, compact = false }: Res
 
   const linkedImgs: ImageItem[] = linkedResources
     .filter(r => r.type === 'image' || r.type === 'sequence')
-    .reduce<ImageItem[]>((acc, r) => {
+    .flatMap<ImageItem>(r => {
       if (r.type === 'sequence' && r.frames) {
-        const sequenceItems: ImageItem[] = r.frames.map(f => ({
+        return r.frames.map(f => ({
           url: f.url,
           caption: isZh ? f.labelZh : f.label,
           type: 'sequence' as const
         }))
-        return [...acc, ...sequenceItems]
       }
-      return [...acc, {
+      return [{
         url: r.url,
         caption: isZh ? r.titleZh : r.title,
         type: 'linked' as const
       }]
-    }, [])
+    })
 
   const allImages: ImageItem[] = [...featuredImgs, ...linkedImgs]
 
@@ -102,9 +101,12 @@ export function ResourceGallery({ resources, isZh, theme, compact = false }: Res
     })
   }
 
+  const videoUrls = new Set(allVideos.map(v => v.url))
+
   // 添加 linkedResources 中的视频
   linkedResources.filter(r => r.type === 'video').forEach(r => {
-    if (!allVideos.some(v => v.url === r.url)) {
+    if (!videoUrls.has(r.url)) {
+      videoUrls.add(r.url)
       allVideos.push({
         url: r.url,
         title: isZh ? r.titleZh : r.title
@@ -114,7 +116,8 @@ export function ResourceGallery({ resources, isZh, theme, compact = false }: Res
 
   // 添加 linkedResources 中带有 videoUrl 的资源
   linkedResources.forEach(r => {
-    if (r.metadata?.videoUrl && !allVideos.some(v => v.url === r.metadata.videoUrl)) {
+    if (r.metadata?.videoUrl && !videoUrls.has(r.metadata.videoUrl)) {
+      videoUrls.add(r.metadata.videoUrl)
       allVideos.push({
         url: r.metadata.videoUrl,
         title: isZh ? r.titleZh : r.title

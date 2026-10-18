@@ -26,6 +26,14 @@ interface WebsiteUpdate {
 // 每次发布用户可见的新功能时，都必须在最前面添加通知，并使用新的 id（id 变化才会重新出现小圆点）。
 const WEBSITE_UPDATES: WebsiteUpdate[] = [
   {
+    id: '2026-10-18-research-issue-page-redesign',
+    date: '2026年10月18日',
+    title: '虚拟课题组议题页与讨论区改版',
+    description:
+      '课题组议题页重新排版：课题内容分成“进展、猜想、实验”三个区块，可按问题编号筛选，实验部分用标签页切换不同阶段路线，协作信息一并展示。讨论区改为一体化的评论输入框，支持直接粘贴图片，自己的评论可以收起、编辑或取消修改。',
+    href: '/lab/explore',
+  },
+  {
     id: '2026-10-14-about-platform-introduction',
     date: '2026年10月14日',
     title: '关于页面新增平台与模块介绍',

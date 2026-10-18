@@ -6,14 +6,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { WebsiteUpdatesDropdown } from './WebsiteUpdatesDropdown';
 
 const LAST_SEEN_STORAGE_KEY = 'polariscope.websiteUpdates.lastSeenId';
-const NEWEST_ID = '2026-10-14-about-platform-introduction';
+const NEWEST_ID = '2026-10-18-research-issue-page-redesign';
 
 const ENTRIES: Array<[string, string]> = [
+  ['虚拟课题组议题页与讨论区改版', '/lab/explore'],
   ['关于页面新增平台与模块介绍', '/about'],
   ['课题组详情页版面优化', '/lab/explore'],
   ['虚拟课题组阅读与操作体验升级', '/lab/explore'],
   ['实验目录与讨论性能优化', '/experiments'],
-  ['方解石双折射虚拟仿真上线', '/devices/calcite-sim'],
 ];
 
 function LocationProbe() {

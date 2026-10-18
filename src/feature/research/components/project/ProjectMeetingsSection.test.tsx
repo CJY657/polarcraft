@@ -211,6 +211,43 @@ describe('ProjectMeetingsSection', () => {
     expect(screen.queryByRole('button', { name: '安排会议' })).toBeNull();
   });
 
+  it('selects the earliest scheduled meeting, keeping the first date tie and history order', async () => {
+    const now = Date.now();
+    const meetingList = [
+      createMeeting({ id: 'later', title: 'Later', status: 'scheduled', scheduled_at: new Date(now + 3 * DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'cancelled', title: 'Cancelled', status: 'cancelled', scheduled_at: new Date(now + DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'first', title: 'First tie', status: 'scheduled', scheduled_at: new Date(now + 2 * DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'second', title: 'Second tie', status: 'scheduled', scheduled_at: new Date(now + 2 * DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'invalid', title: 'Invalid', status: 'scheduled', scheduled_at: 'invalid' }),
+    ];
+    mockGetProjectMeetings.mockResolvedValue(meetingList);
+
+    render(<ProjectMeetingsSection projectId="project-1" members={members} canManage={false} />);
+
+    const selected = await screen.findByText('First tie');
+    expect(selected.closest('li')).toBeNull();
+    expect(screen.getAllByRole('listitem').map((item) =>
+      ['Later', 'Second tie', 'Cancelled', 'Invalid'].find((title) => item.textContent?.includes(title))
+    )).toEqual(['Later', 'Second tie', 'Cancelled', 'Invalid']);
+    expect(meetingList.map((meeting) => meeting.id)).toEqual(['later', 'cancelled', 'first', 'second', 'invalid']);
+  });
+
+  it('uses the latest non-cancelled past date for the reminder and ignores invalid dates', async () => {
+    const now = Date.now();
+    mockGetProjectMeetings.mockResolvedValue([
+      createMeeting({ id: 'older', scheduled_at: new Date(now - 20 * DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'latest', status: 'scheduled', scheduled_at: new Date(now - 3 * DAY_IN_MS - 3_600_000).toISOString() }),
+      createMeeting({ id: 'cancelled', status: 'cancelled', scheduled_at: new Date(now - DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'future-completed', scheduled_at: new Date(now + DAY_IN_MS).toISOString() }),
+      createMeeting({ id: 'invalid', scheduled_at: 'invalid' }),
+    ]);
+
+    render(<ProjectMeetingsSection projectId="project-1" members={members} canManage />);
+
+    expect(await screen.findByText('距上次会议已 3 天，尚未安排下次讨论')).toBeTruthy();
+    expect(screen.queryByText('下次会议')).toBeNull();
+  });
+
   it('shows deletion for managers on every meeting status and hides it from members', async () => {
     mockGetProjectMeetings.mockResolvedValue([
       createMeeting({ id: 'meeting-scheduled', title: '待举行会议', status: 'scheduled' }),

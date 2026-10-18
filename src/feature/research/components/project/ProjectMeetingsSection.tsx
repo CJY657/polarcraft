@@ -217,28 +217,28 @@ export function ProjectMeetingsSection({
 
   // 时间相关派生值每次渲染直接计算（组内会议量级很小，无需缓存）
   const nowMs = Date.now();
-  const upcomingMeeting =
-    meetings
-      .filter(
-        (meeting) =>
-          meeting.status === 'scheduled' && new Date(meeting.scheduled_at).getTime() > nowMs
-      )
-      .sort(
-        (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-      )[0] ?? null;
+  let upcomingMeeting: ProjectMeeting | null = null;
+  let upcomingTime = Infinity;
+  let latestPastTime = -Infinity;
+  for (const meeting of meetings) {
+    const time = new Date(meeting.scheduled_at).getTime();
+    if (meeting.status === 'scheduled' && time > nowMs && time < upcomingTime) {
+      upcomingMeeting = meeting;
+      upcomingTime = time;
+    }
+    if (meeting.status !== 'cancelled' && Number.isFinite(time) && time <= nowMs) {
+      latestPastTime = Math.max(latestPastTime, time);
+    }
+  }
 
   const listMeetings = meetings
     .filter((meeting) => meeting.id !== upcomingMeeting?.id)
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
 
-  const pastMeetingTimes = meetings
-    .filter((meeting) => meeting.status !== 'cancelled')
-    .map((meeting) => new Date(meeting.scheduled_at).getTime())
-    .filter((time) => Number.isFinite(time) && time <= nowMs);
   const daysSinceLastMeeting =
-    pastMeetingTimes.length === 0
+    latestPastTime === -Infinity
       ? null
-      : Math.max(0, Math.floor((nowMs - Math.max(...pastMeetingTimes)) / DAY_IN_MS));
+      : Math.max(0, Math.floor((nowMs - latestPastTime) / DAY_IN_MS));
 
   const showSchedulePrompt = canManage && !isLoading && !loadError && !upcomingMeeting;
 
