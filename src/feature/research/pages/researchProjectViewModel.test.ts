@@ -251,7 +251,7 @@ describe("buildResearchProjectViewModel", () => {
       isAuthenticated: true,
       isAuthLoading: false,
       isReadOnlyRoute: false,
-      activeTab: "design",
+      activeTab: "evidence",
       hasPeerReviewContent: false,
     });
 
@@ -267,15 +267,13 @@ describe("buildResearchProjectViewModel", () => {
       canShowTasksSection: true,
       canShowMeetingsSection: true,
       canShowAgentPanel: true,
-      currentTab: "design",
+      currentTab: "evidence",
       usePublicEndpoint: false,
     });
     expect(result.projectTabs.map((tab) => tab.id)).toEqual([
       "overview",
-      "design",
       "evidence",
       "tasks",
-      "meetings",
       "discussion",
     ]);
     expect(result.researchOutline).toMatchObject({
@@ -320,9 +318,7 @@ describe("buildResearchProjectViewModel", () => {
     });
     expect(result.projectTabs.map((tab) => tab.id)).toEqual([
       "overview",
-      "design",
       "evidence",
-      "review",
     ]);
   });
 });

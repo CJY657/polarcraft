@@ -76,7 +76,7 @@ function createClipboardImageItem(file: File) {
 }
 
 function openGeneralDiscussion() {
-  fireEvent.click(screen.getByRole('button', { name: /其它讨论/ }));
+  // Comments and composer are now rendered directly without a collapsible "其它讨论" wrapper.
 }
 
 beforeAll(() => {
@@ -200,7 +200,7 @@ describe('ProjectDiscussionSection', () => {
     });
   });
 
-  it('groups root comments by question and keeps only one discussion row open', async () => {
+  it('renders all root comments directly in a flat stream without topic accordions', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({
         id: 'question-0-root',
@@ -238,108 +238,35 @@ describe('ProjectDiscussionSection', () => {
       />
     );
 
-    const firstQuestion = await screen.findByRole('button', { name: /第一个核心问题/ });
-    const secondQuestion = screen.getByRole('button', { name: /第二个核心问题/ });
-    const general = screen.getByRole('button', { name: /其它讨论/ });
-
-    expect(firstQuestion.textContent).toContain('2 条讨论');
-    expect(firstQuestion.textContent).toContain('最近活动');
-    expect(general.textContent).toContain('1 条讨论');
-
-    fireEvent.click(firstQuestion);
     expect(await screen.findByText('问题一答案')).toBeTruthy();
-    expect(screen.queryByText('问题二答案')).toBeNull();
-    expect(screen.queryByText('旧版其它讨论')).toBeNull();
-
-    fireEvent.click(secondQuestion);
-    expect(secondQuestion.getAttribute('aria-expanded')).toBe('true');
-    expect(firstQuestion.getAttribute('aria-expanded')).toBe('false');
-    expect(await screen.findByText('问题二答案')).toBeTruthy();
-    expect(screen.queryByText('问题一答案')).toBeNull();
-
-    fireEvent.click(general);
-    expect(general.getAttribute('aria-expanded')).toBe('true');
-    expect(secondQuestion.getAttribute('aria-expanded')).toBe('false');
-    expect(await screen.findByText('旧版其它讨论')).toBeTruthy();
-    expect(screen.queryByText('问题二答案')).toBeNull();
+    expect(screen.getByText('问题二答案')).toBeTruthy();
+    expect(screen.getByText('旧版其它讨论')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /其它讨论/ })).toBeNull();
   });
 
-  it('clears the top-level draft when switching discussion rows', async () => {
+  it('posts a top-level comment directly from the composer', async () => {
     render(
       <ProjectDiscussionSection
         projectId="project-1"
         canParticipate
         currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['第一个核心问题', '第二个核心问题'],
-          hypotheses: [],
-        }}
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /第一个核心问题/ }));
-    typeInto(screen.getByPlaceholderText(/写下你的答案或新观点/), '只属于问题一的草稿');
-
-    fireEvent.click(screen.getByRole('button', { name: /第二个核心问题/ }));
-
-    expect((await screen.findByPlaceholderText(/写下你的答案或新观点/)).textContent).toBe('');
-  });
-
-  it('keeps the top-level draft when collapsing and reopening the same row', async () => {
-    render(
-      <ProjectDiscussionSection
-        projectId="project-1"
-        canParticipate
-        currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['核心问题'],
-          hypotheses: [],
-        }}
-      />
-    );
-
-    const questionRow = screen.getByRole('button', { name: /核心问题/ });
-    fireEvent.click(questionRow);
-    typeInto(screen.getByPlaceholderText(/写下你的答案或新观点/), '尚未发布的草稿');
-
-    fireEvent.click(questionRow);
-    fireEvent.click(questionRow);
-
-    expect((await screen.findByPlaceholderText(/写下你的答案或新观点/)).textContent).toBe('尚未发布的草稿');
-  });
-
-  it('sends questionIndex for a question answer', async () => {
-    render(
-      <ProjectDiscussionSection
-        projectId="project-1"
-        canParticipate
-        currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['需要回答的问题'],
-          hypotheses: [],
-        }}
-      />
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /需要回答的问题/ }));
-    const composer = screen.getByPlaceholderText(/写下你的答案或新观点/);
-    typeInto(composer, '我的答案');
+    const composer = await screen.findByPlaceholderText(/写下你的问题、观察或建议/);
+    typeInto(composer, '我的讨论内容');
     fireEvent.click(screen.getByRole('button', { name: '发布' }));
 
     await waitFor(() => {
       expect(mockAddProjectDiscussionComment).toHaveBeenCalledWith('project-1', {
-        content: '我的答案',
+        content: '我的讨论内容',
         imageUrls: [],
         videoUrls: [],
-        questionIndex: 0,
       });
     });
   });
 
-  it('keeps topic comments out of general and replies send only parentCommentId', async () => {
+  it('sends parentCommentId when replying to a comment', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({
         id: 'question-root',
@@ -353,21 +280,9 @@ describe('ProjectDiscussionSection', () => {
         projectId="project-1"
         canParticipate
         currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['核心问题'],
-          hypotheses: [],
-        }}
       />
     );
 
-    openGeneralDiscussion();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /其它讨论/ }).textContent).toContain('0 条讨论');
-    });
-    expect(screen.queryByText('问题答案')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: /核心问题/ }));
     await screen.findByText('问题答案');
     fireEvent.click(screen.getByRole('button', { name: '回复' }));
     typeInto(screen.getByPlaceholderText('补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）'), '继续追问');
@@ -407,15 +322,9 @@ describe('ProjectDiscussionSection', () => {
         projectId="project-1"
         canParticipate
         currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['核心问题'],
-          hypotheses: [],
-        }}
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /核心问题/ }));
     await screen.findByText('问题答案');
     expect(screen.queryByText('一级追问')).toBeNull();
 
@@ -424,7 +333,7 @@ describe('ProjectDiscussionSection', () => {
     expect(screen.queryByText('二级追问')).toBeNull();
   });
 
-  it('opens and scrolls to the comment composer when jumped to comments', async () => {
+  it('scrolls to the comment composer when jumped to comments', async () => {
     render(
       <ProjectDiscussionSection
         projectId="project-1"
@@ -435,11 +344,6 @@ describe('ProjectDiscussionSection', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /其它讨论/ }).getAttribute('aria-expanded')).toBe(
-        'true'
-      );
-    });
-    await waitFor(() => {
       expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
     });
     expect((HTMLElement.prototype.scrollIntoView as any).mock.contexts[0]).toBe(
@@ -447,7 +351,7 @@ describe('ProjectDiscussionSection', () => {
     );
   });
 
-  it('opens the scoped question, expands reply ancestors and scrolls to a targeted reply', async () => {
+  it('expands reply ancestors and scrolls to a targeted reply', async () => {
     mockGetProjectDiscussionComments.mockResolvedValue([
       createComment({
         id: 'parent-comment',
@@ -475,11 +379,6 @@ describe('ProjectDiscussionSection', () => {
         projectId="project-1"
         canParticipate
         currentUserId="user-1"
-        outline={{
-          topicSummary: '',
-          questions: ['深链问题'],
-          hypotheses: [],
-        }}
         jumpRequest={{ section: 'comments', commentId: 'reply-comment', version: 1 }}
       />
     );
@@ -487,12 +386,6 @@ describe('ProjectDiscussionSection', () => {
     await waitFor(() => {
       expect(screen.getByText('目标回复')).toBeTruthy();
     });
-    expect(screen.getByRole('button', { name: /深链问题/ }).getAttribute('aria-expanded')).toBe(
-      'true'
-    );
-    expect(screen.getByRole('button', { name: /其它讨论/ }).getAttribute('aria-expanded')).toBe(
-      'false'
-    );
     await waitFor(() => {
       const scrollMock = HTMLElement.prototype.scrollIntoView as any;
       const scrollContexts = scrollMock.mock.contexts;

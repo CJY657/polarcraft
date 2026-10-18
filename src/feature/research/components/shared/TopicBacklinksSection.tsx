@@ -88,7 +88,7 @@ export default function TopicBacklinksSection({
         id="topic-backlinks-heading"
         className="text-sm font-semibold uppercase tracking-wider text-[var(--research-muted)]"
       >
-        引用自 · Referenced by
+        被这些课题提及 · 引用自
       </h2>
 
       <ul className="mt-3 flex list-none flex-col gap-2.5 p-0">

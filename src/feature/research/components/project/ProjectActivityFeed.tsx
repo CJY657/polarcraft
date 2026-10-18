@@ -120,8 +120,6 @@ export function ProjectActivityFeed({ projectId, limit = DEFAULT_ACTIVITY_LIMIT 
   return (
     <ResearchSectionCard
       title="最近动态"
-      kicker="Activity"
-      step={8}
       actions={
         <button
           type="button"

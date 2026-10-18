@@ -10,7 +10,6 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { ResearchChip } from '../shared/ResearchChip';
 import { ResearchConfirmDialog } from '../shared/ResearchConfirmDialog';
 import { DiscussionImageLightbox } from '@/components/discussion/DiscussionImageLightbox';
 import TopicReferenceText from '../shared/TopicReferenceText';
@@ -20,7 +19,6 @@ import {
   buildParentCommentLookup,
   countReplies,
   expandCommentAncestors,
-  findRootCommentId,
 } from '@/components/discussion/commentTree';
 import {
   buildDraftAttachments,
@@ -34,7 +32,6 @@ import { cn } from '@/utils/classNames';
 import { formatUserIdentity, getUserIdentityInitial } from '@/lib/identity';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { researchApi, type ProjectDiscussionComment } from '@/lib/research.service';
-import { ResearchSectionCard } from '../shared/ResearchSectionCard';
 
 export interface ProjectDiscussionOutline {
   topicSummary: string;
@@ -60,19 +57,12 @@ interface ProjectDiscussionSectionProps {
   currentUserId?: string;
   outline?: ProjectDiscussionOutline;
   jumpRequest?: ProjectDiscussionJumpRequest | null;
+  onCountChange?: (count: number) => void;
 }
 
 interface DiscussionTreeComment extends ProjectDiscussionComment {
   replies: DiscussionTreeComment[];
 }
-
-interface DiscussionThreadGroup {
-  threads: DiscussionTreeComment[];
-  discussionCount: number;
-  latestActivity: string | null;
-}
-
-type DiscussionTopic = number | 'general';
 
 const PROJECT_COMMENT_ACCESSORS = {
   idOf: (comment: ProjectDiscussionComment) => comment.id,
@@ -86,7 +76,6 @@ const MAX_COMMENT_IMAGES = 6;
 const MAX_COMMENT_VIDEOS = 2;
 /** 首屏渲染的顶层讨论串数量；点击「展开更早的讨论」后每次追加同样数量 */
 const INITIAL_VISIBLE_THREADS = 20;
-const EMPTY_DISCUSSION_QUESTIONS: string[] = [];
 const COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
   year: 'numeric',
   month: 'short',
@@ -97,33 +86,6 @@ const COMMENT_TIME_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
 
 function formatCommentTime(value: string): string {
   return COMMENT_TIME_FORMATTER.format(new Date(value));
-}
-
-function countDiscussionComments(threads: DiscussionTreeComment[]): number {
-  return threads.reduce((total, thread) => total + 1 + countReplies(thread), 0);
-}
-
-function getLatestDiscussionActivity(threads: DiscussionTreeComment[]): string | null {
-  let latest: string | null = null;
-
-  const visit = (comment: DiscussionTreeComment) => {
-    const activityAt = comment.updated_at || comment.created_at;
-    if (!latest || new Date(activityAt).getTime() > new Date(latest).getTime()) {
-      latest = activityAt;
-    }
-    comment.replies.forEach(visit);
-  };
-
-  threads.forEach(visit);
-  return latest;
-}
-
-function summarizeDiscussionThreads(threads: DiscussionTreeComment[]): DiscussionThreadGroup {
-  return {
-    threads,
-    discussionCount: countDiscussionComments(threads),
-    latestActivity: getLatestDiscussionActivity(threads),
-  };
 }
 
 function buildAttachmentSelectionMessage(
@@ -262,13 +224,12 @@ export function ProjectDiscussionSection({
   canParticipate,
   canModerate = false,
   currentUserId,
-  outline,
   jumpRequest,
+  onCountChange,
 }: ProjectDiscussionSectionProps) {
   const [comments, setComments] = useState<ProjectDiscussionComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [openDiscussionTopic, setOpenDiscussionTopic] = useState<DiscussionTopic | null>(null);
 
   const [newComment, setNewComment] = useState('');
   const [newCommentAttachments, setNewCommentAttachments] = useState<DraftAttachment[]>([]);
@@ -294,28 +255,14 @@ export function ProjectDiscussionSection({
   const [visibleThreadCount, setVisibleThreadCount] = useState(INITIAL_VISIBLE_THREADS);
 
   const newCommentAttachmentsRef = useRef<DraftAttachment[]>([]);
-  const newCommentTopicRef = useRef<DiscussionTopic | null>(null);
   const replyAttachmentsRef = useRef<Record<string, DraftAttachment[]>>({});
   const newCommentFileInputRef = useRef<HTMLInputElement | null>(null);
   const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const { commentTree, parentCommentLookup, commentsById } = useMemo(() => ({
+  const { commentTree, parentCommentLookup } = useMemo(() => ({
     commentTree: buildCommentTree(comments, PROJECT_COMMENT_ACCESSORS),
     parentCommentLookup: buildParentCommentLookup(comments, PROJECT_COMMENT_ACCESSORS),
-    commentsById: new Map(comments.map((comment) => [comment.id, comment])),
   }), [comments]);
-  const questions = outline?.questions ?? EMPTY_DISCUSSION_QUESTIONS;
-  const { questionThreadGroups, generalThreadGroup } = useMemo(() => {
-    const questionThreads = questions.map((_, questionIndex) =>
-      commentTree.filter((comment) => comment.question_index === questionIndex)
-    );
-    const generalThreads = commentTree.filter((comment) => comment.question_index == null);
-
-    return {
-      questionThreadGroups: questionThreads.map(summarizeDiscussionThreads),
-      generalThreadGroup: summarizeDiscussionThreads(generalThreads),
-    };
-  }, [commentTree, questions]);
 
   useEffect(() => {
     newCommentAttachmentsRef.current = newCommentAttachments;
@@ -324,6 +271,10 @@ export function ProjectDiscussionSection({
   useEffect(() => {
     replyAttachmentsRef.current = replyAttachments;
   }, [replyAttachments]);
+
+  useEffect(() => {
+    onCountChange?.(comments.length);
+  }, [comments.length, onCountChange]);
 
   useEffect(() => {
     return () => {
@@ -367,8 +318,6 @@ export function ProjectDiscussionSection({
   }
 
   function resetDiscussionState() {
-    newCommentTopicRef.current = null;
-    setOpenDiscussionTopic(null);
     setSubmitError(null);
     setReplyTargetId(null);
     setReplyDrafts({});
@@ -406,18 +355,8 @@ export function ProjectDiscussionSection({
     }
 
     const targetCommentId = jumpRequest.commentId;
-    let targetTopic: DiscussionTopic = 'general';
 
     if (targetCommentId && parentCommentLookup.has(targetCommentId)) {
-      const rootComment = commentsById.get(findRootCommentId(targetCommentId, parentCommentLookup));
-      if (
-        typeof rootComment?.question_index === 'number'
-        && rootComment.question_index >= 0
-        && rootComment.question_index < questions.length
-      ) {
-        targetTopic = rootComment.question_index;
-      }
-
       // 跳转目标可能在未渲染的更早讨论串里，先展开全部顶层讨论串
       setVisibleThreadCount((current) => Math.max(current, comments.length));
       setExpandedCommentIds((current) => ({
@@ -426,20 +365,8 @@ export function ProjectDiscussionSection({
       }));
     }
 
-    if (
-      newCommentTopicRef.current !== null
-      && newCommentTopicRef.current !== targetTopic
-    ) {
-      clearNewCommentComposer();
-    }
-    newCommentTopicRef.current = targetTopic;
-    setOpenDiscussionTopic(targetTopic);
-    const fallbackTargetId = targetTopic === 'general'
-      ? 'discussion-comments'
-      : `discussion-question-${targetTopic}`;
-
     const timer = window.setTimeout(() => {
-      (document.getElementById(targetId) ?? document.getElementById(fallbackTargetId))?.scrollIntoView({
+      (document.getElementById(targetId) ?? document.getElementById('discussion-comments'))?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
@@ -455,7 +382,7 @@ export function ProjectDiscussionSection({
     jumpRequest?.index,
     jumpRequest?.section,
     jumpRequest?.version,
-    questions.length,
+    parentCommentLookup,
   ]);
 
   async function uploadDraftAttachments(attachments: DraftAttachment[]): Promise<{
@@ -677,9 +604,6 @@ export function ProjectDiscussionSection({
         content,
         imageUrls,
         videoUrls,
-        ...(typeof openDiscussionTopic === 'number'
-          ? { questionIndex: openDiscussionTopic }
-          : {}),
       });
       clearNewCommentComposer();
       capturePostHogEvent('research_discussion_posted', {
@@ -813,39 +737,39 @@ export function ProjectDiscussionSection({
         className={cn(
           'scroll-mt-28 relative',
           depth === 0
-            ? 'research-panel-soft rounded-lg p-3.5 md:p-4'
-            : 'ml-4 border-l border-[var(--research-line)] pl-3.5 sm:ml-6 sm:pl-4'
+            ? 'border-b border-[var(--research-line)] py-4 first:pt-2 last:border-b-0 last:pb-1'
+            : 'ml-4 mt-3 border-l-2 border-[var(--research-line)] pl-4 sm:ml-5'
         )}
       >
-        <div className="flex items-start gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-chip)] text-sm font-semibold text-[var(--research-muted)]">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--research-line)] bg-[var(--research-head)] text-xs font-bold text-[var(--paper-foreground)]">
             {getUserIdentityInitial(comment)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="text-base font-semibold text-[var(--paper-foreground)]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <span className="text-sm font-bold text-[var(--paper-foreground)]">
                 {displayUsername}
               </span>
-              <span className="text-sm text-[var(--research-muted)]">
+              <span className="text-xs text-[var(--research-muted)]">
                 {formatCommentTime(comment.created_at)}
               </span>
               {isEdited && (
-                <span className="rounded-md bg-[var(--research-chip)] px-2 py-0.5 text-sm text-[var(--research-muted)]">
+                <span className="text-xs text-[var(--research-muted)]">
                   已编辑
                 </span>
               )}
               {comment.is_deleted && (
-                <span className="rounded-full bg-[var(--research-chip)] px-2 py-0.5 text-sm text-[var(--research-muted)]">
+                <span className="text-xs text-[var(--research-muted)]">
                   已删除
                 </span>
               )}
             </div>
 
-            <div className="mt-1.5 text-base leading-6 text-[var(--paper-foreground)]">
+            <div className="mt-1 text-base leading-6 text-[var(--paper-foreground)]">
               {comment.is_deleted ? (
                 <span className="italic text-[var(--research-muted)]">这条留言已删除</span>
               ) : isEditingThis ? (
-                <div className="rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
+                <div className="mt-2 overflow-hidden rounded-xl border border-[var(--research-line)] bg-[var(--research-head)] focus-within:border-[var(--research-edge)]">
                   <TopicReferenceTextarea
                     value={editDraft}
                     onValueChange={setEditDraft}
@@ -855,43 +779,49 @@ export function ProjectDiscussionSection({
                     maxLength={MAX_COMMENT_LENGTH}
                     autoFocus
                     aria-label="编辑留言内容"
-                    className="research-input w-full resize-y rounded-xl px-3 py-2 text-base transition"
+                    className="w-full resize-y border-0 bg-transparent px-3.5 py-2.5 text-base outline-none"
                   />
-                  {(comment.image_urls.length > 0 || commentVideoUrls.length > 0) && (
-                    <p className="mt-2 text-sm text-[var(--research-muted)]">
-                      编辑只修改文字，已上传的图片和视频保持不变。
-                    </p>
+                  {editError && (
+                    <p className="px-3.5 pb-2 text-sm text-[var(--color-destructive)]">{editError}</p>
                   )}
-                  {editError && <p className="mt-2 text-sm text-[var(--color-destructive)]">{editError}</p>}
-                  <div className="mt-2.5 flex flex-wrap justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={cancelEditingComment}
-                      disabled={savingEditCommentId === comment.id}
-                      className="research-button rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleSaveEditedComment(comment)}
-                      disabled={savingEditCommentId === comment.id}
-                      className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {savingEditCommentId === comment.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Pencil className="h-3.5 w-3.5" />
-                      )}
-                      保存修改
-                    </button>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--research-line)] px-3 py-2">
+                    <span className="text-xs text-[var(--research-muted)]">
+                      {comment.image_urls.length > 0 || commentVideoUrls.length > 0
+                        ? '已上传的图片和视频保持不变'
+                        : ''}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelEditingComment}
+                        disabled={savingEditCommentId === comment.id}
+                        className="research-button rounded-md px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveEditedComment(comment)}
+                        disabled={savingEditCommentId === comment.id}
+                        className="research-button research-button-primary inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {savingEditCommentId === comment.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Pencil className="h-3.5 w-3.5" />
+                        )}
+                        保存修改
+                      </button>
+                    </div>
                   </div>
-                  <CommentMediaGrid
-                    imageUrls={comment.image_urls}
-                    videoUrls={commentVideoUrls}
-                    username={displayUsername}
-                    onPreview={(url, alt) => setLightboxImage({ url, alt })}
-                  />
+                  <div className="px-3.5 pb-2.5">
+                    <CommentMediaGrid
+                      imageUrls={comment.image_urls}
+                      videoUrls={commentVideoUrls}
+                      username={displayUsername}
+                      onPreview={(url, alt) => setLightboxImage({ url, alt })}
+                    />
+                  </div>
                 </div>
               ) : (
                 <>
@@ -917,7 +847,7 @@ export function ProjectDiscussionSection({
               )}
             </div>
 
-            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-sm font-medium">
+            <div className="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-[var(--research-muted)]">
               {canParticipate && !comment.is_deleted && (
                 <button
                   type="button"
@@ -930,7 +860,7 @@ export function ProjectDiscussionSection({
                     setReplyError(null);
                     setDeleteError(null);
                   }}
-                  className="inline-flex items-center gap-1 text-[var(--paper-link)] transition-opacity hover:opacity-80"
+                  className="inline-flex items-center gap-1 hover:text-[var(--paper-foreground)]"
                 >
                   <Reply className="h-3.5 w-3.5" />
                   回复
@@ -941,7 +871,7 @@ export function ProjectDiscussionSection({
                 <button
                   type="button"
                   onClick={() => startEditingComment(comment)}
-                  className="inline-flex items-center gap-1 text-[var(--paper-link)] transition-opacity hover:opacity-80"
+                  className="inline-flex items-center gap-1 hover:text-[var(--paper-foreground)]"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   编辑
@@ -953,7 +883,7 @@ export function ProjectDiscussionSection({
                   type="button"
                   onClick={() => setConfirmDeleteId(comment.id)}
                   disabled={deletingCommentId === comment.id}
-                  className="inline-flex items-center gap-1 text-[var(--color-destructive)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1 text-[var(--color-destructive)] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deletingCommentId === comment.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -973,7 +903,7 @@ export function ProjectDiscussionSection({
                       [comment.id]: !(current[comment.id] ?? false),
                     }));
                   }}
-                  className="inline-flex items-center gap-1 rounded-md bg-[var(--research-chip)] px-2.5 py-1 text-[var(--paper-foreground)] transition-colors hover:bg-[var(--research-head)]"
+                  className="inline-flex items-center gap-1 text-[var(--paper-foreground)] hover:underline"
                 >
                   {isRepliesExpanded ? `收起 ${totalReplyCount} 条回复` : `展开 ${totalReplyCount} 条回复`}
                   <ChevronDown
@@ -987,7 +917,7 @@ export function ProjectDiscussionSection({
             </div>
 
             {isReplying && canParticipate && (
-              <div className="mt-3 rounded-lg border border-[var(--research-line)] bg-[var(--research-head)] p-2.5">
+              <div className="mt-3 overflow-hidden rounded-xl border border-[var(--research-line)] bg-[var(--research-head)] focus-within:border-[var(--research-edge)]">
                 <TopicReferenceTextarea
                   value={replyDraft}
                   onValueChange={(value) => {
@@ -998,7 +928,7 @@ export function ProjectDiscussionSection({
                   rows={2}
                   maxLength={MAX_COMMENT_LENGTH}
                   placeholder="补充你的看法、建议或追问（支持 Ctrl+V 粘贴图片）"
-                  className="research-input w-full resize-y rounded-xl px-3 py-2 text-base transition"
+                  className="w-full resize-y border-0 bg-transparent px-3.5 py-2.5 text-base outline-none"
                 />
 
                 <input
@@ -1012,7 +942,21 @@ export function ProjectDiscussionSection({
                   onChange={(event) => handleReplyAttachmentSelection(comment.id, event)}
                 />
 
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="px-3.5">
+                  <DraftAttachmentPreviewList
+                    attachments={attachedReplyAttachments}
+                    onRemove={(attachmentId) => handleRemoveReplyAttachment(comment.id, attachmentId)}
+                    onPreview={(attachment) =>
+                      setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
+                    }
+                  />
+                </div>
+
+                {replyError && (
+                  <p className="px-3.5 pb-2 text-sm text-[var(--color-destructive)]">{replyError}</p>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--research-line)] px-3 py-2">
                   <button
                     type="button"
                     onClick={() => replyFileInputRefs.current[comment.id]?.click()}
@@ -1021,50 +965,37 @@ export function ProjectDiscussionSection({
                         && attachedReplyCounts.video >= MAX_COMMENT_VIDEOS)
                       || submittingReplyToId === comment.id
                     }
-                    className="research-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[var(--research-muted)] hover:bg-[var(--research-chip)] hover:text-[var(--paper-foreground)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <ImagePlus className="h-3.5 w-3.5 text-[var(--paper-link)]" />
+                    <ImagePlus className="h-3.5 w-3.5" />
                     添加附件
                   </button>
-                  <span className="text-sm text-[var(--research-muted)]">
-                    最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
-                  </span>
-                </div>
 
-                <DraftAttachmentPreviewList
-                  attachments={attachedReplyAttachments}
-                  onRemove={(attachmentId) => handleRemoveReplyAttachment(comment.id, attachmentId)}
-                  onPreview={(attachment) =>
-                    setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
-                  }
-                />
-
-                {replyError && <p className="mt-2 text-sm text-[var(--color-destructive)]">{replyError}</p>}
-
-                <div className="mt-2.5 flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReplyTargetId(null);
-                      setReplyError(null);
-                    }}
-                    className="research-button rounded-full px-3 py-1.5 text-sm font-medium"
-                  >
-                    收起
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleSubmitReply(comment.id)}
-                    disabled={submittingReplyToId === comment.id}
-                    className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {submittingReplyToId === comment.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                    发送回复
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyTargetId(null);
+                        setReplyError(null);
+                      }}
+                      className="research-button rounded-md px-3 py-1 text-xs font-semibold"
+                    >
+                      收起
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSubmitReply(comment.id)}
+                      disabled={submittingReplyToId === comment.id}
+                      className="research-button research-button-primary inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {submittingReplyToId === comment.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      发送回复
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1072,7 +1003,7 @@ export function ProjectDiscussionSection({
         </div>
 
         {hasReplies && isRepliesExpanded && (
-          <div className="mt-3 space-y-2.5">
+          <div>
             {comment.replies.map((reply) => renderComment(reply, depth + 1))}
           </div>
         )}
@@ -1081,39 +1012,18 @@ export function ProjectDiscussionSection({
   }
 
   const newCommentAttachmentCounts = countDraftAttachments(newCommentAttachments);
+  const visibleThreads = commentTree.slice(0, visibleThreadCount);
+  const hiddenThreadCount = Math.max(commentTree.length - visibleThreads.length, 0);
 
-  function toggleDiscussionTopic(topic: DiscussionTopic) {
-    if (openDiscussionTopic === topic) {
-      setOpenDiscussionTopic(null);
-    } else {
-      if (
-        newCommentTopicRef.current !== null
-        && newCommentTopicRef.current !== topic
-      ) {
-        clearNewCommentComposer();
-      }
-      newCommentTopicRef.current = topic;
-      setOpenDiscussionTopic(topic);
-    }
-    setVisibleThreadCount(INITIAL_VISIBLE_THREADS);
-    setReplyTargetId(null);
-    setReplyError(null);
-    setDeleteError(null);
-  }
-
-  function renderDiscussionContent(topic: DiscussionTopic, threads: DiscussionTreeComment[]) {
-    const visibleThreads = threads.slice(0, visibleThreadCount);
-    const hiddenThreadCount = Math.max(threads.length - visibleThreads.length, 0);
-    const contentId = topic === 'general' ? 'discussion-comments' : `discussion-question-${topic}`;
-
-    return (
-      <div
-        id={contentId}
-        role="region"
-        aria-labelledby={`${contentId}-trigger`}
-        className="research-rise scroll-mt-28 border-t border-[var(--research-line)] bg-[var(--research-surface)] p-3 sm:p-4"
+  return (
+    <>
+      <section
+        id="discussion-comments"
+        aria-label="评论区"
+        className="scroll-mt-28"
       >
-        <div className="research-panel-soft rounded-lg p-4">
+        {/* 直接发评论的一体化输入框（无外层大卡片包裹） */}
+        <div className="overflow-hidden rounded-xl border border-[var(--research-line)] bg-[var(--research-surface)] focus-within:border-[var(--research-edge)]">
           <TopicReferenceTextarea
             value={newComment}
             onValueChange={setNewComment}
@@ -1124,12 +1034,10 @@ export function ProjectDiscussionSection({
             disabled={!canParticipate || isSubmitting}
             placeholder={
               canParticipate
-                ? topic === 'general'
-                  ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
-                  : '写下你的答案或新观点…（支持 Ctrl+V 粘贴图片）'
+                ? '写下你的问题、观察或建议…（支持 Ctrl+V 粘贴图片）'
                 : '只有课题成员可以参与讨论'
             }
-            className="research-input w-full resize-y rounded-xl px-4 py-3 text-base transition disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full resize-y border-0 bg-transparent px-4 py-3 text-base outline-none disabled:cursor-not-allowed disabled:opacity-70"
           />
 
           <input
@@ -1141,7 +1049,21 @@ export function ProjectDiscussionSection({
             onChange={handleNewCommentAttachmentSelection}
           />
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="px-4">
+            <DraftAttachmentPreviewList
+              attachments={newCommentAttachments}
+              onRemove={handleRemoveNewCommentAttachment}
+              onPreview={(attachment) =>
+                setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
+              }
+            />
+          </div>
+
+          {submitError && (
+            <p className="px-4 pb-2 text-sm text-[var(--color-destructive)]">{submitError}</p>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--research-line)] bg-[var(--research-head)] px-3.5 py-2">
             <button
               type="button"
               onClick={() => newCommentFileInputRef.current?.click()}
@@ -1153,32 +1075,18 @@ export function ProjectDiscussionSection({
                   && newCommentAttachmentCounts.video >= MAX_COMMENT_VIDEOS
                 )
               }
-              className="research-button inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-base font-medium disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[var(--research-muted)] hover:bg-[var(--research-chip)] hover:text-[var(--paper-foreground)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <ImagePlus className="h-4 w-4 text-[var(--paper-link)]" />
-              <Video className="h-4 w-4 text-[var(--paper-link)]" />
+              <ImagePlus className="h-4 w-4" />
+              <Video className="h-4 w-4" />
               添加附件
             </button>
-            <span className="text-sm text-[var(--research-muted)]">
-              最多 {MAX_COMMENT_IMAGES} 张图片、{MAX_COMMENT_VIDEOS} 个视频
-            </span>
-          </div>
 
-          <DraftAttachmentPreviewList
-            attachments={newCommentAttachments}
-            onRemove={handleRemoveNewCommentAttachment}
-            onPreview={(attachment) =>
-              setLightboxImage({ url: attachment.previewUrl, alt: attachment.file.name })
-            }
-          />
-
-          {submitError && <p className="mt-2 text-base text-[var(--color-destructive)]">{submitError}</p>}
-          <div className="mt-3 flex justify-end">
             <button
               type="button"
               onClick={() => void handleSubmitComment()}
               disabled={!canParticipate || isSubmitting}
-              className="research-button research-button-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+              className="research-button research-button-primary inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1191,122 +1099,43 @@ export function ProjectDiscussionSection({
         </div>
 
         {deleteError && (
-          <div className="research-error mt-4 rounded-2xl px-4 py-3 text-base">
+          <div className="research-error mt-3 rounded-lg px-3.5 py-2.5 text-sm">
             {deleteError}
           </div>
         )}
 
         <div className="mt-4">
           {isLoading ? (
-            <div className="research-panel-soft flex items-center justify-center gap-3 rounded-2xl px-4 py-8 text-base text-[var(--research-muted)]">
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-[var(--research-muted)]">
               <Loader2 className="h-4 w-4 animate-spin" />
               正在加载讨论内容
             </div>
           ) : loadError ? (
-            <div className="research-error rounded-2xl px-4 py-4 text-base">
+            <div className="research-error rounded-lg px-3.5 py-3 text-sm">
               {loadError}
             </div>
-          ) : threads.length === 0 ? (
-            <div className="research-panel-soft rounded-2xl px-4 py-8 text-center">
-              <p className="text-base font-medium text-[var(--paper-foreground)]">
-                还没有人开场，来发第一条讨论吧。
-              </p>
-            </div>
+          ) : commentTree.length === 0 ? (
+            <p className="py-6 text-center text-sm text-[var(--research-muted)]">
+              还没有人开场，来发第一条讨论吧
+            </p>
           ) : (
-            <div className="space-y-4">
+            <div>
               {visibleThreads.map((comment) => renderComment(comment))}
 
               {hiddenThreadCount > 0 && (
                 <button
                   type="button"
                   onClick={() => setVisibleThreadCount((current) => current + INITIAL_VISIBLE_THREADS)}
-                  className="research-button flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-medium"
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--research-line)] py-2.5 text-sm font-semibold text-[var(--research-muted)] hover:border-[var(--research-edge)] hover:text-[var(--paper-foreground)]"
                 >
                   展开更早的讨论（还有 {hiddenThreadCount} 条）
-                  <ChevronDown className="h-4 w-4 text-[var(--paper-link)]" />
+                  <ChevronDown className="h-4 w-4" />
                 </button>
               )}
             </div>
           )}
         </div>
-      </div>
-    );
-  }
-
-  function renderDiscussionRow(
-    topic: DiscussionTopic,
-    label: string,
-    group: DiscussionThreadGroup
-  ) {
-    const { threads, discussionCount, latestActivity } = group;
-    const isOpen = openDiscussionTopic === topic;
-    const contentId = topic === 'general' ? 'discussion-comments' : `discussion-question-${topic}`;
-
-    return (
-      <div
-        key={topic}
-        className="overflow-hidden rounded-lg border border-[var(--research-line)] bg-[var(--research-head)]"
-      >
-        <button
-          id={`${contentId}-trigger`}
-          type="button"
-          onClick={() => toggleDiscussionTopic(topic)}
-          aria-expanded={isOpen}
-          aria-controls={contentId}
-          className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--research-chip)]"
-        >
-          <div className="min-w-0 flex-1">
-            {typeof topic === 'number' && (
-              <span className="mb-1 block text-sm font-semibold text-[var(--research-muted)]">
-                核心问题 {topic + 1}
-              </span>
-            )}
-            <p className="text-base font-semibold leading-6 text-[var(--paper-foreground)]">
-              {label}
-            </p>
-            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--research-muted)]">
-              <span>{discussionCount} 条讨论</span>
-              <span>
-                {isLoading
-                  ? '正在同步'
-                  : latestActivity
-                    ? `最近活动 ${formatCommentTime(latestActivity)}`
-                    : '暂无活动'}
-              </span>
-            </div>
-          </div>
-          <ChevronDown
-            className={cn(
-              'h-5 w-5 shrink-0 text-[var(--research-muted)] transition-transform duration-200',
-              isOpen && 'rotate-180'
-            )}
-          />
-        </button>
-        {isOpen && renderDiscussionContent(topic, threads)}
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <ResearchSectionCard
-        title="课题讨论区"
-        kicker="Discussion"
-        step={6}
-        note="围绕研究问题展开的组内讨论"
-        actions={
-          <ResearchChip className="rounded-md font-semibold tabular-nums">
-            {comments.length} 条讨论
-          </ResearchChip>
-        }
-      >
-        <div className="space-y-2.5">
-          {questions.map((question, questionIndex) =>
-            renderDiscussionRow(questionIndex, question, questionThreadGroups[questionIndex])
-          )}
-          {renderDiscussionRow('general', '其它讨论', generalThreadGroup)}
-        </div>
-      </ResearchSectionCard>
+      </section>
 
       <ResearchConfirmDialog
         open={confirmDeleteId !== null}

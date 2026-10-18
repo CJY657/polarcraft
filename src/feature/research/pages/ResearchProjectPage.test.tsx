@@ -697,8 +697,8 @@ describe("ResearchProjectPage", () => {
     expect(await screen.findByTestId("project-peer-review-section")).toBeTruthy();
     expect(scrollIntoView).not.toHaveBeenCalled();
 
-    const reviewPanel = document.getElementById("project-panel-review");
-    expect(reviewPanel?.hidden).toBe(true);
+    const evidencePanel = document.getElementById("project-panel-evidence");
+    expect(evidencePanel?.hidden).toBe(false);
 
     const peerReviewProps = mockProjectPeerReviewSection.mock.calls.at(-1)?.[0] as
       | { onContentChange: (hasContent: boolean) => void }
@@ -711,8 +711,8 @@ describe("ResearchProjectPage", () => {
         block: "start",
       });
     });
-    expect(reviewPanel?.hidden).toBe(false);
-    expect(screen.getByRole("tab", { name: "同伴评审" }).getAttribute("aria-selected")).toBe("true");
+    expect(evidencePanel?.hidden).toBe(false);
+    expect(screen.getByRole("tab", { name: "课题证据与评审" }).getAttribute("aria-selected")).toBe("true");
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("project-peer-review"));
   });
 
@@ -733,9 +733,9 @@ describe("ResearchProjectPage", () => {
         block: "start",
       });
     });
-    const meetingsPanel = document.getElementById("project-panel-meetings");
-    expect(meetingsPanel?.hidden).toBe(false);
-    expect(screen.getByRole("tab", { name: "会议" }).getAttribute("aria-selected")).toBe("true");
+    const tasksPanel = document.getElementById("project-panel-tasks");
+    expect(tasksPanel?.hidden).toBe(false);
+    expect(screen.getByRole("tab", { name: "任务与组会" }).getAttribute("aria-selected")).toBe("true");
     expect(scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("project-meetings"));
   });
 
@@ -1075,7 +1075,7 @@ describe("ResearchProjectPage", () => {
     expect(openDialog).not.toHaveBeenCalled();
   });
 
-  it("keeps hypotheses static, manages questions through the editor, and places discussion after evidence", async () => {
+  it("pairs questions and hypotheses in the overview dossier, manages questions through the editor, and places discussion after evidence", async () => {
     mockGetProject.mockResolvedValue(
       createProject({
         research_questions_zh: "气泡条纹与膜厚变化是否相关？\n明暗图样是否受偏振方向影响？",
@@ -1089,21 +1089,20 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect(await screen.findByText("研究信息")).toBeTruthy();
-    expect(screen.queryByText("气泡条纹与膜厚变化是否相关？")).toBeNull();
+    expect(await screen.findByText("核心科学问题与研究假设")).toBeTruthy();
+    expect(screen.getByText("气泡条纹与膜厚变化是否相关？")).toBeTruthy();
     expect(screen.getByText("条纹由膜厚变化引起。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "条纹由膜厚变化引起。" })).toBeNull();
 
     expect(screen.getAllByText("先做基础观察，再记录变量。").length).toBeGreaterThan(0);
     expect(screen.getByText("继续验证不同角度下的表现。")).toBeTruthy();
 
-    const researchInfo = screen.getByText("研究信息").closest("section");
+    const researchInfo = screen.getByText("核心科学问题与研究假设").closest("section");
     const discussion = screen.getByTestId("project-discussion-section");
     const evidence = screen.getByTestId("project-evidence-section");
     expect(researchInfo?.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(evidence.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: "研究设计" }));
     fireEvent.click(screen.getByRole("button", { name: "管理问题" }));
 
     await waitFor(() => {
@@ -1142,7 +1141,7 @@ describe("ResearchProjectPage", () => {
 
     renderPage([{ pathname: "/lab/projects/project-1" }]);
 
-    expect(await screen.findByText("研究信息")).toBeTruthy();
+    expect(await screen.findByText("核心科学问题与研究假设")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "管理问题" })).toBeNull();
   });
 
@@ -1260,6 +1259,34 @@ describe("ResearchProjectPage", () => {
     await waitFor(() => {
       expect(mockRemoveProjectMember).toHaveBeenCalledWith("project-1", "member-2");
     });
+  });
+
+  it("folds overflow question-hypothesis pairs and objectives in the lab notebook sheets until expanded", async () => {
+    mockGetProject.mockResolvedValue(
+      createProject({
+        research_questions_zh: "问题1\n问题2\n问题3\n问题4",
+        research_hypotheses_zh: "假设1\n假设2\n假设3\n假设4",
+        challenge_objectives_zh: "目标1\n目标2\n目标3\n目标4\n目标5",
+        basic_plan_zh: "基础方案内容",
+        extended_plan_zh: "进阶方案内容",
+      })
+    );
+
+    renderPage([{ pathname: "/lab/projects/project-1" }]);
+
+    expect(await screen.findByText("问题1")).toBeTruthy();
+    const thirdQuestionMatrix = screen.getByText("问题3").closest(".research-qh-matrix") as HTMLElement | null;
+    expect(thirdQuestionMatrix?.hidden).toBe(true);
+
+    // 翻开手账夹层后展示第 3、4 组问题与假设
+    fireEvent.click(screen.getByRole("button", { name: /还有 2 组问题与假设/ }));
+    expect(thirdQuestionMatrix?.hidden).toBe(false);
+
+    // 超过 3 条研究目标时默认折叠第 4、5 条
+    const fourthObjectiveRow = screen.getByText("目标4").closest("li") as HTMLElement | null;
+    expect(fourthObjectiveRow?.hidden).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /展开其余 2 项研究目标/ }));
+    expect(fourthObjectiveRow?.hidden).toBe(false);
   });
 
 });

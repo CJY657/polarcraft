@@ -43,6 +43,7 @@ interface ProjectMeetingsSectionProps {
   /** 组长或管理员可以排期、编辑、取消会议与归档纪要 */
   canManage: boolean;
   theme?: 'light' | 'dark';
+  onCountChange?: (count: number) => void;
 }
 
 function MeetingStatusChip({ status }: { status: ProjectMeetingStatus }) {
@@ -98,6 +99,7 @@ export function ProjectMeetingsSection({
   members,
   currentUserId,
   canManage,
+  onCountChange,
 }: ProjectMeetingsSectionProps) {
   const [meetings, setMeetings] = useState<ProjectMeeting[]>([]);
   const [leaderboard, setLeaderboard] = useState<ProjectLeaderboard | null>(null);
@@ -162,6 +164,10 @@ export function ProjectMeetingsSection({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    onCountChange?.(meetings.length);
+  }, [meetings.length, onCountChange]);
 
   // 会议列表变化（含各类变更后的重取）时同步刷新展开的详情
   useEffect(() => {
@@ -441,7 +447,7 @@ export function ProjectMeetingsSection({
               </div>
             ) : (
               meeting.status !== 'cancelled' && (
-                <p className="text-base text-[var(--research-muted)]">会议纪要尚未归档。</p>
+                <p className="text-base text-[var(--research-muted)]">会议纪要尚未归档</p>
               )
             )}
 
@@ -543,9 +549,6 @@ export function ProjectMeetingsSection({
   return (
     <ResearchSectionCard
       title="会议"
-      kicker="Meetings"
-      step={5}
-      note="例会排期、AI 纪要归档与成员表现"
       flush
       actions={
         canManage && !isLoading && !showSchedulePrompt ? (
@@ -614,7 +617,7 @@ export function ProjectMeetingsSection({
 
             {topEntries.length === 0 ? (
               <p className="mt-2 text-base text-[var(--research-muted)]">
-                暂无表现数据：归档会议纪要并完成互评后，这里会出现组内表现排名。
+                暂无表现数据：归档会议纪要并完成互评后，这里会显示小组协作排名
               </p>
             ) : (
               <>

@@ -40,6 +40,7 @@ interface ProjectEvidenceSectionProps {
   canManage: boolean;
   usePublicEndpoint?: boolean;
   theme?: 'light' | 'dark';
+  onCountChange?: (count: number) => void;
 }
 
 type EvidenceFormMode = 'create' | 'edit';
@@ -246,6 +247,7 @@ export function ProjectEvidenceSection({
   projectId,
   canManage,
   usePublicEndpoint = false,
+  onCountChange,
 }: ProjectEvidenceSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [evidenceItems, setEvidenceItems] = useState<ProjectEvidence[]>([]);
@@ -286,6 +288,10 @@ export function ProjectEvidenceSection({
   useEffect(() => {
     void loadEvidence();
   }, [loadEvidence]);
+
+  useEffect(() => {
+    onCountChange?.(evidenceItems.length);
+  }, [evidenceItems.length, onCountChange]);
 
   function openCreateForm() {
     setFormMode('create');
@@ -524,9 +530,6 @@ export function ProjectEvidenceSection({
   return (
     <ResearchSectionCard
       title="证据库"
-      kicker="Evidence"
-      step={2}
-      note="实验记录、数据与阶段性成果"
       actions={
         canManage && (
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -587,7 +590,7 @@ export function ProjectEvidenceSection({
                 {formMode === 'edit' ? '编辑研究证据' : '新增研究证据'}
               </h3>
               <p className="mt-1 text-base text-[var(--research-muted)]">
-                附件可选，不支持的表格文件可先用外部链接或附件说明记录。
+                可以上传实拍图、视频、PDF 或演示文稿，在线表格或代码仓库也可以直接贴在外部链接里
               </p>
             </div>
             <button
@@ -670,7 +673,7 @@ export function ProjectEvidenceSection({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-base font-semibold text-[var(--paper-foreground)]">可选附件上传</p>
-                <p className="mt-1 text-sm text-[var(--research-muted)]">支持图片、视频、PDF、PPTX。</p>
+                <p className="mt-1 text-sm text-[var(--research-muted)]">支持图片、视频、PDF、PPTX</p>
               </div>
               <button
                 type="button"

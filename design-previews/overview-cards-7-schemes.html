@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolariScope 课题全景 · 实验手账活页夹（含多卡片防溢出收纳设计）</title>
+  <style>
+    /* ==========================================================================
+       1. PolariScope Clay & Research Design Tokens
+       ========================================================================== */
+    :root,
+    html.light {
+      --paper-bg: #fffaf0;
+      --paper-surface: #fffaf0;
+      --paper-surface-strong: #faf5e8;
+      --paper-border: #e5e5e5;
+      --paper-muted: #59554d;
+      --paper-foreground: #0a0a0a;
+      --paper-accent: #0a0a0a;
+      --paper-accent-soft: #f5f0e0;
+
+      --clay-canvas: #fffaf0;
+      --clay-surface-soft: #faf5e8;
+      --clay-surface-card: #f5f0e0;
+      --clay-surface-strong: #ebe6d6;
+      --clay-ink: #0a0a0a;
+      --clay-body: #2c2a26;
+      --clay-muted: #59554d;
+      --clay-pink: #ff4d8b;
+      --clay-teal: #1a3a3a;
+      --clay-lavender: #b8a4ed;
+      --clay-peach: #ffb084;
+      --clay-ochre: #e8b94a;
+      --clay-mint: #a4d4c5;
+      --clay-coral: #ff6b5a;
+
+      --research-canvas: #fffaf0;
+      --research-surface: #fffaf0;
+      --research-head: #faf5e8;
+      --research-edge: #0a0a0a;
+      --research-line: #d9d3c1;
+      --research-muted: #59554d;
+      --research-chip: #f5f0e0;
+      --research-lift: 2px 2px 0 0 var(--research-edge);
+      --research-lift-lg: 4px 4px 0 0 var(--research-edge);
+
+      --tint-pink-bg: rgba(255, 77, 139, 0.09);
+      --tint-pink-border: rgba(255, 77, 139, 0.42);
+      --tint-mint-bg: rgba(164, 212, 197, 0.28);
+      --tint-mint-border: rgba(26, 58, 58, 0.35);
+      --tint-ochre-bg: rgba(232, 185, 74, 0.15);
+      --tint-ochre-border: rgba(232, 185, 74, 0.52);
+      --tint-lavender-bg: rgba(184, 164, 237, 0.16);
+      --tint-lavender-border: rgba(184, 164, 237, 0.52);
+    }
+
+    html.dark {
+      --paper-bg: #0d1b1d;
+      --paper-surface: #12292e;
+      --paper-surface-strong: #16333a;
+      --paper-border: rgba(113, 156, 149, 0.36);
+      --paper-muted: #9ec0b8;
+      --paper-foreground: #edf8f6;
+      --paper-accent: #38d1a7;
+      --paper-accent-soft: rgba(56, 209, 167, 0.16);
+
+      --clay-ink: #edf8f6;
+      --clay-body: #d3ebe6;
+      --clay-muted: #9ec0b8;
+
+      --research-canvas: #0d1c20;
+      --research-surface: #12292e;
+      --research-head: #16333a;
+      --research-edge: rgba(152, 193, 186, 0.46);
+      --research-line: rgba(118, 159, 152, 0.28);
+      --research-muted: #a5c4bc;
+      --research-chip: rgba(255, 255, 255, 0.07);
+      --research-lift: 2px 2px 0 0 rgba(2, 9, 11, 0.65);
+      --research-lift-lg: 4px 4px 0 0 rgba(2, 9, 11, 0.78);
+
+      --tint-pink-bg: rgba(255, 77, 139, 0.14);
+      --tint-pink-border: rgba(255, 77, 139, 0.48);
+      --tint-mint-bg: rgba(56, 209, 167, 0.15);
+      --tint-mint-border: rgba(56, 209, 167, 0.42);
+      --tint-ochre-bg: rgba(232, 185, 74, 0.15);
+      --tint-ochre-border: rgba(232, 185, 74, 0.45);
+      --tint-lavender-bg: rgba(184, 164, 237, 0.16);
+      --tint-lavender-border: rgba(184, 164, 237, 0.45);
+    }
+
+    :root {
+      --p-density: 1;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    ::selection {
+      background: var(--clay-pink);
+      color: #ffffff;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--research-canvas);
+      color: var(--paper-foreground);
+      line-height: 1.6;
+      font-size: calc(16px * var(--p-density));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    /* ==========================================================================
+       2. 顶部预览控制器（测试卡片过多 vs 标准数量）
+       ========================================================================== */
+    .studio-dock {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--research-head) 94%, transparent);
+      backdrop-filter: blur(14px);
+      border-bottom: 1.5px solid var(--research-edge);
+      padding: 0.65rem 1.25rem;
+    }
+
+    .studio-dock-inner {
+      max-width: 84rem;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .studio-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .studio-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.22rem 0.65rem;
+      border-radius: 999px;
+      background: var(--clay-pink);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1.5px solid var(--research-edge);
+    }
+
+    .studio-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      border: 1px solid var(--research-line);
+      background: var(--research-surface);
+      padding: 0.36rem 0.72rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 150ms var(--ease-out);
+    }
+
+    .ctrl-btn:hover {
+      border-color: var(--research-edge);
+      box-shadow: var(--research-lift);
+    }
+
+    .ctrl-btn[data-active="true"] {
+      border: 1.5px solid var(--research-edge);
+      background: var(--paper-accent);
+      color: var(--paper-bg);
+      box-shadow: var(--research-lift);
+    }
+
+    /* ==========================================================================
+       3. 页面骨架（保持 4合1 Tab 与右侧栏不动）
+       ========================================================================== */
+    .research-shell {
+      width: min(100%, 82rem);
+      margin-inline: auto;
+      padding: 1.5rem clamp(1rem, 2.4vw, 1.75rem) 5rem;
+    }
+
+    .body-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 20rem;
+      gap: 1.75rem;
+      align-items: start;
+    }
+
+    .tabbar-4 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      padding: 0.35rem;
+      border: 1.5px solid var(--research-edge);
+      border-radius: 0.75rem;
+      background: var(--research-surface);
+      box-shadow: var(--research-lift);
+      margin-bottom: 1.35rem;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 0.5rem 0.95rem;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--research-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .tab-btn[aria-selected="true"] {
+      background: var(--paper-accent);
+      color: var(--paper-bg);
+    }
+
+    .tab-count {
+      font-size: 0.72rem;
+      padding: 0.05rem 0.42rem;
+      border-radius: 999px;
+      background: rgba(128, 128, 128, 0.18);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--research-line);
+      background: var(--research-chip);
+      color: var(--paper-foreground);
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chip-pink {
+      background: var(--clay-pink);
+      border-color: var(--research-edge);
+      color: #ffffff;
+    }
+
+    .chip-mint {
+      background: var(--tint-mint-bg);
+      border-color: var(--tint-mint-border);
+    }
+
+    .chip-ochre {
+      background: var(--tint-ochre-bg);
+      border-color: var(--tint-ochre-border);
+    }
+
+    .step-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--research-edge);
+      background: var(--research-surface);
+      font-size: 0.74rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .step-dot.active {
+      background: var(--clay-pink);
+      color: #fff;
+      box-shadow: var(--research-lift);
+    }
+
+    .step-dot.done {
+      background: var(--paper-accent);
+      color: var(--paper-bg);
+    }
+
+    /* ==========================================================================
+       4. 实验手账活页夹 (Tactile Lab Notebook) + 多卡片防溢出收纳机制
+       ========================================================================== */
+    @keyframes sheetRise {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .notebook-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.35rem;
+      padding-right: 1.75rem;
+    }
+
+    .notebook-sheet {
+      position: relative;
+      border: 1.5px solid var(--research-edge);
+      border-radius: 0.95rem 0.3rem 0.95rem 0.95rem;
+      background: var(--research-surface);
+      /* 双重纸张叠影：底层衬纸 + 墨线抬升 */
+      box-shadow:
+        4px 4px 0 0 var(--research-head),
+        5.5px 5.5px 0 0 var(--research-edge);
+      padding: 1.25rem 1.35rem 1.3rem 2.35rem;
+      transition:
+        transform 260ms var(--ease-spring),
+        box-shadow 260ms var(--ease-spring),
+        background-color 200ms ease;
+      animation: sheetRise 420ms var(--ease-spring) both;
+      scroll-margin-top: 5.5rem;
+    }
+
+    .notebook-sheet:nth-child(1) { animation-delay: 0ms; }
+    .notebook-sheet:nth-child(2) { animation-delay: 65ms; }
+    .notebook-sheet:nth-child(3) { animation-delay: 130ms; }
+    .notebook-sheet:nth-child(4) { animation-delay: 195ms; }
+
+    /* 悬停手账页：向右上方轻微抽出 */
+    .notebook-sheet:hover {
+      transform: translate(3px, -2px);
+      box-shadow:
+        6px 6px 0 0 var(--research-head),
+        7.5px 7.5px 0 0 var(--research-edge);
+    }
+
+    /* 左侧实验手账装订孔纹理 */
+    .notebook-sheet::before {
+      content: "";
+      position: absolute;
+      left: 0.75rem;
+      top: 1.15rem;
+      bottom: 1.15rem;
+      width: 0.45rem;
+      background-image: radial-gradient(var(--research-line) 2.6px, transparent 2.6px);
+      background-size: 0.45rem 1.4rem;
+      pointer-events: none;
+    }
+
+    /* 右侧彩色物理索引贴 (Index Tab) */
+    .notebook-index-tab {
+      position: absolute;
+      right: -1.75rem;
+      top: 1rem;
+      width: 1.75rem;
+      padding: 0.6rem 0.2rem;
+      border: 1.5px solid var(--research-edge);
+      border-left: none;
+      border-radius: 0 0.55rem 0.55rem 0;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      white-space: nowrap;
+      line-height: 1;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 2px 2px 0 0 var(--research-edge);
+      transition: width 180ms var(--ease-spring), transform 180ms var(--ease-spring);
+      user-select: none;
+    }
+
+    .notebook-index-tab:hover {
+      width: 2rem;
+      transform: translateX(2px);
+    }
+
+    /* 手账页眉 */
+    .sheet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px dashed var(--research-line);
+      margin-bottom: 1rem;
+    }
+
+    /* 手账单页收起态（当用户想把某页合上成薄页时） */
+    .notebook-sheet[data-folded="true"] {
+      min-height: 3.75rem;
+      padding-top: 0.85rem;
+      padding-bottom: 0.85rem;
+      background: var(--research-head);
+      display: flex;
+      align-items: center;
+    }
+
+    .notebook-sheet[data-folded="true"]::before {
+      top: 0.65rem;
+      bottom: 0.65rem;
+    }
+
+    .notebook-sheet[data-folded="true"] .sheet-head {
+      width: 100%;
+      padding-bottom: 0;
+      margin-bottom: 0;
+      border-bottom: none;
+      align-items: center;
+    }
+
+    .notebook-sheet[data-folded="true"] .notebook-index-tab {
+      top: 50%;
+      padding: 0.35rem 0.2rem;
+      transform: translateY(-50%);
+    }
+
+    .notebook-sheet[data-folded="true"] .notebook-index-tab:hover {
+      transform: translate(2px, -50%);
+    }
+
+    .notebook-sheet[data-folded="true"] .sheet-body {
+      display: none;
+    }
+
+    .fold-btn {
+      border: 1px solid var(--research-line);
+      background: var(--research-head);
+      padding: 0.2rem 0.58rem;
+      border-radius: 0.45rem;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--research-muted);
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+    }
+
+    .fold-btn:hover {
+      border-color: var(--research-edge);
+      color: var(--paper-foreground);
+      background: var(--research-surface);
+    }
+
+    /* ==========================================================================
+       防溢出机制 1：问题 ↔ 猜想便签 + 底部「叠纸夹层袋」+ 顶部题号书签
+       ========================================================================== */
+    .qh-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .qh-bookmarks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .qh-bookmark {
+      border: 1px solid var(--research-line);
+      background: var(--research-head);
+      padding: 0.2rem 0.62rem;
+      border-radius: 0.45rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 150ms var(--ease-out);
+    }
+
+    .qh-bookmark:hover {
+      border-color: var(--research-edge);
+    }
+
+    .qh-bookmark[data-active="true"] {
+      border: 1.5px solid var(--research-edge);
+      background: var(--paper-accent);
+      color: var(--paper-bg);
+      box-shadow: 1.5px 1.5px 0 0 var(--research-edge);
+    }
+
+    .qh-pair-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.95rem;
+      align-items: stretch;
+      animation: sheetRise 280ms var(--ease-spring) both;
+    }
+
+    .question-box {
+      padding: 0.95rem 1.05rem;
+      border-radius: 0.7rem;
+      border: 1px solid var(--research-line);
+      background: var(--research-head);
+    }
+
+    /* 琥珀色手账倾斜便签 */
+    .hypothesis-sticky {
+      padding: 0.95rem 1.05rem;
+      border-radius: 0.65rem;
+      border: 1.5px solid var(--research-edge);
+      background: var(--tint-ochre-bg);
+      box-shadow: var(--research-lift);
+      transform: rotate(-0.55deg);
+      transition: transform 220ms var(--ease-spring), box-shadow 220ms var(--ease-spring);
+    }
+
+    .qh-pair-grid:hover .hypothesis-sticky {
+      transform: rotate(0deg) translateY(-2px);
+      box-shadow: 3px 3px 0 0 var(--research-edge);
+    }
+
+    /* 底部多层叠纸夹层袋（收纳第 3~N 组问题与猜想） */
+    .stacked-paper-pocket {
+      position: relative;
+      margin-top: 0.9rem;
+      width: 100%;
+      border: 1.5px dashed var(--research-edge);
+      border-radius: 0.7rem;
+      background: var(--research-head);
+      padding: 0.68rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      cursor: pointer;
+      /* 模拟底下压着两张便签纸的叠边 */
+      box-shadow:
+        0 4px 0 -1px var(--research-surface),
+        0 4px 0 0 var(--research-line),
+        0 8px 0 -2px var(--research-surface),
+        0 8px 0 -1px var(--research-line);
+      margin-bottom: 0.5rem;
+      transition: all 180ms var(--ease-spring);
+    }
+
+    .stacked-paper-pocket:hover {
+      background: var(--tint-ochre-bg);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       防溢出机制 2：实验路线「双色顶签切换卡」+ 目标列表折叠
+       ========================================================================== */
+    .plan-folder {
+      border: 1.5px solid var(--research-edge);
+      border-radius: 0.8rem;
+      background: var(--research-head);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .plan-folder-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--research-line);
+      background: color-mix(in srgb, var(--research-line) 35%, var(--research-head));
+      padding: 0.3rem 0.35rem 0;
+      gap: 0.25rem;
+    }
+
+    .plan-tab-btn {
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: transparent;
+      padding: 0.42rem 0.8rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--research-muted);
+      cursor: pointer;
+      transition: all 150ms var(--ease-out);
+    }
+
+    .plan-tab-btn[aria-selected="true"] {
+      border-color: var(--research-line);
+      background: var(--research-head);
+      color: var(--paper-foreground);
+      transform: translateY(1px);
+    }
+
+    .plan-folder-body {
+      padding: 1rem 1.05rem;
+      animation: sheetRise 240ms var(--ease-spring);
+    }
+
+    /* ==========================================================================
+       防溢出机制 3：入组页「主视觉 + 手账附页折页袋」
+       ========================================================================== */
+    .appendix-pocket {
+      margin-top: 0.9rem;
+      border: 1px solid var(--research-line);
+      border-radius: 0.75rem;
+      background: var(--research-head);
+      overflow: hidden;
+    }
+
+    .appendix-trigger {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.84rem;
+      font-weight: 700;
+      transition: background-color 150ms ease;
+    }
+
+    .appendix-trigger:hover {
+      background: color-mix(in srgb, var(--research-line) 28%, var(--research-head));
+    }
+
+    .appendix-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      padding: 0 1rem 1rem;
+      border-top: 1px dashed var(--research-line);
+      padding-top: 0.85rem;
+      animation: sheetRise 260ms var(--ease-spring);
+    }
+
+    .appendix-cell {
+      padding: 0.8rem 0.9rem;
+      border-radius: 0.65rem;
+      border: 1px solid var(--research-line);
+      background: var(--research-surface);
+    }
+
+    /* Responsive */
+    @media (max-width: 1080px) {
+      .body-grid {
+        grid-template-columns: 1fr;
+      }
+      .appendix-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .qh-pair-grid {
+        grid-template-columns: 1fr;
+      }
+      .notebook-stack {
+        padding-right: 1.25rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       顶部预览控制器：一键测试「卡片过多」vs「标准数量」
+       ======================================================================== -->
+  <header class="studio-dock" aria-label="实验手账防溢出预览控制器">
+    <div class="studio-dock-inner">
+      <div class="studio-brand">
+        <span class="studio-badge">实验手账活页夹 · 选定方案</span>
+        <strong style="font-size: 0.9rem;">课题全景手账 + 内容过多时的 3 重防溢出收纳演示</strong>
+      </div>
+
+      <div class="studio-controls">
+        <button type="button" class="ctrl-btn" id="mode-heavy" data-active="true">
+          🔥 卡片过多场景（5 组问题 + 6 条目标 + 7 项入组信息）
+        </button>
+        <button type="button" class="ctrl-btn" id="mode-normal" data-active="false">
+          🌿 标准精简场景（2 组问题 + 3 条目标）
+        </button>
+        <button type="button" class="ctrl-btn" id="replay-anim">↻ 重播手账动效</button>
+        <button type="button" class="ctrl-btn" id="toggle-projector">投影大字号</button>
+        <button type="button" class="ctrl-btn" id="toggle-theme">明暗主题</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       主体双栏（仅改动左栏「课题全景与研究设计」，Tab栏与右栏保持不变）
+       ======================================================================== -->
+  <main class="research-shell">
+    <div class="body-grid">
+      <div>
+        <!-- 4 合 1 选项卡 -->
+        <div class="tabbar-4" role="tablist" aria-label="课题内容导航">
+          <button type="button" class="tab-btn" role="tab" aria-selected="true">
+            课题全景与研究设计
+          </button>
+          <button type="button" class="tab-btn" role="tab" aria-selected="false">
+            课题证据与评审 <span class="tab-count">5</span>
+          </button>
+          <button type="button" class="tab-btn" role="tab" aria-selected="false">
+            任务与组会 <span class="tab-count">4</span>
+          </button>
+          <button type="button" class="tab-btn" role="tab" aria-selected="false">
+            学术讨论 <span class="tab-count">12</span>
+          </button>
+        </div>
+
+        <!-- ==================================================================
+             实验手账活页夹主体（4 页手账）
+             ================================================================== -->
+        <div class="notebook-stack" id="notebook-stack">
+
+          <!-- ================================================================
+               第 01 页手账：最新进展与议题价值（右侧薄荷绿索引贴：进展）
+               ================================================================ -->
+          <section class="notebook-sheet" id="sheet-1" data-folded="false">
+            <span class="notebook-index-tab" style="background: var(--clay-mint); color: #0a0a0a;" data-target="sheet-1" title="进展">
+              进展
+            </span>
+
+            <div class="sheet-head">
+              <h2 style="font-size: 1.15rem; font-weight: 800;">最新进展与议题价值</h2>
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <button type="button" class="fold-btn" data-fold-btn="sheet-1">收起</button>
+              </div>
+            </div>
+
+            <div class="sheet-body">
+              <div style="padding: 0.9rem 1.05rem; border-radius: 0.75rem; background: var(--tint-mint-bg); border: 1px solid var(--tint-mint-border);">
+                <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.25rem;">最新进展</div>
+                <p style="font-weight: 700; font-size: 0.98rem;">
+                  已完成正交线偏振与四分之一波片（λ/4）对照实验：证实球面暗十字随起偏器同步旋转，排除了“皂膜静态晶格各向异性”猜想
+                </p>
+              </div>
+              <div style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--research-line);">
+                <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.25rem;">议题价值</div>
+                <p style="font-size: 0.92rem; color: var(--clay-body);">
+                  用身边随手可得的洗手液泡泡，直观分离「几何偏振消光」与「薄膜等厚干涉」两类光学机制，建立低成本薄膜厚度反演模型
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================================================================
+               第 02 页手账：核心科学问题与研究假设（右侧琥珀黄索引贴：猜想）
+               ================================================================ -->
+          <section class="notebook-sheet" id="sheet-2" data-folded="false">
+            <span class="notebook-index-tab" style="background: var(--clay-ochre); color: #0a0a0a;" data-target="sheet-2" title="猜想">
+              猜想
+            </span>
+
+            <div class="sheet-head">
+              <h2 style="font-size: 1.15rem; font-weight: 800;">核心科学问题与研究假设</h2>
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span class="chip" id="qh-count-chip">5 组</span>
+                <button type="button" class="fold-btn">管理问题</button>
+                <button type="button" class="fold-btn" data-fold-btn="sheet-2">收起</button>
+              </div>
+            </div>
+
+            <div class="sheet-body">
+              <div class="qh-filter-bar" id="qh-filter-bar">
+                <div class="qh-bookmarks" role="tablist" aria-label="按问题编号快速筛选">
+                  <button type="button" class="qh-bookmark" data-qh-filter="all" data-active="true">全部 (5)</button>
+                  <button type="button" class="qh-bookmark" data-qh-filter="0" data-active="false">Q1</button>
+                  <button type="button" class="qh-bookmark" data-qh-filter="1" data-active="false">Q2</button>
+                  <button type="button" class="qh-bookmark heavy-only" data-qh-filter="2" data-active="false">Q3</button>
+                  <button type="button" class="qh-bookmark heavy-only" data-qh-filter="3" data-active="false">Q4</button>
+                  <button type="button" class="qh-bookmark heavy-only" data-qh-filter="4" data-active="false">Q5</button>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.9rem;" id="qh-list">
+                <div class="qh-pair-grid" data-pair-index="0">
+                  <div class="question-box">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">Q1 · 研究问题</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">为什么气泡在正交偏振片后会出现稳定的“马耳他暗十字”纹样？</p>
+                  </div>
+                  <div class="hypothesis-sticky">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">📌 H1 · 对应假设</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">球形曲面局部入射面方位角 φ 引起的菲涅尔反射/透射偏振态旋转</p>
+                  </div>
+                </div>
+
+                <div class="qh-pair-grid" data-pair-index="1">
+                  <div class="question-box">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">Q2 · 研究问题</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">气泡表面的彩色环状条纹源于色偏振还是薄膜等厚干涉？</p>
+                  </div>
+                  <div class="hypothesis-sticky">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">📌 H2 · 对应假设</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">自然光下即存在等厚干涉，正交偏振片滤除了非调制直射光使对比度提升 3 倍</p>
+                  </div>
+                </div>
+
+                <div class="qh-pair-grid extra-pair" data-pair-index="2" style="display: none;">
+                  <div class="question-box">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">Q3 · 研究问题</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">为什么在气泡边缘大入射角（θ &gt; 65°）区域暗十字会出现明暗反转？</p>
+                  </div>
+                  <div class="hypothesis-sticky">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">📌 H3 · 对应假设</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">光线在球壳内壁发生二次菲涅尔反射并跨过布儒斯特角，引发 π 相位跳变</p>
+                  </div>
+                </div>
+
+                <div class="qh-pair-grid extra-pair" data-pair-index="3" style="display: none;">
+                  <div class="question-box">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">Q4 · 研究问题</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">气泡破裂前顶部出现的无色暗区（牛顿黑膜）还能维持马耳他十字吗？</p>
+                  </div>
+                  <div class="hypothesis-sticky">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">📌 H4 · 对应假设</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">当膜厚 d &lt; 30nm 时等厚干涉相消占主导，但几何偏振透射分量仍可通过长曝光检出</p>
+                  </div>
+                </div>
+
+                <div class="qh-pair-grid extra-pair" data-pair-index="4" style="display: none;">
+                  <div class="question-box">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">Q5 · 研究问题</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">甘油与表面活性剂浓度如何改变彩环下移速度与排液时间常数？</p>
+                  </div>
+                  <div class="hypothesis-sticky">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: var(--research-muted);">📌 H5 · 对应假设</div>
+                    <p style="font-weight: 700; margin-top: 0.28rem;">甘油提高体相黏度抑制重力排液，使条纹下移速率呈指数衰减而非线性下降</p>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" class="stacked-paper-pocket" id="toggle-extra-qh">
+                <span style="font-size: 0.84rem; font-weight: 800;" id="pocket-qh-label">
+                  还有 3 组问题与假设（Q3 ~ Q5）
+                </span>
+                <span class="chip chip-ochre" id="pocket-qh-action">展开全部 ▾</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- ================================================================
+               第 03 页手账：研究目标与实验路线（右侧薰衣草紫索引贴：实验）
+               ================================================================ -->
+          <section class="notebook-sheet" id="sheet-3" data-folded="false">
+            <span class="notebook-index-tab" style="background: var(--clay-lavender); color: #0a0a0a;" data-target="sheet-3" title="实验">
+              实验
+            </span>
+
+            <div class="sheet-head">
+              <h2 style="font-size: 1.15rem; font-weight: 800;">研究目标与实验路线</h2>
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span class="chip" id="obj-count-chip" style="display: none;">6 项</span>
+                <button type="button" class="fold-btn" data-fold-btn="sheet-3">收起</button>
+              </div>
+            </div>
+
+            <div class="sheet-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.15rem; align-items: start;">
+              <div>
+                <h3 style="font-size: 0.78rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.7rem;">
+                  研究目标
+                </h3>
+                <ol style="list-style: none; display: flex; flex-direction: column; gap: 0.65rem;">
+                  <li style="display: flex; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot active">1</span>
+                    <div><strong style="font-size: 0.94rem;">搭建标准正交偏振泡泡观测暗箱</strong></div>
+                  </li>
+                  <li style="display: flex; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot">2</span>
+                    <div><strong style="font-size: 0.94rem;">建立球壳菲涅尔琼斯矩阵 Python 仿真</strong></div>
+                  </li>
+                  <li style="display: flex; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot">3</span>
+                    <div><strong style="font-size: 0.94rem;">引入 532nm 单色滤光片分离等厚干涉条纹</strong></div>
+                  </li>
+                  <li class="extra-obj" style="display: none; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot">4</span>
+                    <div><strong style="font-size: 0.94rem;">构建 CIE 1931 薄膜色度-膜厚反演查表</strong></div>
+                  </li>
+                  <li class="extra-obj" style="display: none; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot">5</span>
+                    <div><strong style="font-size: 0.94rem;">追踪不同甘油配比下的排液动力学曲线</strong></div>
+                  </li>
+                  <li class="extra-obj" style="display: none; gap: 0.65rem; align-items: flex-start;">
+                    <span class="step-dot">6</span>
+                    <div><strong style="font-size: 0.94rem;">撰写可复现的家庭偏振光学实验指南</strong></div>
+                  </li>
+                </ol>
+
+                <button type="button" class="fold-btn" id="toggle-extra-obj" style="margin-top: 0.7rem; width: 100%; padding: 0.42rem;">
+                  展开其余 3 项研究目标 ▾
+                </button>
+              </div>
+
+              <div class="plan-folder">
+                <div class="plan-folder-tabs" role="tablist" aria-label="切换实验阶段方案">
+                  <button type="button" class="plan-tab-btn" role="tab" aria-selected="true" data-plan-tab="basic">
+                    基础实验
+                  </button>
+                  <button type="button" class="plan-tab-btn" role="tab" aria-selected="false" data-plan-tab="extended">
+                    进阶探索
+                  </button>
+                </div>
+
+                <div class="plan-folder-body" id="plan-panel-basic">
+                  <p style="font-size: 0.9rem; color: var(--clay-body); line-height: 1.65;">
+                    采用平凸透镜培养皿固定半球形洗手液气泡（配比：甘油:洗手液:去离子水 = 1:2:7），在平板白光面光源背光照明下，分别拍摄<strong>无偏振、平行偏振、正交偏振</strong>三组基准对比图，验证暗十字随起偏器旋转的同步性
+                  </p>
+                </div>
+
+                <div class="plan-folder-body" id="plan-panel-extended" style="display: none;">
+                  <p style="font-size: 0.9rem; color: var(--clay-body); line-height: 1.65;">
+                    在正交检偏器前引入单色窄带滤光片（532nm 绿光 / 635nm 红光）消除多波长混色干扰，用延时摄影记录单色等厚干涉条纹随时间的下移速度，反演皂膜表面张力梯度与排液速率
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ================================================================
+               第 04 页手账：加入指南与合作约定（右侧珊瑚粉索引贴：入组）
+               ================================================================ -->
+          <section class="notebook-sheet" id="sheet-4" data-folded="false">
+            <span class="notebook-index-tab" style="background: var(--clay-pink); color: #ffffff;" data-target="sheet-4" title="入组">
+              入组
+            </span>
+
+            <div class="sheet-head">
+              <h2 style="font-size: 1.15rem; font-weight: 800;">加入指南与合作约定</h2>
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span class="chip chip-mint">进阶 · 开放申请</span>
+                <button type="button" class="fold-btn" data-fold-btn="sheet-4">收起</button>
+              </div>
+            </div>
+
+            <div class="sheet-body">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; align-items: stretch;">
+                <div style="padding: 1rem; border-radius: 0.75rem; border: 1.5px dashed var(--clay-pink); background: var(--tint-pink-bg); display: flex; flex-direction: column; justify-content: space-between; gap: 0.75rem;">
+                  <div>
+                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--paper-foreground); margin-bottom: 0.4rem;">
+                      当前缺口
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                      <span class="chip chip-pink">缺 Python 数值仿真 1 人</span>
+                      <span class="chip" style="border-color: var(--clay-pink);">缺 光谱图像标定 1 人</span>
+                    </div>
+                  </div>
+                  <div style="padding-top: 0.65rem; border-top: 1px dashed var(--tint-pink-border);">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.25rem;">适合角色</div>
+                    <div style="font-size: 0.84rem; font-weight: 600;">光学实验拍摄 · Python 矩阵计算 · 数据图表整理</div>
+                  </div>
+                </div>
+
+                <div class="hypothesis-sticky">
+                  <div style="font-size: 0.78rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.35rem;">📌 上手第一步</div>
+                  <p style="font-weight: 700; font-size: 0.95rem;">
+                    用手机白屏（自带线偏振光）+ 偏振太阳镜片，在家拍下一张洗手液泡泡的暗十字照片并上传至讨论区
+                  </p>
+                </div>
+              </div>
+
+              <div class="appendix-pocket">
+                <button type="button" class="appendix-trigger" id="toggle-appendix" aria-expanded="false">
+                  <span>合作约定（阶段成果 · 评价标准 · 时间与要求）</span>
+                  <span class="chip" id="appendix-badge">展开 ▾</span>
+                </button>
+
+                <div class="appendix-grid" id="appendix-grid" style="display: none;">
+                  <div class="appendix-cell">
+                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.3rem;">阶段成果</div>
+                    <p style="font-size: 0.88rem;">1 份带光路角度标注的实验记录卡（含实拍图），或 1 份可运行的琼斯矩阵仿真脚本</p>
+                  </div>
+                  <div class="appendix-cell">
+                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.3rem;">评价标准</div>
+                    <p style="font-size: 0.88rem;">光路角度误差 ≤ 2°、对照实验控制变量清晰、理论仿真能解释 45° 象限亮斑分布</p>
+                  </div>
+                  <div class="appendix-cell">
+                    <div style="font-size: 0.78rem; font-weight: 800; color: var(--research-muted); margin-bottom: 0.3rem;">时间与要求</div>
+                    <p style="font-size: 0.88rem;">每周约 4 小时 · 周六晚 20:00 线上 30 分钟短组会同步进展，有基础摄影或 Python 经验更佳</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- 右侧固定不变的团队成员栏 -->
+      <aside style="display: flex; flex-direction: column; gap: 1.25rem; position: sticky; top: 5.5rem;">
+        <section style="border: 1.5px solid var(--research-edge); border-radius: 1rem; background: var(--research-surface); box-shadow: var(--research-lift); overflow: hidden;">
+          <div style="padding: 0.95rem 1.2rem; border-bottom: 1px solid var(--research-line); background: var(--research-head); display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 1rem; font-weight: 800;">团队成员（右侧栏保持不变）</h2>
+            <span class="chip">3 人</span>
+          </div>
+          <div style="padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+            <div><strong>陈镜宇</strong> · 组长 · 正交偏振光路统筹</div>
+            <div><strong>林知夏</strong> · 成员 · 皂膜配比与高速摄影</div>
+            <div><strong>周予安</strong> · 成员 · 菲涅尔方程推导</div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    let isHeavyMode = true;
+    let isExtraQhOpen = false;
+    let isExtraObjOpen = false;
+    let isAppendixOpen = false;
+
+    const extraPairs = document.querySelectorAll(".extra-pair");
+    const extraObjs = document.querySelectorAll(".extra-obj");
+    const toggleQhBtn = document.getElementById("toggle-extra-qh");
+    const pocketQhLabel = document.getElementById("pocket-qh-label");
+    const pocketQhAction = document.getElementById("pocket-qh-action");
+    const toggleObjBtn = document.getElementById("toggle-extra-obj");
+    const qhCountChip = document.getElementById("qh-count-chip");
+    const objCountChip = document.getElementById("obj-count-chip");
+    const qhFilterBar = document.getElementById("qh-filter-bar");
+
+    function updateOverflowUI() {
+      if (!isHeavyMode) {
+        extraPairs.forEach((el) => (el.style.display = "none"));
+        extraObjs.forEach((el) => (el.style.display = "none"));
+        toggleQhBtn.style.display = "none";
+        toggleObjBtn.style.display = "none";
+        qhFilterBar.style.display = "none";
+        qhCountChip.textContent = "2 组";
+      } else {
+        toggleQhBtn.style.display = "flex";
+        toggleObjBtn.style.display = "block";
+        qhFilterBar.style.display = "flex";
+        qhCountChip.textContent = "5 组";
+        extraPairs.forEach((el) => {
+          el.style.display = isExtraQhOpen ? "grid" : "none";
+        });
+        pocketQhLabel.textContent = isExtraQhOpen
+          ? "已展开全部 5 组"
+          : "还有 3 组问题与假设（Q3 ~ Q5）";
+        pocketQhAction.textContent = isExtraQhOpen ? "收起 ▴" : "展开全部 ▾";
+
+        extraObjs.forEach((el) => {
+          el.style.display = isExtraObjOpen ? "flex" : "none";
+        });
+        toggleObjBtn.textContent = isExtraObjOpen
+          ? "收起其余目标 ▴"
+          : "展开其余 3 项研究目标 ▾";
+      }
+    }
+
+    // 切换「卡片过多」vs「标准数量」场景
+    document.getElementById("mode-heavy").addEventListener("click", (e) => {
+      isHeavyMode = true;
+      e.currentTarget.dataset.active = "true";
+      document.getElementById("mode-normal").dataset.active = "false";
+      updateOverflowUI();
+    });
+
+    document.getElementById("mode-normal").addEventListener("click", (e) => {
+      isHeavyMode = false;
+      e.currentTarget.dataset.active = "true";
+      document.getElementById("mode-heavy").dataset.active = "false";
+      document.querySelectorAll(".qh-pair-grid").forEach((el, idx) => {
+        el.style.display = idx < 2 ? "grid" : "none";
+      });
+      updateOverflowUI();
+    });
+
+    // 叠纸夹层：展开/收起第 3~5 组问题与猜想
+    toggleQhBtn.addEventListener("click", () => {
+      isExtraQhOpen = !isExtraQhOpen;
+      // 重置顶部题号书签为“全部”
+      document.querySelectorAll("[data-qh-filter]").forEach((b) => {
+        b.dataset.active = String(b.dataset.qhFilter === "all");
+      });
+      document.querySelectorAll(".qh-pair-grid").forEach((el, idx) => {
+        el.style.display = idx < 2 || isExtraQhOpen ? "grid" : "none";
+      });
+      updateOverflowUI();
+    });
+
+    // 顶部题号书签：点击单看某一组 Q↔H
+    document.querySelectorAll("[data-qh-filter]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const filter = btn.dataset.qhFilter;
+        document.querySelectorAll("[data-qh-filter]").forEach((b) => {
+          b.dataset.active = String(b === btn);
+        });
+        if (filter === "all") {
+          document.querySelectorAll(".qh-pair-grid").forEach((el, idx) => {
+            el.style.display = idx < 2 || isExtraQhOpen ? "grid" : "none";
+          });
+          toggleQhBtn.style.display = "flex";
+        } else {
+          const targetIdx = Number(filter);
+          document.querySelectorAll(".qh-pair-grid").forEach((el, idx) => {
+            el.style.display = idx === targetIdx ? "grid" : "none";
+          });
+          toggleQhBtn.style.display = "none";
+        }
+      });
+    });
+
+    // 展开/收起第 4~6 条研究目标
+    toggleObjBtn.addEventListener("click", () => {
+      isExtraObjOpen = !isExtraObjOpen;
+      updateOverflowUI();
+    });
+
+    // 实验路线双色顶签切换（基础实验 vs 进阶探索）
+    document.querySelectorAll("[data-plan-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.dataset.planTab;
+        document.querySelectorAll("[data-plan-tab]").forEach((b) => {
+          b.setAttribute("aria-selected", String(b === btn));
+        });
+        document.getElementById("plan-panel-basic").style.display = target === "basic" ? "block" : "none";
+        document.getElementById("plan-panel-extended").style.display = target === "extended" ? "block" : "none";
+      });
+    });
+
+    // 入组手账附页展开/收起
+    const toggleAppendixBtn = document.getElementById("toggle-appendix");
+    const appendixGrid = document.getElementById("appendix-grid");
+    const appendixBadge = document.getElementById("appendix-badge");
+    toggleAppendixBtn.addEventListener("click", () => {
+      isAppendixOpen = !isAppendixOpen;
+      toggleAppendixBtn.setAttribute("aria-expanded", String(isAppendixOpen));
+      appendixGrid.style.display = isAppendixOpen ? "grid" : "none";
+      appendixBadge.textContent = isAppendixOpen ? "收起 ▴" : "展开 ▾";
+    });
+
+    // 单页手账收起/展开
+    document.querySelectorAll("[data-fold-btn]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sheet = document.getElementById(btn.dataset.foldBtn);
+        const nextFolded = sheet.dataset.folded !== "true";
+        sheet.dataset.folded = String(nextFolded);
+        btn.textContent = nextFolded ? "展开 ▾" : "收起";
+      });
+    });
+
+    // 点击右侧彩色索引贴：展开并平滑聚焦该页手账
+    document.querySelectorAll(".notebook-index-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const sheet = document.getElementById(tab.dataset.target);
+        if (!sheet) return;
+        sheet.dataset.folded = "false";
+        const foldBtn = sheet.querySelector("[data-fold-btn]");
+        if (foldBtn) foldBtn.textContent = "收起";
+        sheet.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    // 重播入场动画
+    document.getElementById("replay-anim").addEventListener("click", () => {
+      const stack = document.getElementById("notebook-stack");
+      stack.style.display = "none";
+      void stack.offsetWidth;
+      stack.style.display = "flex";
+    });
+
+    // 投影大字号
+    let projOn = false;
+    document.getElementById("toggle-projector").addEventListener("click", () => {
+      projOn = !projOn;
+      document.documentElement.style.setProperty("--p-density", projOn ? "1.14" : "1");
+    });
+
+    // 明暗主题
+    document.getElementById("toggle-theme").addEventListener("click", () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains("dark");
+      html.classList.toggle("dark", !isDark);
+      html.classList.toggle("light", isDark);
+    });
+  </script>
+</body>
+</html>

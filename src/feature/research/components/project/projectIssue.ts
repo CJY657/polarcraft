@@ -23,6 +23,8 @@ export type ProjectIssueSource = Pick<
   | 'challenge_missing_roles_zh'
   | 'challenge_progress_zh'
 > & {
+  research_hypotheses_zh?: string | null;
+  extended_plan_zh?: string | null;
   recruitment_requirements?: string | null;
   is_recruiting?: boolean;
 };
@@ -180,17 +182,17 @@ export function buildProjectIssue(project: ProjectIssueSource): ProjectIssue {
   const difficulty = normalizeDifficulty(project.challenge_difficulty);
   const roles = cleanText(project.challenge_roles_zh)
     || cleanText(project.recruitment_requirements)
-    || '适合对这个方向感兴趣、愿意持续记录的同学';
+    || '对这个现象感到好奇、愿意动手做实验或记录数据的同学都很欢迎';
   const missingRoles = cleanText(project.challenge_missing_roles_zh)
     || cleanText(project.recruitment_requirements)
-    || (project.is_recruiting === false ? '当前暂不补充新成员' : '正在寻找合适的协作者');
+    || (project.is_recruiting === false ? '目前小组成员已满，暂不招募新伙伴' : '欢迎愿意一起动手做实验、整理数据或查资料的同学加入');
   const beginnerSteps = cleanText(project.challenge_beginner_steps_zh)
     || cleanText(project.basic_plan_zh)
-    || '先阅读课题说明，选择一个可观察变量，完成第一轮记录。';
+    || '先看懂课题背景，亲手复现一次基础现象，拍下你的第一组观察照片或数据';
   const objectives = cleanText(project.challenge_objectives_zh)
     || cleanText(project.research_questions_zh)
     || cleanText(project.description_zh)
-    || '围绕课题现象提出问题，并把观察过程转化为可讨论的证据。';
+    || '观察并记录核心现象，提出自己的猜想，用实验照片或数据来验证它';
   const roleOptions = getProjectIssueRoleOptions(project);
 
   return {
@@ -198,15 +200,15 @@ export function buildProjectIssue(project: ProjectIssueSource): ProjectIssue {
     state: getProjectIssueStateMeta(project.status),
     value: cleanText(project.challenge_value_zh)
       || cleanText(project.description_zh)
-      || '这个议题还没有补充完整说明，可以先查看课题资料和团队状态。',
+      || '组长还没有补充详细的课题背景，你可以先看看上方的课题简介和已有的实验记录',
     objectives,
     beginnerSteps,
     minDeliverables: cleanText(project.challenge_min_deliverables_zh)
-      || '一次完整观察记录、一份阶段小结，以及可以被复核的图片或数据。',
+      || '一份清晰的实验观察记录（附上实拍图或数据表），以及简短的阶段小结',
     reviewCriteria: cleanText(project.challenge_review_criteria_zh)
-      || '记录是否清晰、变量是否明确、结论是否能由证据支持。',
+      || '实验步骤清楚、方便同学复现，得出的结论有真实的照片或数据支撑',
     timeline: cleanText(project.challenge_timeline_zh)
-      || '建议先用 1 周完成入门观察，再和组内确认下一轮任务。',
+      || '建议第 1 周先完成上手观察，之后每周和小组同步一次进展',
     difficulty,
     difficultyLabel: difficultyLabels[difficulty],
     roles,
@@ -225,5 +227,5 @@ export function buildProjectIssue(project: ProjectIssueSource): ProjectIssue {
 export function getProjectFirstStep(project: ProjectIssueSource): string {
   return firstFallbackLine(project.challenge_beginner_steps_zh)
     || firstFallbackLine(project.basic_plan_zh)
-    || '从第一轮观察记录开始';
+    || '先动手做一次基础观察并记录下来';
 }

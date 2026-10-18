@@ -187,9 +187,6 @@ export function ProjectPeerReviewSection({
   return (
     <ResearchSectionCard
       title="同伴评审"
-      kicker="Peer Review"
-      step={3}
-      note="其他同学对课题的评审反馈"
       actions={
         isReviewPending && (
           <div className="research-panel-soft flex min-w-[11rem] flex-col gap-2 rounded-md px-3.5 py-2.5">

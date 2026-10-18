@@ -310,18 +310,25 @@ export function buildResearchProjectViewModel({
   const showResearchInfo = hasResearchOutline(researchOutline);
   const showMembersRail = !isExampleProject && displayMembers.length > 0;
   const projectTabs = [
-    { id: "overview", label: "议题" },
-    ...(showResearchInfo ? [{ id: "design", label: "研究设计" }] : []),
-    ...(canShowEvidenceSection ? [{ id: "evidence", label: "课题证据" }] : []),
-    ...(canShowPeerReviewSection && hasPeerReviewContent
-      ? [{ id: "review", label: "同伴评审" }]
+    { id: "overview", label: "课题全景与研究设计" },
+    ...(canShowEvidenceSection || (canShowPeerReviewSection && hasPeerReviewContent)
+      ? [{ id: "evidence", label: "课题证据与评审" }]
       : []),
-    ...(canShowTasksSection ? [{ id: "tasks", label: "任务分工" }] : []),
-    ...(canShowMeetingsSection ? [{ id: "meetings", label: "会议" }] : []),
-    ...(canShowDiscussionSection ? [{ id: "discussion", label: "参与讨论" }] : []),
+    ...(canShowTasksSection || canShowMeetingsSection
+      ? [{ id: "tasks", label: "任务与组会" }]
+      : []),
+    ...(canShowDiscussionSection ? [{ id: "discussion", label: "学术讨论" }] : []),
   ];
-  const currentTab = projectTabs.find((tab) => tab.id === activeTab)?.id ?? "overview";
-  const descriptionText = displayProject?.description_zh || "这个课题还没有写摘要。";
+  const normalizedActiveTab =
+    activeTab === "design"
+      ? "overview"
+      : activeTab === "review"
+        ? "evidence"
+        : activeTab === "meetings"
+          ? "tasks"
+          : activeTab;
+  const currentTab = projectTabs.find((tab) => tab.id === normalizedActiveTab)?.id ?? "overview";
+  const descriptionText = displayProject?.description_zh || "暂无课题简介";
   const isDescriptionClampable = descriptionText.length > 150;
 
   return {

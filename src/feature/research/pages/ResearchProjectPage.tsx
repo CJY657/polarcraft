@@ -42,9 +42,6 @@ import { ProjectTasksSection } from "../components/project/ProjectTasksSection";
 import { ProjectMeetingsSection } from "../components/project/ProjectMeetingsSection";
 import { ProjectActivityFeed } from "../components/project/ProjectActivityFeed";
 import { ResearchAgentPanel } from "../components/project/ResearchAgentPanel";
-import {
-  ResearchInfoSection,
-} from "../components/project/ResearchInfoSection";
 import { ProjectMembersSection } from "../components/project/ProjectMembersSection";
 import { RemoveMemberDialog } from "../components/project/RemoveMemberDialog";
 import { ProjectCoverImage } from "../components/shared/ProjectCoverImage";
@@ -122,6 +119,10 @@ export function ResearchProjectPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [hasPeerReviewContent, setHasPeerReviewContent] = useState(false);
+  const [evidenceCount, setEvidenceCount] = useState(0);
+  const [tasksCount, setTasksCount] = useState(0);
+  const [meetingsCount, setMeetingsCount] = useState(0);
+  const [discussionCount, setDiscussionCount] = useState(0);
   const handlePeerReviewContentChange = useCallback((hasContent: boolean) => {
     setHasPeerReviewContent(hasContent);
   }, []);
@@ -155,6 +156,10 @@ export function ResearchProjectPage() {
     setDiscussionJumpRequest(null);
     setActiveTab("overview");
     setIsDescriptionExpanded(false);
+    setEvidenceCount(0);
+    setTasksCount(0);
+    setMeetingsCount(0);
+    setDiscussionCount(0);
     setLeadershipTransferCandidate(null);
     setLeadershipTransferAction(null);
     setLeadershipTransferError(null);
@@ -248,30 +253,30 @@ export function ResearchProjectPage() {
   }, [projectId, isAuthenticated, authLoading, isExampleProject, loadAuthenticatedProjectData]);
 
   useEffect(() => {
-    if (isLoading || location.hash !== "#project-peer-review") {
+    if (location.hash !== "#project-peer-review") {
       return;
     }
 
-    setActiveTab("review");
-  }, [isLoading, location.hash, location.key, projectId]);
+    setActiveTab("evidence");
+  }, [location.hash, location.key, projectId]);
 
   useEffect(() => {
-    if (isLoading || location.hash !== "#project-meetings") {
+    if (location.hash !== "#project-meetings") {
       return;
     }
 
-    setActiveTab("meetings");
-  }, [isLoading, location.hash, location.key, location.state?.notificationJumpAt, projectId]);
+    setActiveTab("tasks");
+  }, [location.hash, location.key, location.state?.notificationJumpAt, projectId]);
 
   useEffect(() => {
-    if (isLoading || location.hash !== "#project-meetings" || activeTab !== "meetings") {
+    if (isLoading || location.hash !== "#project-meetings" || activeTab !== "tasks") {
       return;
     }
 
-    const meetingsPanel = document.getElementById("project-panel-meetings");
+    const tasksPanel = document.getElementById("project-panel-tasks");
     const meetingsSection = document.getElementById("project-meetings");
 
-    if (!meetingsPanel || meetingsPanel.hidden || !meetingsSection) {
+    if (!tasksPanel || tasksPanel.hidden || !meetingsSection) {
       return;
     }
 
@@ -303,16 +308,16 @@ export function ResearchProjectPage() {
     if (
       isLoading
       || location.hash !== "#project-peer-review"
-      || activeTab !== "review"
+      || activeTab !== "evidence"
       || !hasPeerReviewContent
     ) {
       return;
     }
 
-    const reviewPanel = document.getElementById("project-panel-review");
+    const evidencePanel = document.getElementById("project-panel-evidence");
     const reviewSection = document.getElementById("project-peer-review");
 
-    if (!reviewPanel || reviewPanel.hidden || !reviewSection) {
+    if (!evidencePanel || evidencePanel.hidden || !reviewSection) {
       return;
     }
 
@@ -523,7 +528,6 @@ export function ResearchProjectPage() {
     canShowTasksSection,
     canShowMeetingsSection,
     researchOutline,
-    showResearchInfo,
     showMembersRail,
     projectTabs,
     currentTab,
@@ -531,6 +535,11 @@ export function ResearchProjectPage() {
     isDescriptionClampable,
     usePublicEndpoint,
   } = projectViewModel;
+  const tabCountById: Record<string, number> = {
+    evidence: evidenceCount,
+    tasks: tasksCount + meetingsCount,
+    discussion: discussionCount,
+  };
   const issueNumberLabel = formatProjectIssueNumber(displayProject.issue_number);
 
   const handleApplyAction = () => {
@@ -577,8 +586,8 @@ export function ResearchProjectPage() {
       <main className="research-shell py-6 md:py-8">
         {/* 只读模式提示 */}
         {isReadOnlyMode && (
-          <div className="research-tint-ochre mb-7 rounded-[0.625rem] border-[1.5px] px-5 py-3.5">
-            <p className="text-base font-semibold text-[var(--paper-foreground)]">
+          <div className="research-tint-ochre mb-6 rounded-[0.625rem] border-[1.5px] px-4 py-2.5">
+            <p className="text-sm font-semibold text-[var(--paper-foreground)]">
               {isPublicGuestMode ? "你正在浏览公开课题详情" : "你正在以只读模式浏览这个课题"}
             </p>
           </div>
@@ -587,8 +596,7 @@ export function ResearchProjectPage() {
         {/* Project Header — compact hero, cover demoted to the side column */}
         <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0">
-            <div className="mb-3.5 flex flex-wrap items-center gap-2">
-              <span className="research-kicker mr-1">课题详情</span>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
               {issueNumberLabel && (
                 <span className="research-chip inline-flex rounded-full px-3 py-1 text-sm font-semibold tabular-nums">
                   {issueNumberLabel}
@@ -730,9 +738,6 @@ export function ResearchProjectPage() {
               alt={displayProject.name_zh}
               className="aspect-[16/9] w-full rounded-xl border-[1.5px] border-[var(--research-edge)] shadow-[var(--research-lift)]"
             />
-            <figcaption className="mt-2.5 text-center text-xs italic text-[var(--research-muted)]">
-              课题封面
-            </figcaption>
           </figure>
         </section>
 
@@ -752,20 +757,29 @@ export function ResearchProjectPage() {
               aria-label="课题内容导航"
               className="research-tabbar sticky top-16 z-30 mb-5"
             >
-              {projectTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`project-tab-${tab.id}`}
-                  aria-selected={currentTab === tab.id}
-                  aria-controls={`project-panel-${tab.id}`}
-                  onClick={() => setActiveTab(tab.id)}
-                  className="research-tab"
-                >
-                  {tab.label}
-                </button>
-              ))}
+              {projectTabs.map((tab) => {
+                const count = tabCountById[tab.id] ?? 0;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`project-tab-${tab.id}`}
+                    aria-selected={currentTab === tab.id}
+                    aria-controls={`project-panel-${tab.id}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    className="research-tab"
+                  >
+                    <span>{tab.label}</span>
+                    {count > 0 && (
+                      <span className="research-tab-count" aria-hidden="true">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div
@@ -780,96 +794,79 @@ export function ResearchProjectPage() {
                   recruitment_requirements: displayRecruitmentRequirements,
                   is_recruiting: displayIsRecruiting,
                 }}
+                outline={researchOutline}
+                canManageQuestions={canManageProject}
+                onManageQuestions={() => openEditDialog('questions')}
               />
             </div>
 
-            {showResearchInfo && (
-              <div
-                role="tabpanel"
-                id="project-panel-design"
-                aria-labelledby="project-tab-design"
-                hidden={currentTab !== "design"}
-              >
-                <ResearchInfoSection
-                  outline={researchOutline}
-                  canManageQuestions={canManageProject}
-                  onManageQuestions={() => openEditDialog('questions')}
-                />
-              </div>
-            )}
-
-            {canShowEvidenceSection && projectId && (
+            {/* Always mounted when evidence/review is enabled so peer review can report whether it has content. */}
+            {(canShowEvidenceSection || canShowPeerReviewSection) && projectId && (
               <div
                 role="tabpanel"
                 id="project-panel-evidence"
                 aria-labelledby="project-tab-evidence"
                 hidden={currentTab !== "evidence"}
+                className={currentTab === "evidence" ? "flex flex-col gap-5" : undefined}
               >
-                <ProjectEvidenceSection
-                  projectId={projectId}
-                  canManage={canManageEvidence}
-                  usePublicEndpoint={usePublicEndpoint}
-                  theme={theme === "dark" ? "dark" : "light"}
-                />
-              </div>
-            )}
-
-            {/* Always mounted: the section itself reports whether its tab is worth showing. */}
-            {canShowPeerReviewSection && projectId && (
-              <div
-                role="tabpanel"
-                id="project-panel-review"
-                aria-labelledby="project-tab-review"
-                hidden={currentTab !== "review"}
-              >
-                <div id="project-peer-review" className="scroll-mt-36">
-                  <ProjectPeerReviewSection
+                {canShowEvidenceSection && (
+                  <ProjectEvidenceSection
                     projectId={projectId}
-                    projectStatus={displayProject.status}
-                    reviewCriteria={displayProject.challenge_review_criteria_zh}
-                    currentUserId={user?.id}
-                    isActiveMember={isMember}
+                    canManage={canManageEvidence}
                     usePublicEndpoint={usePublicEndpoint}
                     theme={theme === "dark" ? "dark" : "light"}
-                    onContentChange={handlePeerReviewContentChange}
+                    onCountChange={setEvidenceCount}
                   />
-                </div>
+                )}
+
+                {canShowPeerReviewSection && (
+                  <div id="project-peer-review" className="scroll-mt-36">
+                    <ProjectPeerReviewSection
+                      projectId={projectId}
+                      projectStatus={displayProject.status}
+                      reviewCriteria={displayProject.challenge_review_criteria_zh}
+                      currentUserId={user?.id}
+                      isActiveMember={isMember}
+                      usePublicEndpoint={usePublicEndpoint}
+                      theme={theme === "dark" ? "dark" : "light"}
+                      onContentChange={handlePeerReviewContentChange}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
-            {canShowTasksSection && projectId && project && (
+            {(canShowTasksSection || canShowMeetingsSection) && projectId && project && (
               <div
                 role="tabpanel"
                 id="project-panel-tasks"
                 aria-labelledby="project-tab-tasks"
                 hidden={currentTab !== "tasks"}
+                className={currentTab === "tasks" ? "flex flex-col gap-5" : undefined}
               >
-                <ProjectTasksSection
-                  projectId={projectId}
-                  members={project.members}
-                  currentUserId={user?.id}
-                  canManage={isOwner || isAdmin}
-                  theme={theme === "dark" ? "dark" : "light"}
-                />
-              </div>
-            )}
-
-            {canShowMeetingsSection && projectId && project && (
-              <div
-                role="tabpanel"
-                id="project-panel-meetings"
-                aria-labelledby="project-tab-meetings"
-                hidden={currentTab !== "meetings"}
-              >
-                <div id="project-meetings" className="scroll-mt-36">
-                  <ProjectMeetingsSection
+                {canShowTasksSection && (
+                  <ProjectTasksSection
                     projectId={projectId}
                     members={project.members}
                     currentUserId={user?.id}
                     canManage={isOwner || isAdmin}
                     theme={theme === "dark" ? "dark" : "light"}
+                    onCountChange={setTasksCount}
                   />
-                </div>
+                )}
+
+                {canShowMeetingsSection && (
+                  <div id="project-meetings" className="scroll-mt-36">
+                    <ProjectMeetingsSection
+                      projectId={projectId}
+                      members={project.members}
+                      currentUserId={user?.id}
+                      canManage={isOwner || isAdmin}
+                      theme={theme === "dark" ? "dark" : "light"}
+                      onCountChange={setMeetingsCount}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -887,6 +884,7 @@ export function ResearchProjectPage() {
                   canParticipate={canParticipateInDiscussion}
                   outline={researchOutline}
                   jumpRequest={discussionJumpRequest}
+                  onCountChange={setDiscussionCount}
                 />
               </div>
             )}

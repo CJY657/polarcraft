@@ -38,6 +38,7 @@ interface ProjectTasksSectionProps {
   /** 组长或管理员可以删除任何任务；普通成员只能删除自己创建的 */
   canManage: boolean;
   theme?: 'light' | 'dark';
+  onCountChange?: (count: number) => void;
 }
 
 function getTodayDateString(): string {
@@ -70,6 +71,7 @@ export function ProjectTasksSection({
   members,
   currentUserId,
   canManage,
+  onCountChange,
 }: ProjectTasksSectionProps) {
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,6 +106,10 @@ export function ProjectTasksSection({
   useEffect(() => {
     void loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    onCountChange?.(tasks.length);
+  }, [tasks.length, onCountChange]);
 
   async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -244,9 +250,6 @@ export function ProjectTasksSection({
   return (
     <ResearchSectionCard
       title="任务分工"
-      kicker="Tasks"
-      step={4}
-      note="课题任务与认领情况"
       flush
       actions={
         tasks.length > 0 && (
@@ -288,7 +291,7 @@ export function ProjectTasksSection({
         <div className="px-5 py-8 text-center">
           <p className="text-lg font-semibold text-[var(--paper-foreground)]">还没有任务</p>
           <p className="mt-2 text-base text-[var(--research-muted)]">
-            在下方添加第一个任务，从最小的一步开始。
+            在下方写下第一件要做的事，从最小的一步开始吧
           </p>
         </div>
       )}

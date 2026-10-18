@@ -495,6 +495,330 @@ html {
     color: #ffffff;
   }
 
+  /* Question ↔ Hypothesis side-by-side matrix / 科学问题与研究假设对照双列卡 */
+  .research-qh-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.95rem;
+    align-items: stretch;
+  }
+
+  .research-qh-matrix[hidden] {
+    display: none !important;
+  }
+
+  .research-qh-box {
+    padding: 0.95rem 1.05rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--research-line);
+    background: var(--research-head);
+  }
+
+  .research-qh-box-hypothesis {
+    padding: 0.95rem 1.05rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid var(--research-edge);
+    background: color-mix(in srgb, var(--clay-ochre) 14%, transparent);
+    box-shadow: var(--research-lift);
+    transform: rotate(-0.55deg);
+    transition:
+      transform 220ms var(--glass-ease),
+      box-shadow 220ms var(--glass-ease);
+  }
+
+  .research-qh-matrix:hover .research-qh-box-hypothesis,
+  .research-notebook-sheet:hover .research-qh-box-hypothesis {
+    transform: rotate(0deg) translateY(-1px);
+  }
+
+  /* Tactile Lab Notebook Folder / 实验手账活页夹 */
+  @keyframes research-sheet-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .research-notebook-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    padding-right: 1.75rem;
+  }
+
+  .research-notebook-sheet {
+    position: relative;
+    border: 1.5px solid var(--research-edge);
+    border-radius: 0.95rem 0.3rem 0.95rem 0.95rem;
+    background: var(--research-surface);
+    box-shadow:
+      4px 4px 0 0 var(--research-head),
+      5.5px 5.5px 0 0 var(--research-edge);
+    padding: 1.25rem 1.35rem 1.3rem 2.35rem;
+    scroll-margin-top: 5.5rem;
+    transition:
+      transform 240ms var(--glass-ease),
+      box-shadow 240ms var(--glass-ease),
+      background-color 200ms var(--glass-ease);
+    animation: research-sheet-rise 380ms var(--glass-ease) both;
+  }
+
+  .research-notebook-sheet:nth-child(1) { animation-delay: 0ms; }
+  .research-notebook-sheet:nth-child(2) { animation-delay: 60ms; }
+  .research-notebook-sheet:nth-child(3) { animation-delay: 120ms; }
+  .research-notebook-sheet:nth-child(4) { animation-delay: 180ms; }
+
+  .research-notebook-sheet:hover {
+    transform: translate(3px, -2px);
+    box-shadow:
+      6px 6px 0 0 var(--research-head),
+      7.5px 7.5px 0 0 var(--research-edge);
+  }
+
+  .research-notebook-sheet::before {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    top: 1.15rem;
+    bottom: 1.15rem;
+    width: 0.45rem;
+    background-image: radial-gradient(var(--research-line) 2.5px, transparent 2.5px);
+    background-size: 0.45rem 1.4rem;
+    pointer-events: none;
+  }
+
+  .research-notebook-sheet[data-folded="true"] {
+    min-height: 3.75rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    background: var(--research-head);
+    display: flex;
+    align-items: center;
+  }
+
+  .research-notebook-sheet[data-folded="true"]::before {
+    top: 0.65rem;
+    bottom: 0.65rem;
+  }
+
+  .research-notebook-sheet[data-folded="true"] .research-notebook-head {
+    width: 100%;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+    align-items: center;
+  }
+
+  .research-notebook-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px dashed var(--research-line);
+    margin-bottom: 1rem;
+  }
+
+  .research-notebook-tab {
+    position: absolute;
+    right: -1.75rem;
+    top: 1rem;
+    width: 1.75rem;
+    padding: 0.5rem 0.2rem;
+    border: 1.5px solid var(--research-edge);
+    border-left: none;
+    border-radius: 0 0.55rem 0.55rem 0;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    white-space: nowrap;
+    line-height: 1;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 0 0 var(--research-edge);
+    transition:
+      width 180ms var(--glass-ease),
+      transform 180ms var(--glass-ease);
+    user-select: none;
+  }
+
+  .research-notebook-tab:hover {
+    width: 2rem;
+    transform: translateX(2px);
+  }
+
+  .research-notebook-sheet[data-folded="true"] .research-notebook-tab {
+    top: 50%;
+    padding: 0.35rem 0.2rem;
+    transform: translateY(-50%);
+  }
+
+  .research-notebook-sheet[data-folded="true"] .research-notebook-tab:hover {
+    transform: translate(2px, -50%);
+  }
+
+  /* Stacked paper pocket for >2 Q-H pairs / 多组问题叠纸夹层袋 */
+  .research-stacked-pocket {
+    position: relative;
+    margin-top: 0.9rem;
+    margin-bottom: 0.45rem;
+    width: 100%;
+    border: 1.5px dashed var(--research-edge);
+    border-radius: 0.7rem;
+    background: var(--research-head);
+    padding: 0.68rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    cursor: pointer;
+    box-shadow:
+      0 4px 0 -1px var(--research-surface),
+      0 4px 0 0 var(--research-line),
+      0 8px 0 -2px var(--research-surface),
+      0 8px 0 -1px var(--research-line);
+    transition:
+      transform 180ms var(--glass-ease),
+      background-color 180ms var(--glass-ease);
+  }
+
+  .research-stacked-pocket:hover {
+    background: color-mix(in srgb, var(--clay-ochre) 14%, var(--research-head));
+    transform: translateY(-1px);
+  }
+
+  /* Experiment plan two-tab folder / 实验路线活页切换卡 */
+  .research-plan-folder {
+    border: 1.5px solid var(--research-edge);
+    border-radius: 0.8rem;
+    background: var(--research-head);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .research-plan-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--research-line);
+    background: color-mix(in srgb, var(--research-line) 35%, var(--research-head));
+    padding: 0.3rem 0.35rem 0;
+    gap: 0.25rem;
+  }
+
+  .research-plan-tab {
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: transparent;
+    padding: 0.42rem 0.8rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--research-muted);
+    cursor: pointer;
+    transition: all 150ms var(--glass-ease);
+  }
+
+  .research-plan-tab[aria-selected="true"] {
+    border-color: var(--research-line);
+    background: var(--research-head);
+    color: var(--paper-foreground);
+    transform: translateY(1px);
+  }
+
+  /* Onboarding appendix pocket / 入组手账附页折页袋 */
+  .research-appendix-pocket {
+    margin-top: 0.9rem;
+    border: 1px solid var(--research-line);
+    border-radius: 0.75rem;
+    background: var(--research-head);
+    overflow: hidden;
+  }
+
+  .research-appendix-trigger {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--paper-foreground);
+    transition: background-color 150ms var(--glass-ease);
+  }
+
+  .research-appendix-trigger:hover {
+    background: color-mix(in srgb, var(--research-line) 28%, var(--research-head));
+  }
+
+  .research-appendix-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 280ms var(--glass-ease);
+  }
+
+  .research-appendix-wrap[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+
+  .research-appendix-inner {
+    overflow: hidden;
+  }
+
+  .research-appendix-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 1rem;
+    border-top: 1px dashed var(--research-line);
+  }
+
+  .research-contract-cell {
+    padding: 0.85rem 0.95rem;
+    border-radius: 0.65rem;
+    border: 1px solid var(--research-line);
+    background: var(--research-surface);
+  }
+
+  @media (max-width: 1080px) {
+    .research-appendix-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .research-qh-matrix {
+      grid-template-columns: 1fr;
+    }
+    .research-notebook-stack {
+      padding-right: 1.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .research-notebook-sheet,
+    .research-notebook-sheet:hover,
+    .research-qh-box-hypothesis,
+    .research-qh-matrix:hover .research-qh-box-hypothesis {
+      animation: none;
+      transform: none;
+    }
+  }
+
   /* Lifecycle step bar */
   .research-step-dot {
     display: grid;
