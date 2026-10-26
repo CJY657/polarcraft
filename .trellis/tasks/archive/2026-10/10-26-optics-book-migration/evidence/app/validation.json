@@ -1,0 +1,455 @@
+{
+  "checks": [
+    "Gallery: one static book entry above two polarization experiments; real cover loads; no book WebGL runtime preloaded; seven-width overflow sweep passes",
+    "Canonical entry: manual closed cover, chapter 1, full viewport without global chrome; mobile text view and seven-width frame/control bounds pass",
+    "Return link navigates the top window to the gallery; browser back restores an active renderer and forward returns to gallery",
+    "All four old paths and all four legacy query links preserve extra parameters and manually open their matching chapter",
+    "Unit1 saccharimeter retains its normal header/directory/canvas; concentration preset updates the actual slider/readout",
+    "Unit1 3D simulator retains its header/directory, renders canvas/table, and adds a quarter-wave plate"
+  ],
+  "page_errors": [],
+  "asset_failures": [
+    {
+      "url": "https://us-assets.i.posthog.com/static/surveys.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://us-assets.i.posthog.com/static/dead-clicks-autocapture.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://us-assets.i.posthog.com/static/surveys.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://us-assets.i.posthog.com/static/web-vitals.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://us-assets.i.posthog.com/static/surveys.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://us-assets.i.posthog.com/static/dead-clicks-autocapture.js?v=1.391.2",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "backend_failures": [],
+  "geometry": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1356.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 375,
+        "height": 667
+      },
+      "topline_origin": {
+        "x": 16,
+        "y": 8,
+        "width": 172.53125,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 307.15625,
+        "y": 8,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "topline_origin": {
+        "x": 16,
+        "y": 8,
+        "width": 172.53125,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 322.15625,
+        "y": 8,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 640,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 16,
+        "y": 8,
+        "width": 172.53125,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 572.15625,
+        "y": 8,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 768,
+        "height": 1024
+      },
+      "topline_origin": {
+        "x": 20,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 696.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1024,
+        "height": 768
+      },
+      "topline_origin": {
+        "x": 20,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 952.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1356.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "iframe": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 900
+      },
+      "topline_origin": {
+        "x": 32,
+        "y": 25,
+        "width": 296.5625,
+        "height": 36
+      },
+      "topline_reading": {
+        "x": 1196.15625,
+        "y": 25,
+        "width": 51.84375,
+        "height": 36
+      }
+    }
+  ],
+  "defects": [],
+  "environment_notes": [
+    "Pre-existing external Google Fonts CSS is fulfilled with an empty stylesheet because the QA network times out; all local app/book/font assets remain unchanged."
+  ],
+  "result": "passed",
+  "navigation_cancellations": [
+    {
+      "url": "http://127.0.0.1:4178/optics-book/index.html?chapter=0",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:4178/optics-book/index.html?chapter=1",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:4178/optics-book/index.html?chapter=2",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:4178/optics-book/index.html?chapter=3",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "classifier_correction": {
+    "reason": "All six browser check groups completed. The original reporter treated the four iframe document requests canceled during legacy query normalization as asset failures. Only those four events were reclassified; all actual browser assertions and strict viewport measurements already passed.",
+    "original_result": "failed",
+    "original_assertion": "AssertionError([{'url': 'http://127.0.0.1:4178/optics-book/index.html?chapter=0', 'failure': 'net::ERR_ABORTED'}, {'url': 'http://127.0.0.1:4178/optics-book/index.html?chapter=1', 'failure': 'net::ERR_ABORTED'}, {'url': 'http://127.0.0.1:4178/optics-book/index.html?chapter=2', 'failure': 'net::ERR_ABORTED'}, {'url': 'http://127.0.0.1:4178/optics-book/index.html?chapter=3', 'failure': 'net::ERR_ABORTED'}])",
+    "browser_run_repeated": false,
+    "reclassified_event_count": 4,
+    "verified_geometry_samples": 16
+  }
+}

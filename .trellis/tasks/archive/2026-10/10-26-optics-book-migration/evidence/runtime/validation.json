@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "Cover opens into seven-lesson book; wave controls appear; first-page boundary holds",
+    "Wave mesh ribbons, field vectors, wavelength/frequency, amplitude, B-field layer, tasks, text view, reset, and desktop/mobile captures pass",
+    "Linear/circular/elliptical mesh synthesis, rotating receiver vector, pointer orbit with bounded pitch, reset view, ψ/χ readouts, zero-amplitude hiding, tasks, presets, and desktop/mobile captures pass",
+    "Brewster Snell/Fresnel model, normal/grazing incidence, exact θB for three media, p-marker visibility near θB and extinction at θB, perpendicular rays, tasks, text view, pointer orbit/reset, responsive bounds, and desktop/mobile captures pass",
+    "Crystal control updates actual 3D rotation; observation tasks and reset work",
+    "Natural input: 0/45/90/180 degree analyzer intensities and all polarization tasks pass",
+    "Linear input uses cos²φ/sin²φ before the analyzer; reset restores natural light",
+    "Expanded text view, Escape, contents, page boundaries, and keyboard navigation work",
+    "Thickness, dispersion, optical-axis degeneracy, layer toggles, and principle tasks pass",
+    "Experiment panel collapses and expands without losing the current state",
+    "390px capture and 375/640/768/1024/1280/1440px overflow and panel-bounds sweep pass",
+    "Restored-page render loop, reduced motion, and close/reopen entry pass"
+  ],
+  "page_errors": [],
+  "scope": "Standalone seven-lesson preview; ideal EM-wave, polarization and Fresnel/Brewster visualizations plus index-ellipsoid walk-off for near-normal incidence on parallel faces, not arbitrary ray tracing"
+}

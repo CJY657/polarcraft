@@ -159,15 +159,15 @@ SSH 登录服务器后执行：
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y nginx git curl openssl
 
-# Node.js 20 LTS
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Node.js 24 LTS (24.22.1 or a later 24.x security release)
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # 全局工具
 sudo npm i -g pnpm pm2
 
 # 确认版本
-node -v    # 建议 v20.x
+node -v    # v24.22.1 or a later 24.x release; use `nvm install && nvm use` locally
 pnpm -v
 nginx -v
 ```

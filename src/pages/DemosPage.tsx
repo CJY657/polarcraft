@@ -25,11 +25,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 // 错误边界组件导入
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
-// Unit 0  Optical Basics demos
-import { PolarizationTypesDemo } from "@/feature/demos/unit0/PolarizationTypesDemo";
-import { ElectromagneticWaveDemo } from "@/feature/demos/unit0/ElectromagneticWaveDemo";
-import { BiRefringenceIcelandSparDemo } from "@/feature/demos/unit0/BiRefringenceIcelandSparDemo";
-import { BrewsterAngleDemo } from "@/feature/demos/unit0/BrewsterAngleDemo";
+import { OPTICS_BOOK_CHAPTERS } from "@/feature/demos/opticsBook";
 import { ColorStateDemo } from "@/feature/demos/unit1/ColorStateDemo";
 import { VisuPhyPolarizationEmbed } from "@/feature/demos/unit1/VisuPhyPolarizationEmbed";
 
@@ -46,46 +42,6 @@ interface DemoItem {
 
 // 演示列表：定义所有可用的演示项
 const DEMOS: DemoItem[] = [
-  // 单元0 - 电磁波在界面的相互作用
-  // 电磁波演示
-  {
-    id: "em-wave",
-    titleKey: "demos.theorySimulation.units.unit0.demos.lightWave.title",
-    unit: 0,
-    component: ElectromagneticWaveDemo,
-    descriptionKey: "demos.theorySimulation.units.unit0.demos.lightWave.description",
-    visualType: "2D",
-  },
-  // 偏振类型演示
-  {
-    id: "polarization-types",
-    titleKey: "demos.theorySimulation.units.unit0.demos.polarizationTypes.title",
-    unit: 0,
-    component: PolarizationTypesDemo,
-    descriptionKey: "demos.theorySimulation.units.unit0.demos.polarizationTypes.description",
-    visualType: "2D",
-  },
-  // 布鲁斯特角演示
-  {
-    id: "brewster-angle",
-    titleKey: "demos.theorySimulation.units.unit0.demos.brewsterAngle.title",
-    unit: 0,
-    component: BrewsterAngleDemo,
-    descriptionKey: "demos.theorySimulation.units.unit0.demos.brewsterAngle.description",
-    visualType: "2D",
-
-  },
-  {
-    id: "birefringence-iceland-spar",
-    titleKey: "demos.theorySimulation.units.unit0.demos.birefringenceIcelandSpar.title",
-    unit: 0,
-    component: BiRefringenceIcelandSparDemo,
-    descriptionKey: "demos.theorySimulation.units.unit0.demos.birefringenceIcelandSpar.description",
-    visualType: "3D",
-  },
-  // 单元0结束
-
-
   // 单元1 - 各向异性介质中的偏振演化
   //
   {
@@ -144,35 +100,14 @@ const UNITS = [
 
 const DEMO_CARD_STYLES = [
   {
-    card: "clay-card clay-card-ochre",
-    title: "text-clay-ink",
-    body: "text-clay-ink/75",
-    badge: "bg-white/55 text-clay-ink",
-    cta: "text-clay-ink",
-  },
-  {
-    card: "clay-card clay-card-lavender",
-    title: "text-clay-ink",
-    body: "text-clay-ink/75",
-    badge: "bg-white/55 text-clay-ink",
-    cta: "text-clay-ink",
-  },
-  {
-    card: "clay-card clay-card-peach",
-    title: "text-clay-ink",
-    body: "text-clay-ink/75",
-    badge: "bg-white/55 text-clay-ink",
-    cta: "text-clay-ink",
-  },
-  {
-    card: "clay-card clay-card-teal",
-    title: "text-white",
-    body: "text-white/80",
-    badge: "bg-white/14 text-white",
-    cta: "text-white",
-  },
-  {
     card: "clay-card clay-card-mint",
+    title: "text-clay-ink",
+    body: "text-clay-ink/75",
+    badge: "bg-white/55 text-clay-ink",
+    cta: "text-clay-ink",
+  },
+  {
+    card: "clay-card clay-card-ochre",
     title: "text-clay-ink",
     body: "text-clay-ink/75",
     badge: "bg-white/55 text-clay-ink",
@@ -207,6 +142,7 @@ export function DemosPage() {
   const drawerRef = useRef<HTMLDialogElement>(null);
 
   const activeDemoId = urlDemoId || searchParams.get("demo");
+  const bookChapter = OPTICS_BOOK_CHAPTERS.get(activeDemoId ?? "");
   const currentDemo = DEMOS.find((demo) => demo.id === activeDemoId);
   const DemoComponent = currentDemo?.component;
   const isViewingDemo = Boolean(currentDemo);
@@ -217,7 +153,7 @@ export function DemosPage() {
   // Preserve legacy links while keeping the selected demo in sync with browser navigation.
   useEffect(() => {
     const queryDemo = searchParams.get("demo");
-    if (!urlDemoId && queryDemo && DEMOS.some((demo) => demo.id === queryDemo)) {
+    if (!urlDemoId && queryDemo && (OPTICS_BOOK_CHAPTERS.has(queryDemo) || DEMOS.some((demo) => demo.id === queryDemo))) {
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("demo");
       const paramString = newParams.toString();
@@ -228,6 +164,16 @@ export function DemosPage() {
   useEffect(() => {
     setShowMobileSidebar(false);
   }, [urlDemoId]);
+
+  useEffect(() => {
+    if (bookChapter === undefined) return;
+    const root = document.documentElement;
+    const previousGutter = root.style.scrollbarGutter;
+    root.style.scrollbarGutter = "auto";
+    return () => {
+      root.style.scrollbarGutter = previousGutter;
+    };
+  }, [bookChapter]);
 
   // Native dialog supplies focus containment, Escape handling and focus restoration.
   useEffect(() => {
@@ -294,6 +240,19 @@ export function DemosPage() {
     </nav>
   );
 
+  if (bookChapter !== undefined) {
+    return (
+      <main className="h-dvh overflow-hidden bg-[#cec4b2]">
+        <iframe
+          key={bookChapter}
+          title="一束光的两种旅程 · 光学基础实验书"
+          src={`/optics-book/index.html?chapter=${bookChapter}`}
+          className="block h-full w-full border-0"
+        />
+      </main>
+    );
+  }
+
   return (
     <div className={cn(
       "clay-canvas min-h-screen",
@@ -344,41 +303,75 @@ export function DemosPage() {
                   {t("demos.theorySimulation.description", "光学基础、偏振、旋光与散射的交互演示")}
                 </p>
               </div>
-              <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-                {DEMOS.map((demo, index) => {
-                  const cardStyle = DEMO_CARD_STYLES[index % DEMO_CARD_STYLES.length];
-                  return (
-                    <button
-                      type="button"
-                      key={demo.id}
-                      onClick={() => handleDemoChange(demo.id)}
-                      className={cn(
-                        "group flex min-h-[220px] min-w-0 flex-col text-left transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay-ink motion-reduce:transform-none motion-reduce:transition-none",
-                        cardStyle.card,
-                      )}
-                    >
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
-                          {t("demos.unitLabel", "单元 {{unit}}", { unit: demo.unit })}
+              <section className="mx-auto mb-10 max-w-7xl" aria-labelledby="optical-basics-title">
+                <h2 id="optical-basics-title" className="mb-4 text-lg font-semibold text-clay-ink">
+                  {t("demos.theorySimulation.units.unit0.title")}
+                </h2>
+                <Link
+                  to="/demos/optics-book"
+                  className="group grid overflow-hidden rounded-2xl bg-[#e7dfcf] text-[#283038] shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay-ink md:grid-cols-2"
+                >
+                  <div className="flex flex-col items-start justify-center px-6 py-8 sm:px-10 sm:py-10">
+                    <h3 className="text-balance text-3xl font-semibold leading-tight sm:text-4xl" style={{ fontFamily: "var(--font-ui-display)" }}>
+                      一束光的两种旅程
+                    </h3>
+                    <p className="mt-4 max-w-md text-base leading-7 text-[#4e554e]">
+                      从电磁波与偏振出发，转动冰洲石、放入检偏片，在七个跨页中探索光的两种旅程。
+                    </p>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold">
+                      翻开实验书
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:transform-none" />
+                    </span>
+                  </div>
+                  <img
+                    src="/optics-book/cover.webp"
+                    alt=""
+                    width="800"
+                    height="600"
+                    className="aspect-[4/3] h-full w-full object-cover"
+                  />
+                </Link>
+              </section>
+              <section className="mx-auto max-w-7xl" aria-labelledby="polarization-demos-title">
+                <h2 id="polarization-demos-title" className="mb-4 text-lg font-semibold text-clay-ink">
+                  {t("demos.theorySimulation.units.unit1.title")}
+                </h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 sm:gap-6">
+                  {DEMOS.map((demo, index) => {
+                    const cardStyle = DEMO_CARD_STYLES[index % DEMO_CARD_STYLES.length];
+                    return (
+                      <button
+                        type="button"
+                        key={demo.id}
+                        onClick={() => handleDemoChange(demo.id)}
+                        className={cn(
+                          "group flex min-h-[220px] min-w-0 flex-col text-left transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-clay-ink motion-reduce:transform-none motion-reduce:transition-none",
+                          cardStyle.card,
+                        )}
+                      >
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
+                            {t("demos.unitLabel", "单元 {{unit}}", { unit: demo.unit })}
+                          </span>
+                          <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
+                            {demo.visualType}
+                          </span>
+                        </div>
+                        <h2 className={cn("text-2xl font-semibold", cardStyle.title)} style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
+                          {t(demo.titleKey)}
+                        </h2>
+                        <p className={cn("mt-3 text-sm leading-6", cardStyle.body)}>
+                          {t(demo.descriptionKey)}
+                        </p>
+                        <span className={cn("mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold", cardStyle.cta)}>
+                          {t("demos.startExploring", "开始探索")}
+                          <ArrowRight className="h-4 w-4" />
                         </span>
-                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", cardStyle.badge)}>
-                          {demo.visualType}
-                        </span>
-                      </div>
-                      <h2 className={cn("text-2xl font-semibold", cardStyle.title)} style={{ fontFamily: "var(--font-ui-display)", letterSpacing: "-0.015em" }}>
-                        {t(demo.titleKey)}
-                      </h2>
-                      <p className={cn("mt-3 text-sm leading-6", cardStyle.body)}>
-                        {t(demo.descriptionKey)}
-                      </p>
-                      <span className={cn("mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold", cardStyle.cta)}>
-                        {t("demos.startExploring", "开始探索")}
-                        <ArrowRight className="h-4 w-4" />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
             </>
           ) : (
             <div className="min-w-0">

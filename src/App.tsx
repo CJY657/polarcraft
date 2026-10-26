@@ -19,6 +19,7 @@ import { AuthDialog } from "@/components/ui/AuthDialog"; // 认证对话框组�
 import { ProfileCompletionModal } from "@/components/auth/ProfileCompletionModal";
 import { useAuthDialogStore } from "@/stores/authDialogStore"; // 认证对话框状态
 import { capturePostHogPageview, syncPostHogUser } from "@/lib/posthog";
+import { OPTICS_BOOK_CHAPTERS } from "@/feature/demos/opticsBook";
 // Shared Components - 共享组件
 import { Footer } from "@/components/shared/Footer"; // 页脚组件
 import CourseViewerPage from "@/pages/CourseViewerPage";
@@ -207,9 +208,12 @@ function AnalyticsBridge() {
   return null;
 }
 
-export function shouldHideGlobalFooter(pathname: string) {
+export function shouldHideGlobalFooter(pathname: string, search = "") {
+  const demoId = matchPath("/demos/:demoId", pathname)?.params.demoId
+    ?? (pathname === "/demos" ? new URLSearchParams(search).get("demo") : null);
   return Boolean(
-    pathname === "/chronicles" ||
+    OPTICS_BOOK_CHAPTERS.has(demoId ?? "") ||
+      pathname === "/chronicles" ||
       pathname === "/experiments" ||
       matchPath("/experiments/:experimentId", pathname) ||
       pathname === "/applications" ||
@@ -224,7 +228,7 @@ export function shouldResetScrollOnNavigation(navigationType: string, hash: stri
 
 function AppRouterContent() {
   const location = useLocation();
-  const shouldHideFooter = shouldHideGlobalFooter(location.pathname);
+  const shouldHideFooter = shouldHideGlobalFooter(location.pathname, location.search);
 
   return (
     <>

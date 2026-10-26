@@ -1,0 +1,5 @@
+# Keep this preview's requested plan and documentation despite the root *.md rule.
+!plan.md
+!calcite-book/PRODUCT.md
+!calcite-book/DESIGN.md
+!calcite-book/assets/README.md

@@ -30,6 +30,22 @@ describe("shouldHideGlobalFooter", () => {
     expect(shouldHideGlobalFooter("/chronicles")).toBe(true);
     expect(shouldHideGlobalFooter("/chronicles/explore")).toBe(false);
   });
+
+  it.each(["optics-book", "em-wave", "polarization-types", "brewster-angle", "birefringence-iceland-spar"])(
+    "hides the footer on the %s book route and its legacy query link",
+    (id) => {
+      expect(shouldHideGlobalFooter(`/demos/${id}`)).toBe(true);
+      expect(shouldHideGlobalFooter("/demos", `?demo=${id}`)).toBe(true);
+    },
+  );
+
+  it("keeps the footer on the gallery, unknown demos, and polarization-state experiments", () => {
+    expect(shouldHideGlobalFooter("/demos")).toBe(false);
+    expect(shouldHideGlobalFooter("/demos/unknown")).toBe(false);
+    expect(shouldHideGlobalFooter("/demos/color-state", "?demo=em-wave")).toBe(false);
+    expect(shouldHideGlobalFooter("/demos/visuphy-polarization")).toBe(false);
+    expect(shouldHideGlobalFooter("/about", "?demo=em-wave")).toBe(false);
+  });
 });
 
 describe("shouldResetScrollOnNavigation", () => {

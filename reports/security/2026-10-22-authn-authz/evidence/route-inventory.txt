@@ -1,0 +1,192 @@
+server/src/routes/feedback.routes.ts:128:router.post(
+server/src/routes/feedback.routes.ts:168:router.use(authenticate);
+server/src/routes/feedback.routes.ts:175:router.get('/public', FeedbackController.listPublic);
+server/src/routes/feedback.routes.ts:177:router.get('/', requireAdmin, FeedbackController.list);
+server/src/routes/feedback.routes.ts:178:router.patch('/:id/visibility', requireAdmin, FeedbackController.setVisibility);
+server/src/routes/feedback.routes.ts:179:router.delete('/:id', requireAdmin, FeedbackController.remove);
+server/src/routes/user.routes.ts:20:router.use(authenticate);
+server/src/routes/user.routes.ts:27:router.get('/stats', requireAdmin, UserController.getUserStatsForAdmin);
+server/src/routes/user.routes.ts:34:router.get('/', requireAdmin, UserController.listUsersForAdmin);
+server/src/routes/user.routes.ts:41:router.get('/activity', requireAdmin, UserController.getActivityDashboardForAdmin);
+server/src/routes/user.routes.ts:48:router.get(
+server/src/routes/user.routes.ts:59:router.get('/:userId/activity', requireAdmin, UserController.getLearnerActivityForAdmin);
+server/src/routes/user.routes.ts:66:router.get('/:userId/details', requireAdmin, UserController.getUserDetailForAdmin);
+server/src/routes/user.routes.ts:73:router.get('/profile', UserController.getProfile);
+server/src/routes/user.routes.ts:80:router.put('/profile', validateUpdateProfile, UserController.updateProfile);
+server/src/routes/user.routes.ts:87:router.post(
+server/src/routes/user.routes.ts:98:router.get('/sessions', UserController.getSessions);
+server/src/routes/user.routes.ts:105:router.delete(
+server/src/routes/user.routes.ts:116:router.post('/logout-all', UserController.logoutFromAllSessions);
+server/src/routes/upload.routes.ts:21:router.use(authenticate);
+server/src/routes/upload.routes.ts:22:router.use(requireAdmin);
+server/src/routes/upload.routes.ts:32:router.post(
+server/src/routes/upload.routes.ts:72:router.delete(
+server/src/routes/upload.routes.ts:84:router.get('/files', UploadController.listFiles);
+server/src/routes/upload.routes.ts:91:router.get('/config', UploadController.getUploadConfig);
+server/src/routes/course.routes.ts:69:router.get("/public", CourseController.getAllCourses);
+server/src/routes/course.routes.ts:76:router.get("/public/:id", CourseController.getCourse);
+server/src/routes/course.routes.ts:83:router.get("/public/:id/main-slide", CourseController.getMainSlide);
+server/src/routes/course.routes.ts:90:router.get("/public/:id/media", CourseController.getMediaList);
+server/src/routes/course.routes.ts:97:router.get("/public/:id/hyperlinks", CourseController.getHyperlinks);
+server/src/routes/course.routes.ts:104:router.get("/public/:id/discussion-comments", CourseController.getDiscussionComments);
+server/src/routes/course.routes.ts:108:router.use(authenticate);
+server/src/routes/course.routes.ts:110:router.post('/:id/experiment-categories', requireAdmin, ExperimentCategoryController.create);
+server/src/routes/course.routes.ts:111:router.put('/:id/experiment-categories/reorder', requireAdmin, ExperimentCategoryController.reorder);
+server/src/routes/course.routes.ts:112:router.put('/:id/experiment-categories/:categoryId', requireAdmin, ExperimentCategoryController.update);
+server/src/routes/course.routes.ts:113:router.delete('/:id/experiment-categories/:categoryId', requireAdmin, ExperimentCategoryController.delete);
+server/src/routes/course.routes.ts:126:router.post(
+server/src/routes/course.routes.ts:138:router.post(
+server/src/routes/course.routes.ts:168:router.delete(
+server/src/routes/course.routes.ts:184:router.get("/", requireAdmin, CourseController.getAllCourses);
+server/src/routes/course.routes.ts:191:router.get("/:id", requireAdmin, CourseController.getCourse);
+server/src/routes/course.routes.ts:198:router.post("/", requireAdmin, CourseController.createCourse);
+server/src/routes/course.routes.ts:205:router.put("/:id", requireAdmin, CourseController.updateCourse);
+server/src/routes/course.routes.ts:212:router.delete("/media", requireAdmin, CourseController.deleteMediaBatch);
+server/src/routes/course.routes.ts:219:router.delete("/:id", requireAdmin, CourseController.deleteCourse);
+server/src/routes/course.routes.ts:232:router.get("/:id/main-slide", requireAdmin, CourseController.getMainSlide);
+server/src/routes/course.routes.ts:239:router.get("/:id/main-slide/download", requireAdmin, CourseController.downloadMainSlide);
+server/src/routes/course.routes.ts:246:router.put("/:id/main-slide", requireAdmin, CourseController.upsertMainSlide);
+server/src/routes/course.routes.ts:253:router.delete("/:id/main-slide", requireAdmin, CourseController.deleteMainSlide);
+server/src/routes/course.routes.ts:266:router.get("/:id/media", requireAdmin, CourseController.getMediaList);
+server/src/routes/course.routes.ts:273:router.post("/:id/media", requireAdmin, CourseController.createMedia);
+server/src/routes/course.routes.ts:280:router.put("/:id/media/reorder", requireAdmin, CourseController.reorderMedia);
+server/src/routes/course.routes.ts:287:router.get("/media/:mediaId", requireAdmin, CourseController.getMedia);
+server/src/routes/course.routes.ts:294:router.get("/media/:mediaId/download", requireAdmin, CourseController.downloadMedia);
+server/src/routes/course.routes.ts:301:router.put("/media/:mediaId", requireAdmin, CourseController.updateMedia);
+server/src/routes/course.routes.ts:308:router.delete("/media/:mediaId", requireAdmin, CourseController.deleteMedia);
+server/src/routes/course.routes.ts:321:router.get("/:id/hyperlinks", requireAdmin, CourseController.getHyperlinks);
+server/src/routes/course.routes.ts:328:router.get(
+server/src/routes/course.routes.ts:339:router.post("/:id/hyperlinks", requireAdmin, CourseController.createHyperlink);
+server/src/routes/course.routes.ts:346:router.put(
+server/src/routes/course.routes.ts:357:router.delete(
+server/src/routes/unit.routes.ts:24:router.get("/public", UnitController.getPublicUnits);
+server/src/routes/unit.routes.ts:31:router.get("/public/:id", UnitController.getPublicUnit);
+server/src/routes/unit.routes.ts:38:router.get("/public/:id/main-slide", UnitController.getPublicMainSlide);
+server/src/routes/unit.routes.ts:45:router.get("/public/:id/courses", UnitController.getPublicUnitCourses);
+server/src/routes/unit.routes.ts:49:router.use(authenticate);
+server/src/routes/unit.routes.ts:62:router.get("/", requireAdmin, UnitController.getAllUnits);
+server/src/routes/unit.routes.ts:69:router.put("/reorder", requireAdmin, UnitController.reorderUnits);
+server/src/routes/unit.routes.ts:76:router.get("/:id", requireAdmin, UnitController.getUnit);
+server/src/routes/unit.routes.ts:83:router.post("/", requireAdmin, UnitController.createUnit);
+server/src/routes/unit.routes.ts:90:router.put("/:id", requireAdmin, UnitController.updateUnit);
+server/src/routes/unit.routes.ts:97:router.delete("/:id", requireAdmin, UnitController.deleteUnit);
+server/src/routes/unit.routes.ts:110:router.get("/:id/main-slide", requireAdmin, UnitController.getMainSlide);
+server/src/routes/unit.routes.ts:117:router.put("/:id/main-slide", requireAdmin, UnitController.upsertMainSlide);
+server/src/routes/unit.routes.ts:124:router.delete("/:id/main-slide", requireAdmin, UnitController.deleteMainSlide);
+server/src/routes/unit.routes.ts:132:router.post("/:id/experiment-categories", requireAdmin, UnitController.createExperimentCategory);
+server/src/routes/unit.routes.ts:133:router.put(
+server/src/routes/unit.routes.ts:138:router.put(
+server/src/routes/unit.routes.ts:143:router.delete(
+server/src/routes/unit.routes.ts:160:router.get("/:id/courses", requireAdmin, UnitController.getUnitCourses);
+server/src/routes/auth.routes.ts:32:router.post(
+server/src/routes/auth.routes.ts:44:router.get('/salt/:username', authRateLimiter, AuthController.getUserSalt);
+server/src/routes/auth.routes.ts:51:router.post(
+server/src/routes/auth.routes.ts:63:router.post('/logout', authenticate, AuthController.logout);
+server/src/routes/auth.routes.ts:70:router.post(
+server/src/routes/auth.routes.ts:81:router.post(
+server/src/routes/auth.routes.ts:93:router.post(
+server/src/routes/auth.routes.ts:105:router.post(
+server/src/routes/auth.routes.ts:117:router.post(
+server/src/routes/auth.routes.ts:129:router.post(
+server/src/routes/auth.routes.ts:141:router.get('/me', authenticate, AuthController.me);
+server/src/routes/auth.routes.ts:148:router.get('/captcha', captchaRateLimiter, AuthController.getCaptcha);
+server/src/routes/auth.routes.ts:155:router.post('/verify-captcha', captchaRateLimiter, AuthController.verifyCaptcha);
+server/src/routes/stats.routes.ts:17:router.get('/activity', optionalAuth, StatsController.getPublicActivity);
+server/src/routes/quiz.routes.ts:33:router.use(authenticate);
+server/src/routes/quiz.routes.ts:40:router.post('/start', requireUser, quizStartRateLimiter, QuizController.start);
+server/src/routes/quiz.routes.ts:47:router.post(
+server/src/routes/quiz.routes.ts:65:router.get('/me', requireUser, QuizController.getMyAttempts);
+server/src/routes/quiz.routes.ts:72:router.get('/admin/attempts', requireAdmin, QuizController.adminListAttempts);
+server/src/routes/quiz.routes.ts:79:router.get('/admin/stats', requireAdmin, QuizController.adminStats);
+server/src/routes/research.routes.ts:167:router.use(authenticate);
+server/src/routes/research.routes.ts:180:router.get('/projects', ResearchController.getUserProjects);
+server/src/routes/research.routes.ts:187:router.post('/projects', ResearchController.createProject);
+server/src/routes/research.routes.ts:194:router.get('/reference-candidates', ResearchController.getTopicReferenceCandidates);
+server/src/routes/research.routes.ts:201:router.get('/projects/:id', ResearchController.getProject);
+server/src/routes/research.routes.ts:208:router.get('/projects/:id/backlinks', ResearchController.getProjectBacklinks);
+server/src/routes/research.routes.ts:215:router.put('/projects/:id', ResearchController.updateProject);
+server/src/routes/research.routes.ts:222:router.put(
+server/src/routes/research.routes.ts:233:router.delete(
+server/src/routes/research.routes.ts:243:router.post(
+server/src/routes/research.routes.ts:253:router.post(
+server/src/routes/research.routes.ts:263:router.delete('/projects/:id', ResearchController.deleteProject);
+server/src/routes/research.routes.ts:270:router.get('/projects/:projectId/evidence', ResearchController.getProjectEvidence);
+server/src/routes/research.routes.ts:277:router.post('/projects/:projectId/evidence', ResearchController.createProjectEvidence);
+server/src/routes/research.routes.ts:284:router.put('/projects/:projectId/evidence/order', ResearchController.reorderProjectEvidence);
+server/src/routes/research.routes.ts:291:router.put('/projects/:projectId/evidence/:evidenceId', ResearchController.updateProjectEvidence);
+server/src/routes/research.routes.ts:298:router.delete('/projects/:projectId/evidence/:evidenceId', ResearchController.deleteProjectEvidence);
+server/src/routes/research.routes.ts:305:router.post(
+server/src/routes/research.routes.ts:323:router.get('/projects/:projectId/reviews', ResearchController.getProjectReviews);
+server/src/routes/research.routes.ts:330:router.put('/projects/:projectId/reviews/me', ResearchController.upsertMyProjectReview);
+server/src/routes/research.routes.ts:337:router.delete('/reviews/:id', ResearchController.deleteProjectReview);
+server/src/routes/research.routes.ts:353:router.post(
+server/src/routes/research.routes.ts:365:router.get('/projects/:projectId/meetings', ResearchMeetingController.getProjectMeetings);
+server/src/routes/research.routes.ts:372:router.post('/projects/:projectId/meetings', ResearchMeetingController.createProjectMeeting);
+server/src/routes/research.routes.ts:379:router.get('/projects/:projectId/meetings/:meetingId', ResearchMeetingController.getProjectMeeting);
+server/src/routes/research.routes.ts:386:router.patch('/projects/:projectId/meetings/:meetingId', ResearchMeetingController.updateProjectMeeting);
+server/src/routes/research.routes.ts:393:router.delete(
+server/src/routes/research.routes.ts:403:router.post(
+server/src/routes/research.routes.ts:414:router.post(
+server/src/routes/research.routes.ts:424:router.put(
+server/src/routes/research.routes.ts:434:router.get(
+server/src/routes/research.routes.ts:444:router.get('/projects/:projectId/leaderboard', ResearchMeetingController.getProjectLeaderboard);
+server/src/routes/research.routes.ts:457:router.get('/projects/:projectId/tasks', ResearchController.getProjectTasks);
+server/src/routes/research.routes.ts:464:router.post('/projects/:projectId/tasks', ResearchController.createProjectTask);
+server/src/routes/research.routes.ts:471:router.put('/tasks/:id', ResearchController.updateProjectTask);
+server/src/routes/research.routes.ts:478:router.delete('/tasks/:id', ResearchController.deleteProjectTask);
+server/src/routes/research.routes.ts:485:router.post('/projects/:id/members', ResearchController.addProjectMember);
+server/src/routes/research.routes.ts:492:router.delete('/projects/:id/members/:userId', ResearchController.removeProjectMember);
+server/src/routes/research.routes.ts:499:router.get('/projects/:projectId/agent/messages', ResearchController.getProjectAgentMessages);
+server/src/routes/research.routes.ts:506:router.delete('/projects/:projectId/agent/messages', ResearchController.clearProjectAgentMessages);
+server/src/routes/research.routes.ts:513:router.post(
+server/src/routes/research.routes.ts:524:router.post(
+server/src/routes/research.routes.ts:536:router.get('/projects/:projectId/discussion-comments', ResearchController.getProjectDiscussionComments);
+server/src/routes/research.routes.ts:543:router.post('/projects/:projectId/discussion-comments', ResearchController.addProjectDiscussionComment);
+server/src/routes/research.routes.ts:550:router.post(
+server/src/routes/research.routes.ts:562:router.post(
+server/src/routes/research.routes.ts:574:router.put('/discussion-comments/:id', ResearchController.updateProjectDiscussionComment);
+server/src/routes/research.routes.ts:581:router.delete('/discussion-comments/:id', ResearchController.deleteProjectDiscussionComment);
+server/src/routes/research.routes.ts:594:router.get('/projects/:id/activity', ResearchController.getProjectActivity);
+server/src/routes/research.routes.ts:607:router.get('/projects/:id/taskboard', ResearchController.getTaskBoard);
+server/src/routes/research.routes.ts:614:router.put('/projects/:id/taskboard', ResearchController.updateTaskBoard);
+server/src/routes/research.routes.ts:627:router.post('/experiments/:id/run', ResearchController.runSimulation);
+server/src/routes/research.routes.ts:634:router.get('/experiments/:id/results', ResearchController.getSimulationResults);
+server/src/routes/research.routes.ts:647:router.get('/projects/:id/settings', ResearchController.getProjectSettings);
+server/src/routes/research.routes.ts:654:router.put('/projects/:id/settings', ResearchController.updateProjectSettings);
+server/src/routes/research.routes.ts:667:router.get('/projects/:id/applications', ResearchController.getProjectApplications);
+server/src/routes/research.routes.ts:674:router.post('/projects/:id/applications', ResearchController.createApplication);
+server/src/routes/research.routes.ts:681:router.put('/applications/:id/status', ResearchController.updateApplicationStatus);
+server/src/routes/research.routes.ts:688:router.delete('/applications/:id', ResearchController.withdrawApplication);
+server/src/routes/research.routes.ts:701:router.get('/projects/:id/creator-profiles', ResearchController.getCreatorProfiles);
+server/src/routes/research.routes.ts:708:router.post('/projects/with-profile', ResearchController.createProjectWithProfile);
+server/src/routes/profile.routes.ts:14:router.get("/public-projects", optionalAuth, ProfileController.getPublicProjects);
+server/src/routes/profile.routes.ts:15:router.get("/public-projects/:projectId/evidence", optionalAuth, ProfileController.getPublicProjectEvidence);
+server/src/routes/profile.routes.ts:16:router.get("/public-projects/:projectId/reviews", optionalAuth, ProfileController.getPublicProjectReviews);
+server/src/routes/profile.routes.ts:17:router.get("/public-projects/:id/backlinks", optionalAuth, ProfileController.getPublicProjectBacklinks);
+server/src/routes/profile.routes.ts:18:router.get("/public-projects/:id", optionalAuth, ProfileController.getPublicProject);
+server/src/routes/profile.routes.ts:22:router.use(authenticate);
+server/src/routes/profile.routes.ts:35:router.get("/educations", ProfileController.getUserEducations);
+server/src/routes/profile.routes.ts:42:router.post("/educations", ProfileController.createEducation);
+server/src/routes/profile.routes.ts:49:router.put("/educations/:id", ProfileController.updateEducation);
+server/src/routes/profile.routes.ts:56:router.delete("/educations/:id", ProfileController.deleteEducation);
+server/src/routes/profile.routes.ts:69:router.get("/applications", ProfileController.getUserApplications);
+server/src/routes/notification.routes.ts:13:router.use(authenticate);
+server/src/routes/notification.routes.ts:29:router.get("/", NotificationController.getNotifications);
+server/src/routes/notification.routes.ts:36:router.get("/unread-count", NotificationController.getUnreadCount);
+server/src/routes/notification.routes.ts:43:router.put("/:id/read", NotificationController.markAsRead);
+server/src/routes/notification.routes.ts:50:router.put("/read-all", NotificationController.markAllAsRead);
+server/src/routes/notification.routes.ts:57:router.delete("/:id", NotificationController.deleteNotification);
+server/src/routes/index.ts:30:router.use((req: Request, res: Response, next: NextFunction) => {
+server/src/routes/index.ts:35:router.use(csrfToken);
+server/src/routes/index.ts:37:router.get('/health', async (req: Request, res: Response) => {
+server/src/routes/index.ts:93:router.use('/auth', authRoutes);
+server/src/routes/index.ts:94:router.use('/users', userRoutes);
+server/src/routes/index.ts:95:router.use('/research', researchRoutes);
+server/src/routes/index.ts:96:router.use('/profile', profileRoutes);
+server/src/routes/index.ts:97:router.use('/courses', courseRoutes);
+server/src/routes/index.ts:98:router.use('/units', unitRoutes);
+server/src/routes/index.ts:99:router.use('/upload', uploadRoutes);
+server/src/routes/index.ts:100:router.use('/notifications', notificationRoutes);
+server/src/routes/index.ts:101:router.use('/feedback', feedbackRoutes);
+server/src/routes/index.ts:102:router.use('/quiz', quizRoutes);
+server/src/routes/index.ts:103:router.use('/stats', statsRoutes);

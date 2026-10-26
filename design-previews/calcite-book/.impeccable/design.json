@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T13:33:59+08:00",
+  "title": "Design System: Calcite experiment book",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "navigation",
+        "value": "0 8px 30px #333c3026",
+        "purpose": "Lift the navigation gently above the physical scene."
+      },
+      {
+        "name": "experiment",
+        "value": "0 8px 28px #3335281c",
+        "purpose": "Separate the paper control panel from the desk."
+      }
+    ],
+    "motion": [
+      {
+        "name": "page-leaf",
+        "value": "0.5s",
+        "purpose": "Flat rotating leaf on page changes; skipped for reduced motion."
+      },
+      {
+        "name": "opening",
+        "value": "frame-delta easing, factor 4.5",
+        "purpose": "Hinged book opening; immediate for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "700px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "wide-desktop",
+        "value": "1700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Open book",
+      "kind": "button",
+      "refersTo": "open-book",
+      "description": "The closed-book entry action.",
+      "html": "<button class=\"ds-open\">打开实验书 ↗</button>",
+      "css": ".ds-open{font-family:BookSerif,'Noto Serif CJK SC',Georgia,serif;color:var(--ink,#28303a);border:0;border-bottom:1px solid #695a35;background:rgba(250,245,233,.82);padding:12px 24px;font-size:15px;letter-spacing:.12em;cursor:pointer}.ds-open:hover{background:var(--paper,#faf5e9)}.ds-open:focus-visible{outline:2px solid var(--accent,#913e2c);outline-offset:4px}"
+    },
+    {
+      "name": "Angle preset",
+      "kind": "button",
+      "description": "Native buttons set the analyzer angle.",
+      "html": "<button class=\"ds-preset\">45°</button>",
+      "css": ".ds-preset{font-family:BookSerif,'Noto Serif CJK SC',Georgia,serif;color:var(--ink,#28303a);border:1px solid #b3a894;background:transparent;border-radius:3px;padding:5px;font-size:11px;cursor:pointer}.ds-preset:hover{background:#e9e0cd}.ds-preset:focus-visible{outline:2px solid var(--accent,#913e2c);outline-offset:4px}"
+    },
+    {
+      "name": "Crystal angle",
+      "kind": "input",
+      "description": "The accessible alternative to dragging the crystal.",
+      "html": "<label class=\"ds-range\">晶体转角 <input type=\"range\" min=\"0\" max=\"180\" value=\"45\" aria-label=\"晶体转角\"></label>",
+      "css": ".ds-range{font-family:BookSerif,'Noto Serif CJK SC',Georgia,serif;color:var(--ink,#28303a);display:block;font-size:12px}.ds-range input{display:block;width:170px;height:4px;margin:10px 0 17px;accent-color:var(--accent,#913e2c)}.ds-range input:focus-visible{outline:2px solid var(--accent,#913e2c);outline-offset:4px}"
+    },
+    {
+      "name": "Navigation capsule",
+      "kind": "nav",
+      "description": "Bottom navigation keeps the active lesson visible.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"实验书导航\"><button aria-label=\"上一页\">‹</button><span>转动晶体<small>02 / 04 · 冰洲石实验</small></span><button aria-label=\"下一页\">›</button></nav>",
+      "css": ".ds-nav{font-family:BookSerif,'Noto Serif CJK SC',Georgia,serif;color:var(--ink,#28303a);display:flex;align-items:center;gap:16px;padding:5px 10px;height:56px;border:1.5px solid #fff8;border-radius:30px;background:#f4f3e9c9;backdrop-filter:blur(14px);box-shadow:0 8px 30px #333c3026;font-size:14px}.ds-nav small{display:block;font-size:10px;color:#6c6251;letter-spacing:.12em;margin-top:3px}.ds-nav button{width:40px;height:40px;border:0;border-radius:50%;background:transparent;cursor:pointer;font-size:24px;color:inherit}.ds-nav button:hover{background:#fff7}.ds-nav button:focus-visible{outline:2px solid var(--accent,#913e2c);outline-offset:4px}"
+    },
+    {
+      "name": "Experiment panel",
+      "kind": "card",
+      "refersTo": "experiment-panel",
+      "description": "Compact paper-toned controls and labeled intensity readouts.",
+      "html": "<section class=\"ds-panel\"><p>动手试一试</p><div>o 像 <b>50%</b>　 e 像 <b>50%</b></div><small>相对总入射光强 · 理想模型</small></section>",
+      "css": ".ds-panel{font-family:BookSerif,'Noto Serif CJK SC',Georgia,serif;color:var(--ink,#28303a);width:205px;box-sizing:border-box;padding:18px 17px 14px;background:#faf5e9ed;border:1px solid #fff8;box-shadow:0 8px 28px #3335281c;border-radius:4px;font-size:12px}.ds-panel p{font-size:13px;margin:0 0 16px}.ds-panel b{font-weight:400;color:var(--accent,#913e2c);font-variant-numeric:tabular-nums}.ds-panel small{display:block;font-size:9px;color:#716754;margin-top:9px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A small optics book on a quiet desk",
+    "dos": [
+      "Do retain the readable printed textures and the complete HTML reading alternative.",
+      "Do keep material detail quiet enough for the lesson and experiment to lead.",
+      "Do preserve local asset loading and the explicit ideal-model labels."
+    ],
+    "donts": [
+      "Don't describe the illustrative geometry as quantitative crystal ray tracing.",
+      "Don't rely on ray color or the canvas alone to convey the lesson.",
+      "Don't treat this preview's tokens or composition as a replacement for the root design system."
+    ]
+  }
+}
